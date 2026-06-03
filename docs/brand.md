@@ -79,11 +79,11 @@ and CLI snippets.
 
 ### Social card
 
-[`assets/branding/rail-contract/og.png`](../assets/branding/rail-contract/og.png) (1200x630, no baked
-text). Overlay headline + subhead in HTML/templating, not in the raster:
-
-- Headline `Spec-first delivery, one rail` — Space Grotesk, 56px, 700, line-height 1.02, `#F4F7FA`, at x=96 y=178, max-width 520px.
-- Subhead `A tracker-driven contract for Claude Code, Codex, and autonomous TypeScript orchestration.` — Inter, 25px, 500, line-height 1.3, `#A9B2BD`, at x=96 y=322, max-width 500px.
+[`assets/branding/rail-contract/og.png`](../assets/branding/rail-contract/og.png) (1200x630) — the
+GitHub / link-unfurl social preview. The title `agentic-workflow-kit`, the tagline `One tracker. Two
+drivers.`, and `Spec-first delivery for any repo.` are baked into the left zone over the rail motif (a
+static social card can't overlay text at render time). Upload it via repo Settings → General → Social
+preview.
 
 ## Caveats
 
