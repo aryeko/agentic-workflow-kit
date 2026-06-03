@@ -67,7 +67,7 @@ describe('plugin manifests', () => {
     expect(existsSync('.agents/plugins/marketplace.json')).toBe(true);
     const mk = JSON.parse(readFileSync('.agents/plugins/marketplace.json', 'utf8'));
 
-    expect(mk.name).toBe('agentic-workflow-kit-local');
+    expect(mk.name).toBe('agentic-workflow-kit');
     expect(Array.isArray(mk.plugins)).toBe(true);
 
     const entry = mk.plugins.find((p: { name: string }) => p.name === 'agentic-workflow-kit');

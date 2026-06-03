@@ -17,7 +17,7 @@ describe('current-state documentation', () => {
 
     expect(readme).not.toContain('local `./` source');
     expect(readme).toContain('codex plugin marketplace add .');
-    expect(readme).toContain('codex plugin add agentic-workflow-kit@agentic-workflow-kit-local');
+    expect(readme).toContain('codex plugin add agentic-workflow-kit@agentic-workflow-kit');
     expect(readme).toContain('./plugins/agentic-workflow-kit');
   });
 });

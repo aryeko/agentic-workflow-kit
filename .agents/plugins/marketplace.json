@@ -1,5 +1,5 @@
 {
-  "name": "agentic-workflow-kit-local",
+  "name": "agentic-workflow-kit",
   "plugins": [
     {
       "name": "agentic-workflow-kit",
