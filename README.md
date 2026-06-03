@@ -92,8 +92,6 @@ Switch behavior by editing the `pr:` block in `.workflow/config.yaml`. See
 
 ## Install
 
-Install commands are **planned**, not live — see [Project status](#project-status).
-
 ### Claude Code plugin
 
 ```text
@@ -103,8 +101,15 @@ Install commands are **planned**, not live — see [Project status](#project-sta
 
 ### Codex plugin
 
-Use the Codex plugin marketplace entry once agentic-workflow-kit is published. The exact public install
-command stays deferred until the marketplace submission is real.
+Add the marketplace from the CLI ([Codex docs](https://developers.openai.com/codex/plugins/build#add-a-marketplace-from-the-cli)),
+then install from the Codex plugin directory:
+
+```bash
+codex plugin marketplace add aryeko/agentic-workflow-kit
+```
+
+Restart Codex, then open the plugin directory, select the `agentic-workflow-kit` marketplace, and install
+the `agentic-workflow-kit` plugin (CLI equivalent: `codex plugin add agentic-workflow-kit@agentic-workflow-kit`).
 
 ### Optional orchestrator package
 
@@ -129,15 +134,15 @@ The repository includes local-only plugin metadata for pre-publish testing:
 
 - Claude Code: load this repo with `claude --plugin-dir ./`, then invoke namespaced skills such as
   `/agentic-workflow-kit:workflow-init`.
-- Codex: use `.agents/plugins/marketplace.json` as the local marketplace fixture. It points to the
-  materialized repository-contained fixture at `./plugins/agentic-workflow-kit` and does not imply public
-  availability.
+- Codex: `.agents/plugins/marketplace.json` is the marketplace manifest — the same one a public
+  `codex plugin marketplace add aryeko/agentic-workflow-kit` reads. Locally you add it from the repo
+  directory; it points at the materialized fixture at `./plugins/agentic-workflow-kit`.
 
 ```bash
 tmp_home="$(mktemp -d)"
 CODEX_HOME="$tmp_home" codex plugin marketplace add .
 CODEX_HOME="$tmp_home" codex plugin list
-CODEX_HOME="$tmp_home" codex plugin add agentic-workflow-kit@agentic-workflow-kit-local
+CODEX_HOME="$tmp_home" codex plugin add agentic-workflow-kit@agentic-workflow-kit
 CODEX_HOME="$tmp_home" codex plugin list
 ```
 
@@ -160,11 +165,10 @@ Keep manual plugin smokes pending until they are run in the relevant tool enviro
 
 ## Project status
 
-agentic-workflow-kit is **feature-complete locally**: the five skills (`workflow-init`, `plan-product`,
+agentic-workflow-kit is published as **v0.1.0**: the five skills (`workflow-init`, `plan-product`,
 `plan-track`, `implement-next`, `workflow-autopilot`), the contracts, the three presets, the worked
-examples, and the optional `@agentic-workflow-kit/orchestrator` package are implemented and covered by the
-test suite (`pnpm check`).
+examples, and the optional `@agentic-workflow-kit/orchestrator` package (on npm) are implemented and
+covered by the test suite (`pnpm check`).
 
-It has **not** been published. Treat all marketplace and npm install commands above as planned, not
-live, until the repository is pushed and published with explicit approval. The agent-driven skills
-and a live orchestrator dispatch still need end-to-end smoke runs before broad reliance.
+It is an early **0.x** release — the install paths above are live. Feedback and issues are welcome as the
+agent-driven skills get broader real-world mileage.

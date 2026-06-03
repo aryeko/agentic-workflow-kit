@@ -20,7 +20,7 @@ not touch your real Codex config:
 cd ~/repos/agentic-workflow-kit
 export CODEX_HOME="$(mktemp -d)"
 codex plugin marketplace add .
-codex plugin add agentic-workflow-kit@agentic-workflow-kit-local
+codex plugin add agentic-workflow-kit@agentic-workflow-kit
 codex plugin list                      # confirm installed + skill prompts visible
 ```
 
