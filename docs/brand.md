@@ -37,10 +37,11 @@ that set a text color (docs sites, app shells).
 
 ### Hero banner
 
-The README header uses [`hero-1280x400.png`](../assets/branding/rail-contract/hero-1280x400.png) (header
-ratio); [`hero.png`](../assets/branding/rail-contract/hero.png) is the 1280x640 version. Both are
-full-dark (`#0B0D10`) with the rail motif weighted right and a uniform dark left zone (verified, so a
-near-white headline overlay stays legible). No baked text — overlay any headline in HTML/templating.
+The README header uses [`hero-1280x400.png`](../assets/branding/rail-contract/hero-1280x400.png) — the
+full-dark rail motif (weighted right) with the title `agentic-workflow-kit` + tagline baked into the left
+zone (GitHub markdown can't overlay text, so the headline is rendered into the image). The text-free
+1280x640 [`hero.png`](../assets/branding/rail-contract/hero.png) keeps the empty left zone for contexts
+where you overlay your own headline (e.g. a docs site). Palette `#0B0D10`; near-white headline `#F4F7FA`.
 
 ## Color
 

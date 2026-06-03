@@ -2,8 +2,6 @@
   <img src="assets/branding/rail-contract/hero-1280x400.png" alt="agentic-workflow-kit — one tracker, two drivers" width="100%" />
 </p>
 
-# agentic-workflow-kit
-
 [![CI](https://github.com/aryeko/agentic-workflow-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/aryeko/agentic-workflow-kit/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Node >=24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 
 A generic, OSS Claude Code plugin (plus an optional orchestrator) that turns any repo into a
