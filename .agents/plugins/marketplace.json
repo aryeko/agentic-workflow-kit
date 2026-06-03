@@ -1,0 +1,17 @@
+{
+  "name": "agentic-workflow-kit-local",
+  "plugins": [
+    {
+      "name": "agentic-workflow-kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agentic-workflow-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

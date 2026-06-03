@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Documentation
+    url: https://github.com/aryeko/agentic-workflow-kit/tree/main/docs
+    about: Read the architecture, getting-started guide, config schema reference, and tracker contract.
+
+  - name: Questions and ideas
+    url: https://github.com/aryeko/agentic-workflow-kit/discussions
+    about: Ask questions or share ideas in GitHub Discussions rather than opening an issue.

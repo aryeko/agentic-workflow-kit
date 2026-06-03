@@ -1,0 +1,11 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">agentic-workflow-kit Rail Contract accent icon</title>
+  <g stroke="#0B5CAD" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="11" y="18" width="18" height="18" rx="4"/>
+    <rect x="11" y="60" width="18" height="18" rx="4"/>
+    <path d="M31 27H44C50 27 54 34 54 43V48"/>
+    <path d="M31 69H44C50 69 54 62 54 53V48"/>
+    <path d="M54 48H68"/>
+    <rect x="68" y="33" width="24" height="30" rx="5"/>
+  </g>
+</svg>

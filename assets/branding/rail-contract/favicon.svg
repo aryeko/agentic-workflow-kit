@@ -1,0 +1,11 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">agentic-workflow-kit Rail Contract favicon</title>
+  <g stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="7" y="13" width="13" height="13" rx="3"/>
+    <rect x="7" y="38" width="13" height="13" rx="3"/>
+    <path d="M22 20H30C35 20 38 25 38 32"/>
+    <path d="M22 45H30C35 45 38 39 38 32"/>
+    <path d="M38 32H43"/>
+    <rect x="43" y="22" width="15" height="20" rx="4"/>
+  </g>
+</svg>

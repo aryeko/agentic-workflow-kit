@@ -1,0 +1,47 @@
+name: Feature request
+description: Propose a new feature or an improvement to existing behavior.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please check existing issues and [GitHub Discussions](https://github.com/aryeko/agentic-workflow-kit/discussions) — your idea may already be tracked or discussed there.
+
+  - type: textarea
+    id: problem-motivation
+    attributes:
+      label: Problem / motivation
+      description: What problem does this feature solve, or what workflow is currently painful?
+      placeholder: I find myself repeatedly doing X because agentic-workflow-kit does not yet ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior or API change you would like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives-considered
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you evaluated, and why you prefer the proposed solution.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      options:
+        - Claude Code plugin
+        - Codex plugin
+        - Orchestrator CLI (@agentic-workflow-kit/orchestrator)
+        - Config/contracts
+        - Docs
+        - Other
+    validations:
+      required: true

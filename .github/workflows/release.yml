@@ -1,0 +1,49 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # OIDC token for npm trusted publishing (no NPM_TOKEN needed)
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: npm trusted publisher env
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # changesets/action publishes to npm via OIDC and creates GitHub Releases
+      # (createGithubReleases defaults to true). No NPM_TOKEN — needs a public repo +
+      # npm >= 11.5.1 (bundled with Node 24); provenance attestations are automatic.
+      - name: Create release PR or publish to npm
+        uses: changesets/action@v1
+        with:
+          commitMode: github-api
+          version: pnpm version-packages
+          publish: pnpm release
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Force OIDC trusted publishing by leaving the npm token envs empty.
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""

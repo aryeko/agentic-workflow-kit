@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">agentic-workflow-kit Status Matrix favicon</title>
+  <g stroke="currentColor" stroke-width="4" stroke-linejoin="round">
+    <rect x="9" y="9" width="12" height="12" rx="2" fill="currentColor"/>
+    <rect x="26" y="9" width="12" height="12" rx="2"/>
+    <rect x="43" y="9" width="12" height="12" rx="2"/>
+    <rect x="9" y="26" width="12" height="12" rx="2"/>
+    <rect x="26" y="26" width="12" height="12" rx="2" fill="currentColor"/>
+    <rect x="43" y="26" width="12" height="12" rx="2"/>
+    <rect x="9" y="43" width="12" height="12" rx="2"/>
+    <rect x="26" y="43" width="12" height="12" rx="2"/>
+    <rect x="43" y="43" width="12" height="12" rx="2" fill="currentColor"/>
+  </g>
+</svg>

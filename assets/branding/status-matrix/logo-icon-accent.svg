@@ -1,0 +1,18 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">agentic-workflow-kit Status Matrix accent icon</title>
+  <g stroke="#005FCC" stroke-width="5" stroke-linejoin="round">
+    <rect x="15" y="15" width="16" height="16" rx="3" fill="#005FCC"/>
+    <rect x="40" y="15" width="16" height="16" rx="3"/>
+    <rect x="65" y="15" width="16" height="16" rx="3"/>
+    <rect x="15" y="40" width="16" height="16" rx="3"/>
+    <rect x="40" y="40" width="16" height="16" rx="3" fill="#005FCC"/>
+    <rect x="65" y="40" width="16" height="16" rx="3"/>
+    <rect x="15" y="65" width="16" height="16" rx="3"/>
+    <rect x="40" y="65" width="16" height="16" rx="3"/>
+    <rect x="65" y="65" width="16" height="16" rx="3" fill="#005FCC"/>
+    <path d="M31 23H40"/>
+    <path d="M48 31V40"/>
+    <path d="M56 48H65"/>
+    <path d="M73 56V65"/>
+  </g>
+</svg>

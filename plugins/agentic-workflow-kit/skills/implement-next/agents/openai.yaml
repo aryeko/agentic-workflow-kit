@@ -1,0 +1,7 @@
+interface:
+  display_name: "Implement Next"
+  short_description: "Run one tracker story end-to-end"
+  default_prompt: "Use $implement-next with a story ID to claim and execute one tracker story."
+
+policy:
+  allow_implicit_invocation: false

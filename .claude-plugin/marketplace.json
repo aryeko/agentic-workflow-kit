@@ -1,0 +1,14 @@
+{
+  "name": "agentic-workflow-kit",
+  "owner": { "name": "Arye Kogan" },
+  "description": "agentic-workflow-kit: a generic, tracker-driven delivery workflow plugin.",
+  "plugins": [
+    {
+      "name": "agentic-workflow-kit",
+      "source": "./",
+      "description": "Tracker-driven, spec-first delivery workflow for any repo.",
+      "version": "0.1.0",
+      "category": "Productivity"
+    }
+  ]
+}

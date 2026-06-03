@@ -1,0 +1,73 @@
+name: Bug report
+description: Report something that is not working as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please search existing issues and the [documentation](https://github.com/aryeko/agentic-workflow-kit/tree/main/docs) to make sure this has not already been reported or answered.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of what went wrong.
+      placeholder: Describe the unexpected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Step-by-step instructions to reliably reproduce the problem.
+      placeholder: |
+        1. Run `/workflow-init` in a repo with ...
+        2. Open ...
+        3. See error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface?
+      options:
+        - Claude Code plugin
+        - Codex plugin
+        - Orchestrator CLI (@agentic-workflow-kit/orchestrator)
+        - Config/contracts
+        - Docs
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Fill in the relevant versions.
+      placeholder: |
+        OS:
+        Node version:
+        pnpm version:
+        agentic-workflow-kit version:
+    validations:
+      required: false
+
+  - type: textarea
+    id: config-or-logs
+    attributes:
+      label: Relevant `.workflow/config.yaml` or logs
+      description: Paste any relevant config snippet or log output. Omit secrets.
+      render: shell
+    validations:
+      required: false

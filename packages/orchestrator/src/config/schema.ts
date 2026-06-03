@@ -1,0 +1,84 @@
+import { z } from 'zod';
+
+const nonEmpty = z.string().min(1);
+
+export const ConfigSchema = z
+  .object({
+    version: z.literal(1),
+    paths: z
+      .object({
+        tracksDir: nonEmpty.default('docs/tracks'),
+        specsDir: nonEmpty.default('docs/specs'),
+        plansDir: nonEmpty.default('docs/plans'),
+        archiveDir: nonEmpty.default('docs/tracks/archive'),
+        prdsDir: nonEmpty.default('docs/prds'),
+      })
+      .strict()
+      .prefault({}),
+    statuses: z
+      .object({
+        eligible: z.array(nonEmpty).min(1).default(['specced', 'plan-approved']),
+        inProgress: nonEmpty.default('implementing'),
+        complete: z.array(nonEmpty).min(1).default(['done', 'verified']),
+      })
+      .strict()
+      .prefault({}),
+    tracker: z
+      .object({ idPattern: nonEmpty.default('^[A-Z]{2,}[0-9]+$') })
+      .strict()
+      .prefault({}),
+    verify: z
+      .object({
+        changed: nonEmpty.nullable().default(null),
+        full: nonEmpty.nullable().default(null),
+      })
+      .strict()
+      .prefault({}),
+    git: z
+      .object({
+        strategy: z.enum(['worktree', 'branch']).default('worktree'),
+        branchPattern: nonEmpty.default('{track}/{id-lc}-{slug}'),
+        baseBranch: nonEmpty.default('main'),
+        commitOnBase: z.enum(['forbid', 'allow']).default('forbid'),
+      })
+      .strict()
+      .prefault({}),
+    pr: z
+      .object({
+        create: z.boolean().default(true),
+        ci: z
+          .object({ wait: z.boolean().default(false), command: nonEmpty.nullable().default(null) })
+          .strict()
+          .prefault({}),
+        review: z
+          .object({
+            wait: z.enum(['none', 'bot', 'human']).default('none'),
+            bot: nonEmpty.default('none'),
+            triageComments: z.boolean().default(false),
+          })
+          .strict()
+          .prefault({}),
+        merge: z
+          .object({
+            auto: z.boolean().default(false),
+            method: z.enum(['squash', 'merge', 'rebase']).default('squash'),
+            deleteBranch: z.boolean().default(true),
+          })
+          .strict()
+          .prefault({}),
+      })
+      .strict()
+      .prefault({}),
+    orchestrator: z
+      .object({
+        driver: nonEmpty.default('codex-mcp'),
+        maxParallel: z.number().int().min(1).default(2),
+        stopLaunchingOnBlocked: z.boolean().default(true),
+        childTimeoutMs: z.number().int().min(1).default(1_800_000),
+      })
+      .strict()
+      .prefault({}),
+  })
+  .strict();
+
+export type WorkflowConfig = z.infer<typeof ConfigSchema>;

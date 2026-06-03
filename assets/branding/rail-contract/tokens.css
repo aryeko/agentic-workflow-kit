@@ -1,0 +1,22 @@
+:root {
+  --bg: #FAFAF8;
+  --surface: #FFFFFF;
+  --text: #111315;
+  --accent: #0B5CAD;
+  --muted: #5B626A;
+  --success: #2F7D55;
+  --font-heading: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0B0D10;
+    --surface: #12161B;
+    --text: #F4F7FA;
+    --accent: #7CC7FF;
+    --muted: #A9B2BD;
+    --success: #79C795;
+  }
+}

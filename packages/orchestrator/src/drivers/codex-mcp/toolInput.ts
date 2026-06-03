@@ -1,0 +1,102 @@
+import path from 'node:path';
+
+import type { ResolvedGitConfig, ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
+
+export interface CodexToolInput {
+  cwd: string;
+  prompt: string;
+  config?: Record<string, unknown>;
+  model?: string;
+  'approval-policy'?: string;
+  sandbox?: string;
+}
+
+export function buildCodexToolInput(
+  config: ResolvedWorkflowConfig,
+  story: WorkflowStory,
+  prompt = buildGenericPrompt(story, config.git),
+): CodexToolInput {
+  const childSession = config.codex.childSession;
+  const input: CodexToolInput = {
+    cwd: childSession.cwdAbs,
+    prompt,
+  };
+
+  if (childSession.model) input.model = childSession.model;
+  if (childSession.approvalPolicy) input['approval-policy'] = childSession.approvalPolicy;
+  if (childSession.sandbox) input.sandbox = childSession.sandbox;
+
+  // D8 fix: inject the workspace .git and .worktrees directories as codex writable roots so the
+  // child session can run `git commit` and `git worktree add` under --sandbox workspace-write.
+  // Under workspace-write codex makes .git read-only by default, which prevents any git commit
+  // (every commit updates a ref under .git/refs/heads). Granting these two paths as writable roots
+  // keeps workspace-write restrictions intact for everything else (network, system dirs) while
+  // allowing git isolation to work. This is harmless under danger-full-access (already writable)
+  // and read-only (the child would not be committing anyway).
+  //
+  // Config shape: sandbox_workspace_write is a top-level TOML table in codex config, so we
+  // represent it as a nested object { sandbox_workspace_write: { writable_roots: [...] } } — the
+  // same mechanism used for scalar keys like model_reasoning_effort, but one level deeper because
+  // sandbox_workspace_write is a table, not a bare key. Verified empirically on 2026-06-03 via
+  // `codex exec -c 'sandbox_workspace_write.writable_roots=[...]'` (see d8-dispatch-sandbox-plan.md).
+  const workspaceRoot = childSession.cwdAbs;
+  const gitAbs = path.join(workspaceRoot, '.git');
+  const worktreesAbs = path.join(workspaceRoot, '.worktrees');
+  const writableRootsEntry: Record<string, unknown> = {
+    sandbox_workspace_write: { writable_roots: [gitAbs, worktreesAbs] },
+  };
+
+  input.config = { ...childSession.config, ...writableRootsEntry };
+
+  return input;
+}
+
+export function buildGenericPrompt(story: WorkflowStory, git: ResolvedGitConfig): string {
+  const metadata = story.metadata;
+  const branchPattern = renderBranchPattern(story, git.branchPattern);
+  const commitOnBase =
+    git.commitOnBase === 'forbid'
+      ? `Committing directly on \`${git.baseBranch}\` is forbidden.`
+      : `Committing directly on \`${git.baseBranch}\` is allowed by this repo policy.`;
+  return [
+    'Implement exactly one workflow tracker story from the current repository.',
+    '',
+    'Story:',
+    `- ID: ${story.id}`,
+    `- Title: ${story.title}`,
+    `- Status: ${story.status}`,
+    story.owner ? `- Owner: ${story.owner}` : '- Owner: unowned',
+    story.dependencies.length > 0 ? `- Dependencies: ${story.dependencies.join(', ')}` : '- Dependencies: none',
+    `- Track ID: ${metadata.trackId}`,
+    `- Track: ${metadata.trackTitle}`,
+    `- Tracker file: ${metadata.trackerPath}`,
+    metadata.wave ? `- Wave/phase: ${metadata.wave}` : null,
+    metadata.spec ? `- Spec: ${metadata.spec}` : null,
+    metadata.plan ? `- Plan: ${metadata.plan}` : null,
+    metadata.pr ? `- PR: ${metadata.pr}` : null,
+    '',
+    'Git policy (from .workflow/config.yaml - follow exactly):',
+    `- Isolation strategy: ${git.strategy}`,
+    `- Create/use branch: ${branchPattern} (base: ${git.baseBranch})`,
+    `- ${commitOnBase}`,
+    '- You MUST create the isolated branch/worktree, commit your work there, and confirm the commit exists BEFORE reporting the story done. An uncommitted tracker edit is not acceptance.',
+    '',
+    'Instructions:',
+    '1. Read repository instructions first, including AGENTS.md when present.',
+    '2. Read the selected tracker row and any linked spec, plan, related docs, or acceptance notes.',
+    '3. Implement only this story. Do not bundle adjacent tracker rows or unrelated cleanup.',
+    '4. Follow the Git policy above and the repository documentation, review, and verification rules.',
+    '5. Update the tracker row through the repository workflow when the story is complete.',
+    '6. The tracker row status is the only completion authority; child prose is not enough.',
+    '7. Report changed files, verification evidence, and blockers.',
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n');
+}
+
+function renderBranchPattern(story: WorkflowStory, branchPattern: string): string {
+  return branchPattern
+    .replaceAll('{track}', story.metadata.trackId)
+    .replaceAll('{id}', story.id)
+    .replaceAll('{id-lc}', story.id.toLowerCase());
+}

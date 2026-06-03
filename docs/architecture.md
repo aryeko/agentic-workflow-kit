@@ -1,0 +1,250 @@
+# Architecture
+
+> The living architecture reference for agentic-workflow-kit. Packaging and publish status live with the maintainers; the phase-by-phase build history lives in git.
+
+## In one sentence
+
+agentic-workflow-kit turns any repo into a tracker-driven, spec-first delivery pipeline: a single
+**markdown tracker** plus a single **`.workflow/config.yaml`** form one contract that two
+interchangeable drivers read — an **interactive** skill that takes one story end-to-end, and an
+**autonomous** orchestrator that fans stories out to child sessions.
+
+## The shared contract (the spine)
+
+Everything reads and writes the same two things, parameterized by config:
+
+- **`.workflow/config.yaml`** — paths, status vocabulary buckets, verification commands, git
+  strategy, and PR/merge policy. Reference: [config-schema.md](../references/config-schema.md).
+- **Markdown trackers** at `<tracksDir>/<track>/README.md` — the single source of truth for what
+  work exists, what is claimed, what is done, and what is unblocked. Reference:
+  [tracker-contract.md](../references/tracker-contract.md).
+
+A **PRD** (`<prdsDir>/<slug>/`, [prd-contract.md](../references/prd-contract.md)) sits upstream of
+the tracker and defines the *what/why*; the tracker owns *sequencing*; each story's spec owns
+*how*.
+
+**Invariant:** automation never infers completion from a child session's prose. Completion comes
+only from the tracker row's status.
+
+## Components
+
+```mermaid
+flowchart TB
+  subgraph Authors["Authoring (interactive skills)"]
+    PP["plan-product<br/>PRD"]
+    PT["plan-track<br/>tracker + specs"]
+    WI["workflow-init<br/>scaffold config"]
+  end
+
+  subgraph Contract["Shared contract"]
+    CFG[".workflow/config.yaml"]
+    TRK["markdown trackers<br/>&lt;tracksDir&gt;/&lt;track&gt;/README.md"]
+    PRD["PRDs<br/>&lt;prdsDir&gt;/&lt;slug&gt;/"]
+  end
+
+  subgraph Drivers["Two drivers over one contract"]
+    IN["implement-next<br/>(interactive, 1 story/session)"]
+    AP["workflow-autopilot →<br/>@agentic-workflow-kit/orchestrator<br/>(autonomous, batch)"]
+  end
+
+  subgraph Orch["@agentic-workflow-kit/orchestrator (the only TS package)"]
+    CLI["CLI"]
+    LOADER["loadConfig"]
+    SCHEMA["Zod ConfigSchema<br/>→ generates config.schema.json"]
+    PRESET["presets + selectPreset"]
+    DISC["discoverMarkdownTracks"]
+    SCHED["scheduler<br/>selectDispatchableStories"]
+    RUN["WorkflowRunner"]
+    DRV["StoryRunner →<br/>CodexMcpStoryRunner"]
+    ART["RunJournal + MetricsCollector<br/>artifacts"]
+  end
+
+  CODEX["Codex MCP child sessions"]
+
+  PP --> PRD --> PT --> TRK
+  WI --> CFG
+  PRESET --> CFG
+  SCHEMA -. validates .-> CFG
+
+  CFG --> IN
+  TRK --> IN
+  CFG --> AP
+  TRK --> AP
+
+  AP --> CLI
+  CLI -. loadConfig .-> LOADER
+  LOADER -. uses .-> SCHEMA
+  CLI --> DISC --> SCHED --> RUN --> DRV --> CODEX
+  RUN --> ART
+  CODEX -. updates .-> TRK
+```
+
+### Skills (`skills/`)
+Instruction-first Markdown that runs inside Claude Code or Codex. Five entry points:
+
+| Skill | Role | Side effects |
+| --- | --- | --- |
+| `workflow-init` | Detect repo signals, pick a preset, write config, scaffold trackers | Writes files (idempotent) |
+| `plan-product` | Guided interview → multi-file PRD | Writes a PRD |
+| `plan-track` | PRD → tracker + per-story specs | Writes a tracker + specs |
+| `implement-next` | One eligible story end-to-end | Branch/worktree, commits, PR, merge |
+| `workflow-autopilot` | Drive the orchestrator over the same contract | Launches child sessions |
+
+The two side-effectful drivers (`implement-next`, `workflow-autopilot`) are explicit-invocation-only.
+
+### Config layer (`src/config/`)
+The config logic, framework-free (formerly a separate `@agentic-workflow-kit/core` package, folded into the
+orchestrator for v1):
+
+- **`ConfigSchema`** (Zod, strict) is the single source of truth. `config.schema.json` is
+  *generated* from it and pinned byte-for-byte by a drift test, so machine and source cannot
+  diverge.
+- **`loadConfig`** reads and validates `.workflow/config.yaml`, failing loud with a precise message.
+- **`selectPreset`** maps detected repo signals to one of the three presets.
+
+These remain a clean internal module and are re-exported from the package's public API, so they can
+be split back out into a standalone library if an external consumer ever needs them.
+
+### `@agentic-workflow-kit/orchestrator` (the only published package, optional install)
+The autonomous driver, which also carries the config layer above. A small CLI wires concrete implementations into a `WorkflowRunner` that
+depends only on interfaces (`StoryRunner`, `StorySource`, `ArtifactStore`, `Logger`, `Clock`). The
+only shipped driver is `codex-mcp`; the driver boundary is reserved so new drivers can be added
+without touching the tracker/config contract. Every run writes structured artifacts under
+`.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
+per-child JSON), and `analyze-run` reconstructs metrics from Codex session logs.
+
+## Story lifecycle
+
+```mermaid
+stateDiagram-v2
+  [*] --> specced
+  specced --> plan_approved: plan approved
+  plan_approved --> implementing: claimed (owner set)
+  implementing --> done: implemented + tracker updated
+  done --> verified: CI / human verification
+  verified --> [*]
+
+  specced --> blocked
+  plan_approved --> blocked
+  implementing --> blocked
+  blocked --> specced: unblocked
+
+  implementing --> deferred
+  implementing --> canceled
+  specced --> superseded
+
+  note right of done
+    statuses.complete = [done, verified]
+    satisfies a dependency
+  end note
+```
+
+The display name of `plan_approved` is `plan-approved`; Mermaid state IDs cannot contain a hyphen.
+The three automation buckets (`statuses.eligible`, `statuses.inProgress`, `statuses.complete`) map
+onto this vocabulary in config.
+
+## Eligibility
+
+A story is dispatchable only when all three hold (mirrors `blockedReasonFor` in
+[markdownTracker.ts](../packages/orchestrator/src/tracks/markdownTracker.ts)):
+
+```mermaid
+flowchart TD
+  S["story row"] --> Q1{status in<br/>statuses.eligible?}
+  Q1 -->|no| B1["blocked: status is X"]
+  Q1 -->|yes| Q2{owner empty<br/>or —?}
+  Q2 -->|no| B2["blocked: owner is X"]
+  Q2 -->|yes| Q3{all Depends-on<br/>in statuses.complete?}
+  Q3 -->|no| B3["blocked: deps not complete"]
+  Q3 -->|yes| E["eligible → dispatchable"]
+```
+
+## Orchestrator runtime (`run-eligible`)
+
+```mermaid
+sequenceDiagram
+  participant CLI
+  participant Cfg as loadResolvedConfig (core)
+  participant Disc as discoverMarkdownTracks
+  participant Run as WorkflowRunner
+  participant Sched as scheduler
+  participant Drv as CodexMcpStoryRunner
+  participant Child as Codex MCP child
+  participant Trk as tracker (source of truth)
+  participant J as RunJournal + Metrics
+
+  CLI->>Cfg: resolve .workflow/config.yaml
+  CLI->>Disc: discover tracks + parse stories
+  CLI->>Run: runEligible()
+  loop until no active children
+    Run->>Sched: selectDispatchableStories(maxParallel)
+    Run->>Drv: runStory(story, prompt) via p-limit pool
+    Drv->>Child: codex tool call (MCP)
+    Child->>Trk: implement + update row
+    Child-->>Drv: threadId + content
+    Drv-->>Run: settled result
+    Run->>Trk: re-read stories (listStories)
+    Run->>Run: isCompleteStatus(returned)?
+    alt complete
+      Run->>J: child-complete, write state/metrics
+    else not complete
+      Run->>J: story-not-complete, block (optional stop)
+    end
+  end
+  Run->>J: run-complete / run-blocked
+```
+
+The tracker is re-read after every child returns; the runner trusts the row, not the child. A row at
+`statuses.complete` is accepted only when the resolved git policy is satisfied by committed work.
+With `stopLaunchingOnBlocked: true` (default), an incomplete return halts new launches while
+in-flight children finish.
+
+The orchestrator dispatches children under `--sandbox workspace-write`, granting the repo's `.git`
+and `.worktrees` paths as writable roots so git isolation works. Network access is governed
+separately by the Codex sandbox/approval mode, which is off by default under `workspace-write`.
+Child sessions that run install-dependent verification therefore need either a network-permitting
+sandbox/approval mode or dependencies pre-installed before dispatch. If a child stalls in an
+offline install loop, `orchestrator.childTimeoutMs` converts the hang into a child failure record
+instead of leaving the run in `running` forever.
+
+Completion reconciliation differs by git strategy. The orchestrator re-reads the tracker from the
+**local workspace root** and performs no pull or merge of its own. Under **branch strategy** the
+child's tracker update is committed in-place and immediately visible at the root, so a story can
+complete within a single local run. Under **worktree strategy** the `statuses.complete` update
+lives on the child's worktree branch and is reconciled to the base only via the configured PR/merge
+flow — completion is therefore eventual and remote-mediated, not single-run. Both behaviors are by
+design.
+
+## Extension points
+
+| Seam | Interface | Today | Future |
+| --- | --- | --- | --- |
+| Child-session driver | `StoryRunner` + `OrchestratorDriver` union | `codex-mcp` | `claude-mcp` or others — unsupported values are rejected, not partially run |
+| Story source | `StorySource` | markdown trackers | Linear / GitHub Issues adapters (non-goal for v1) |
+| Time | `Clock` | `SystemClock` | injected fakes in tests |
+| Output | `ArtifactStore` | `FileArtifactStore` | alternative sinks |
+
+Adding a driver does not change the tracker or config contract — that is the point of the boundary.
+
+## Where things live
+
+```
+skills/                     instruction-first plugin skills (5 entry points)
+references/                 contracts: config schema (human + machine), tracker, PRD, templates
+presets/                    push-and-merge / gated-automerge / push-only
+examples/                   worked PRD + tracker (Linkly)
+packages/orchestrator/      the only TS package: config (Zod schema, loadConfig, presets, schema gen),
+                            CLI, tracker parser, scheduler, WorkflowRunner, codex-mcp driver
+.claude-plugin/             Claude Code plugin + marketplace manifests
+.codex-plugin/              Codex plugin manifest
+plugins/agentic-workflow-kit/       materialized copy for the local Codex marketplace fixture (byte-synced)
+docs/                       this architecture and the docs hub
+```
+
+## See also
+
+- [Documentation hub](./README.md)
+- [Getting started](./getting-started.md)
+- [Config reference](../references/config-schema.md) ·
+  [Tracker contract](../references/tracker-contract.md) ·
+  [PRD contract](../references/prd-contract.md)

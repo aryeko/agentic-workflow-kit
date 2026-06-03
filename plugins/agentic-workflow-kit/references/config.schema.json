@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/aryeko/agentic-workflow-kit/config.schema.json",
+  "title": "agentic-workflow-kit config",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "number",
+      "const": 1
+    },
+    "paths": {
+      "type": "object",
+      "properties": {
+        "tracksDir": {
+          "default": "docs/tracks",
+          "type": "string",
+          "minLength": 1
+        },
+        "specsDir": {
+          "default": "docs/specs",
+          "type": "string",
+          "minLength": 1
+        },
+        "plansDir": {
+          "default": "docs/plans",
+          "type": "string",
+          "minLength": 1
+        },
+        "archiveDir": {
+          "default": "docs/tracks/archive",
+          "type": "string",
+          "minLength": 1
+        },
+        "prdsDir": {
+          "default": "docs/prds",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "statuses": {
+      "type": "object",
+      "properties": {
+        "eligible": {
+          "default": [
+            "specced",
+            "plan-approved"
+          ],
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "inProgress": {
+          "default": "implementing",
+          "type": "string",
+          "minLength": 1
+        },
+        "complete": {
+          "default": [
+            "done",
+            "verified"
+          ],
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "tracker": {
+      "type": "object",
+      "properties": {
+        "idPattern": {
+          "default": "^[A-Z]{2,}[0-9]+$",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "verify": {
+      "type": "object",
+      "properties": {
+        "changed": {
+          "default": null,
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "full": {
+          "default": null,
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "default": "worktree",
+          "type": "string",
+          "enum": [
+            "worktree",
+            "branch"
+          ]
+        },
+        "branchPattern": {
+          "default": "{track}/{id-lc}-{slug}",
+          "type": "string",
+          "minLength": 1
+        },
+        "baseBranch": {
+          "default": "main",
+          "type": "string",
+          "minLength": 1
+        },
+        "commitOnBase": {
+          "default": "forbid",
+          "type": "string",
+          "enum": [
+            "forbid",
+            "allow"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "pr": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "default": true,
+          "type": "boolean"
+        },
+        "ci": {
+          "type": "object",
+          "properties": {
+            "wait": {
+              "default": false,
+              "type": "boolean"
+            },
+            "command": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "review": {
+          "type": "object",
+          "properties": {
+            "wait": {
+              "default": "none",
+              "type": "string",
+              "enum": [
+                "none",
+                "bot",
+                "human"
+              ]
+            },
+            "bot": {
+              "default": "none",
+              "type": "string",
+              "minLength": 1
+            },
+            "triageComments": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "merge": {
+          "type": "object",
+          "properties": {
+            "auto": {
+              "default": false,
+              "type": "boolean"
+            },
+            "method": {
+              "default": "squash",
+              "type": "string",
+              "enum": [
+                "squash",
+                "merge",
+                "rebase"
+              ]
+            },
+            "deleteBranch": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "orchestrator": {
+      "type": "object",
+      "properties": {
+        "driver": {
+          "default": "codex-mcp",
+          "type": "string",
+          "minLength": 1
+        },
+        "maxParallel": {
+          "default": 2,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "stopLaunchingOnBlocked": {
+          "default": true,
+          "type": "boolean"
+        },
+        "childTimeoutMs": {
+          "default": 1800000,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "additionalProperties": false
+}

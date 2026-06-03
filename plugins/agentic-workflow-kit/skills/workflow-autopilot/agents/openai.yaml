@@ -1,0 +1,7 @@
+interface:
+  display_name: "Workflow Autopilot"
+  short_description: "Operate orchestrator runs"
+  default_prompt: "Use $workflow-autopilot run-eligible --dry-run --track <track> to inspect eligible dispatch."
+
+policy:
+  allow_implicit_invocation: false

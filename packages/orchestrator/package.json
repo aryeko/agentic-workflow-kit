@@ -1,0 +1,76 @@
+{
+  "name": "@agentic-workflow-kit/orchestrator",
+  "version": "0.1.0",
+  "description": "Optional autonomous multi-session orchestrator CLI for agentic-workflow-kit.",
+  "keywords": [
+    "agentic-workflow-kit",
+    "workflow",
+    "tracker",
+    "spec-driven",
+    "config",
+    "orchestrator",
+    "codex",
+    "cli",
+    "mcp"
+  ],
+  "author": "Arye Kogan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryeko/agentic-workflow-kit.git",
+    "directory": "packages/orchestrator"
+  },
+  "homepage": "https://github.com/aryeko/agentic-workflow-kit#readme",
+  "bugs": {
+    "url": "https://github.com/aryeko/agentic-workflow-kit/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "agentic-workflow-kit": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "agentic-workflow-kit": "tsx --tsconfig tsconfig.typecheck.json src/cli.ts",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "generate-schema": "tsx src/config/generate-schema.ts",
+    "prepack": "pnpm build",
+    "pack:dry-run": "pnpm build && pnpm pack --dry-run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^15.0.0",
+    "gray-matter": "^4.0.3",
+    "mdast-util-to-string": "^4.0.0",
+    "p-limit": "^7.3.0",
+    "p-retry": "^8.0.0",
+    "p-timeout": "^7.0.1",
+    "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
+    "tinyglobby": "^0.2.17",
+    "unified": "^11.0.5",
+    "yaml": "^2.9.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@vitest/coverage-v8": "^4.1.8",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}
