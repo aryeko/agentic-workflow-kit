@@ -49815,6 +49815,31 @@ var WorkflowRunner = class {
     await this.writeLiveMetrics();
     return { ...this.state };
   }
+  async dryRunStory(storyId, options2 = {}) {
+    await this.journal.writeRunMetadata(this.state);
+    await this.journal.writeConfigSnapshot(this.dependencies.config);
+    await this.journal.record("run-started", {
+      command: "run-story",
+      storyId,
+      dryRun: true,
+      force: options2.force === true
+    });
+    const stories = await this.dependencies.storySource.listStories();
+    await this.journal.writeStorySnapshot("initial", stories);
+    const story = stories.find((entry) => entry.id === storyId);
+    if (!story) {
+      this.blockOnce(storyId, `story ${storyId} was not found`);
+      return await this.finish();
+    }
+    if (!story.eligible && options2.force !== true) {
+      this.blockOnce(story.id, story.blockedReason ?? `story ${story.id} is not eligible`);
+      return await this.finish();
+    }
+    this.state = { ...this.state, status: "dry-run", dryRunDispatch: [story.id] };
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return { ...this.state };
+  }
   async runStory(storyId, options2 = {}) {
     await this.journal.writeRunMetadata(this.state);
     await this.journal.writeConfigSnapshot(this.dependencies.config);
@@ -63340,7 +63365,7 @@ async function runWorkflowHandler(command, options2 = {}) {
     clock: new SystemClock(),
     runId
   });
-  const run = command.kind === "run-story" ? workflowRunner.runStory(command.storyId, { force: command.overrides.force }) : command.overrides.dryRun ? workflowRunner.dryRunEligible() : workflowRunner.runEligible();
+  const run = command.kind === "run-story" ? command.overrides.dryRun ? workflowRunner.dryRunStory(command.storyId, { force: command.overrides.force }) : workflowRunner.runStory(command.storyId, { force: command.overrides.force }) : command.overrides.dryRun ? workflowRunner.dryRunEligible() : workflowRunner.runEligible();
   return command.overrides.watch ? await runWithEventWatch(run, runDirectory, command.overrides, stdout) : await run;
 }
 async function discoverTracks(config2, overrides) {

@@ -96,6 +96,35 @@ export class WorkflowRunner {
     return { ...this.state };
   }
 
+  async dryRunStory(storyId: string, options: { force?: boolean } = {}): Promise<RunState> {
+    await this.journal.writeRunMetadata(this.state);
+    await this.journal.writeConfigSnapshot(this.dependencies.config);
+    await this.journal.record('run-started', {
+      command: 'run-story',
+      storyId,
+      dryRun: true,
+      force: options.force === true,
+    });
+
+    const stories = await this.dependencies.storySource.listStories();
+    await this.journal.writeStorySnapshot('initial', stories);
+    const story = stories.find((entry) => entry.id === storyId);
+
+    if (!story) {
+      this.blockOnce(storyId, `story ${storyId} was not found`);
+      return await this.finish();
+    }
+    if (!story.eligible && options.force !== true) {
+      this.blockOnce(story.id, story.blockedReason ?? `story ${story.id} is not eligible`);
+      return await this.finish();
+    }
+
+    this.state = { ...this.state, status: 'dry-run', dryRunDispatch: [story.id] };
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return { ...this.state };
+  }
+
   async runStory(storyId: string, options: { force?: boolean } = {}): Promise<RunState> {
     await this.journal.writeRunMetadata(this.state);
     await this.journal.writeConfigSnapshot(this.dependencies.config);

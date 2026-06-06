@@ -361,6 +361,33 @@ describe('WorkflowRunner', () => {
     expect(fake.requests).toEqual([]);
   });
 
+  it('dry-runs one story without launching a child', async () => {
+    const fake = new FakeRunner({
+      storyId: 'A001',
+      sessionId: 'thread-a001',
+      content: 'ok',
+      rawResult: {},
+      invocation: {},
+    });
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001'), story('A002')]]),
+      storyRunner: fake,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const state = await runner.dryRunStory('A001');
+
+    expect(state.status).toBe('dry-run');
+    expect(state.dryRunDispatch).toEqual(['A001']);
+    expect(fake.requests).toEqual([]);
+  });
+
   it('keeps maxParallel slots active and launches newly eligible stories after tracker rereads', async () => {
     const deferred = new DeferredRunner();
     const runner = new WorkflowRunner({

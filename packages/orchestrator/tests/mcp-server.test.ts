@@ -75,4 +75,21 @@ describe('agentic-workflow-kit MCP server', () => {
     await client.close();
     await server.close();
   });
+
+  it('defaults run_story to a dry-run', async () => {
+    const root = await createWorkspace();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'run_story',
+      arguments: { cwd: root, track: 'linkly', storyId: 'LK02' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      status: 'dry-run',
+      dryRunDispatch: ['LK02'],
+    });
+    await client.close();
+    await server.close();
+  });
 });

@@ -126,7 +126,9 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
 
   const run =
     command.kind === 'run-story'
-      ? workflowRunner.runStory(command.storyId, { force: command.overrides.force })
+      ? command.overrides.dryRun
+        ? workflowRunner.dryRunStory(command.storyId, { force: command.overrides.force })
+        : workflowRunner.runStory(command.storyId, { force: command.overrides.force })
       : command.overrides.dryRun
         ? workflowRunner.dryRunEligible()
         : workflowRunner.runEligible();
