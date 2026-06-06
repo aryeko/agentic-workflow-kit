@@ -112,6 +112,14 @@ describe('skill authoring', () => {
     expect(body).toContain('`verified` is a terminal state applied later by CI or a human');
   });
 
+  it('workflow-autopilot prefers the bundled MCP runtime with CLI fallback', () => {
+    const { body } = readSkill('workflow-autopilot');
+
+    expect(body).toContain('bundled MCP runtime');
+    expect(body).toContain('CLI fallback');
+    expect(body).toContain('WK4 v1 supports only `orchestrator.driver: codex-mcp`');
+  });
+
   it.each(skillNames)('%s only references existing plugin-root paths', (skillName) => {
     const { body } = readSkill(skillName);
     const missingPaths = findPluginRootReferences(body).filter((rawPath) => {
