@@ -37,7 +37,7 @@
     "smoke:codex-plugin": "vitest run --config vitest.codex-smoke.config.ts",
     "format": "biome format --write .",
     "changeset": "changeset",
-    "version-packages": "changeset version",
+    "version-packages": "changeset version && node scripts/sync-plugin-versions.mjs",
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
