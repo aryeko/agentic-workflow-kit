@@ -256,8 +256,20 @@ Review behavior:
 - `pr.review.wait: bot`: wait for `pr.review.bot`. If the bot mechanism is recognized, collect
   comments. If not recognized, stop and report that repo-specific bot handling is required.
 
-Currently recognized bot handling is Codex-style GitHub PR review/comments. When
-`pr.review.triageComments: true`, every bot comment must be fixed or replied to before merge.
+Currently recognized bot handling is Codex-style GitHub reaction/comment review. Codex auto
+review does not have to submit a native GitHub `PullRequestReview` with `APPROVED` or
+`CHANGES_REQUESTED`.
+
+For `pr.review.wait: bot` and `pr.review.bot: codex`:
+
+- An eyes reaction on the PR body means Codex review started or is pending; it is not approval.
+- A thumbs-up reaction on the PR body means Codex found no issues and the review gate is clear.
+- Codex PR review comments or PR comments are findings.
+- If `pr.review.triageComments: true`, every Codex finding must be fixed or explicitly replied to
+  before merge.
+- Mentioning `@codex` is a fallback/manual trigger only; do not require it when auto review is
+  already enabled and starts normally.
+
 After fixes, rerun configured verification and push again. Stop after three review-fix loops and
 ask the user.
 

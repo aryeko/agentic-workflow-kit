@@ -112,6 +112,17 @@ describe('skill authoring', () => {
     expect(body).toContain('`verified` is a terminal state applied later by CI or a human');
   });
 
+  it('implement-next documents Codex bot review as reaction/comment based', () => {
+    const { body } = readSkill('implement-next');
+
+    expect(body).toContain('Codex-style GitHub reaction/comment review');
+    expect(body).toContain('eyes reaction on the PR body means Codex review started or is pending');
+    expect(body).toContain('thumbs-up reaction on the PR body means Codex found no issues');
+    expect(body).toContain('Codex PR review comments or PR comments are findings');
+    expect(body).toContain('does not have to submit a native GitHub `PullRequestReview`');
+    expect(body).toContain('Mentioning `@codex` is a fallback/manual trigger only');
+  });
+
   it('workflow-autopilot prefers the bundled MCP runtime with CLI fallback', () => {
     const { body } = readSkill('workflow-autopilot');
 
@@ -121,6 +132,8 @@ describe('skill authoring', () => {
     expect(body).toContain('If the `agentic-workflow-kit` MCP tools are not present');
     expect(body).toContain('full local disk access without interactive approval');
     expect(body).toContain('Operation requested: $ARGUMENTS');
+    expect(body).toContain('Codex review as');
+    expect(body).toContain('Do not require a native GitHub approval or');
   });
 
   it.each(skillNames)('%s only references existing plugin-root paths', (skillName) => {

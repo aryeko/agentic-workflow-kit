@@ -77,6 +77,12 @@ orchestrator:
       baseBranch: 'main',
       commitOnBase: 'forbid',
     });
+    expect(config.pr).toEqual({
+      create: true,
+      ci: { wait: false, command: null },
+      review: { wait: 'none', bot: 'none', triageComments: false },
+      merge: { auto: false, method: 'squash', deleteBranch: true },
+    });
     expect(config.codex.childSession).toEqual({ cwdAbs: root });
   });
 
@@ -127,6 +133,12 @@ orchestrator:
       branchPattern: '{track}/{id-lc}-{slug}',
       baseBranch: 'main',
       commitOnBase: 'forbid',
+    });
+    expect(config.pr).toEqual({
+      create: true,
+      ci: { wait: false, command: null },
+      review: { wait: 'none', bot: 'none', triageComments: false },
+      merge: { auto: false, method: 'squash', deleteBranch: true },
     });
   });
 

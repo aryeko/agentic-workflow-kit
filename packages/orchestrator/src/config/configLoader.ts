@@ -46,6 +46,7 @@ export async function loadResolvedConfig(
     },
     tracker: { idPattern: config.tracker.idPattern },
     git: config.git,
+    pr: config.pr,
     orchestrator: {
       driver,
       maxParallel,
@@ -92,6 +93,12 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       branchPattern: '{track}/{id-lc}-{slug}',
       baseBranch: 'main',
       commitOnBase: 'forbid',
+    },
+    pr: {
+      create: true,
+      ci: { wait: false, command: null },
+      review: { wait: 'none', bot: 'none', triageComments: false },
+      merge: { auto: false, method: 'squash', deleteBranch: true },
     },
     orchestrator: {
       driver: 'codex-mcp',

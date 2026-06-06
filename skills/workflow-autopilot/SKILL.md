@@ -36,6 +36,10 @@ If `.workflow/config.yaml` is missing, stop and tell the user to run `/workflow-
 - Do not mix eligible stories from multiple tracks. Pass `--track <track-id>` when required.
 - Preserve the repo's local-only, push, PR, review, merge, and cleanup rules. The child workflow
   owns implementation policy.
+- When `pr.review.wait: bot` and `pr.review.bot: codex`, child sessions must treat Codex review as
+  reaction/comment based: eyes means started or pending, thumbs-up means clear/no findings, and PR
+  review comments or PR comments are findings. Do not require a native GitHub approval or
+  request-changes review from Codex.
 
 ## Preferred MCP tools
 

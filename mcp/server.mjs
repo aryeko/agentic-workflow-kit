@@ -47855,6 +47855,7 @@ async function loadResolvedConfig(overrides = {}, cwd = process.cwd()) {
     },
     tracker: { idPattern: config2.tracker.idPattern },
     git: config2.git,
+    pr: config2.pr,
     orchestrator: {
       driver,
       maxParallel,
@@ -47900,6 +47901,12 @@ function resolveCwdOnlyConfig(cwd = process.cwd()) {
       branchPattern: "{track}/{id-lc}-{slug}",
       baseBranch: "main",
       commitOnBase: "forbid"
+    },
+    pr: {
+      create: true,
+      ci: { wait: false, command: null },
+      review: { wait: "none", bot: "none", triageComments: false },
+      merge: { auto: false, method: "squash", deleteBranch: true }
     },
     orchestrator: {
       driver: "codex-mcp",
@@ -49120,7 +49127,7 @@ function validateEnumIfPresent(schema, requiredValues, propertyName) {
 
 // packages/orchestrator/src/drivers/codex-mcp/toolInput.ts
 import path7 from "node:path";
-function buildCodexToolInput(config2, story, prompt = buildGenericPrompt(story, config2.git)) {
+function buildCodexToolInput(config2, story, prompt = buildGenericPrompt(story, config2)) {
   const childSession = config2.codex.childSession;
   const input = {
     cwd: childSession.cwdAbs,
@@ -49138,7 +49145,8 @@ function buildCodexToolInput(config2, story, prompt = buildGenericPrompt(story, 
   input.config = { ...childSession.config, ...writableRootsEntry };
   return input;
 }
-function buildGenericPrompt(story, git) {
+function buildGenericPrompt(story, policy) {
+  const { git, pr } = policy;
   const metadata = story.metadata;
   const branchPattern = renderBranchPattern(story, git.branchPattern);
   const commitOnBase = git.commitOnBase === "forbid" ? `Committing directly on \`${git.baseBranch}\` is forbidden.` : `Committing directly on \`${git.baseBranch}\` is allowed by this repo policy.`;
@@ -49165,6 +49173,14 @@ function buildGenericPrompt(story, git) {
     `- ${commitOnBase}`,
     "- You MUST create the isolated branch/worktree, commit your work there, and confirm the commit exists BEFORE reporting the story done. An uncommitted tracker edit is not acceptance.",
     "",
+    "PR policy (from .workflow/config.yaml - follow exactly):",
+    `- Create PR: ${pr.create ? "yes" : "no"}.`,
+    `- CI gate: ${pr.ci.wait ? `wait${pr.ci.command ? ` with \`${pr.ci.command}\`` : " with the default PR checks command"}` : "do not wait"}.`,
+    reviewGateLine(pr.review),
+    ...reviewGateDetails(pr.review),
+    `- Auto-merge: ${pr.merge.auto ? `yes (${pr.merge.method})` : "no"}.`,
+    `- Delete branch after merge: ${pr.merge.deleteBranch ? "yes" : "no"}.`,
+    "",
     "Instructions:",
     "1. Read repository instructions first, including AGENTS.md when present.",
     "2. Read the selected tracker row and any linked spec, plan, related docs, or acceptance notes.",
@@ -49177,6 +49193,26 @@ function buildGenericPrompt(story, git) {
 }
 function renderBranchPattern(story, branchPattern) {
   return branchPattern.replaceAll("{track}", story.metadata.trackId).replaceAll("{id}", story.id).replaceAll("{id-lc}", story.id.toLowerCase());
+}
+function reviewGateLine(review) {
+  if (review.wait === "none") return "- Review gate: do not wait.";
+  if (review.wait === "human") return "- Review gate: wait for human review; do not auto-merge.";
+  return `- Review gate: wait for bot \`${review.bot}\`.`;
+}
+function reviewGateDetails(review) {
+  if (review.wait !== "bot") return [];
+  const triage = review.triageComments ? "When triageComments is true, fix or explicitly reply to every bot finding before merge." : "When triageComments is false, report bot findings but do not block solely on triage.";
+  if (review.bot.toLowerCase() !== "codex") {
+    return [`- Bot review comments: ${triage}`];
+  }
+  return [
+    "- Codex review signal is reaction/comment based, not a native GitHub approval gate.",
+    "- Codex eyes reaction means review started/pending; it is not approval.",
+    "- Codex thumbs-up reaction means clear/no findings.",
+    `- Codex PR review comments or PR comments are findings. ${triage}`,
+    "- Do not require a GitHub PullRequestReview APPROVED or CHANGES_REQUESTED state from Codex.",
+    "- Do not mention @codex unless auto review failed to start or a manual retry is needed."
+  ];
 }
 
 // packages/orchestrator/src/drivers/codex-mcp/CodexMcpStoryRunner.ts
@@ -49963,7 +49999,7 @@ var WorkflowRunner = class {
     try {
       const run = this.dependencies.storyRunner.runStory({
         story,
-        prompt: buildGenericPrompt(story, this.dependencies.config.git),
+        prompt: buildGenericPrompt(story, this.dependencies.config),
         cwd: childCwd,
         metadata: { runId: this.state.runId }
       });

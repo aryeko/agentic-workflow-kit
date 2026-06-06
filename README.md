@@ -80,6 +80,11 @@ The one block that genuinely differs between repos is `pr:`. Pick a preset and g
 Switch behavior by editing the `pr:` block in `.workflow/config.yaml`. See
 [references/config-schema.md](references/config-schema.md).
 
+For the `gated-automerge` preset, `pr.review.wait: bot` with `pr.review.bot: codex` waits on
+Codex's GitHub reaction/comment signal: eyes means started or pending, thumbs-up means clear/no
+findings, and Codex PR review comments or PR comments are findings to triage when
+`triageComments: true`. It does not require Codex to submit a native GitHub approval.
+
 ## Documentation
 
 - [docs/README.md](docs/README.md) — documentation hub (using vs developing)

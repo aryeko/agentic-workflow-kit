@@ -35,6 +35,12 @@ function config(): ResolvedWorkflowConfig {
     statuses: { eligible: ['specced'], inProgress: 'implementing', complete: ['done', 'verified'] },
     tracker: { idPattern: '^[A-Z]+[0-9]+$' },
     git: { strategy: 'worktree', branchPattern: '{track}/{id-lc}-{slug}', baseBranch: 'main', commitOnBase: 'forbid' },
+    pr: {
+      create: true,
+      ci: { wait: false, command: null },
+      review: { wait: 'none', bot: 'none', triageComments: false },
+      merge: { auto: false, method: 'squash', deleteBranch: true },
+    },
     orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
     codex: { childSession: { cwdAbs: '/repo' } },
   };
