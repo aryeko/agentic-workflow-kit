@@ -8,7 +8,7 @@ Start here. This hub separates **using** agentic-workflow-kit from **developing*
 | --- | --- |
 | [../README.md](../README.md) | What it is, the architecture and end-to-end flow, presets, install |
 | [getting-started.md](./getting-started.md) | A guided walkthrough using the worked Linkly example |
-| [architecture.md](./architecture.md) | Architecture, story lifecycle, eligibility, orchestrator runtime (with diagrams) |
+| [architecture.md](./architecture.md) | Architecture, story lifecycle, eligibility, bundled MCP runtime, standalone CLI, and orchestrator flow (with diagrams) |
 | [../references/config-schema.md](../references/config-schema.md) | The `.workflow/config.yaml` reference (every field, default, meaning) |
 | [../references/tracker-contract.md](../references/tracker-contract.md) | The tracker format + status vocabulary + eligibility rule |
 | [../references/prd-contract.md](../references/prd-contract.md) | The PRD format consumed by `plan-track` |

@@ -7,7 +7,8 @@
 agentic-workflow-kit turns any repo into a tracker-driven, spec-first delivery pipeline: a single
 **markdown tracker** plus a single **`.workflow/config.yaml`** form one contract that two
 interchangeable drivers read — an **interactive** skill that takes one story end-to-end, and an
-**autonomous** orchestrator that fans stories out to child sessions.
+**autonomous** runtime that fans stories out to child sessions through a plugin-bundled MCP server
+or the standalone CLI.
 
 ## The shared contract (the spine)
 
@@ -44,11 +45,12 @@ flowchart TB
 
   subgraph Drivers["Two drivers over one contract"]
     IN["implement-next<br/>(interactive, 1 story/session)"]
-    AP["workflow-autopilot →<br/>@agentic-workflow-kit/orchestrator<br/>(autonomous, batch)"]
+    AP["workflow-autopilot →<br/>bundled MCP runtime<br/>(autonomous, batch)"]
   end
 
   subgraph Orch["@agentic-workflow-kit/orchestrator (the only TS package)"]
     CLI["CLI"]
+    MCP["MCP server adapter"]
     LOADER["loadConfig"]
     SCHEMA["Zod ConfigSchema<br/>→ generates config.schema.json"]
     PRESET["presets + selectPreset"]
@@ -71,8 +73,10 @@ flowchart TB
   CFG --> AP
   TRK --> AP
 
-  AP --> CLI
+  AP --> MCP
+  MCP -. shared handlers .-> CLI
   CLI -. loadConfig .-> LOADER
+  MCP -. loadConfig .-> LOADER
   LOADER -. uses .-> SCHEMA
   CLI --> DISC --> SCHED --> RUN --> DRV --> CODEX
   RUN --> ART
@@ -105,8 +109,13 @@ orchestrator for v1):
 These remain a clean internal module and are re-exported from the package's public API, so they can
 be split back out into a standalone library if an external consumer ever needs them.
 
-### `@agentic-workflow-kit/orchestrator` (the only published package, optional install)
-The autonomous driver, which also carries the config layer above. A small CLI wires concrete implementations into a `WorkflowRunner` that
+### Bundled MCP runtime and standalone CLI
+The autonomous driver ships two surfaces over the same command handlers:
+
+- plugin installs use the bundled `mcp/server.mjs` artifact and expose MCP tools to Claude Code and Codex;
+- the published `@agentic-workflow-kit/orchestrator` package provides the standalone CLI for local development, CI, and troubleshooting.
+
+Both surfaces carry the config layer above. They wire concrete implementations into a `WorkflowRunner` that
 depends only on interfaces (`StoryRunner`, `StorySource`, `ArtifactStore`, `Logger`, `Clock`). The
 only shipped driver is `codex-mcp`; the driver boundary is reserved so new drivers can be added
 without touching the tracker/config contract. Every run writes structured artifacts under
@@ -163,7 +172,7 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-  participant CLI
+  participant Entry as CLI or MCP tool
   participant Cfg as loadResolvedConfig (core)
   participant Disc as discoverMarkdownTracks
   participant Run as WorkflowRunner
@@ -173,9 +182,9 @@ sequenceDiagram
   participant Trk as tracker (source of truth)
   participant J as RunJournal + Metrics
 
-  CLI->>Cfg: resolve .workflow/config.yaml
-  CLI->>Disc: discover tracks + parse stories
-  CLI->>Run: runEligible()
+  Entry->>Cfg: resolve .workflow/config.yaml
+  Entry->>Disc: discover tracks + parse stories
+  Entry->>Run: runEligible()
   loop until no active children
     Run->>Sched: selectDispatchableStories(maxParallel)
     Run->>Drv: runStory(story, prompt) via p-limit pool
@@ -234,10 +243,14 @@ references/                 contracts: config schema (human + machine), tracker,
 presets/                    push-and-merge / gated-automerge / push-only
 examples/                   worked PRD + tracker (Linkly)
 packages/orchestrator/      the only TS package: config (Zod schema, loadConfig, presets, schema gen),
-                            CLI, tracker parser, scheduler, WorkflowRunner, codex-mcp driver
+                            shared handlers, MCP server adapter, CLI, tracker parser, scheduler,
+                            WorkflowRunner, codex-mcp driver
+mcp/server.mjs              generated MCP runtime bundled into plugin installs
+.mcp.json                   Claude Code plugin MCP wiring
 .claude-plugin/             Claude Code plugin + marketplace manifests
 .codex-plugin/              Codex plugin manifest
-plugins/agentic-workflow-kit/       materialized copy for the local Codex marketplace fixture (byte-synced)
+plugins/agentic-workflow-kit/       materialized copy for the local Codex marketplace fixture, including
+                                    Codex-specific .mcp.json and mcp/server.mjs
 docs/                       this architecture and the docs hub
 ```
 

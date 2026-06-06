@@ -14,7 +14,8 @@ pnpm install
 pnpm check        # Biome lint + typecheck + Vitest — should be green
 ```
 
-The orchestrator CLI is available locally as:
+The plugin install includes a bundled MCP runtime for `workflow-autopilot`. The standalone
+orchestrator CLI is available locally as:
 
 ```bash
 pnpm agentic-workflow-kit -- --help
@@ -103,7 +104,11 @@ Two ways to drive the same tracker:
 Takes the next eligible story end-to-end: isolate (worktree/branch) → spec review → plan →
 implement → review → verify → mark done → ship under your `pr:` policy.
 
-**Autonomous — fan out (optional orchestrator):**
+**Autonomous — fan out:**
+
+When installed as a Claude Code or Codex plugin, invoke `workflow-autopilot` and prefer the bundled
+MCP tools. Use the standalone CLI when developing this repo, running CI checks, or troubleshooting
+outside a plugin session:
 
 ```bash
 pnpm agentic-workflow-kit -- mcp check                 # verify the Codex MCP tool schema

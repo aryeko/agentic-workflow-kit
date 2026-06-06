@@ -4,7 +4,8 @@
 
 [![CI](https://github.com/aryeko/agentic-workflow-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/aryeko/agentic-workflow-kit/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Node >=24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org)
 
-A generic, OSS Claude Code plugin (plus an optional orchestrator) that turns any repo into a
+A generic, OSS Claude Code + Codex plugin, with a bundled MCP runtime and optional standalone CLI,
+that turns any repo into a
 **tracker-driven, spec-first delivery pipeline** — and makes the per-repo differences (most
 notably PR/merge gating) **declarative config** rather than forked skills.
 
@@ -27,7 +28,7 @@ flowchart LR
   end
   CFG --> IN["implement-next<br/>(interactive)"]
   TRK --> IN
-  CFG --> OR["orchestrator<br/>(autonomous)"]
+  CFG --> OR["bundled MCP runtime<br/>or CLI<br/>(autonomous)"]
   TRK --> OR
   OR --> CODEX["Codex MCP child sessions"]
   CODEX -. update .-> TRK
@@ -60,8 +61,9 @@ flowchart LR
 2. **Plan the product** — `/plan-product` runs a guided interview into a multi-file PRD.
 3. **Decompose into a tracker** — `/plan-track` turns the PRD into a tracker plus per-story specs.
 4. **Implement** — `/implement-next` takes one eligible story end-to-end (isolate → spec review →
-   plan → implement → review → verify → ship), or the optional orchestrator fans eligible stories
-   out to Codex child sessions autonomously.
+   plan → implement → review → verify → ship), or `workflow-autopilot` uses the bundled MCP runtime
+   to fan eligible stories out to Codex child sessions autonomously. The CLI provides the same
+   runtime for local development, CI, and troubleshooting.
 5. **Ship** — under the declarative `pr:` policy (open a PR, wait on CI/review, auto-merge — or
    not), then repeat until the tracker is drained.
 
@@ -111,7 +113,7 @@ codex plugin marketplace add aryeko/agentic-workflow-kit
 Restart Codex, then open the plugin directory, select the `agentic-workflow-kit` marketplace, and install
 the `agentic-workflow-kit` plugin (CLI equivalent: `codex plugin add agentic-workflow-kit@agentic-workflow-kit`).
 
-### Optional orchestrator package
+### Optional standalone CLI
 
 ```text
 pnpm add -D @agentic-workflow-kit/orchestrator
@@ -133,10 +135,11 @@ so the default development gate works on machines that only have the package too
 The repository includes local-only plugin metadata for development testing:
 
 - Claude Code: load this repo with `claude --plugin-dir ./`, then invoke namespaced skills such as
-  `/agentic-workflow-kit:workflow-init`.
+  `/agentic-workflow-kit:workflow-init`; the root `.mcp.json` wires the bundled MCP runtime.
 - Codex: `.agents/plugins/marketplace.json` is the marketplace manifest — the same one a public
   `codex plugin marketplace add aryeko/agentic-workflow-kit` reads. Locally you add it from the repo
-  directory; it points at the materialized fixture at `./plugins/agentic-workflow-kit`.
+  directory; it points at the materialized fixture at `./plugins/agentic-workflow-kit`, including
+  the fixture-specific `.mcp.json` and bundled `mcp/server.mjs`.
 
 ```bash
 tmp_home="$(mktemp -d)"
@@ -160,15 +163,16 @@ Keep manual plugin smokes pending until they are run in the relevant tool enviro
 - `references/` — the config schema (human + machine), the tracker contract, the PRD contract, and templates.
 - `presets/` — the three starter configs.
 - `examples/` — a worked PRD and tracker.
-- `packages/orchestrator/` — the optional TypeScript runtime: the config schema, loader, and presets plus the autonomous multi-session orchestrator and CLI.
+- `mcp/server.mjs` — the bundled MCP runtime used by plugin installs.
+- `packages/orchestrator/` — the TypeScript runtime source: the config schema, loader, presets, MCP server adapter, autonomous multi-session orchestrator, and standalone CLI.
 - `docs/` — architecture, the docs hub, and the getting-started guide.
 
 ## Project status
 
 agentic-workflow-kit is published as **v0.1.0**: the five skills (`workflow-init`, `plan-product`,
-`plan-track`, `implement-next`, `workflow-autopilot`), the contracts, the three presets, the worked
-examples, and the optional `@agentic-workflow-kit/orchestrator` package (on npm) are implemented and
-covered by the test suite (`pnpm check`).
+`plan-track`, `implement-next`, `workflow-autopilot`), the bundled MCP runtime, the contracts, the
+three presets, the worked examples, and the optional standalone `@agentic-workflow-kit/orchestrator`
+CLI package (on npm) are implemented and covered by the test suite (`pnpm check`).
 
 It is an early **0.x** release — the install paths above are live. Feedback and issues are welcome as the
 agent-driven skills get broader real-world mileage.

@@ -10,7 +10,8 @@ describe('current-state documentation', () => {
     expect(agents).not.toContain('not yet published');
     expect(agents).toContain('workflow-init`, `plan-product`, `plan-track`, `implement-next`, and `workflow-autopilot');
     expect(agents).not.toContain('packages/core');
-    expect(agents).toContain('`packages/orchestrator/` contains the optional TypeScript orchestrator');
+    expect(agents).toContain('bundled MCP runtime');
+    expect(agents).toContain('`mcp/server.mjs` is the generated plugin MCP runtime bundle');
   });
 
   it('keeps README local Codex install guidance aligned with the fixture path', () => {
@@ -21,6 +22,7 @@ describe('current-state documentation', () => {
     expect(readme).toContain('codex plugin marketplace add .');
     expect(readme).toContain('codex plugin add agentic-workflow-kit@agentic-workflow-kit');
     expect(readme).toContain('./plugins/agentic-workflow-kit');
+    expect(readme).toContain('mcp/server.mjs');
   });
 
   it('keeps getting started and contributor docs aligned with published status', () => {
@@ -28,6 +30,8 @@ describe('current-state documentation', () => {
     const contributing = readFileSync('CONTRIBUTING.md', 'utf8');
 
     expect(gettingStarted).not.toContain('Install commands are planned');
+    expect(gettingStarted).toContain('bundled MCP runtime');
     expect(contributing).not.toContain('not yet published');
+    expect(contributing).toContain('changeset');
   });
 });

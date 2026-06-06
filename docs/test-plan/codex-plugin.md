@@ -33,9 +33,9 @@ There is also an automated install + prompt-visibility check (not a runtime smok
 Keep `CODEX_HOME` exported for the whole Codex session, and run that session with **cwd = `$SMOKE`**
 (the throwaway repo) so the skills act there.
 
-> Note: common Phases 1 & 4 call the orchestrator CLI, which spawns `codex mcp-server` using your
-> normal Codex environment — those phases do **not** need the fixture `CODEX_HOME`; only the
-> plugin-skill invocations below do.
+Confirm the installed plugin cache contains `.mcp.json` and `mcp/server.mjs` (the automated smoke
+does this). In the Codex session, prefer the bundled MCP runtime through `workflow-autopilot`; use
+the standalone CLI only as a fallback or cross-check.
 
 ## Invocation (this surface)
 In the Codex session (fixture `CODEX_HOME`, cwd `$SMOKE`), trigger each skill via Codex's skill
@@ -58,7 +58,7 @@ to initialize tracker-driven delivery in this repo") or by selecting the skill b
    **list-stories cross-check** from a terminal.
 4. **Phase 3 (side-effectful)** — explicitly invoke `implement-next` on a trivial story; verify
    against common-phases.md → Phase 3 (must stop at "no remote", completion from the tracker row).
-5. **Phase 4 (live dispatch)** — common-phases.md → Phase 4 from a terminal, **and** explicitly invoke
-   `workflow-autopilot` (Codex's headline autonomous path) to drive the same orchestrator run through
-   the skill; confirm both reach the same tracker-derived completion/blocking outcome.
+5. **Phase 4 (live dispatch)** — explicitly invoke `workflow-autopilot` (Codex's headline
+   autonomous path) so it drives the bundled MCP runtime; optionally cross-check with the CLI path
+   from common-phases.md. Confirm both reach the same tracker-derived completion/blocking outcome.
 6. **Evidence** — record per common-phases.md → Evidence; label the results "Codex plugin".
