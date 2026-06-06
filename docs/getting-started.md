@@ -4,8 +4,8 @@ A guided walkthrough of the agentic-workflow-kit pipeline, using the worked **Li
 [`examples/`](../examples/). Linkly is a minimal URL shortener; the example takes it from PRD to a
 sequenced tracker so you can see the shape before running the tools on your own repo.
 
-> Install commands are planned, not live yet — see [Project status](../README.md#project-status).
-> This walkthrough works today against the local checkout.
+> Install commands are live for v0.1.0 — see [Project status](../README.md#project-status).
+> The local checkout commands below remain useful for development and smoke validation.
 
 ## Prerequisites
 

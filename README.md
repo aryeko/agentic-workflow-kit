@@ -130,7 +130,7 @@ so the default development gate works on machines that only have the package too
 
 ## Local plugin testing
 
-The repository includes local-only plugin metadata for pre-publish testing:
+The repository includes local-only plugin metadata for development testing:
 
 - Claude Code: load this repo with `claude --plugin-dir ./`, then invoke namespaced skills such as
   `/agentic-workflow-kit:workflow-init`.

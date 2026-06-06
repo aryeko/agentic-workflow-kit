@@ -80,4 +80,7 @@ handoff. Report any skipped or failed verification with the exact reason.
 
 ## Status
 
-agentic-workflow-kit is feature-complete locally and not yet published; the remaining pre-publish gate is a live behavioral smoke run.
+agentic-workflow-kit is published as v0.1.0. The current package ships the five plugin skills,
+shared contracts, presets, worked examples, and the standalone `@agentic-workflow-kit/orchestrator`
+CLI package. Local plugin fixtures and smoke tests remain the development validation path for
+changes to the Claude Code and Codex plugin surfaces.

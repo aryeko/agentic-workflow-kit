@@ -82,4 +82,5 @@ Several artifacts are deliberately kept in sync by tests; editing one means edit
 
 ## Project status note
 
-agentic-workflow-kit is feature-complete locally but not yet published. The remaining pre-publish gate is a live behavioral smoke run.
+agentic-workflow-kit is published as v0.1.0. Local plugin fixtures and smoke tests remain the
+development validation path for changes to the Claude Code and Codex plugin surfaces.
