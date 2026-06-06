@@ -1,8 +1,8 @@
 # agentic-workflow-kit — behavioral smoke test plan
 
-Pre-publish manual smoke plan for a fresh session (human or agent) to follow. The unit/contract
-suite is green (186 tests), but the **agent-driven workflows and the live orchestrator dispatch
-have never run end-to-end**. These smokes close that gap before the repo goes public.
+Manual smoke plan for a fresh session (human or agent) to follow. The automated suite is the
+required development gate, but the **agent-driven workflows and live autonomous dispatch** still
+need tool-environment smokes before each plugin/runtime release.
 
 ## How this plan is organized
 
@@ -10,7 +10,7 @@ Two delivery surfaces share most of the work, so the steps are split to avoid du
 
 | File | What it holds |
 | --- | --- |
-| [common-phases.md](./common-phases.md) | The surface-agnostic steps: setup + containment, the orchestrator CLI phases (identical for both surfaces), and the **pass criteria** for each skill (what to verify, independent of how it is invoked). |
+| [common-phases.md](./common-phases.md) | The surface-agnostic steps: setup + containment, shared runtime phases, and the **pass criteria** for each skill (what to verify, independent of how it is invoked). |
 | [claude-plugin.md](./claude-plugin.md) | **Entry point for the Claude Code plugin** — how to load it and invoke each skill, then a runbook that references the common phases. |
 | [codex-plugin.md](./codex-plugin.md) | **Entry point for the Codex plugin** — how to load it and invoke each skill, then a runbook that references the common phases. |
 
@@ -27,9 +27,11 @@ points you into `common-phases.md` for everything shared.
 - **Judge against the contract, not exact output.** These are agent-driven and non-deterministic.
   Pass = "did it honor the contract" (idempotent, completion-from-tracker, parses, blocks correctly),
   not "did it print exactly this."
+- **MCP first, CLI fallback.** Plugin sessions should use the bundled MCP runtime. The standalone CLI
+  is the fallback for development, CI, and troubleshooting.
 - **Capture evidence.** Save each transcript / command output (see common-phases.md → Evidence).
 
 ## Status
 
-Record outcomes wherever you keep launch evidence (e.g. attach to the publish PR). This plan is the
-the pre-launch gate before the launch sequence in `~/handoff-prompts/agentic-workflow-kit-launch.md`.
+Record outcomes wherever you keep release evidence (e.g. attach to the release or feature PR). This
+plan is the manual runtime gate before promoting a plugin/runtime release.

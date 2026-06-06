@@ -24,7 +24,8 @@ pnpm test        # Vitest across root and orchestrator
 
 For a focused change, run the nearest test first, then `pnpm check` before opening a PR. The
 optional Codex plugin smoke (`pnpm smoke:codex-plugin`) requires the Codex CLI and is intentionally
-outside `pnpm check`.
+outside `pnpm check`. Claude plugin validation uses `claude plugin validate .` when the Claude CLI is
+available.
 
 ## Repository layout
 
@@ -34,7 +35,8 @@ See [docs/architecture.md](docs/architecture.md#where-things-live). In short:
 - `references/` — the canonical contracts (config schema, tracker, PRD) and templates.
 - `presets/` — the three starter configs.
 - `examples/` — worked PRD and tracker.
-- `packages/orchestrator/` — the optional TypeScript orchestrator and CLI, including the config schema (Zod), loader, and presets.
+- `mcp/server.mjs` — generated MCP runtime bundled into plugin installs.
+- `packages/orchestrator/` — the TypeScript orchestrator source and standalone CLI, including the MCP server adapter, config schema (Zod), loader, and presets.
 - `docs/` — architecture, the docs hub, and the getting-started guide.
 
 ## Contracts and their mirrors (read before editing)
@@ -45,9 +47,10 @@ Several artifacts are deliberately kept in sync by tests; editing one means edit
   `references/config.schema.json` is **generated** from it and pinned byte-for-byte by a drift test.
   `references/config-schema.md` is the human mirror; keep its fields and defaults aligned.
 - **Materialized plugin copy.** `plugins/agentic-workflow-kit/` is a byte-for-byte copy of `references/`,
-  `presets/`, `examples/`, `skills/`, and `.codex-plugin/` (the local Codex marketplace fixture). A
-  test asserts they are identical — re-sync the copy after editing any canonical source, or the gate
-  fails.
+  `presets/`, `examples/`, `skills/`, and `.codex-plugin/` (the local Codex marketplace fixture). It
+  also carries a Codex-specific `.mcp.json` and generated `mcp/server.mjs`. Tests assert the mirrored
+  content and runtime artifact stay aligned — re-sync the copy after editing any canonical source,
+  or the gate fails.
 - **Presets** must stay fully populated and schema-valid.
 - **Tracker completion** comes only from tracker state, never from a child session's prose.
 
@@ -59,6 +62,22 @@ Several artifacts are deliberately kept in sync by tests; editing one means edit
 - No `console.log` in library code; the CLI and the structured logger are the output surface.
 - If a change alters public behavior, update the relevant docs, schema, presets, examples, and tests
   in the same change.
+
+## Documentation standard
+
+Canonical docs are the only documentation on `main`, and they must describe the current repo state.
+There are no per-story documents in the tree.
+
+- A story's spec and plan are **transient working artifacts** under
+  [`docs/superpowers/`](docs/superpowers/README.md): the first commit of a story adds them; the
+  **final commit removes them** and folds their durable content into the canonical docs.
+- Canonical homes are mapped in [docs/README.md](docs/README.md) — typically `README.md`,
+  `docs/architecture.md`, `docs/getting-started.md`, `references/`, and `docs/test-plan/`.
+- Keep durable content (decisions, contracts, runtime/data flow, tool surfaces); drop transient
+  content (task breakdowns, step sequencing, review logs, dates). Git history retains the originals.
+- Enforced by **maintainer review**, not a test: a story PR must leave no `docs/superpowers/specs/*`
+  or `docs/superpowers/plans/*` story files and must update the affected canonical docs in the same
+  PR.
 
 ## Plugin authoring
 
@@ -82,4 +101,7 @@ Several artifacts are deliberately kept in sync by tests; editing one means edit
 
 ## Project status note
 
-agentic-workflow-kit is feature-complete locally but not yet published. The remaining pre-publish gate is a live behavioral smoke run.
+agentic-workflow-kit is published as v0.1.0. Local plugin fixtures and smoke tests remain the
+development validation path for changes to the Claude Code and Codex plugin surfaces. Public
+runtime changes should include a changeset; version bumps and changelog edits are produced by the
+release PR, not by ordinary feature PRs.

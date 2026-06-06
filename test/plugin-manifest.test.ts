@@ -3,6 +3,9 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import YAML from 'yaml';
 
+const claudePluginRootVariable = '$' + '{CLAUDE_PLUGIN_ROOT}';
+const claudeProjectDirVariable = '$' + '{CLAUDE_PROJECT_DIR}';
+
 function readSkillFrontmatter(skillName: string): Record<string, unknown> {
   const s = readFileSync(`skills/${skillName}/SKILL.md`, 'utf8');
   const match = s.match(/^---\n([\s\S]*?)\n---\n/);
@@ -63,6 +66,18 @@ describe('plugin manifests', () => {
     expect(entry.source).toBe('./');
   });
 
+  it('claude root plugin bundles the MCP runtime using plugin path variables', () => {
+    expect(existsSync('.mcp.json')).toBe(true);
+    expect(existsSync('mcp/server.mjs')).toBe(true);
+
+    const mcp = JSON.parse(readFileSync('.mcp.json', 'utf8'));
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
+      command: 'node',
+      args: [`${claudePluginRootVariable}/mcp/server.mjs`],
+      cwd: claudeProjectDirVariable,
+    });
+  });
+
   it('codex local marketplace fixture points at an installable plugin directory', () => {
     expect(existsSync('.agents/plugins/marketplace.json')).toBe(true);
     const mk = JSON.parse(readFileSync('.agents/plugins/marketplace.json', 'utf8'));
@@ -78,6 +93,8 @@ describe('plugin manifests', () => {
 
     for (const requiredPath of [
       'plugins/agentic-workflow-kit/.codex-plugin/plugin.json',
+      'plugins/agentic-workflow-kit/.mcp.json',
+      'plugins/agentic-workflow-kit/mcp/server.mjs',
       'plugins/agentic-workflow-kit/skills',
       'plugins/agentic-workflow-kit/references',
       'plugins/agentic-workflow-kit/presets',
@@ -106,6 +123,19 @@ describe('plugin manifests', () => {
         expect(readFileSync(fixtureFile, 'utf8')).toBe(readFileSync(sourceFile, 'utf8'));
       }
     }
+  });
+
+  it('codex local marketplace fixture includes the bundled MCP runtime', () => {
+    const mcp = JSON.parse(readFileSync('plugins/agentic-workflow-kit/.mcp.json', 'utf8'));
+
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
+      command: 'node',
+      args: ['./mcp/server.mjs'],
+      cwd: '.',
+    });
+    expect(readFileSync('plugins/agentic-workflow-kit/mcp/server.mjs', 'utf8')).toBe(
+      readFileSync('mcp/server.mjs', 'utf8'),
+    );
   });
 
   it('ships the workflow-init skill with frontmatter', () => {

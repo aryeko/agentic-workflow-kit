@@ -1,6 +1,6 @@
 ---
 name: workflow-autopilot
-description: Use when the user asks to discover tracks, dry-run eligible tracker stories, run autonomous multi-session workflow dispatch, watch orchestrator events, or analyze agentic-workflow-kit orchestrator runs. Reads .workflow/config.yaml plus references/tracker-contract.md and delegates execution to the optional @agentic-workflow-kit/orchestrator package. Do not use for writing PRDs, creating trackers, or implementing one story interactively.
+description: Use when the user asks to discover tracks, dry-run eligible tracker stories, run autonomous multi-session workflow dispatch, watch orchestrator events, or analyze agentic-workflow-kit orchestrator runs. Reads .workflow/config.yaml plus references/tracker-contract.md and prefers the bundled MCP runtime, with the CLI as a fallback. Do not use for writing PRDs, creating trackers, or implementing one story interactively.
 argument-hint: "<command> [options]"
 arguments: command
 disable-model-invocation: true
@@ -9,8 +9,11 @@ user-invocable: true
 
 # Workflow Autopilot
 
-Use the optional agentic-workflow-kit orchestrator package to dispatch eligible tracker stories into
-child Codex sessions.
+Operation requested: $ARGUMENTS
+
+Use the bundled MCP runtime to inspect and dispatch eligible tracker stories into child Codex
+sessions. Use the CLI fallback when MCP tools are unavailable or you are developing the
+agentic-workflow-kit repo itself.
 
 ## Load first
 
@@ -34,9 +37,28 @@ If `.workflow/config.yaml` is missing, stop and tell the user to run `/workflow-
 - Preserve the repo's local-only, push, PR, review, merge, and cleanup rules. The child workflow
   owns implementation policy.
 
-## Commands
+## Preferred MCP tools
 
-Installed package usage:
+When the plugin-provided `agentic-workflow-kit` MCP server is connected, prefer these tools:
+
+- `list_tracks`
+- `list_stories`
+- `list_eligible`
+- `run_eligible` with dry-run first
+- `run_story`
+- `watch_run`
+- `analyze_run`
+- `check_codex_mcp`
+
+If the `agentic-workflow-kit` MCP tools are not present in this session, use the CLI fallback below.
+Use tool results as operational evidence only. They do not replace tracker status, repo tests,
+review policy, or merge policy.
+Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-full-access` with
+`approvalPolicy: never` grants those children full local disk access without interactive approval.
+
+## CLI fallback
+
+Installed package usage when the bundled MCP runtime is not available:
 
 ```bash
 agentic-workflow-kit list-tracks

@@ -10,7 +10,7 @@ Throughout, `WK=~/repos/agentic-workflow-kit` is the plugin source and `SMOKE` i
 
 ```bash
 WK=~/repos/agentic-workflow-kit
-( cd "$WK" && pnpm install && pnpm build )      # build the orchestrator dist once
+( cd "$WK" && pnpm install && pnpm build )      # build dist and bundled MCP runtime once
 
 SMOKE="$(mktemp -d)/wk-smoke"
 mkdir -p "$SMOKE/.github/workflows" && cd "$SMOKE"
@@ -27,9 +27,11 @@ Run the orchestrator CLI from the built dist (works from any cwd):
 alias wk='node "$WK"/packages/orchestrator/dist/cli.js'
 ```
 
-## Phase 1 — Orchestrator plumbing (CLI, read-only, identical for both surfaces)
+## Phase 1 — Runtime plumbing (read-only)
 
 These have **no side effects**; run them first to prove the plumbing before spending interactive turns.
+Use the bundled MCP tools from plugin sessions when available; use the `wk` CLI alias as the
+development fallback.
 
 1. **MCP reachability + schema:** `wk mcp check`
    - PASS: reports the Codex `codex` tool and that its input schema validates. (Requires the `codex` CLI.)
@@ -76,11 +78,11 @@ Invoke each skill the way your surface entry describes, then verify against thes
   - With `pr.create: false` and no remote, the `done` tracker row and code remain on the worktree
     branch; the base branch can still show `specced` because there is no PR/remote reconciliation.
 
-## Phase 4 — Live orchestrator dispatch (CLI, identical for both surfaces; costs Codex tokens)
+## Phase 4 — Live orchestrator dispatch (MCP preferred, CLI fallback; costs Codex tokens)
 
 Deepest smoke — launches a real Codex child session. Keep it bounded.
 
-1. `wk run-eligible --dry-run` — re-confirm the dispatch set (no side effects).
+1. `run_eligible` with dry-run or `wk run-eligible --dry-run` — re-confirm the dispatch set (no side effects).
 2. `wk run-story <id> --sandbox workspace-write --approval-policy on-failure`
    - PASS: a child session launches; the orchestrator **re-reads the tracker** as the completion
      authority; it **blocks** (non-zero exit, `status: blocked`) if the story returns without reaching

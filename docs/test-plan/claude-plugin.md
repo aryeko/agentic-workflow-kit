@@ -20,9 +20,10 @@ cd "$SMOKE"
 claude --plugin-dir ~/repos/agentic-workflow-kit
 ```
 
-The skills are namespaced under `agentic-workflow-kit`. Confirm they are visible (e.g. type `/agentic-workflow-kit:`
+The skills are namespaced under `agentic-workflow-kit`, and the bundled `agentic-workflow-kit` MCP
+server should connect automatically. Confirm the skills are visible (e.g. type `/agentic-workflow-kit:`
 and check the five skills list: `workflow-init`, `plan-product`, `plan-track`, `implement-next`,
-`workflow-autopilot`).
+`workflow-autopilot`), then run `/mcp` and confirm the plugin-provided server is listed.
 
 ## Invocation syntax (this surface)
 
@@ -45,6 +46,8 @@ and check the five skills list: `workflow-init`, `plan-product`, `plan-track`, `
    common-phases.md → Phase 3 (must stop at "no remote", completion from the tracker row).
 5. **Phase 4 (live dispatch)** — common-phases.md → Phase 4, from a terminal. Optionally also invoke
    `/agentic-workflow-kit:workflow-autopilot` to smoke the skill-level wrapper over the same orchestrator run.
+   Prefer the bundled MCP tools when they are available; the terminal CLI remains the fallback for
+   development and troubleshooting.
    Because `implement-next` and `workflow-autopilot` are explicit-invocation-only, dispatched/headless
    Claude can validate their instructions by hand-executing `SKILL.md`, but only an interactive
    Claude session validates the skill invocation path.

@@ -6,7 +6,8 @@ Guidance for AI agents (and humans) working in this repo. For the full contribut
 
 ## Project purpose
 
-agentic-workflow-kit is a generic, OSS Claude Code + Codex plugin plus an optional TypeScript orchestrator.
+agentic-workflow-kit is a generic, OSS Claude Code + Codex plugin with a bundled MCP runtime plus an
+optional standalone TypeScript orchestrator CLI.
 It turns a repo into a tracker-driven, spec-first delivery pipeline where per-repo policy —
 especially PR and merge gating — lives in `.workflow/config.yaml` rather than forked skills.
 
@@ -20,18 +21,23 @@ The shared contract:
 
 ## Repository layout
 
-- `.claude-plugin/` contains the Claude Code plugin and marketplace manifests.
+- `.claude-plugin/` contains the Claude Code plugin and marketplace manifests; root `.mcp.json` wires
+  the bundled MCP runtime for Claude Code plugin installs.
 - `.codex-plugin/` contains Codex plugin metadata; `.agents/plugins/marketplace.json` and the
   materialized `plugins/agentic-workflow-kit/` copy provide the local Codex marketplace fixture. Keep that
-  fixture byte-in-sync with `.codex-plugin/`, `skills/`, `references/`, `presets/`, and `examples/`.
+  fixture byte-in-sync with `.codex-plugin/`, `skills/`, `references/`, `presets/`, and `examples/`;
+  keep its surface-specific `.mcp.json` and `mcp/server.mjs` materialized.
 - `skills/` contains the shared plugin skills: `workflow-init`, `plan-product`, `plan-track`, `implement-next`, and `workflow-autopilot`. These also provide the slash-command entry points; there is no separate `commands/` layer.
 - `references/` contains the canonical config schema, tracker contract, PRD contract, and templates.
   Keep the human and machine schema docs in sync.
 - `presets/` contains the three starter configs.
 - `examples/` contains worked PRD and tracker examples.
-- `packages/orchestrator/` contains the optional TypeScript orchestrator and CLI, including the shared config schema (Zod), loader, presets, and JSON Schema generation.
+- `mcp/server.mjs` is the generated plugin MCP runtime bundle.
+- `packages/orchestrator/` contains the TypeScript orchestrator source, MCP server adapter, and CLI, including the shared config schema (Zod), loader, presets, and JSON Schema generation.
 - `test/` validates manifests, schemas, presets, tracker docs, examples, and shared TypeScript.
 - `docs/` contains the architecture, the docs hub, and the getting-started guide.
+- `docs/superpowers/` holds a story's **transient** spec and plan; they are not canonical docs (see
+  the Conventions section).
 
 ## Build and verification
 
@@ -63,8 +69,9 @@ handoff. Report any skipped or failed verification with the exact reason.
 - Skills are instruction-first; add scripts only when deterministic behavior or repeated mechanical
   work justifies them.
 - Skill descriptions must be concise and trigger-specific so agents invoke the right skill.
-- Plugin metadata belongs in `.claude-plugin/` and `.codex-plugin/`; reusable workflow instructions
-  belong in `skills/<name>/SKILL.md`; durable contracts belong in `references/`.
+- Plugin metadata belongs in `.claude-plugin/` and `.codex-plugin/`; MCP plugin wiring belongs in
+  `.mcp.json` and `plugins/agentic-workflow-kit/.mcp.json`; reusable workflow instructions belong
+  in `skills/<name>/SKILL.md`; durable contracts belong in `references/`.
 - Side-effectful skills (`implement-next`, `workflow-autopilot`) are explicit-invocation-only on
   both the Claude and Codex surfaces.
 - `workflow-init` must remain idempotent: it may reconcile missing config keys and report drift, but
@@ -77,7 +84,14 @@ handoff. Report any skipped or failed verification with the exact reason.
 - Prefer immutable data and small, focused files.
 - If a change alters public behavior, update the relevant docs, schemas, presets, examples, and
   tests in the same change.
+- Canonical docs only on `main`. A story's spec/plan live under `docs/superpowers/` as working
+  artifacts: add them in the story's first commit, then in the **final commit delete them and fold
+  the durable content into the canonical docs**. See
+  [docs/superpowers/README.md](docs/superpowers/README.md).
 
 ## Status
 
-agentic-workflow-kit is feature-complete locally and not yet published; the remaining pre-publish gate is a live behavioral smoke run.
+agentic-workflow-kit is published as v0.1.0. The current plugin ships the five skills, bundled MCP
+runtime, shared contracts, presets, and worked examples. The `@agentic-workflow-kit/orchestrator`
+package remains the standalone CLI/runtime source. Local plugin fixtures and smoke tests remain the
+development validation path for changes to the Claude Code and Codex plugin surfaces.
