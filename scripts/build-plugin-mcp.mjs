@@ -1,10 +1,12 @@
-import { chmod, mkdir } from 'node:fs/promises';
+import { chmod, copyFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'esbuild';
 
 const repoRoot = process.cwd();
 const outdir = path.join(repoRoot, 'mcp');
 const outfile = path.join(outdir, 'server.mjs');
+const fixtureOutdir = path.join(repoRoot, 'plugins/agentic-workflow-kit/mcp');
+const fixtureOutfile = path.join(fixtureOutdir, 'server.mjs');
 
 await mkdir(outdir, { recursive: true });
 
@@ -22,3 +24,6 @@ await build({
 });
 
 await chmod(outfile, 0o755);
+await mkdir(fixtureOutdir, { recursive: true });
+await copyFile(outfile, fixtureOutfile);
+await chmod(fixtureOutfile, 0o755);

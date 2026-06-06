@@ -78,6 +78,8 @@ describe('plugin manifests', () => {
 
     for (const requiredPath of [
       'plugins/agentic-workflow-kit/.codex-plugin/plugin.json',
+      'plugins/agentic-workflow-kit/.mcp.json',
+      'plugins/agentic-workflow-kit/mcp/server.mjs',
       'plugins/agentic-workflow-kit/skills',
       'plugins/agentic-workflow-kit/references',
       'plugins/agentic-workflow-kit/presets',
@@ -106,6 +108,18 @@ describe('plugin manifests', () => {
         expect(readFileSync(fixtureFile, 'utf8')).toBe(readFileSync(sourceFile, 'utf8'));
       }
     }
+  });
+
+  it('codex local marketplace fixture includes the bundled MCP runtime', () => {
+    const mcp = JSON.parse(readFileSync('plugins/agentic-workflow-kit/.mcp.json', 'utf8'));
+
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
+      command: 'node',
+      args: ['./mcp/server.mjs'],
+    });
+    expect(readFileSync('plugins/agentic-workflow-kit/mcp/server.mjs', 'utf8')).toBe(
+      readFileSync('mcp/server.mjs', 'utf8'),
+    );
   });
 
   it('ships the workflow-init skill with frontmatter', () => {

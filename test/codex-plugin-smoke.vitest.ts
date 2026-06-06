@@ -27,6 +27,8 @@ describe('codex local plugin smoke', () => {
     const installedRoot = path.join(codexHome, 'plugins/cache/agentic-workflow-kit/agentic-workflow-kit/0.1.0');
 
     expect(existsSync(path.join(installedRoot, '.codex-plugin/plugin.json'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, '.mcp.json'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, 'mcp/server.mjs'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/workflow-init/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/plan-product/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/plan-track/SKILL.md'))).toBe(true);
