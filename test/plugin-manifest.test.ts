@@ -189,4 +189,18 @@ describe('plugin manifests', () => {
   it('no longer ships a separate commands/ layer (skills provide the entry points)', () => {
     expect(existsSync('commands')).toBe(false);
   });
+
+  it('keeps every plugin surface aligned with the orchestrator release version', () => {
+    const releaseVersion = JSON.parse(readFileSync('packages/orchestrator/package.json', 'utf8')).version;
+    const versionOf = (file: string) => JSON.parse(readFileSync(file, 'utf8')).version;
+
+    expect(versionOf('package.json')).toBe(releaseVersion);
+    expect(versionOf('.claude-plugin/plugin.json')).toBe(releaseVersion);
+    expect(versionOf('.codex-plugin/plugin.json')).toBe(releaseVersion);
+    expect(versionOf('plugins/agentic-workflow-kit/.codex-plugin/plugin.json')).toBe(releaseVersion);
+
+    const marketplace = JSON.parse(readFileSync('.claude-plugin/marketplace.json', 'utf8'));
+    const entry = marketplace.plugins.find((p: { name: string }) => p.name === 'agentic-workflow-kit');
+    expect(entry.version).toBe(releaseVersion);
+  });
 });
