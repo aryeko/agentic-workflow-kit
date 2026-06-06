@@ -3,6 +3,9 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import YAML from 'yaml';
 
+const claudePluginRootVariable = '$' + '{CLAUDE_PLUGIN_ROOT}';
+const claudeProjectDirVariable = '$' + '{CLAUDE_PROJECT_DIR}';
+
 function readSkillFrontmatter(skillName: string): Record<string, unknown> {
   const s = readFileSync(`skills/${skillName}/SKILL.md`, 'utf8');
   const match = s.match(/^---\n([\s\S]*?)\n---\n/);
@@ -61,6 +64,18 @@ describe('plugin manifests', () => {
     const entry = mk.plugins.find((p: { name: string }) => p.name === 'agentic-workflow-kit');
     expect(entry).toBeDefined();
     expect(entry.source).toBe('./');
+  });
+
+  it('claude root plugin bundles the MCP runtime using plugin path variables', () => {
+    expect(existsSync('.mcp.json')).toBe(true);
+    expect(existsSync('mcp/server.mjs')).toBe(true);
+
+    const mcp = JSON.parse(readFileSync('.mcp.json', 'utf8'));
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
+      command: 'node',
+      args: [`${claudePluginRootVariable}/mcp/server.mjs`],
+      cwd: claudeProjectDirVariable,
+    });
   });
 
   it('codex local marketplace fixture points at an installable plugin directory', () => {
