@@ -22,10 +22,12 @@ Start here. This hub separates **using** agentic-workflow-kit from **developing*
 | --- | --- |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to build, test, and contribute |
 | [../AGENTS.md](../AGENTS.md) | Guidance for AI agents working in the repo |
+| [superpowers/README.md](./superpowers/README.md) | Per-story spec/plan lifecycle: transient working artifacts, consumed into canonical docs before merge |
 
 ## Conventions
 
 - No emojis in code, comments, docs, or commit messages.
 - Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`); no AI attribution.
 - Immutable data, small focused files.
+- Canonical docs only on `main`; a story's spec/plan are transient working artifacts (see [superpowers/README.md](./superpowers/README.md)).
 - `pnpm check` (Biome lint + typecheck + Vitest) is the gate before any change is considered done.

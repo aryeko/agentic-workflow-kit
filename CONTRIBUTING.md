@@ -63,6 +63,22 @@ Several artifacts are deliberately kept in sync by tests; editing one means edit
 - If a change alters public behavior, update the relevant docs, schema, presets, examples, and tests
   in the same change.
 
+## Documentation standard
+
+Canonical docs are the only documentation on `main`, and they must describe the current repo state.
+There are no per-story documents in the tree.
+
+- A story's spec and plan are **transient working artifacts** under
+  [`docs/superpowers/`](docs/superpowers/README.md): the first commit of a story adds them; the
+  **final commit removes them** and folds their durable content into the canonical docs.
+- Canonical homes are mapped in [docs/README.md](docs/README.md) — typically `README.md`,
+  `docs/architecture.md`, `docs/getting-started.md`, `references/`, and `docs/test-plan/`.
+- Keep durable content (decisions, contracts, runtime/data flow, tool surfaces); drop transient
+  content (task breakdowns, step sequencing, review logs, dates). Git history retains the originals.
+- Enforced by **maintainer review**, not a test: a story PR must leave no `docs/superpowers/specs/*`
+  or `docs/superpowers/plans/*` story files and must update the affected canonical docs in the same
+  PR.
+
 ## Plugin authoring
 
 - Skills are instruction-first; add scripts only when deterministic or repeated mechanical work

@@ -115,10 +115,31 @@ The autonomous driver ships two surfaces over the same command handlers:
 - plugin installs use the bundled `mcp/server.mjs` artifact and expose MCP tools to Claude Code and Codex;
 - the published `@agentic-workflow-kit/orchestrator` package provides the standalone CLI for local development, CI, and troubleshooting.
 
+The bundled MCP server exposes eight tools over the shared handlers:
+
+| Tool | Purpose |
+| --- | --- |
+| `list_tracks` | Discover tracker directories and active tracks. |
+| `list_stories` | Parse stories for one track or all active tracks. |
+| `list_eligible` | Return stories dispatchable after status, owner, and dependency filtering. |
+| `run_eligible` | Dry-run (default) or launch eligible stories for one track. |
+| `run_story` | Dry-run (default) or launch a specific story. |
+| `watch_run` | Read `state.json` and `metrics.live.json` for a run artifact directory. |
+| `analyze_run` | Analyze a completed run and its child session artifacts. |
+| `check_codex_mcp` | Validate the Codex child MCP server schema used by the `codex-mcp` driver. |
+
+`run_eligible` and `run_story` default to dry-run and never treat a child result, MCP success, or
+token metric as completion — the tracker row remains the only completion authority. Read tools are
+annotated read-only/idempotent and run tools destructive; large responses are bounded and can be
+widened with `responseFormat: detailed`.
+
 Both surfaces carry the config layer above. They wire concrete implementations into a `WorkflowRunner` that
 depends only on interfaces (`StoryRunner`, `StorySource`, `ArtifactStore`, `Logger`, `Clock`). The
 only shipped driver is `codex-mcp`; the driver boundary is reserved so new drivers can be added
-without touching the tracker/config contract. Every run writes structured artifacts under
+without touching the tracker/config contract. _Roadmap:_ a future
+`orchestrator.driver: claude-agent-sdk` can dispatch child sessions through the Claude Agent SDK over
+this same boundary; today's bundled autopilot still uses the `codex-mcp` child driver. Every run
+writes structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
 per-child JSON), and `analyze-run` reconstructs metrics from Codex session logs.
 

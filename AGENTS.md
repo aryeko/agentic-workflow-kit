@@ -36,6 +36,8 @@ The shared contract:
 - `packages/orchestrator/` contains the TypeScript orchestrator source, MCP server adapter, and CLI, including the shared config schema (Zod), loader, presets, and JSON Schema generation.
 - `test/` validates manifests, schemas, presets, tracker docs, examples, and shared TypeScript.
 - `docs/` contains the architecture, the docs hub, and the getting-started guide.
+- `docs/superpowers/` holds a story's **transient** spec and plan; they are not canonical docs (see
+  the Conventions section).
 
 ## Build and verification
 
@@ -82,6 +84,10 @@ handoff. Report any skipped or failed verification with the exact reason.
 - Prefer immutable data and small, focused files.
 - If a change alters public behavior, update the relevant docs, schemas, presets, examples, and
   tests in the same change.
+- Canonical docs only on `main`. A story's spec/plan live under `docs/superpowers/` as working
+  artifacts: add them in the story's first commit, then in the **final commit delete them and fold
+  the durable content into the canonical docs**. See
+  [docs/superpowers/README.md](docs/superpowers/README.md).
 
 ## Status
 
