@@ -130,4 +130,13 @@ describe('config-schema.md stays in sync with config.schema.json', () => {
 
     expect(mismatches).toEqual([]);
   });
+
+  it('documents Codex bot review reaction/comment semantics', () => {
+    expect(doc).toContain('Codex bot review semantics');
+    expect(doc).toContain('Eyes reaction on the PR body: review started or pending');
+    expect(doc).toContain('Thumbs-up reaction on the PR body: clear/no findings');
+    expect(doc).toContain('PR review comments or PR comments from Codex: findings');
+    expect(doc).toContain('A native `PullRequestReview` with `APPROVED` or `CHANGES_REQUESTED` is not required');
+    expect(doc).toContain('Mentioning `@codex` is only a fallback/manual trigger');
+  });
 });

@@ -72,6 +72,19 @@ The only block that differs between a push-and-merge repo and a gated-automerge 
 | `merge.method` | `squash` \| `merge` \| `rebase` | `squash` | Merge method. |
 | `merge.deleteBranch` | boolean | `true` | Delete the branch after merge. |
 
+### Codex bot review semantics
+
+When `review.wait: bot` and `review.bot: codex`, the review gate is based on Codex's GitHub
+reaction/comment signals, not on GitHub native approval state:
+
+- Eyes reaction on the PR body: review started or pending. This is not approval.
+- Thumbs-up reaction on the PR body: clear/no findings.
+- PR review comments or PR comments from Codex: findings. With `review.triageComments: true`, each
+  finding must be fixed or explicitly replied to before merge.
+- A native `PullRequestReview` with `APPROVED` or `CHANGES_REQUESTED` is not required from Codex.
+- Mentioning `@codex` is only a fallback/manual trigger when auto review does not start or a manual
+  retry is needed.
+
 ## `orchestrator` (optional)
 
 Consulted only when the orchestrator package is installed.

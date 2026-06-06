@@ -9,6 +9,24 @@ export interface ResolvedGitConfig {
   commitOnBase: 'forbid' | 'allow';
 }
 
+export interface ResolvedPrConfig {
+  create: boolean;
+  ci: {
+    wait: boolean;
+    command: string | null;
+  };
+  review: {
+    wait: 'none' | 'bot' | 'human';
+    bot: string;
+    triageComments: boolean;
+  };
+  merge: {
+    auto: boolean;
+    method: 'squash' | 'merge' | 'rebase';
+    deleteBranch: boolean;
+  };
+}
+
 export interface ResolvedWorkflowConfig {
   version: 1;
   configPath: string;
@@ -35,6 +53,7 @@ export interface ResolvedWorkflowConfig {
     idPattern: string;
   };
   git: ResolvedGitConfig;
+  pr: ResolvedPrConfig;
   orchestrator: {
     driver: OrchestratorDriver;
     maxParallel: number;

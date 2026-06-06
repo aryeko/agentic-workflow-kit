@@ -20,6 +20,12 @@ const config: ResolvedWorkflowConfig = {
   statuses: { eligible: ['specced'], inProgress: 'implementing', complete: ['done'] },
   tracker: { idPattern: '^[A-Z]+[0-9]+$' },
   git: { strategy: 'worktree', branchPattern: '{track}/{id-lc}-{slug}', baseBranch: 'main', commitOnBase: 'forbid' },
+  pr: {
+    create: true,
+    ci: { wait: true, command: null },
+    review: { wait: 'bot', bot: 'codex', triageComments: true },
+    merge: { auto: true, method: 'squash', deleteBranch: true },
+  },
   orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
   codex: {
     childSession: {
@@ -49,7 +55,7 @@ const story: WorkflowStory = {
 
 describe('buildGenericPrompt', () => {
   it('builds a one-story prompt with tracker context and completion rules', () => {
-    const prompt = buildGenericPrompt(story, config.git);
+    const prompt = buildGenericPrompt(story, config);
     expect(prompt).toContain('Implement exactly one workflow tracker story');
     expect(prompt).toContain('- ID: L002');
     expect(prompt).toContain('- Tracker file: docs/tracks/linkly/README.md');
@@ -58,7 +64,7 @@ describe('buildGenericPrompt', () => {
   });
 
   it('includes the resolved forbidden git policy', () => {
-    const prompt = buildGenericPrompt(story, config.git);
+    const prompt = buildGenericPrompt(story, config);
 
     expect(prompt).toContain('Git policy');
     expect(prompt).toContain('- Isolation strategy: worktree');
@@ -69,9 +75,24 @@ describe('buildGenericPrompt', () => {
   });
 
   it('renders permissive base-commit wording when commitOnBase is allow', () => {
-    const prompt = buildGenericPrompt(story, { ...config.git, commitOnBase: 'allow' });
+    const prompt = buildGenericPrompt(story, { ...config, git: { ...config.git, commitOnBase: 'allow' } });
 
     expect(prompt).toContain('Committing directly on `main` is allowed by this repo policy.');
+  });
+
+  it('describes Codex bot review as reaction/comment based rather than native GitHub approval based', () => {
+    const prompt = buildGenericPrompt(story, config);
+
+    expect(prompt).toContain('PR policy (from .workflow/config.yaml - follow exactly):');
+    expect(prompt).toContain('- Review gate: wait for bot `codex`.');
+    expect(prompt).toContain('Codex review signal is reaction/comment based, not a native GitHub approval gate.');
+    expect(prompt).toContain('eyes reaction means review started/pending');
+    expect(prompt).toContain('thumbs-up reaction means clear/no findings');
+    expect(prompt).toContain('PR review comments or PR comments are findings');
+    expect(prompt).toContain(
+      'Do not require a GitHub PullRequestReview APPROVED or CHANGES_REQUESTED state from Codex.',
+    );
+    expect(prompt).toContain('Do not mention @codex unless auto review failed to start or a manual retry is needed.');
   });
 });
 

@@ -268,7 +268,7 @@ export class WorkflowRunner {
     try {
       const run = this.dependencies.storyRunner.runStory({
         story,
-        prompt: buildGenericPrompt(story, this.dependencies.config.git),
+        prompt: buildGenericPrompt(story, this.dependencies.config),
         cwd: childCwd,
         metadata: { runId: this.state.runId },
       });
