@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const repoRoot = process.cwd();
+const pluginVersion = JSON.parse(readFileSync(path.join(repoRoot, '.codex-plugin/plugin.json'), 'utf8')).version;
 
 describe('codex local plugin smoke', () => {
   it('installs through the local marketplace and exposes implicit-safe skills', () => {
@@ -24,7 +25,10 @@ describe('codex local plugin smoke', () => {
       stdio: 'pipe',
     });
 
-    const installedRoot = path.join(codexHome, 'plugins/cache/agentic-workflow-kit/agentic-workflow-kit/0.1.0');
+    const installedRoot = path.join(
+      codexHome,
+      `plugins/cache/agentic-workflow-kit/agentic-workflow-kit/${pluginVersion}`,
+    );
 
     expect(existsSync(path.join(installedRoot, '.codex-plugin/plugin.json'))).toBe(true);
     expect(existsSync(path.join(installedRoot, '.mcp.json'))).toBe(true);
