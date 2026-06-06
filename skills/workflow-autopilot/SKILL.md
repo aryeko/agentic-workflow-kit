@@ -9,6 +9,8 @@ user-invocable: true
 
 # Workflow Autopilot
 
+Operation requested: $ARGUMENTS
+
 Use the bundled MCP runtime to inspect and dispatch eligible tracker stories into child Codex
 sessions. Use the CLI fallback when MCP tools are unavailable or you are developing the
 agentic-workflow-kit repo itself.
@@ -48,13 +50,15 @@ When the plugin-provided `agentic-workflow-kit` MCP server is connected, prefer 
 - `analyze_run`
 - `check_codex_mcp`
 
+If the `agentic-workflow-kit` MCP tools are not present in this session, use the CLI fallback below.
 Use tool results as operational evidence only. They do not replace tracker status, repo tests,
 review policy, or merge policy.
+Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-full-access` with
+`approvalPolicy: never` grants those children full local disk access without interactive approval.
 
 ## CLI fallback
 
 Installed package usage when the bundled MCP runtime is not available:
-
 
 ```bash
 agentic-workflow-kit list-tracks

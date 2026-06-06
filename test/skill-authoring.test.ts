@@ -118,6 +118,9 @@ describe('skill authoring', () => {
     expect(body).toContain('bundled MCP runtime');
     expect(body).toContain('CLI fallback');
     expect(body).toContain('WK4 v1 supports only `orchestrator.driver: codex-mcp`');
+    expect(body).toContain('If the `agentic-workflow-kit` MCP tools are not present');
+    expect(body).toContain('full local disk access without interactive approval');
+    expect(body).toContain('Operation requested: $ARGUMENTS');
   });
 
   it.each(skillNames)('%s only references existing plugin-root paths', (skillName) => {

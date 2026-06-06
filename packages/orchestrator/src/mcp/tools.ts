@@ -25,128 +25,202 @@ export const ORCHESTRATOR_MCP_TOOLS = [
 ] as const;
 
 const baseInputSchema = z.object({
-  cwd: z.string().optional(),
-  configPath: z.string().optional(),
-  track: z.string().optional(),
-  tracksDir: z.string().optional(),
-  maxParallel: z.number().int().positive().optional(),
-  json: z.boolean().optional(),
+  cwd: z.string().optional().describe('Repo root to operate in; defaults to the MCP server current working directory.'),
+  configPath: z.string().optional().describe('Path to .workflow/config.yaml; defaults to <cwd>/.workflow/config.yaml.'),
+  track: z
+    .string()
+    .optional()
+    .describe('Track id to scope to; required for run_eligible when multiple tracks have eligible stories.'),
+  tracksDir: z
+    .string()
+    .optional()
+    .describe('Tracker directory override relative to the workspace root; defaults to paths.tracksDir from config.'),
+  maxParallel: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Maximum stories to dispatch or preview from eligible stories; defaults to the configured maxParallel.'),
+  json: z.boolean().optional().describe('Prefer machine-readable CLI-compatible JSON formatting in text summaries.'),
+  responseFormat: z
+    .enum(['concise', 'detailed'])
+    .optional()
+    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
 
 const runInputSchema = baseInputSchema.extend({
-  dryRun: z.boolean().optional(),
-  force: z.boolean().optional(),
-  watch: z.boolean().optional(),
-  childTimeoutMs: z.number().int().positive().optional(),
-  model: z.string().optional(),
-  reasoning: z.string().optional(),
-  approvalPolicy: z.enum(['never', 'on-failure', 'on-request', 'untrusted']).optional(),
-  sandbox: z.enum(['danger-full-access', 'read-only', 'workspace-write']).optional(),
+  dryRun: z
+    .boolean()
+    .optional()
+    .describe('Defaults to true. Set false only when the user explicitly approves launching child sessions.'),
+  force: z.boolean().optional().describe('Allow dispatch even when the selected story is not currently eligible.'),
+  childTimeoutMs: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Timeout in milliseconds for each child Codex MCP session.'),
+  model: z.string().optional().describe('Optional Codex model override for child sessions.'),
+  reasoning: z.string().optional().describe('Optional reasoning effort override for child sessions.'),
+  approvalPolicy: z
+    .enum(['never', 'on-failure', 'on-request', 'untrusted'])
+    .optional()
+    .describe('Child Codex approval policy; never means no interactive approval prompts.'),
+  sandbox: z
+    .enum(['danger-full-access', 'read-only', 'workspace-write'])
+    .optional()
+    .describe('Child Codex filesystem sandbox; danger-full-access grants full local disk access.'),
 });
 
 const runStoryInputSchema = runInputSchema.extend({
-  storyId: z.string(),
+  storyId: z.string().describe('Tracker story id to dry-run or dispatch, for example WK4.'),
 });
 
 const runPathInputSchema = z.object({
-  runPath: z.string(),
-  sessionRoot: z.string().optional(),
-  json: z.boolean().optional(),
+  runPath: z
+    .string()
+    .describe('Absolute path to a run artifact directory, e.g. the artifactDir returned by run_story or run_eligible.'),
+  sessionRoot: z.string().optional().describe('Override root for child session artifacts when analyzing a run.'),
+  json: z.boolean().optional().describe('Prefer machine-readable CLI-compatible JSON formatting in text summaries.'),
+  responseFormat: z
+    .enum(['concise', 'detailed'])
+    .optional()
+    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
+
+const outputSchema = z
+  .object({
+    truncated: z.boolean().optional().describe('True when structuredContent was shortened for MCP response safety.'),
+    truncation: z
+      .object({
+        message: z.string().describe('Human-readable truncation summary.'),
+        paths: z.array(z.string()).describe('StructuredContent paths that were truncated.'),
+      })
+      .optional()
+      .describe('Present when structuredContent was shortened.'),
+  })
+  .passthrough();
 
 export function registerOrchestratorTools(server: McpServer): void {
   server.registerTool(
     'list_tracks',
     {
-      description: 'Discover agentic-workflow-kit tracker directories and active tracks.',
+      description:
+        'Discover tracker directories and active tracks. Run first when you do not know available track ids.',
       inputSchema: baseInputSchema,
+      outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => toolResult('list_tracks', await listTracksHandler(toOverrides(input))),
+    async (input) => handleTool('list_tracks', input.responseFormat, () => listTracksHandler(toOverrides(input))),
   );
 
   server.registerTool(
     'list_stories',
     {
-      description: 'Parse tracker stories for one track or all active tracks.',
+      description:
+        'Parse tracker stories for one track or all active tracks. Use track to narrow large repos; use before run_story to find exact ids.',
       inputSchema: baseInputSchema,
+      outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => toolResult('list_stories', await listStoriesHandler(toOverrides(input))),
+    async (input) => handleTool('list_stories', input.responseFormat, () => listStoriesHandler(toOverrides(input))),
   );
 
   server.registerTool(
     'list_eligible',
     {
-      description: 'Return tracker stories eligible for dispatch after status, owner, and dependency filtering.',
+      description:
+        'Stories ready to dispatch after status, owner, and dependency filtering. Run before run_eligible; if more than one track has eligible stories you must pass track.',
       inputSchema: baseInputSchema,
+      outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => toolResult('list_eligible', await listEligibleHandler(toOverrides(input))),
+    async (input) => handleTool('list_eligible', input.responseFormat, () => listEligibleHandler(toOverrides(input))),
   );
 
   server.registerTool(
     'run_eligible',
     {
-      description: 'Dry-run or launch eligible stories for a single track. Defaults to dry-run unless dryRun is false.',
+      description:
+        'Dry-run or launch eligible stories for a single track. Defaults to dry-run unless dryRun is false. Non-dry-run with sandbox danger-full-access and approvalPolicy never runs unsupervised child sessions with full disk access.',
       inputSchema: runInputSchema,
+      outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async (input) => {
       const overrides = toOverrides({ ...input, dryRun: input.dryRun !== false });
-      const result = await runWorkflowHandler(
-        { kind: 'run-eligible', overrides },
-        { logger: nullLogger, stdout: noopStdout },
+      return handleTool(
+        'run_eligible',
+        input.responseFormat,
+        () => runWorkflowHandler({ kind: 'run-eligible', overrides }, { logger: nullLogger, stdout: noopStdout }),
+        summarizeRun,
       );
-      return toolResult('run_eligible', result, summarizeRun(result));
     },
   );
 
   server.registerTool(
     'run_story',
     {
-      description: 'Dry-run or launch a specific tracker story. Defaults to dry-run unless dryRun is false.',
+      description:
+        'Dry-run or launch one tracker story. Defaults to dry-run unless dryRun is false. Non-dry-run with sandbox danger-full-access and approvalPolicy never runs an unsupervised child session with full disk access.',
       inputSchema: runStoryInputSchema,
+      outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async (input) => {
       const overrides = toOverrides({ ...input, dryRun: input.dryRun !== false });
-      const result = await runWorkflowHandler(
-        { kind: 'run-story', storyId: input.storyId, overrides },
-        { logger: nullLogger, stdout: noopStdout },
+      return handleTool(
+        'run_story',
+        input.responseFormat,
+        () =>
+          runWorkflowHandler(
+            { kind: 'run-story', storyId: input.storyId, overrides },
+            { logger: nullLogger, stdout: noopStdout },
+          ),
+        summarizeRun,
       );
-      return toolResult('run_story', result, summarizeRun(result));
     },
   );
 
   server.registerTool(
     'watch_run',
     {
-      description: 'Read the current state and live metrics snapshot for a run artifact directory.',
+      description:
+        'Read current state.json and metrics.live.json for a run artifact directory returned by run_story or run_eligible.',
       inputSchema: runPathInputSchema,
+      outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => toolResult('watch_run', await watchRunHandler(input.runPath, toOverrides(input))),
+    async (input) =>
+      handleTool('watch_run', input.responseFormat, () => watchRunHandler(input.runPath, toOverrides(input))),
   );
 
   server.registerTool(
     'analyze_run',
     {
-      description: 'Analyze a completed run artifact directory and child session artifacts.',
+      description:
+        'Analyze a completed run artifact directory and child session artifacts. Use after watch_run shows the run is complete or blocked.',
       inputSchema: runPathInputSchema,
+      outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => toolResult('analyze_run', await analyzeRunHandler(input.runPath, toOverrides(input))),
+    async (input) =>
+      handleTool('analyze_run', input.responseFormat, () => analyzeRunHandler(input.runPath, toOverrides(input))),
   );
 
   server.registerTool(
     'check_codex_mcp',
     {
-      description: 'Validate the Codex child MCP server schema used by the codex-mcp driver.',
+      description:
+        'Validate the Codex child MCP server schema used by the codex-mcp driver before launching non-dry-run children.',
       inputSchema: baseInputSchema,
+      outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => toolResult('check_codex_mcp', await mcpCheckHandler(toOverrides(input), { logger: nullLogger })),
+    async (input) =>
+      handleTool('check_codex_mcp', input.responseFormat, () =>
+        mcpCheckHandler(toOverrides(input), { logger: nullLogger }),
+      ),
   );
 }
 
@@ -166,6 +240,7 @@ function toOverrides(input: {
   approvalPolicy?: CliOverrides['approvalPolicy'];
   sandbox?: CliOverrides['sandbox'];
   sessionRoot?: string;
+  responseFormat?: 'concise' | 'detailed';
 }): CliOverrides {
   const overrides: CliOverrides = {};
   if (input.cwd !== undefined) overrides.cwd = input.cwd;
@@ -186,18 +261,127 @@ function toOverrides(input: {
   return overrides;
 }
 
-function toolResult(tool: string, value: unknown, summary = `${tool} completed`): CallToolResult {
+async function handleTool<T>(
+  tool: string,
+  responseFormat: 'concise' | 'detailed' | undefined,
+  operation: () => Promise<T>,
+  summarize: (value: T) => string = () => `${tool} completed`,
+): Promise<CallToolResult> {
+  try {
+    const value = await operation();
+    return toolResult(tool, value, responseFormat, summarize(value));
+  } catch (error) {
+    return toolError(error);
+  }
+}
+
+function toolResult(
+  tool: string,
+  value: unknown,
+  responseFormat: 'concise' | 'detailed' | undefined,
+  summary = `${tool} completed`,
+): CallToolResult {
+  const { content, truncated, paths } = boundedObjectContent(value, responseFormat);
   return {
-    content: [{ type: 'text', text: summary }],
-    structuredContent: objectContent(value),
+    content: [{ type: 'text', text: truncated ? `${summary}; structuredContent truncated` : summary }],
+    structuredContent: truncated
+      ? {
+          ...content,
+          truncated: true,
+          truncation: {
+            message:
+              'Structured MCP response was shortened. Narrow the request with track or use responseFormat=detailed.',
+            paths,
+          },
+        }
+      : content,
+  };
+}
+
+function toolError(error: unknown): CallToolResult {
+  const message = error instanceof Error ? error.message : String(error);
+  return {
+    isError: true,
+    content: [{ type: 'text', text: message }],
+    structuredContent: { error: message },
+  };
+}
+
+function boundedObjectContent(
+  value: unknown,
+  responseFormat: 'concise' | 'detailed' | undefined,
+): { content: Record<string, unknown>; truncated: boolean; paths: string[] } {
+  const limits =
+    responseFormat === 'detailed'
+      ? { arrayItems: 250, stringChars: 40_000, jsonChars: 120_000 }
+      : { arrayItems: 50, stringChars: 10_000, jsonChars: 60_000 };
+  const paths: string[] = [];
+  const bounded = boundValue(objectContent(value), '$', limits, paths);
+  return {
+    content: bounded.content as Record<string, unknown>,
+    truncated: bounded.truncated,
+    paths,
   };
 }
 
 function objectContent(value: unknown): Record<string, unknown> {
-  if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : { value };
+}
+
+function boundValue(
+  value: unknown,
+  pathName: string,
+  limits: { arrayItems: number; stringChars: number; jsonChars: number },
+  paths: string[],
+): { content: unknown; truncated: boolean } {
+  if (typeof value === 'string') {
+    if (value.length <= limits.stringChars) return { content: value, truncated: false };
+    paths.push(pathName);
+    return {
+      content: `${value.slice(0, limits.stringChars)}\n[truncated ${value.length - limits.stringChars} chars]`,
+      truncated: true,
+    };
   }
-  return { value };
+  if (Array.isArray(value)) {
+    const items = value
+      .slice(0, limits.arrayItems)
+      .map((item, index) => boundValue(item, `${pathName}[${index}]`, limits, paths));
+    const truncated = items.some((item) => item.truncated) || value.length > limits.arrayItems;
+    if (value.length > limits.arrayItems) paths.push(pathName);
+    return {
+      content:
+        value.length > limits.arrayItems
+          ? [...items.map((item) => item.content), { truncatedCount: value.length - limits.arrayItems }]
+          : items.map((item) => item.content),
+      truncated,
+    };
+  }
+  if (value !== null && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>);
+    const content: Record<string, unknown> = {};
+    let truncated = false;
+    for (const [key, child] of entries) {
+      const bounded = boundValue(child, `${pathName}.${key}`, limits, paths);
+      content[key] = bounded.content;
+      truncated = truncated || bounded.truncated;
+    }
+    const serializedLength = JSON.stringify(content).length;
+    if (serializedLength > limits.jsonChars) {
+      paths.push(pathName);
+      return {
+        content: {
+          truncated: true,
+          summary: `Object exceeded ${limits.jsonChars} JSON characters after field-level truncation.`,
+          keys: Object.keys(content),
+        },
+        truncated: true,
+      };
+    }
+    return { content, truncated };
+  }
+  return { content: value, truncated: false };
 }
 
 function summarizeRun(result: RunState): string {

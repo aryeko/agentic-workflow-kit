@@ -31,6 +31,9 @@ jobs:
       - name: Verify gate (lint + typecheck + test)
         run: pnpm check
 
+      - name: Verify plugin MCP bundle is fresh
+        run: pnpm build:plugin-mcp && git diff --exit-code mcp/ plugins/agentic-workflow-kit/mcp/
+
   packaging:
     runs-on: ubuntu-latest
     steps:
