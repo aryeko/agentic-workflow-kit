@@ -1,11 +1,15 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 const repoRoot = process.cwd();
 const orchestratorDist = path.join(repoRoot, 'packages/orchestrator/dist');
+const orchestratorVersion = JSON.parse(
+  readFileSync(path.join(repoRoot, 'packages/orchestrator/package.json'), 'utf8'),
+).version;
+const orchestratorTarball = `agentic-workflow-kit-orchestrator-${orchestratorVersion}.tgz`;
 
 function removeDist(): void {
   rmSync(orchestratorDist, { recursive: true, force: true });
@@ -41,7 +45,7 @@ describe.sequential('publish readiness smoke', () => {
   it('builds before packing from a fresh state', () => {
     const output = run('pnpm', ['pack:dry-run']);
 
-    expect(output).toContain('agentic-workflow-kit-orchestrator-0.1.0.tgz');
+    expect(output).toContain(orchestratorTarball);
     expect(output).toContain('dist/index.js');
     expect(output).toContain('dist/cli.js');
   }, 120_000);
@@ -50,10 +54,7 @@ describe.sequential('publish readiness smoke', () => {
     const destination = mkdtempSync(path.join(tmpdir(), 'agentic-workflow-kit-pack-'));
 
     run('pnpm', ['--filter', '@agentic-workflow-kit/orchestrator', 'pack', '--pack-destination', destination]);
-    const orchestratorContents = run('tar', [
-      '-tf',
-      path.join(destination, 'agentic-workflow-kit-orchestrator-0.1.0.tgz'),
-    ]);
+    const orchestratorContents = run('tar', ['-tf', path.join(destination, orchestratorTarball)]);
 
     expect(orchestratorContents).toContain('package/dist/index.js');
     expect(orchestratorContents).toContain('package/dist/cli.js');
