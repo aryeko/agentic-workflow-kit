@@ -2,7 +2,15 @@
   "name": "agentic-workflow-kit",
   "version": "0.1.0",
   "description": "Tracker-driven, spec-first delivery pipeline as a Claude Code / Codex plugin.",
-  "keywords": ["agentic-workflow-kit", "workflow", "tracker", "spec-driven", "claude-code", "codex", "config"],
+  "keywords": [
+    "agentic-workflow-kit",
+    "workflow",
+    "tracker",
+    "spec-driven",
+    "claude-code",
+    "codex",
+    "config"
+  ],
   "author": "Arye Kogan",
   "license": "MIT",
   "repository": {
@@ -22,7 +30,8 @@
     "test": "vitest run && pnpm --filter @agentic-workflow-kit/orchestrator test",
     "typecheck": "tsc --noEmit && pnpm --filter @agentic-workflow-kit/orchestrator typecheck",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
-    "build": "pnpm --filter @agentic-workflow-kit/orchestrator build",
+    "build": "pnpm --filter @agentic-workflow-kit/orchestrator build && pnpm build:plugin-mcp",
+    "build:plugin-mcp": "node scripts/build-plugin-mcp.mjs",
     "pack:dry-run": "pnpm --filter @agentic-workflow-kit/orchestrator pack:dry-run",
     "generate-schema": "pnpm --filter @agentic-workflow-kit/orchestrator generate-schema",
     "smoke:codex-plugin": "vitest run --config vitest.codex-smoke.config.ts",
@@ -36,6 +45,7 @@
     "@changesets/cli": "^2.29.0",
     "@types/node": "^25.9.1",
     "ajv": "^8.20.0",
+    "esbuild": "^0.28.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8",
     "yaml": "^2.9.0"
