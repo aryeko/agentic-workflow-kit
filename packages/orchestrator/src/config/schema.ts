@@ -55,7 +55,8 @@ export const ConfigSchema = z
             wait: z.enum(['none', 'bot', 'human']).default('none'),
             bot: nonEmpty.default('none'),
             triageComments: z.boolean().default(false),
-            maxLoops: z.number().int().min(1).default(3),
+            maxFixBatches: z.number().int().min(1).default(1),
+            rerequestAfterFix: z.boolean().default(false),
             waitTimeoutMinutes: z.number().int().min(1).default(30),
           })
           .strict()
@@ -78,8 +79,9 @@ export const ConfigSchema = z
             prePr: z
               .object({
                 enabled: z.boolean().default(true),
-                mode: z.enum(['subagent', 'inline', 'none']).default('inline'),
+                mode: z.enum(['auto', 'subagent', 'inline']).default('auto'),
                 maxLoops: z.number().int().min(1).default(2),
+                loopMode: z.enum(['incremental', 'full']).default('incremental'),
               })
               .strict()
               .prefault({}),

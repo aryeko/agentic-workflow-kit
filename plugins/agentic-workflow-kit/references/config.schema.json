@@ -197,11 +197,15 @@
               "default": false,
               "type": "boolean"
             },
-            "maxLoops": {
-              "default": 3,
+            "maxFixBatches": {
+              "default": 1,
               "type": "integer",
               "minimum": 1,
               "maximum": 9007199254740991
+            },
+            "rerequestAfterFix": {
+              "default": false,
+              "type": "boolean"
             },
             "waitTimeoutMinutes": {
               "default": 30,
@@ -252,12 +256,12 @@
                   "type": "boolean"
                 },
                 "mode": {
-                  "default": "inline",
+                  "default": "auto",
                   "type": "string",
                   "enum": [
+                    "auto",
                     "subagent",
-                    "inline",
-                    "none"
+                    "inline"
                   ]
                 },
                 "maxLoops": {
@@ -265,6 +269,14 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 9007199254740991
+                },
+                "loopMode": {
+                  "default": "incremental",
+                  "type": "string",
+                  "enum": [
+                    "incremental",
+                    "full"
+                  ]
                 }
               },
               "additionalProperties": false

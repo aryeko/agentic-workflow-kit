@@ -65,12 +65,12 @@ Use these keys:
 - `tracker.idPattern`
 - `verify.changed`, `verify.full`
 - `git.strategy`, `git.branchPattern`, `git.baseBranch`, `git.commitOnBase`
-- `implement.review.prePr.enabled`, `implement.review.prePr.mode`, `implement.review.prePr.maxLoops`
+- `implement.review.prePr.enabled`, `implement.review.prePr.mode`, `implement.review.prePr.maxLoops`, `implement.review.prePr.loopMode`
 - `implement.review.semanticChecks.enabled`
 - `implement.subagents.enabled`, `implement.subagents.maxParallel`, `implement.subagents.allowWorkers`
 - `pr.create`
 - `pr.ci.wait`, `pr.ci.command`
-- `pr.review.wait`, `pr.review.bot`, `pr.review.triageComments`, `pr.review.maxLoops`, `pr.review.waitTimeoutMinutes`
+- `pr.review.wait`, `pr.review.bot`, `pr.review.triageComments`, `pr.review.maxFixBatches`, `pr.review.rerequestAfterFix`, `pr.review.waitTimeoutMinutes`
 - `pr.merge.auto`, `pr.merge.method`, `pr.merge.deleteBranch`
 
 ## What counts as an active tracker
@@ -104,7 +104,7 @@ Read config, apply defaults, and print:
 - status buckets,
 - git strategy, branch pattern, and base branch,
 - changed/full verification commands,
-- pre-PR review mode, pre-PR loop limit, semantic checks, subagent limits, and worker policy,
+- pre-PR review mode, pre-PR loop mode, pre-PR loop limit, semantic checks, subagent limits, and worker policy,
 - PR creation, CI wait, review wait, merge method, and delete-branch behavior.
 
 If the chosen policy requires a missing tool, stop before claiming a row. Examples:
@@ -318,10 +318,14 @@ pre-existing failure.
 
 Run a code/spec compliance review before tracker completion and PR creation when
 `implement.review.prePr.enabled: true` and implementation work is nontrivial. If
-`implement.review.prePr.mode: subagent`, prefer a dedicated review subagent or review skill when
-available and `implement.subagents.enabled: true`. If subagents are unavailable or disabled, use
-inline review. If `implement.review.prePr.mode: none`, only skip this review when
-`implement.review.prePr.enabled: false`; otherwise stop and report the inconsistent config.
+`implement.review.prePr.enabled: false`, skip pre-PR review and state that the configured policy
+disabled it. `implement.review.prePr.mode` controls the reviewer:
+
+- `auto`: use a review subagent or review skill when available and subagents are enabled;
+  otherwise review inline.
+- `subagent`: use a dedicated review subagent or review skill. If none is available, stop and
+  report that the configured policy requires one.
+- `inline`: perform the review in this session.
 
 Semantic checks are required when `implement.review.semanticChecks.enabled: true`. The review checks:
 
@@ -331,9 +335,26 @@ Semantic checks are required when `implement.review.semanticChecks.enabled: true
 - tracker hygiene,
 - accidental scope expansion.
 
+For subagent/auto-subagent review, build a review context packet containing:
+
+- repo instructions and relevant local docs,
+- PRD/product docs and architecture or technical-solution docs when present,
+- tracker row, story brief, detailed story spec, and implementation plan,
+- implementation diff,
+- latest verification commands and output.
+
+Ask the reviewer to check correctness, implementation quality, spec/plan compliance,
+architecture/repo-instruction compliance, tests, and scope control. The reviewer output must include
+severity-ranked findings with file references where applicable and a clear pass/block verdict.
+
 Required changes are fixed and re-reviewed before proceeding. Review fixes rerun configured
 verification (`verify.changed` when scoped, `verify.full` before completion) before the next review.
-Stop after `implement.review.prePr.maxLoops` loops and ask the user.
+Stop after `implement.review.prePr.maxLoops` loops and ask the user. `implement.review.prePr.loopMode`
+controls follow-up review context:
+
+- `incremental`: first review gets the full review context packet; follow-up loops get prior
+  findings, fix summary, changed diff since the previous review, and latest verification evidence.
+- `full`: every loop gets the full review context packet.
 
 Subagents are recommended only for bounded sidecar work: review, analysis, log inspection, or
 independent test investigation. Do not delegate blocking critical-path implementation to a subagent.
@@ -403,9 +424,13 @@ For `pr.review.wait: bot` and `pr.review.bot: codex`:
 - Mentioning `@codex` is a fallback/manual trigger only; do not require it when auto review is
   already enabled and starts normally.
 
-After fixes, rerun configured verification and push again. Stop after `pr.review.maxLoops`
-review-fix loops and ask the user. Stop if no configured review signal arrives within
-`pr.review.waitTimeoutMinutes`.
+Treat PR review as one external pass by default. After findings from the first external PR review
+pass, fix locally, rerun configured verification, and reply/resolve findings as needed. Do not
+request or wait for a fresh Codex PR review after every fix unless `pr.review.rerequestAfterFix`
+is configured as `true`.
+
+Stop after `pr.review.maxFixBatches` finding-fix batches and ask the user. Stop if no configured
+review signal arrives within `pr.review.waitTimeoutMinutes`.
 
 ## Phase 10: Merge and cleanup
 

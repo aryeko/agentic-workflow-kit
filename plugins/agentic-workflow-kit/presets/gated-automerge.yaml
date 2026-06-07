@@ -28,7 +28,8 @@ pr:
     wait: bot
     bot: codex
     triageComments: true
-    maxLoops: 3
+    maxFixBatches: 1
+    rerequestAfterFix: false
     waitTimeoutMinutes: 30
   merge:
     auto: true
@@ -38,8 +39,9 @@ implement:
   review:
     prePr:
       enabled: true
-      mode: inline
+      mode: auto
       maxLoops: 2
+      loopMode: incremental
     semanticChecks:
       enabled: true
   subagents:

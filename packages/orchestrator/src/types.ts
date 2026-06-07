@@ -19,7 +19,8 @@ export interface ResolvedPrConfig {
     wait: 'none' | 'bot' | 'human';
     bot: string;
     triageComments: boolean;
-    maxLoops: number;
+    maxFixBatches: number;
+    rerequestAfterFix: boolean;
     waitTimeoutMinutes: number;
   };
   merge: {
@@ -60,8 +61,9 @@ export interface ResolvedWorkflowConfig {
     review: {
       prePr: {
         enabled: boolean;
-        mode: 'subagent' | 'inline' | 'none';
+        mode: 'auto' | 'subagent' | 'inline';
         maxLoops: number;
+        loopMode: 'incremental' | 'full';
       };
       semanticChecks: {
         enabled: boolean;

@@ -68,7 +68,8 @@ The only block that differs between a push-and-merge repo and a gated-automerge 
 | `review.wait` | `none` \| `bot` \| `human` | `none` | Whether to wait for a review before merging. |
 | `review.bot` | string | `none` | Which bot (e.g. `codex`) when `review.wait: bot`. |
 | `review.triageComments` | boolean | `false` | Require a reply to every bot comment before merge? |
-| `review.maxLoops` | integer | `3` | Maximum post-PR review-fix loops before stopping for user input. |
+| `review.maxFixBatches` | integer | `1` | Maximum fix batches for findings from the first external PR review pass. |
+| `review.rerequestAfterFix` | boolean | `false` | Request/wait for a fresh external review after each fix batch? |
 | `review.waitTimeoutMinutes` | integer | `30` | Maximum time to wait for a configured PR review signal before stopping. |
 | `merge.auto` | boolean | `false` | Auto-merge once gates pass? |
 | `merge.method` | `squash` \| `merge` \| `rebase` | `squash` | Merge method. |
@@ -96,8 +97,9 @@ state remains the only completion source.
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `review.prePr.enabled` | boolean | `true` | Run a pre-PR implementation review before tracker completion and PR creation. |
-| `review.prePr.mode` | `subagent` \| `inline` \| `none` | `inline` | Preferred pre-PR review mode. `none` is allowed only when `enabled: false`. |
+| `review.prePr.mode` | `auto` \| `subagent` \| `inline` | `auto` | Preferred pre-PR review mode. `auto` uses a review subagent when available, otherwise inline review. |
 | `review.prePr.maxLoops` | integer | `2` | Maximum pre-PR review-fix loops before stopping for user input. |
+| `review.prePr.loopMode` | `incremental` \| `full` | `incremental` | Whether follow-up review loops receive only fix-context deltas or the full review packet again. |
 | `review.semanticChecks.enabled` | boolean | `true` | Require semantic checks for spec, plan, tests, tracker hygiene, and repo instructions. |
 | `subagents.enabled` | boolean | `true` | Allow bounded sidecar subagents for analysis/review. |
 | `subagents.maxParallel` | integer | `2` | Maximum concurrent sidecar subagents during interactive implementation. |

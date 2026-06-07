@@ -190,11 +190,17 @@ describe('skill authoring', () => {
     expect(body).toContain('implement.review.prePr.enabled');
     expect(body).toContain('implement.review.prePr.mode');
     expect(body).toContain('implement.review.prePr.maxLoops');
+    expect(body).toContain('implement.review.prePr.loopMode');
     expect(body).toContain('implement.subagents.allowWorkers');
+    expect(body).toContain('review context packet');
+    expect(body).toContain('pass/block verdict');
+    expect(body).toContain('incremental');
     expect(body).toContain('Pre-PR review happens before tracker completion and PR creation');
     expect(body).toContain('Review fixes rerun configured verification');
     expect(body).toContain('Stop after the configured review-loop limit');
     expect(body).toContain('Workers require disjoint write scopes');
+    expect(body).toContain('pr.review.maxFixBatches');
+    expect(body).toContain('pr.review.rerequestAfterFix');
     expect(body).toContain('.codex/agentic-workflow-kit/runs/<run-id>');
     expect(body).toContain('analyzable by `analyze-run`');
   });

@@ -47779,7 +47779,8 @@ var ConfigSchema = external_exports.object({
       wait: external_exports.enum(["none", "bot", "human"]).default("none"),
       bot: nonEmpty.default("none"),
       triageComments: external_exports.boolean().default(false),
-      maxLoops: external_exports.number().int().min(1).default(3),
+      maxFixBatches: external_exports.number().int().min(1).default(1),
+      rerequestAfterFix: external_exports.boolean().default(false),
       waitTimeoutMinutes: external_exports.number().int().min(1).default(30)
     }).strict().prefault({}),
     merge: external_exports.object({
@@ -47792,8 +47793,9 @@ var ConfigSchema = external_exports.object({
     review: external_exports.object({
       prePr: external_exports.object({
         enabled: external_exports.boolean().default(true),
-        mode: external_exports.enum(["subagent", "inline", "none"]).default("inline"),
-        maxLoops: external_exports.number().int().min(1).default(2)
+        mode: external_exports.enum(["auto", "subagent", "inline"]).default("auto"),
+        maxLoops: external_exports.number().int().min(1).default(2),
+        loopMode: external_exports.enum(["incremental", "full"]).default("incremental")
       }).strict().prefault({}),
       semanticChecks: external_exports.object({ enabled: external_exports.boolean().default(true) }).strict().prefault({})
     }).strict().prefault({}),
@@ -47928,12 +47930,19 @@ function resolveCwdOnlyConfig(cwd = process.cwd()) {
     pr: {
       create: true,
       ci: { wait: false, command: null },
-      review: { wait: "none", bot: "none", triageComments: false, maxLoops: 3, waitTimeoutMinutes: 30 },
+      review: {
+        wait: "none",
+        bot: "none",
+        triageComments: false,
+        maxFixBatches: 1,
+        rerequestAfterFix: false,
+        waitTimeoutMinutes: 30
+      },
       merge: { auto: false, method: "squash", deleteBranch: true }
     },
     implement: {
       review: {
-        prePr: { enabled: true, mode: "inline", maxLoops: 2 },
+        prePr: { enabled: true, mode: "auto", maxLoops: 2, loopMode: "incremental" },
         semanticChecks: { enabled: true }
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false }
@@ -49208,13 +49217,14 @@ function buildGenericPrompt(story, policy) {
     `- CI gate: ${pr.ci.wait ? `wait${pr.ci.command ? ` with \`${pr.ci.command}\`` : " with the default PR checks command"}` : "do not wait"}.`,
     reviewGateLine(pr.review),
     ...reviewGateDetails(pr.review),
-    `- Review fix loop limit: ${pr.review.maxLoops}.`,
+    `- PR review fix batches: ${pr.review.maxFixBatches}.`,
+    `- Re-request review after fixes: ${pr.review.rerequestAfterFix ? "yes" : "no"}.`,
     `- Review wait timeout: ${pr.review.waitTimeoutMinutes} minutes.`,
     `- Auto-merge: ${pr.merge.auto ? `yes (${pr.merge.method})` : "no"}.`,
     `- Delete branch after merge: ${pr.merge.deleteBranch ? "yes" : "no"}.`,
     "",
     "Implementation policy (from .workflow/config.yaml - follow exactly):",
-    `- Pre-PR review: ${implement.review.prePr.enabled ? "enabled" : "disabled"}, mode ${implement.review.prePr.mode}, max loops ${implement.review.prePr.maxLoops}.`,
+    `- Pre-PR review: ${implement.review.prePr.enabled ? "enabled" : "disabled"}, mode ${implement.review.prePr.mode}, max loops ${implement.review.prePr.maxLoops}, loop mode ${implement.review.prePr.loopMode}.`,
     `- Semantic checks: ${implement.review.semanticChecks.enabled ? "enabled" : "disabled"}.`,
     `- Sidecar subagents: ${implement.subagents.enabled ? "enabled" : "disabled"}, max parallel ${implement.subagents.maxParallel}.`,
     `- Worker subagents may write files: ${implement.subagents.allowWorkers ? "yes" : "no"}.`,

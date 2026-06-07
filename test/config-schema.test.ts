@@ -23,12 +23,19 @@ const goodConfig = {
   pr: {
     create: true,
     ci: { wait: false, command: null },
-    review: { wait: 'none', bot: 'none', triageComments: false, maxLoops: 3, waitTimeoutMinutes: 30 },
+    review: {
+      wait: 'none',
+      bot: 'none',
+      triageComments: false,
+      maxFixBatches: 1,
+      rerequestAfterFix: false,
+      waitTimeoutMinutes: 30,
+    },
     merge: { auto: true, method: 'squash', deleteBranch: true },
   },
   implement: {
     review: {
-      prePr: { enabled: true, mode: 'inline', maxLoops: 2 },
+      prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' },
       semanticChecks: { enabled: true },
     },
     subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
@@ -46,10 +53,16 @@ describe('config.schema.json', () => {
   it('applies runtime defaults for interactive review and subagent policy', () => {
     const parsed = ConfigSchema.parse({ version: 1 });
 
-    expect(parsed.implement.review.prePr).toEqual({ enabled: true, mode: 'inline', maxLoops: 2 });
+    expect(parsed.implement.review.prePr).toEqual({
+      enabled: true,
+      mode: 'auto',
+      maxLoops: 2,
+      loopMode: 'incremental',
+    });
     expect(parsed.implement.review.semanticChecks).toEqual({ enabled: true });
     expect(parsed.implement.subagents).toEqual({ enabled: true, maxParallel: 2, allowWorkers: false });
-    expect(parsed.pr.review.maxLoops).toBe(3);
+    expect(parsed.pr.review.maxFixBatches).toBe(1);
+    expect(parsed.pr.review.rerequestAfterFix).toBe(false);
     expect(parsed.pr.review.waitTimeoutMinutes).toBe(30);
   });
   it('accepts partial nested config objects and relies on runtime defaults', () => {
@@ -81,7 +94,7 @@ describe('config.schema.json', () => {
   it('rejects an unknown paths key', () => {
     expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, bogusDir: 'x' } })).toBe(false);
   });
-  it('rejects an invalid pre-PR review mode', () => {
+  it('rejects invalid pre-PR review modes, including the old disabled mode', () => {
     expect(
       validate({
         ...goodConfig,
@@ -94,12 +107,24 @@ describe('config.schema.json', () => {
         },
       }),
     ).toBe(false);
+    expect(
+      validate({
+        ...goodConfig,
+        implement: {
+          ...goodConfig.implement,
+          review: {
+            ...goodConfig.implement.review,
+            prePr: { ...goodConfig.implement.review.prePr, mode: 'none' },
+          },
+        },
+      }),
+    ).toBe(false);
   });
   it('rejects zero review loop limits', () => {
     expect(
       validate({
         ...goodConfig,
-        pr: { ...goodConfig.pr, review: { ...goodConfig.pr.review, maxLoops: 0 } },
+        pr: { ...goodConfig.pr, review: { ...goodConfig.pr.review, maxFixBatches: 0 } },
       }),
     ).toBe(false);
     expect(
@@ -110,6 +135,20 @@ describe('config.schema.json', () => {
           review: {
             ...goodConfig.implement.review,
             prePr: { ...goodConfig.implement.review.prePr, maxLoops: 0 },
+          },
+        },
+      }),
+    ).toBe(false);
+  });
+  it('rejects an invalid pre-PR review loop mode', () => {
+    expect(
+      validate({
+        ...goodConfig,
+        implement: {
+          ...goodConfig.implement,
+          review: {
+            ...goodConfig.implement.review,
+            prePr: { ...goodConfig.implement.review.prePr, loopMode: 'random' },
           },
         },
       }),
