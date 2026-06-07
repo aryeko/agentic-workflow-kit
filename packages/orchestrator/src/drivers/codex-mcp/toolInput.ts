@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import type { ResolvedGitConfig, ResolvedPrConfig, ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
+import type { ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
 
 export interface CodexToolInput {
   cwd: string;
@@ -53,9 +53,9 @@ export function buildCodexToolInput(
 
 export function buildGenericPrompt(
   story: WorkflowStory,
-  policy: { git: ResolvedGitConfig; pr: ResolvedPrConfig },
+  policy: Pick<ResolvedWorkflowConfig, 'git' | 'implement' | 'pr'>,
 ): string {
-  const { git, pr } = policy;
+  const { git, implement, pr } = policy;
   const metadata = story.metadata;
   const branchPattern = renderBranchPattern(story, git.branchPattern);
   const commitOnBase =
@@ -90,8 +90,19 @@ export function buildGenericPrompt(
     `- CI gate: ${pr.ci.wait ? `wait${pr.ci.command ? ` with \`${pr.ci.command}\`` : ' with the default PR checks command'}` : 'do not wait'}.`,
     reviewGateLine(pr.review),
     ...reviewGateDetails(pr.review),
+    `- PR review fix batches: ${pr.review.maxFixBatches}.`,
+    `- Re-request review after fixes: ${pr.review.rerequestAfterFix ? 'yes' : 'no'}.`,
+    `- Review wait timeout: ${pr.review.waitTimeoutMinutes} minutes.`,
     `- Auto-merge: ${pr.merge.auto ? `yes (${pr.merge.method})` : 'no'}.`,
     `- Delete branch after merge: ${pr.merge.deleteBranch ? 'yes' : 'no'}.`,
+    '',
+    'Implementation policy (from .workflow/config.yaml - follow exactly):',
+    `- Pre-PR review: ${implement.review.prePr.enabled ? 'enabled' : 'disabled'}, mode ${implement.review.prePr.mode}, max loops ${implement.review.prePr.maxLoops}, loop mode ${implement.review.prePr.loopMode}.`,
+    `- Semantic checks: ${implement.review.semanticChecks.enabled ? 'enabled' : 'disabled'}.`,
+    `- Sidecar subagents: ${implement.subagents.enabled ? 'enabled' : 'disabled'}, max parallel ${implement.subagents.maxParallel}.`,
+    `- Worker subagents may write files: ${implement.subagents.allowWorkers ? 'yes' : 'no'}.`,
+    '- Subagents are for bounded sidecar analysis/review; do not delegate blocking critical-path implementation.',
+    '- Workers require disjoint write scopes and explicit permission.',
     '',
     'Instructions:',
     '1. Read repository instructions first, including AGENTS.md when present.',
@@ -113,13 +124,13 @@ function renderBranchPattern(story: WorkflowStory, branchPattern: string): strin
     .replaceAll('{id-lc}', story.id.toLowerCase());
 }
 
-function reviewGateLine(review: ResolvedPrConfig['review']): string {
+function reviewGateLine(review: ResolvedWorkflowConfig['pr']['review']): string {
   if (review.wait === 'none') return '- Review gate: do not wait.';
   if (review.wait === 'human') return '- Review gate: wait for human review; do not auto-merge.';
   return `- Review gate: wait for bot \`${review.bot}\`.`;
 }
 
-function reviewGateDetails(review: ResolvedPrConfig['review']): string[] {
+function reviewGateDetails(review: ResolvedWorkflowConfig['pr']['review']): string[] {
   if (review.wait !== 'bot') return [];
 
   const triage = review.triageComments

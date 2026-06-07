@@ -31,7 +31,7 @@ export async function analyzeWorkflowRun(
   options: AnalyzeOptions = {},
 ): Promise<WorkflowRunAnalysis> {
   const state = await readJsonObject(path.join(runDirectory, 'state.json'));
-  const children = await readChildren(path.join(runDirectory, 'children'));
+  const children = await readChildren(path.join(runDirectory, 'children'), state);
   const sessionLogs = await findSessionLogs(options.sessionRoots ?? defaultSessionRoots());
   const logsBySession = await mapSessionLogsByThread(sessionLogs);
 
@@ -78,18 +78,27 @@ export async function analyzeWorkflowRun(
   };
 }
 
-async function readChildren(childrenDirectory: string): Promise<Record<string, unknown>[]> {
+async function readChildren(
+  childrenDirectory: string,
+  state: Record<string, unknown>,
+): Promise<Record<string, unknown>[]> {
   let names: string[];
   try {
     names = await readdir(childrenDirectory);
   } catch (error) {
-    if (isNodeError(error) && error.code === 'ENOENT') return [];
+    if (isNodeError(error) && error.code === 'ENOENT') return interactiveStateChildren(state);
     throw error;
   }
   const childFiles = names
     .filter((name) => name.endsWith('.json') && !name.endsWith('.raw.json') && !name.endsWith('.metrics.json'))
     .sort();
+  if (childFiles.length === 0) return interactiveStateChildren(state);
   return await Promise.all(childFiles.map((name) => readJsonObject(path.join(childrenDirectory, name))));
+}
+
+function interactiveStateChildren(state: Record<string, unknown>): Record<string, unknown>[] {
+  if (state.command !== 'implement-next' || !isRecord(state.interactive)) return [];
+  return [state.interactive];
 }
 
 async function findSessionLogs(roots: string[]): Promise<string[]> {

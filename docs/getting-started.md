@@ -138,6 +138,9 @@ authority. Run artifacts land under `.codex/agentic-workflow-kit/runs/<runId>/`;
 pnpm agentic-workflow-kit -- analyze-run .codex/agentic-workflow-kit/runs/<runId>
 ```
 
+`analyze-run` also accepts compatible interactive `/implement-next` journals written to the same
+run directory shape.
+
 ## 6. Ship and repeat
 
 Each story ships under the declarative `pr:` policy from step 1. Repeat steps 4–5 until the tracker

@@ -98,7 +98,8 @@ Deepest smoke — launches a real Codex child session. Keep it bounded.
      automatically injects the workspace's `.git` and `.worktrees` directories as codex writable roots
      (D8 fix). The child can `git commit` and `git worktree add` without needing `danger-full-access`.
 3. `wk analyze-run .codex/agentic-workflow-kit/runs/<runId>` — reconstructs tool/subagent/token metrics from
-   the Codex session logs.
+   the Codex session logs. The same command also accepts compatible interactive `implement-next`
+   journals when `state.json` contains `command: "implement-next"` and an `interactive` child record.
 
 ## Evidence
 

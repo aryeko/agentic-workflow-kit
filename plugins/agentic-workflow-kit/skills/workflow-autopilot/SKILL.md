@@ -56,7 +56,9 @@ When the plugin-provided `agentic-workflow-kit` MCP server is connected, prefer 
 
 If the `agentic-workflow-kit` MCP tools are not present in this session, use the CLI fallback below.
 Use tool results as operational evidence only. They do not replace tracker status, repo tests,
-review policy, or merge policy.
+review policy, or merge policy. `analyze_run` also accepts compatible interactive
+`implement-next` journals when `state.json` contains `command: "implement-next"` and an
+`interactive` child record with `storyId` and `sessionId`.
 Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-full-access` with
 `approvalPolicy: never` grants those children full local disk access without interactive approval.
 
@@ -97,3 +99,7 @@ Artifacts are under `.codex/agentic-workflow-kit/runs/<run-id>/`.
 
 Child tool/token/subagent metrics are best-effort observability. They help with tracking cost,
 time, and behavior, but they never drive scheduling or completion.
+
+Interactive `implement-next` journals use the same run directory and state/config/event semantics
+where practical. They may omit orchestrator child files; in that case `analyze-run` treats
+`state.json` field `interactive` as the single analyzed child.

@@ -133,7 +133,7 @@ The bundled MCP server exposes eight tools over the shared handlers:
 | `run_eligible` | Dry-run (default) or launch eligible stories for one track. |
 | `run_story` | Dry-run (default) or launch a specific story. |
 | `watch_run` | Read `state.json` and `metrics.live.json` for a run artifact directory. |
-| `analyze_run` | Analyze a completed run and its child session artifacts. |
+| `analyze_run` | Analyze a completed run and its child session artifacts, including compatible interactive `implement-next` journals. |
 | `check_codex_mcp` | Validate the Codex child MCP server schema used by the `codex-mcp` driver. |
 
 `run_eligible` and `run_story` default to dry-run and never treat a child result, MCP success, or
@@ -147,9 +147,11 @@ only shipped driver is `codex-mcp`; the driver boundary is reserved so new drive
 without touching the tracker/config contract. _Roadmap:_ a future
 `orchestrator.driver: claude-agent-sdk` can dispatch child sessions through the Claude Agent SDK over
 this same boundary; today's bundled autopilot still uses the `codex-mcp` child driver. Every run
-writes structured artifacts under
+Autonomous orchestrator runs write structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
-per-child JSON), and `analyze-run` reconstructs metrics from Codex session logs.
+per-child JSON), and `analyze-run` reconstructs metrics from Codex session logs. Interactive
+`implement-next` journals use the same run directory and can be analyzed when `state.json` contains
+`command: "implement-next"` plus an `interactive` child record.
 
 ## Story lifecycle
 

@@ -196,6 +196,22 @@
             "triageComments": {
               "default": false,
               "type": "boolean"
+            },
+            "maxFixBatches": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "rerequestAfterFix": {
+              "default": false,
+              "type": "boolean"
+            },
+            "waitTimeoutMinutes": {
+              "default": 30,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
             }
           },
           "additionalProperties": false
@@ -218,6 +234,81 @@
             },
             "deleteBranch": {
               "default": true,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "implement": {
+      "type": "object",
+      "properties": {
+        "review": {
+          "type": "object",
+          "properties": {
+            "prePr": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "default": true,
+                  "type": "boolean"
+                },
+                "mode": {
+                  "default": "auto",
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "subagent",
+                    "inline"
+                  ]
+                },
+                "maxLoops": {
+                  "default": 2,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "loopMode": {
+                  "default": "incremental",
+                  "type": "string",
+                  "enum": [
+                    "incremental",
+                    "full"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "semanticChecks": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "default": true,
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "subagents": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "type": "boolean"
+            },
+            "maxParallel": {
+              "default": 2,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "allowWorkers": {
+              "default": false,
               "type": "boolean"
             }
           },

@@ -28,11 +28,28 @@ pr:
     wait: bot
     bot: codex
     triageComments: true
+    maxFixBatches: 1
+    rerequestAfterFix: false
+    waitTimeoutMinutes: 30
   merge:
     auto: true
     method: squash
     deleteBranch: true
+implement:
+  review:
+    prePr:
+      enabled: true
+      mode: auto
+      maxLoops: 2
+      loopMode: incremental
+    semanticChecks:
+      enabled: true
+  subagents:
+    enabled: true
+    maxParallel: 2
+    allowWorkers: false
 orchestrator:
   driver: codex-mcp
   maxParallel: 2
   stopLaunchingOnBlocked: true
+  childTimeoutMs: 1800000

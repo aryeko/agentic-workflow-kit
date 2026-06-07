@@ -30,7 +30,7 @@ Read these before changing state:
 | Repo instructions | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, technical solution docs, and local docs. These win over specs and plans. |
 
 Apply documented defaults when optional config keys are missing. At the start of every run,
-summarize the resolved policy: `paths`, `statuses`, `verify`, `git`, and `pr`.
+summarize the resolved policy: `paths`, `statuses`, `verify`, `git`, `implement`, and `pr`.
 
 ## Hard rules
 
@@ -46,6 +46,15 @@ summarize the resolved policy: `paths`, `statuses`, `verify`, `git`, and `pr`.
   blocking technical questions.
 - Preserve unrelated user changes. Do not reset, discard, or overwrite unrelated work.
 - Follow `pr:` exactly. Auto-merge only when configured gates are satisfied.
+- Failed verification, unresolved blocking questions, dirty worktree state, exhausted pre-PR review
+  loops, and exhausted PR review loops stop the flow.
+- Pre-PR review happens before tracker completion and PR creation for nontrivial implementation
+  work when `implement.review.prePr.enabled: true`.
+- Review fixes rerun configured verification before the next review loop or PR update.
+- Stop after the configured review-loop limit; do not silently continue with unreviewed changes.
+- Use subagents only for bounded sidecar analysis/review. Do not put blocking critical-path
+  implementation work in a subagent.
+- Workers require disjoint write scopes and explicit `implement.subagents.allowWorkers: true`.
 
 ## Config keys
 
@@ -56,9 +65,12 @@ Use these keys:
 - `tracker.idPattern`
 - `verify.changed`, `verify.full`
 - `git.strategy`, `git.branchPattern`, `git.baseBranch`, `git.commitOnBase`
+- `implement.review.prePr.enabled`, `implement.review.prePr.mode`, `implement.review.prePr.maxLoops`, `implement.review.prePr.loopMode`
+- `implement.review.semanticChecks.enabled`
+- `implement.subagents.enabled`, `implement.subagents.maxParallel`, `implement.subagents.allowWorkers`
 - `pr.create`
 - `pr.ci.wait`, `pr.ci.command`
-- `pr.review.wait`, `pr.review.bot`, `pr.review.triageComments`
+- `pr.review.wait`, `pr.review.bot`, `pr.review.triageComments`, `pr.review.maxFixBatches`, `pr.review.rerequestAfterFix`, `pr.review.waitTimeoutMinutes`
 - `pr.merge.auto`, `pr.merge.method`, `pr.merge.deleteBranch`
 
 ## What counts as an active tracker
@@ -92,6 +104,7 @@ Read config, apply defaults, and print:
 - status buckets,
 - git strategy, branch pattern, and base branch,
 - changed/full verification commands,
+- pre-PR review mode, pre-PR loop mode, pre-PR loop limit, semantic checks, subagent limits, and worker policy,
 - PR creation, CI wait, review wait, merge method, and delete-branch behavior.
 
 If the chosen policy requires a missing tool, stop before claiming a row. Examples:
@@ -99,6 +112,59 @@ If the chosen policy requires a missing tool, stop before claiming a row. Exampl
 - `pr.create: true` requires `git` and a usable remote plus PR tooling such as `gh`.
 - `pr.ci.wait: true` with no `pr.ci.command` requires `gh pr checks`.
 - `pr.merge.auto: true` requires merge tooling.
+
+## Interactive run journal
+
+Create an analyzable journal before claiming a story unless resuming an existing journal. The
+journal lives under:
+
+```text
+.codex/agentic-workflow-kit/runs/<run-id>
+```
+
+Use an ISO timestamp run id with colons and periods replaced by hyphens. Keep these files current:
+
+- `run.json`: run id, command `implement-next`, workspace root, artifact dir, and start time.
+- `config.resolved.json`: resolved config snapshot, including `implement` and `pr` policy.
+- `state.json`: current status, blocked reason, active story, and `interactive` child metadata.
+- `events.ndjson`: append phase events such as `story_selected`, `claimed`, `spec_written`,
+  `plan_written`, `verification_passed`, `pre_pr_review_started`, `pre_pr_review_findings`,
+  `pre_pr_review_cleared`, `pr_created`, `pr_review_findings`, `merged`, and `blocked`.
+
+For compatibility with `analyze-run`, `state.json` must include:
+
+```json
+{
+  "runId": "<run-id>",
+  "command": "implement-next",
+  "workspaceRoot": "<absolute repo root>",
+  "artifactDir": "<absolute run dir>",
+  "status": "running",
+  "maxParallel": 1,
+  "startedAt": "<ISO timestamp>",
+  "active": ["<ID>"],
+  "completed": [],
+  "blockedStoryId": null,
+  "blockedReason": null,
+  "interactive": {
+    "storyId": "<ID>",
+    "ok": false,
+    "sessionId": "<current Codex/Claude session id when known>"
+  }
+}
+```
+
+When the story finishes, set `status` to `complete` or `blocked`, update `blockedReason` when
+blocked, set `interactive.ok`, and append final timing/status fields when available. The analyzer
+also accepts `children/<ID>.json`; use that if the host environment can write it easily. Do not
+fabricate token totals or command counts. `analyze-run` derives those from real session logs when
+`interactive.sessionId` or the child file's `sessionId` points to a known Codex JSONL session.
+
+Report the journal path in the final report. The run must be analyzable by `analyze-run`:
+
+```bash
+agentic-workflow-kit analyze-run .codex/agentic-workflow-kit/runs/<run-id>
+```
 
 ## Phase 1: Argument check or discovery
 
@@ -248,11 +314,20 @@ Use configured verification:
 Failures must be fixed before shipping unless the user explicitly accepts an unrelated or
 pre-existing failure.
 
-## Phase 7: Review
+## Phase 7: Pre-PR review
 
-Run a code/spec compliance review before shipping. The skill should prefer a dedicated review
-sub-agent or review skill when available, but it must remain usable in a plain Claude Code
-installation. The review checks:
+Run a code/spec compliance review before tracker completion and PR creation when
+`implement.review.prePr.enabled: true` and implementation work is nontrivial. If
+`implement.review.prePr.enabled: false`, skip pre-PR review and state that the configured policy
+disabled it. `implement.review.prePr.mode` controls the reviewer:
+
+- `auto`: use a review subagent or review skill when available and subagents are enabled;
+  otherwise review inline.
+- `subagent`: use a dedicated review subagent or review skill. If none is available, stop and
+  report that the configured policy requires one.
+- `inline`: perform the review in this session.
+
+Semantic checks are required when `implement.review.semanticChecks.enabled: true`. The review checks:
 
 - spec and plan compliance,
 - missing tests,
@@ -260,7 +335,32 @@ installation. The review checks:
 - tracker hygiene,
 - accidental scope expansion.
 
-Required changes are fixed and re-reviewed before proceeding.
+For subagent/auto-subagent review, build a review context packet containing:
+
+- repo instructions and relevant local docs,
+- PRD/product docs and architecture or technical-solution docs when present,
+- tracker row, story brief, detailed story spec, and implementation plan,
+- implementation diff,
+- latest verification commands and output.
+
+Ask the reviewer to check correctness, implementation quality, spec/plan compliance,
+architecture/repo-instruction compliance, tests, and scope control. The reviewer output must include
+severity-ranked findings with file references where applicable and a clear pass/block verdict.
+
+Required changes are fixed and re-reviewed before proceeding. Review fixes rerun configured
+verification (`verify.changed` when scoped, `verify.full` before completion) before the next review.
+Stop after `implement.review.prePr.maxLoops` loops and ask the user. `implement.review.prePr.loopMode`
+controls follow-up review context:
+
+- `incremental`: first review gets the full review context packet; follow-up loops get prior
+  findings, fix summary, changed diff since the previous review, and latest verification evidence.
+- `full`: every loop gets the full review context packet.
+
+Subagents are recommended only for bounded sidecar work: review, analysis, log inspection, or
+independent test investigation. Do not delegate blocking critical-path implementation to a subagent.
+Worker subagents that write files are disallowed unless `implement.subagents.allowWorkers: true`;
+even then, workers require disjoint write scopes documented before dispatch and must not edit the
+tracker row, PR body, or files owned by another active worker.
 
 ## Phase 8: Mark done and handle PR creation
 
@@ -324,8 +424,13 @@ For `pr.review.wait: bot` and `pr.review.bot: codex`:
 - Mentioning `@codex` is a fallback/manual trigger only; do not require it when auto review is
   already enabled and starts normally.
 
-After fixes, rerun configured verification and push again. Stop after three review-fix loops and
-ask the user.
+Treat PR review as one external pass by default. After findings from the first external PR review
+pass, fix locally, rerun configured verification, and reply/resolve findings as needed. Do not
+request or wait for a fresh Codex PR review after every fix unless `pr.review.rerequestAfterFix`
+is configured as `true`.
+
+Stop after `pr.review.maxFixBatches` finding-fix batches and ask the user. Stop if no configured
+review signal arrives within `pr.review.waitTimeoutMinutes`.
 
 ## Phase 10: Merge and cleanup
 
@@ -373,6 +478,7 @@ Report:
 - branch/worktree,
 - commits made,
 - verification commands and outcomes,
+- interactive run journal path,
 - PR URL if created,
 - CI/review/merge outcome according to config,
 - final tracker Status and PR columns,

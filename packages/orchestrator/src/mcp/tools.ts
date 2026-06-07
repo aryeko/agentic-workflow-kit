@@ -199,7 +199,7 @@ export function registerOrchestratorTools(server: McpServer): void {
     'analyze_run',
     {
       description:
-        'Analyze a completed run artifact directory and child session artifacts. Use after watch_run shows the run is complete or blocked.',
+        'Analyze a completed run artifact directory and child session artifacts, including compatible interactive implement-next journals. Use after watch_run shows the run is complete or blocked.',
       inputSchema: runPathInputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },

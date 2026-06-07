@@ -80,8 +80,22 @@ orchestrator:
     expect(config.pr).toEqual({
       create: true,
       ci: { wait: false, command: null },
-      review: { wait: 'none', bot: 'none', triageComments: false },
+      review: {
+        wait: 'none',
+        bot: 'none',
+        triageComments: false,
+        maxFixBatches: 1,
+        rerequestAfterFix: false,
+        waitTimeoutMinutes: 30,
+      },
       merge: { auto: false, method: 'squash', deleteBranch: true },
+    });
+    expect(config.implement).toEqual({
+      review: {
+        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' },
+        semanticChecks: { enabled: true },
+      },
+      subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     });
     expect(config.codex.childSession).toEqual({ cwdAbs: root });
   });
@@ -137,8 +151,22 @@ orchestrator:
     expect(config.pr).toEqual({
       create: true,
       ci: { wait: false, command: null },
-      review: { wait: 'none', bot: 'none', triageComments: false },
+      review: {
+        wait: 'none',
+        bot: 'none',
+        triageComments: false,
+        maxFixBatches: 1,
+        rerequestAfterFix: false,
+        waitTimeoutMinutes: 30,
+      },
       merge: { auto: false, method: 'squash', deleteBranch: true },
+    });
+    expect(config.implement).toEqual({
+      review: {
+        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' },
+        semanticChecks: { enabled: true },
+      },
+      subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     });
   });
 

@@ -23,8 +23,22 @@ const config: ResolvedWorkflowConfig = {
   pr: {
     create: true,
     ci: { wait: true, command: null },
-    review: { wait: 'bot', bot: 'codex', triageComments: true },
+    review: {
+      wait: 'bot',
+      bot: 'codex',
+      triageComments: true,
+      maxFixBatches: 1,
+      rerequestAfterFix: false,
+      waitTimeoutMinutes: 30,
+    },
     merge: { auto: true, method: 'squash', deleteBranch: true },
+  },
+  implement: {
+    review: {
+      prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' },
+      semanticChecks: { enabled: true },
+    },
+    subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
   },
   orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
   codex: {
@@ -93,6 +107,19 @@ describe('buildGenericPrompt', () => {
       'Do not require a GitHub PullRequestReview APPROVED or CHANGES_REQUESTED state from Codex.',
     );
     expect(prompt).toContain('Do not mention @codex unless auto review failed to start or a manual retry is needed.');
+  });
+
+  it('includes interactive implementation review and subagent policy', () => {
+    const prompt = buildGenericPrompt(story, config);
+
+    expect(prompt).toContain('Implementation policy (from .workflow/config.yaml - follow exactly):');
+    expect(prompt).toContain('- Pre-PR review: enabled, mode auto, max loops 2, loop mode incremental.');
+    expect(prompt).toContain('- Semantic checks: enabled.');
+    expect(prompt).toContain('- Sidecar subagents: enabled, max parallel 2.');
+    expect(prompt).toContain('- Worker subagents may write files: no.');
+    expect(prompt).toContain('Workers require disjoint write scopes and explicit permission.');
+    expect(prompt).toContain('- PR review fix batches: 1.');
+    expect(prompt).toContain('- Re-request review after fixes: no.');
   });
 });
 
