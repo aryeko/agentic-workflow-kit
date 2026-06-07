@@ -2,16 +2,30 @@
 "@agentic-workflow-kit/orchestrator": minor
 ---
 
-Rename the public planning skills to `define-product`, `design-technical-solution`, and
-`plan-delivery-track`, and clarify the planning artifact flow from PRD to technical solution to
-delivery tracker/story briefs before `implement-next` creates detailed specs, implementation plans,
-and code.
+Clarify the planning artifact model and rename the public planning skills.
 
-Detailed specs and implementation plans are written to the configured `paths.specsDir` /
-`paths.plansDir` (defaults `docs/specs` / `docs/plans`) rather than a hardcoded directory, keeping
-per-repo locations declarative.
+BREAKING (plugin surface): the public planning skills are renamed — `plan-product` →
+`define-product`, `plan-architecture` → `design-technical-solution`, and `plan-track` →
+`plan-delivery-track`. The old slash-command names no longer resolve; update any saved prompts or
+automation that invoked them. The execution skills (`workflow-init`, `implement-next`,
+`workflow-autopilot`) are unchanged.
 
-BREAKING: the `standalone-spec` and `delta-spec` templates are removed. New trackers link
-lightweight story briefs instead. Existing trackers that link a detailed spec directly — including
-legacy `see <ID> + [delta](path)` rows — remain valid and are read as the detailed spec by
-`implement-next`.
+New artifact model with one owner per altitude:
+`PRD → technical solution (when complex) → delivery tracker + story briefs → detailed story spec →
+implementation plan → code`. `define-product` writes the PRD, `design-technical-solution` adds a
+high-level technical solution gate for complex work, `plan-delivery-track` emits the tracker plus
+lightweight story briefs, and `implement-next` now expands a brief into a detailed technical story
+spec (blocking on unresolved technical questions) and an implementation plan before writing code.
+Adds story-brief, detailed-story-spec, and technical-solution contracts and templates.
+
+Detailed specs and implementation plans now resolve from the configured `paths.specsDir` /
+`paths.plansDir` (defaults `docs/specs` / `docs/plans`) instead of a hardcoded directory, keeping
+per-repo artifact locations declarative.
+
+BREAKING (templates): the `standalone-spec` and `delta-spec` templates are removed; new trackers
+link story briefs. Existing trackers that link a detailed spec directly — including legacy
+`see <ID> + [delta](path)` rows — remain valid and are read as the detailed spec by `implement-next`.
+
+The `@agentic-workflow-kit/orchestrator` runtime and CLI are functionally unchanged; this minor
+bump versions the shared release so the Claude/Codex plugin surface and the published CLI stay in
+lockstep.
