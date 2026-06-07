@@ -47,6 +47,7 @@ export async function loadResolvedConfig(
     tracker: { idPattern: config.tracker.idPattern },
     git: config.git,
     pr: config.pr,
+    implement: config.implement,
     orchestrator: {
       driver,
       maxParallel,
@@ -97,8 +98,15 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
     pr: {
       create: true,
       ci: { wait: false, command: null },
-      review: { wait: 'none', bot: 'none', triageComments: false },
+      review: { wait: 'none', bot: 'none', triageComments: false, maxLoops: 3, waitTimeoutMinutes: 30 },
       merge: { auto: false, method: 'squash', deleteBranch: true },
+    },
+    implement: {
+      review: {
+        prePr: { enabled: true, mode: 'inline', maxLoops: 2 },
+        semanticChecks: { enabled: true },
+      },
+      subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
     orchestrator: {
       driver: 'codex-mcp',

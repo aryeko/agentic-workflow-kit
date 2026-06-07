@@ -19,6 +19,8 @@ export interface ResolvedPrConfig {
     wait: 'none' | 'bot' | 'human';
     bot: string;
     triageComments: boolean;
+    maxLoops: number;
+    waitTimeoutMinutes: number;
   };
   merge: {
     auto: boolean;
@@ -54,6 +56,23 @@ export interface ResolvedWorkflowConfig {
   };
   git: ResolvedGitConfig;
   pr: ResolvedPrConfig;
+  implement: {
+    review: {
+      prePr: {
+        enabled: boolean;
+        mode: 'subagent' | 'inline' | 'none';
+        maxLoops: number;
+      };
+      semanticChecks: {
+        enabled: boolean;
+      };
+    };
+    subagents: {
+      enabled: boolean;
+      maxParallel: number;
+      allowWorkers: boolean;
+    };
+  };
   orchestrator: {
     driver: OrchestratorDriver;
     maxParallel: number;

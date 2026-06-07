@@ -184,6 +184,21 @@ describe('skill authoring', () => {
     expect(body).toContain('Mentioning `@codex` is a fallback/manual trigger only');
   });
 
+  it('implement-next documents configured review loops, subagent policy, and interactive journals', () => {
+    const { body } = readSkill('implement-next');
+
+    expect(body).toContain('implement.review.prePr.enabled');
+    expect(body).toContain('implement.review.prePr.mode');
+    expect(body).toContain('implement.review.prePr.maxLoops');
+    expect(body).toContain('implement.subagents.allowWorkers');
+    expect(body).toContain('Pre-PR review happens before tracker completion and PR creation');
+    expect(body).toContain('Review fixes rerun configured verification');
+    expect(body).toContain('Stop after the configured review-loop limit');
+    expect(body).toContain('Workers require disjoint write scopes');
+    expect(body).toContain('.codex/agentic-workflow-kit/runs/<run-id>');
+    expect(body).toContain('analyzable by `analyze-run`');
+  });
+
   it('workflow-autopilot prefers the bundled MCP runtime with CLI fallback', () => {
     const { body } = readSkill('workflow-autopilot');
 

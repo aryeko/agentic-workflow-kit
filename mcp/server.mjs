@@ -44166,7 +44166,7 @@ function emptyTokenTotals() {
 // packages/orchestrator/src/analysis/runAnalyzer.ts
 async function analyzeWorkflowRun(runDirectory, options2 = {}) {
   const state = await readJsonObject(path.join(runDirectory, "state.json"));
-  const children = await readChildren(path.join(runDirectory, "children"));
+  const children = await readChildren(path.join(runDirectory, "children"), state);
   const sessionLogs = await findSessionLogs(options2.sessionRoots ?? defaultSessionRoots());
   const logsBySession = await mapSessionLogsByThread(sessionLogs);
   const commandCounts = {};
@@ -44202,16 +44202,21 @@ async function analyzeWorkflowRun(runDirectory, options2 = {}) {
     tokenTotals: sawTokens ? tokenTotals : null
   };
 }
-async function readChildren(childrenDirectory) {
+async function readChildren(childrenDirectory, state) {
   let names;
   try {
     names = await readdir(childrenDirectory);
   } catch (error51) {
-    if (isNodeError(error51) && error51.code === "ENOENT") return [];
+    if (isNodeError(error51) && error51.code === "ENOENT") return interactiveStateChildren(state);
     throw error51;
   }
   const childFiles = names.filter((name) => name.endsWith(".json") && !name.endsWith(".raw.json") && !name.endsWith(".metrics.json")).sort();
+  if (childFiles.length === 0) return interactiveStateChildren(state);
   return await Promise.all(childFiles.map((name) => readJsonObject(path.join(childrenDirectory, name))));
+}
+function interactiveStateChildren(state) {
+  if (state.command !== "implement-next" || !isRecord(state.interactive)) return [];
+  return [state.interactive];
 }
 async function findSessionLogs(roots) {
   const logs = [];
@@ -47773,12 +47778,29 @@ var ConfigSchema = external_exports.object({
     review: external_exports.object({
       wait: external_exports.enum(["none", "bot", "human"]).default("none"),
       bot: nonEmpty.default("none"),
-      triageComments: external_exports.boolean().default(false)
+      triageComments: external_exports.boolean().default(false),
+      maxLoops: external_exports.number().int().min(1).default(3),
+      waitTimeoutMinutes: external_exports.number().int().min(1).default(30)
     }).strict().prefault({}),
     merge: external_exports.object({
       auto: external_exports.boolean().default(false),
       method: external_exports.enum(["squash", "merge", "rebase"]).default("squash"),
       deleteBranch: external_exports.boolean().default(true)
+    }).strict().prefault({})
+  }).strict().prefault({}),
+  implement: external_exports.object({
+    review: external_exports.object({
+      prePr: external_exports.object({
+        enabled: external_exports.boolean().default(true),
+        mode: external_exports.enum(["subagent", "inline", "none"]).default("inline"),
+        maxLoops: external_exports.number().int().min(1).default(2)
+      }).strict().prefault({}),
+      semanticChecks: external_exports.object({ enabled: external_exports.boolean().default(true) }).strict().prefault({})
+    }).strict().prefault({}),
+    subagents: external_exports.object({
+      enabled: external_exports.boolean().default(true),
+      maxParallel: external_exports.number().int().min(1).default(2),
+      allowWorkers: external_exports.boolean().default(false)
     }).strict().prefault({})
   }).strict().prefault({}),
   orchestrator: external_exports.object({
@@ -47856,6 +47878,7 @@ async function loadResolvedConfig(overrides = {}, cwd = process.cwd()) {
     tracker: { idPattern: config2.tracker.idPattern },
     git: config2.git,
     pr: config2.pr,
+    implement: config2.implement,
     orchestrator: {
       driver,
       maxParallel,
@@ -47905,8 +47928,15 @@ function resolveCwdOnlyConfig(cwd = process.cwd()) {
     pr: {
       create: true,
       ci: { wait: false, command: null },
-      review: { wait: "none", bot: "none", triageComments: false },
+      review: { wait: "none", bot: "none", triageComments: false, maxLoops: 3, waitTimeoutMinutes: 30 },
       merge: { auto: false, method: "squash", deleteBranch: true }
+    },
+    implement: {
+      review: {
+        prePr: { enabled: true, mode: "inline", maxLoops: 2 },
+        semanticChecks: { enabled: true }
+      },
+      subagents: { enabled: true, maxParallel: 2, allowWorkers: false }
     },
     orchestrator: {
       driver: "codex-mcp",
@@ -49146,7 +49176,7 @@ function buildCodexToolInput(config2, story, prompt = buildGenericPrompt(story, 
   return input;
 }
 function buildGenericPrompt(story, policy) {
-  const { git, pr } = policy;
+  const { git, implement, pr } = policy;
   const metadata = story.metadata;
   const branchPattern = renderBranchPattern(story, git.branchPattern);
   const commitOnBase = git.commitOnBase === "forbid" ? `Committing directly on \`${git.baseBranch}\` is forbidden.` : `Committing directly on \`${git.baseBranch}\` is allowed by this repo policy.`;
@@ -49178,8 +49208,18 @@ function buildGenericPrompt(story, policy) {
     `- CI gate: ${pr.ci.wait ? `wait${pr.ci.command ? ` with \`${pr.ci.command}\`` : " with the default PR checks command"}` : "do not wait"}.`,
     reviewGateLine(pr.review),
     ...reviewGateDetails(pr.review),
+    `- Review fix loop limit: ${pr.review.maxLoops}.`,
+    `- Review wait timeout: ${pr.review.waitTimeoutMinutes} minutes.`,
     `- Auto-merge: ${pr.merge.auto ? `yes (${pr.merge.method})` : "no"}.`,
     `- Delete branch after merge: ${pr.merge.deleteBranch ? "yes" : "no"}.`,
+    "",
+    "Implementation policy (from .workflow/config.yaml - follow exactly):",
+    `- Pre-PR review: ${implement.review.prePr.enabled ? "enabled" : "disabled"}, mode ${implement.review.prePr.mode}, max loops ${implement.review.prePr.maxLoops}.`,
+    `- Semantic checks: ${implement.review.semanticChecks.enabled ? "enabled" : "disabled"}.`,
+    `- Sidecar subagents: ${implement.subagents.enabled ? "enabled" : "disabled"}, max parallel ${implement.subagents.maxParallel}.`,
+    `- Worker subagents may write files: ${implement.subagents.allowWorkers ? "yes" : "no"}.`,
+    "- Subagents are for bounded sidecar analysis/review; do not delegate blocking critical-path implementation.",
+    "- Workers require disjoint write scopes and explicit permission.",
     "",
     "Instructions:",
     "1. Read repository instructions first, including AGENTS.md when present.",
@@ -63642,7 +63682,7 @@ function registerOrchestratorTools(server) {
   server.registerTool(
     "analyze_run",
     {
-      description: "Analyze a completed run artifact directory and child session artifacts. Use after watch_run shows the run is complete or blocked.",
+      description: "Analyze a completed run artifact directory and child session artifacts, including compatible interactive implement-next journals. Use after watch_run shows the run is complete or blocked.",
       inputSchema: runPathInputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true }

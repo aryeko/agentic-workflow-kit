@@ -24,8 +24,15 @@ function config(): ResolvedWorkflowConfig {
     pr: {
       create: true,
       ci: { wait: false, command: null },
-      review: { wait: 'none', bot: 'none', triageComments: false },
+      review: { wait: 'none', bot: 'none', triageComments: false, maxLoops: 3, waitTimeoutMinutes: 30 },
       merge: { auto: false, method: 'squash', deleteBranch: true },
+    },
+    implement: {
+      review: {
+        prePr: { enabled: true, mode: 'inline', maxLoops: 2 },
+        semanticChecks: { enabled: true },
+      },
+      subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
     orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
     codex: { childSession: { cwdAbs: '/repo' } },

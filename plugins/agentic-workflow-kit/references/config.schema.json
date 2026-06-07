@@ -196,6 +196,18 @@
             "triageComments": {
               "default": false,
               "type": "boolean"
+            },
+            "maxLoops": {
+              "default": 3,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "waitTimeoutMinutes": {
+              "default": 30,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
             }
           },
           "additionalProperties": false
@@ -218,6 +230,73 @@
             },
             "deleteBranch": {
               "default": true,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "implement": {
+      "type": "object",
+      "properties": {
+        "review": {
+          "type": "object",
+          "properties": {
+            "prePr": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "default": true,
+                  "type": "boolean"
+                },
+                "mode": {
+                  "default": "inline",
+                  "type": "string",
+                  "enum": [
+                    "subagent",
+                    "inline",
+                    "none"
+                  ]
+                },
+                "maxLoops": {
+                  "default": 2,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              },
+              "additionalProperties": false
+            },
+            "semanticChecks": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "default": true,
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "subagents": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "type": "boolean"
+            },
+            "maxParallel": {
+              "default": 2,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "allowWorkers": {
+              "default": false,
               "type": "boolean"
             }
           },

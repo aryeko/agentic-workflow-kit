@@ -27,8 +27,12 @@ describe('presets', () => {
 
   it('push-and-merge does not wait and auto-merges (ship-fast repo)', () => {
     const p = loadPreset('push-and-merge');
+    expect(p.implement.review.prePr.enabled).toBe(true);
+    expect(p.implement.review.prePr.maxLoops).toBe(2);
+    expect(p.implement.subagents.allowWorkers).toBe(false);
     expect(p.pr.ci.wait).toBe(false);
     expect(p.pr.review.wait).toBe('none');
+    expect(p.pr.review.maxLoops).toBe(3);
     expect(p.pr.merge.auto).toBe(true);
     expect(p.pr.merge.method).toBe('squash');
   });
@@ -41,6 +45,7 @@ describe('presets', () => {
     expect(p.pr.review.wait).toBe('bot');
     expect(p.pr.review.bot).toBe('codex');
     expect(p.pr.review.triageComments).toBe(true);
+    expect(p.pr.review.waitTimeoutMinutes).toBe(30);
     expect(p.pr.merge.auto).toBe(true);
   });
 

@@ -55,6 +55,8 @@ export const ConfigSchema = z
             wait: z.enum(['none', 'bot', 'human']).default('none'),
             bot: nonEmpty.default('none'),
             triageComments: z.boolean().default(false),
+            maxLoops: z.number().int().min(1).default(3),
+            waitTimeoutMinutes: z.number().int().min(1).default(30),
           })
           .strict()
           .prefault({}),
@@ -63,6 +65,36 @@ export const ConfigSchema = z
             auto: z.boolean().default(false),
             method: z.enum(['squash', 'merge', 'rebase']).default('squash'),
             deleteBranch: z.boolean().default(true),
+          })
+          .strict()
+          .prefault({}),
+      })
+      .strict()
+      .prefault({}),
+    implement: z
+      .object({
+        review: z
+          .object({
+            prePr: z
+              .object({
+                enabled: z.boolean().default(true),
+                mode: z.enum(['subagent', 'inline', 'none']).default('inline'),
+                maxLoops: z.number().int().min(1).default(2),
+              })
+              .strict()
+              .prefault({}),
+            semanticChecks: z
+              .object({ enabled: z.boolean().default(true) })
+              .strict()
+              .prefault({}),
+          })
+          .strict()
+          .prefault({}),
+        subagents: z
+          .object({
+            enabled: z.boolean().default(true),
+            maxParallel: z.number().int().min(1).default(2),
+            allowWorkers: z.boolean().default(false),
           })
           .strict()
           .prefault({}),
