@@ -1,5 +1,12 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.4.0
+
+### Minor Changes
+
+- dd900f4: Add configurable interactive implement-next review/subagent policy and make analyze-run understand
+  compatible interactive implement-next journals.
+
 ## 0.3.0
 
 ### Minor Changes
