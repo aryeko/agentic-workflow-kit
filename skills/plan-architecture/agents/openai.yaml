@@ -1,7 +1,0 @@
-interface:
-  display_name: "Plan Architecture"
-  short_description: "Write the technical architecture gate"
-  default_prompt: "Use $plan-architecture to write a technical architecture document from an approved PRD before tracker planning."
-
-policy:
-  allow_implicit_invocation: true

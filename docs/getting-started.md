@@ -25,8 +25,8 @@ pnpm agentic-workflow-kit -- --help
 
 ```mermaid
 flowchart LR
-  A["/workflow-init"] --> B["/plan-product"] --> C["/plan-track"] --> D["/implement-next<br/>or orchestrator"]
-  B --> E["/plan-architecture<br/>(when needed)"] --> C
+  A["/workflow-init"] --> B["/define-product"] --> C["/plan-delivery-track"] --> D["/implement-next<br/>or orchestrator"]
+  B --> E["/design-technical-solution<br/>(when needed)"] --> C
 ```
 
 Each step writes into the shared contract (`.workflow/config.yaml` + a markdown tracker) that the
@@ -56,7 +56,7 @@ Pick the preset that matches your repo (you can change it later by editing the `
 ## 2. Author a PRD
 
 ```text
-/plan-product
+/define-product
 ```
 
 A guided interview produces a multi-file PRD under `<prdsDir>/<slug>/`. The worked result looks
@@ -64,30 +64,31 @@ like [examples/example-prd/](../examples/example-prd/README.md): a `README.md` i
 map, then numbered sections (`01-context`, `08-acceptance-criteria`, and so on). The PRD owns
 *what/why*; it carries ID'd acceptance criteria (e.g. `L-1`, `A-1`) that the tracker links back to.
 
-## 3. Plan technical architecture when needed
+## 3. Plan technical solution when needed
 
 ```text
-/plan-architecture
+/design-technical-solution
 ```
 
-For simple products, `plan-product` can recommend going straight to `plan-track`. For complex
+For simple products, `define-product` can recommend going straight to `plan-delivery-track`. For complex
 technical work - new modules, data/query changes, AI prompts/tools, observability, migrations,
-security boundaries, or multi-system integration - `plan-architecture` writes
-`<prdsDir>/<slug>/architecture.md` before tracker decomposition.
+security boundaries, or multi-system integration - `design-technical-solution` writes
+`<prdsDir>/<slug>/technical-solution.md` before tracker decomposition.
 
 ## 4. Decompose into a tracker
 
 ```text
-/plan-track
+/plan-delivery-track
 ```
 
-`plan-track` reads the PRD, requires architecture for complex technical PRDs, and emits a tracker
-plus per-story specs. The worked result is
+`plan-delivery-track` reads the PRD, requires a technical solution for complex technical PRDs, and emits a tracker
+plus lightweight story briefs. The worked result is
 [examples/example-tracker/](../examples/example-tracker/README.md):
 
 - a **dependency graph** (Mermaid) showing hard dependencies,
 - a **status matrix** table — one row per story (`LK01`, `LK02`, `LK03`), each mapping back to a
   PRD acceptance-criteria ID,
+- **story briefs** under `stories/`, which are not implementation-ready,
 - **parallelism rules** explaining why each wave is ordered the way it is.
 
 Validate that a tracker actually parses by pointing the orchestrator at it:

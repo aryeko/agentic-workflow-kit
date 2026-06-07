@@ -33,10 +33,10 @@ related:
 ## PRD vs technical-design boundary
 
 This PRD owns *what* and *why*. It is not a technical design document; *how* lives in the
-technical architecture for complex work and in downstream per-story specs.
+technical solution for complex work, lightweight story briefs, and downstream detailed story specs.
 
 ## Status & next steps
 
-<Current status. Once approved, run `/plan-architecture` first for complex technical work, or
-`/plan-track` directly for simple work. Link architecture and tracker artifacts here when they
+<Current status. Once approved, run `/design-technical-solution` first for complex technical work, or
+`/plan-delivery-track` directly for simple work. Link technical solution and tracker artifacts here when they
 exist.>

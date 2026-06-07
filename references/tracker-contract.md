@@ -27,6 +27,8 @@ A markdown table with these columns, in order:
 - **Wave** — grouping for parallelism.
 - **Status** — a term from the vocabulary below.
 - **Spec / Plan / PR** — links or `—`.
+- **Spec** — For new trackers, Spec links to the story brief under
+  `<tracksDir>/<track>/stories/<ID>.md`; the story brief is not implementation-ready. Existing trackers that link to `docs/superpowers/specs/` remain valid for backward compatibility.
 - **Owner** — the claiming session, or `—`/empty when unowned.
 
 ## Dependency graph

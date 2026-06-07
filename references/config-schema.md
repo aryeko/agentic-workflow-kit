@@ -20,7 +20,7 @@ Where work lives.
 | `specsDir` | string | `docs/specs` | Per-story specs. |
 | `plansDir` | string | `docs/plans` | Implementation plans. |
 | `archiveDir` | string | `docs/tracks/archive` | Finished trackers. |
-| `prdsDir` | string | `docs/prds` | PRD directories at `<prdsDir>/<slug>/` (written by `plan-product`). |
+| `prdsDir` | string | `docs/prds` | PRD directories at `<prdsDir>/<slug>/` (written by `define-product`). |
 
 ## `statuses`
 

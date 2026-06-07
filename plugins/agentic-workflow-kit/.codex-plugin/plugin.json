@@ -1,7 +1,7 @@
 {
   "name": "agentic-workflow-kit",
   "version": "0.2.1",
-  "description": "Generic, tracker-driven, spec-first delivery workflow for any repo: plan products, architecture, and tracks, implement stories end-to-end, and optionally orchestrate autonomous multi-session runs.",
+  "description": "Generic, tracker-driven, spec-first delivery workflow for any repo: plan products, technical solutions, and tracks, implement stories end-to-end, and optionally orchestrate autonomous multi-session runs.",
   "author": { "name": "Arye Kogan" },
   "license": "MIT",
   "keywords": ["workflow", "tracker", "spec-driven", "automation", "orchestration"],
@@ -9,13 +9,13 @@
   "interface": {
     "displayName": "agentic-workflow-kit",
     "shortDescription": "Tracker-driven delivery workflow",
-    "longDescription": "Plan PRDs, add a technical architecture gate for complex work, decompose plans into tracker stories, implement one story at a time, and optionally dry-run or launch orchestrated Codex child sessions from the same tracker/config contract.",
+    "longDescription": "Plan PRDs, add a technical solution gate for complex work, decompose plans into delivery trackers and story briefs, implement one story at a time, and optionally dry-run or launch orchestrated Codex child sessions from the same tracker/config contract.",
     "developerName": "Arye Kogan",
     "category": "Productivity",
     "capabilities": ["Read", "Write", "Shell"],
     "defaultPrompt": [
       "Use agentic-workflow-kit to initialize tracker-driven delivery in this repo.",
-      "Use agentic-workflow-kit to create a PRD, architecture when needed, and delivery tracker for this product work.",
+      "Use agentic-workflow-kit to create a PRD, technical solution when needed, and delivery tracker for this product work.",
       "Use agentic-workflow-kit to implement the next eligible tracker story."
     ]
   }

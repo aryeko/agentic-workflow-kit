@@ -22,7 +22,7 @@ claude --plugin-dir ~/repos/agentic-workflow-kit
 
 The skills are namespaced under `agentic-workflow-kit`, and the bundled `agentic-workflow-kit` MCP
 server should connect automatically. Confirm the skills are visible (e.g. type `/agentic-workflow-kit:`
-and check the six skills list: `workflow-init`, `plan-product`, `plan-architecture`, `plan-track`,
+and check the six skills list: `workflow-init`, `define-product`, `design-technical-solution`, `plan-delivery-track`,
 `implement-next`, `workflow-autopilot`), then run `/mcp` and confirm the plugin-provided server is
 listed.
 
@@ -31,9 +31,9 @@ listed.
 | Skill | Invoke | Notes |
 | --- | --- | --- |
 | `workflow-init` | `/agentic-workflow-kit:workflow-init` | scaffolds config + trackers |
-| `plan-product` | `/agentic-workflow-kit:plan-product <slug or notes>` | writes a PRD |
-| `plan-architecture` | `/agentic-workflow-kit:plan-architecture <prd slug or notes>` | needed before tracker planning for complex technical PRDs |
-| `plan-track` | `/agentic-workflow-kit:plan-track <prd slug or notes>` | needs a PRD, and architecture for complex technical PRDs |
+| `define-product` | `/agentic-workflow-kit:define-product <slug or notes>` | writes a PRD |
+| `design-technical-solution` | `/agentic-workflow-kit:design-technical-solution <prd slug or notes>` | needed before tracker planning for complex technical PRDs |
+| `plan-delivery-track` | `/agentic-workflow-kit:plan-delivery-track <prd slug or notes>` | needs a PRD, and a technical solution for complex technical PRDs |
 | `implement-next` | `/agentic-workflow-kit:implement-next [story id]` | **explicit-invocation only** (`disable-model-invocation`) |
 | `workflow-autopilot` | `/agentic-workflow-kit:workflow-autopilot <command>` | **explicit only**; drives the orchestrator |
 
@@ -42,8 +42,8 @@ listed.
 1. **Setup** — common-phases.md → "Setup & containment" (build + create the no-remote `SMOKE` repo).
 2. **Phase 1 (plumbing)** — common-phases.md → Phase 1, run from a terminal (the `wk` alias).
 3. **Phase 2 (authoring)** — in the `claude --plugin-dir` session, invoke `workflow-init`, then
-   `plan-product`, `plan-architecture` for a complex sample or skip it for a simple sample with the
-   reason recorded, then `plan-track` using the syntax above; verify each against common-phases.md
+   `define-product`, `design-technical-solution` for a complex sample or skip it for a simple sample with the
+   reason recorded, then `plan-delivery-track` using the syntax above; verify each against common-phases.md
    → Phase 2 pass criteria. Run the **list-stories cross-check** from a terminal.
 4. **Phase 3 (side-effectful)** — invoke `implement-next` on a trivial story; verify against
    common-phases.md → Phase 3 (must stop at "no remote", completion from the tracker row).

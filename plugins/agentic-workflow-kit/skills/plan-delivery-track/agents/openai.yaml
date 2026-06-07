@@ -1,0 +1,7 @@
+interface:
+  display_name: "Plan Delivery Track"
+  short_description: "Turn a PRD and solution into tracker story briefs"
+  default_prompt: "Use $plan-delivery-track to decompose an approved PRD into a delivery tracker and lightweight story briefs, requiring a technical solution first when the PRD is complex."
+
+policy:
+  allow_implicit_invocation: true

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const DIR = 'references/templates/tracker';
-const FILES = ['tracker-readme-template.md', 'standalone-spec-template.md', 'delta-spec-template.md'];
+const FILES = ['tracker-readme-template.md'];
 
 describe('tracker templates', () => {
   for (const f of FILES) {
@@ -30,17 +30,11 @@ describe('tracker templates', () => {
     expect(r).toMatch(/<PREFIX>/);
   });
 
-  it('standalone template has contract sections and no status mirror', () => {
-    const s = readFileSync(`${DIR}/standalone-spec-template.md`, 'utf8');
-    expect(s).toContain('## Goal');
-    expect(s).toContain('## Non-goals');
-    expect(s).toContain('## Validation gate');
-    expect(s).not.toMatch(/<track>-status/);
-  });
-
-  it('delta template is thin-on-rules with a forbidden-changes section', () => {
-    const d = readFileSync(`${DIR}/delta-spec-template.md`, 'utf8');
-    expect(d).toContain('## Behavioural changes (forbidden)');
-    expect(d).not.toMatch(/<track>-status/);
+  it('README template links story briefs instead of detailed specs', () => {
+    const r = readFileSync(`${DIR}/tracker-readme-template.md`, 'utf8');
+    expect(r).toContain('[brief](./stories/<PREFIX>01.md)');
+    expect(r).toContain('Existing trackers that link to `docs/superpowers/specs/` remain valid');
+    expect(r).not.toContain('standalone-spec-template');
+    expect(r).not.toContain('delta-spec-template');
   });
 });

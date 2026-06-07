@@ -5,9 +5,9 @@ import YAML from 'yaml';
 
 const skillNames = [
   'workflow-init',
-  'plan-product',
-  'plan-architecture',
-  'plan-track',
+  'define-product',
+  'design-technical-solution',
+  'plan-delivery-track',
   'implement-next',
   'workflow-autopilot',
 ] as const;
@@ -21,9 +21,9 @@ type SkillDocument = {
 
 const implicitPolicy: Record<SkillName, boolean> = {
   'workflow-init': true,
-  'plan-product': true,
-  'plan-architecture': true,
-  'plan-track': true,
+  'define-product': true,
+  'design-technical-solution': true,
+  'plan-delivery-track': true,
   'implement-next': false,
   'workflow-autopilot': false,
 };
@@ -31,9 +31,9 @@ const implicitPolicy: Record<SkillName, boolean> = {
 const sideEffectfulSkills = new Set<SkillName>(['implement-next', 'workflow-autopilot']);
 
 const skillsWithArguments: Partial<Record<SkillName, string>> = {
-  'plan-product': 'slug_or_notes',
-  'plan-architecture': 'prd_slug_or_notes',
-  'plan-track': 'prd_slug_or_notes',
+  'define-product': 'slug_or_notes',
+  'design-technical-solution': 'prd_slug_or_notes',
+  'plan-delivery-track': 'prd_slug_or_notes',
   'implement-next': 'story_id',
   'workflow-autopilot': 'command',
 };
@@ -114,37 +114,56 @@ describe('skill authoring', () => {
     expect(body).not.toContain('<tracksDir>/example-track/README.md');
   });
 
-  it('plan-product documents context-rich fast path and next-step routing', () => {
-    const { body } = readSkill('plan-product');
+  it('does not ship the old public planning skill names', () => {
+    expect(existsSync('skills/plan-product')).toBe(false);
+    expect(existsSync('skills/plan-architecture')).toBe(false);
+    expect(existsSync('skills/plan-track')).toBe(false);
+  });
+
+  it('define-product documents context-rich fast path and next-step routing', () => {
+    const { body } = readSkill('define-product');
 
     expect(body).toContain('context-rich fast path');
     expect(body).toContain('show the assumed flow');
     expect(body).toContain('ask only blocking questions');
     expect(body).toContain('record safe assumptions');
-    expect(body).toContain('simple feature -> `plan-track`');
-    expect(body).toContain('technical feature -> `plan-architecture`');
+    expect(body).toContain('simple feature -> `plan-delivery-track`');
+    expect(body).toContain('technical feature -> `design-technical-solution`');
     expect(body).toContain('research-heavy feature -> validation/research first');
   });
 
-  it('plan-architecture documents the technical architecture artifact contract', () => {
-    const { body } = readSkill('plan-architecture');
+  it('design-technical-solution documents the technical solution artifact contract', () => {
+    const { body } = readSkill('design-technical-solution');
 
-    expect(body).toContain('technical architecture gate');
-    expect(body).toContain('references/technical-architecture-contract.md');
-    expect(body).toContain('references/templates/technical-architecture-template.md');
+    expect(body).toContain('technical solution gate');
+    expect(body).toContain('references/technical-solution-contract.md');
+    expect(body).toContain('references/templates/technical-solution-template.md');
     expect(body).toContain('ask only blocking questions');
-    expect(body).toContain('<prdsDir>/<slug>/architecture.md');
-    expect(body).toContain('suggest `/plan-track`');
+    expect(body).toContain('<prdsDir>/<slug>/technical-solution.md');
+    expect(body).toContain('suggest `/plan-delivery-track`');
   });
 
-  it('plan-track blocks complex technical PRDs without architecture and cites architecture sections', () => {
-    const { body } = readSkill('plan-track');
+  it('plan-delivery-track emits lightweight story briefs instead of detailed specs', () => {
+    const { body } = readSkill('plan-delivery-track');
 
-    expect(body).toContain('Architecture gate');
+    expect(body).toContain('Technical solution gate');
     expect(body).toContain('complex technical PRD');
-    expect(body).toContain('If architecture is required and missing, stop');
-    expect(body).toContain('cite relevant architecture sections');
-    expect(body).toContain('PRD acceptance criteria and architecture sections');
+    expect(body).toContain('If technical solution is required and missing, stop');
+    expect(body).toContain('<tracksDir>/<track>/stories/<ID>.md');
+    expect(body).toContain('story briefs are not implementation-ready');
+    expect(body).toContain('Do not write detailed technical story specs');
+    expect(body).toContain('PRD criteria and technical solution sections');
+  });
+
+  it('implement-next owns detailed technical spec and implementation plan before code', () => {
+    const { body } = readSkill('implement-next');
+
+    expect(body).toContain('story brief under `<tracksDir>/<track>/stories/<ID>.md`');
+    expect(body).toContain('old detailed spec under `docs/superpowers/specs/`');
+    expect(body).toContain('No implementation plan or code while the detailed technical story spec is missing');
+    expect(body).toContain('blocking technical questions');
+    expect(body).toContain('docs/superpowers/specs/');
+    expect(body).toContain('docs/superpowers/plans/');
   });
 
   it('implement-next documents canonical done semantics before human or CI verification', () => {
