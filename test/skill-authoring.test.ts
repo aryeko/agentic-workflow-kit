@@ -159,11 +159,11 @@ describe('skill authoring', () => {
     const { body } = readSkill('implement-next');
 
     expect(body).toContain('story brief under `<tracksDir>/<track>/stories/<ID>.md`');
-    expect(body).toContain('old detailed spec under `docs/superpowers/specs/`');
+    expect(body).toContain('a detailed spec link (not a story brief)');
     expect(body).toContain('No implementation plan or code while the detailed technical story spec is missing');
     expect(body).toContain('blocking technical questions');
-    expect(body).toContain('docs/superpowers/specs/');
-    expect(body).toContain('docs/superpowers/plans/');
+    expect(body).toContain('<specsDir>');
+    expect(body).toContain('<plansDir>');
   });
 
   it('implement-next documents canonical done semantics before human or CI verification', () => {

@@ -12,7 +12,7 @@ describe('planning artifact model', () => {
     expect(existsSync('examples/example-tracker/stories/LK02.md')).toBe(true);
   });
 
-  it('plan-delivery-track writes story briefs, not detailed superpowers specs', () => {
+  it('plan-delivery-track writes story briefs, not detailed specs', () => {
     const { body } = readSkillBody('plan-delivery-track');
 
     expect(body).toContain('<tracksDir>/<track>/stories/<ID>.md');
@@ -25,7 +25,7 @@ describe('planning artifact model', () => {
     const { body } = readSkillBody('implement-next');
 
     expect(body).toContain('Backward compatibility');
-    expect(body).toContain('docs/superpowers/specs/');
+    expect(body).toContain('<specsDir>');
     expect(body).toContain('story brief under `<tracksDir>/<track>/stories/<ID>.md`');
     expect(body).toContain('create/refine the detailed technical story spec first');
     expect(body).toContain('No implementation plan or code while the detailed technical story spec is missing');
@@ -35,7 +35,7 @@ describe('planning artifact model', () => {
     const contract = readFileSync('references/tracker-contract.md', 'utf8');
 
     expect(contract).toContain('For new trackers, Spec links to the story brief');
-    expect(contract).toContain('Existing trackers that link to `docs/superpowers/specs/` remain valid');
+    expect(contract).toContain('Existing trackers that link a detailed spec directly remain valid');
   });
 });
 

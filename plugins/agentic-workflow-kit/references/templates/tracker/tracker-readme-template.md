@@ -2,7 +2,7 @@
 
 Copy this skeleton verbatim into `<tracksDir>/<track>/README.md` and fill the bracketed
 sections. Every section listed here is mandatory unless marked `(optional)`. Resolve
-`<tracksDir>` and the status vocabulary from `.workflow/config.yaml`
+`<tracksDir>`, `<specsDir>`, `<plansDir>`, and the status vocabulary from `.workflow/config.yaml`
 (`paths.*`, `statuses.*`, `tracker.idPattern`). The output must conform to
 `references/tracker-contract.md` — in particular the status-matrix columns and the status
 vocabulary are fixed by that contract; do not add columns or invent statuses.
@@ -73,7 +73,7 @@ Statuses come from `references/tracker-contract.md`:
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
 plan after creating the detailed technical story spec. For new trackers, **Spec** links to the
-story brief. Existing trackers that link to `docs/superpowers/specs/` remain valid. Each story maps
+story brief. Existing trackers that link a detailed spec directly remain valid. Each story maps
 to one or more PRD acceptance-criteria IDs (cite them in the story brief, not as a new column).
 
 ## Parallelism rules
@@ -110,8 +110,8 @@ never reused by another track.
 2. Claim it (set **Owner**; isolate per `git.strategy`) and flip **Status** to
    `statuses.inProgress`.
 3. Read the linked story brief.
-4. Create/refine the detailed technical story spec under `docs/superpowers/specs/`.
-5. If no plan exists, draft one under `docs/superpowers/plans/`.
+4. Create/refine the detailed technical story spec under `<specsDir>` (default `docs/specs`).
+5. If no plan exists, draft one under `<plansDir>` (default `docs/plans`).
 6. Execute. Before opening the PR, flip **Status** to `done` in this table in the same change.
 7. Fill the **PR** column once the PR exists.
 

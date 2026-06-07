@@ -33,7 +33,7 @@ describe('tracker templates', () => {
   it('README template links story briefs instead of detailed specs', () => {
     const r = readFileSync(`${DIR}/tracker-readme-template.md`, 'utf8');
     expect(r).toContain('[brief](./stories/<PREFIX>01.md)');
-    expect(r).toContain('Existing trackers that link to `docs/superpowers/specs/` remain valid');
+    expect(r).toContain('Existing trackers that link a detailed spec directly remain valid');
     expect(r).not.toContain('standalone-spec-template');
     expect(r).not.toContain('delta-spec-template');
   });

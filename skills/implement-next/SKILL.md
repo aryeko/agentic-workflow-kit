@@ -151,11 +151,13 @@ Read the row's `Spec` and `Plan` columns:
 
 - `[brief](path)` or a path under `<tracksDir>/<track>/stories/<ID>.md` means read the story brief
   under `<tracksDir>/<track>/stories/<ID>.md`.
-- Backward compatibility: an old detailed spec under `docs/superpowers/specs/` means continue the
-  legacy behavior and read it as the detailed technical story spec.
+- Backward compatibility: a detailed spec link (not a story brief) — typically under `<specsDir>` —
+  means continue the legacy behavior and read it as the detailed technical story spec.
+- Backward compatibility: a legacy `see <ID> + [delta](path)` link means read the referenced base
+  spec plus the delta together as the detailed technical story spec.
 - `[spec](path)` means inspect the path. If it points to a story brief, create/refine the detailed
-  technical story spec first. If it points to an old detailed spec under `docs/superpowers/specs/`,
-  use the backward-compatible detailed-spec path.
+  technical story spec first. If it points to a detailed spec under `<specsDir>`, use the
+  backward-compatible detailed-spec path.
 - `Plan` with a link means read and assess it.
 - `Plan` as `—` means a plan must be written after the detailed technical story spec is ready.
 
@@ -175,10 +177,10 @@ If there is a blocker, pause for user input before planning or implementation.
 For story brief rows, create/refine the detailed technical story spec first.
 
 If the tracker row links a story brief under `<tracksDir>/<track>/stories/<ID>.md`, create/refine
-the detailed technical story spec first before writing any implementation plan or code. Create/refine the detailed technical story spec first under:
+the detailed technical story spec before writing any implementation plan or code, under:
 
 ```text
-docs/superpowers/specs/<YYYY-MM-DD>-<id-lc>-<slug>-design.md
+<specsDir>/<YYYY-MM-DD>-<id-lc>-<slug>-design.md
 ```
 
 Use `references/templates/detailed-story-spec-template.md` and satisfy
@@ -198,7 +200,7 @@ planning or code.
 Update the tracker row's **Spec** column from the brief link to a combined reference, for example:
 
 ```markdown
-[brief](./stories/<ID>.md) + [spec](../../superpowers/specs/<date>-<id>-<slug>-design.md)
+[brief](./stories/<ID>.md) + [spec](<specsDir-relative path>)
 ```
 
 Commit:
@@ -208,7 +210,7 @@ git add <tracker README> <detailed spec file>
 git commit -m "chore(<id>): write detailed story spec"
 ```
 
-If the row already links an old detailed spec under `docs/superpowers/specs/`, keep the legacy path:
+If the row already links a detailed spec directly (not a story brief), keep the legacy path:
 review/refine that spec instead of creating a duplicate.
 
 ## Phase 5: Write a plan when needed
@@ -216,7 +218,7 @@ review/refine that spec instead of creating a duplicate.
 If the row was selected with Status `specced` and Plan `—`, write a plan under:
 
 ```text
-docs/superpowers/plans/<YYYY-MM-DD>-<id-lc>-<slug>.md
+<plansDir>/<YYYY-MM-DD>-<id-lc>-<slug>.md
 ```
 
 The plan must be based on the detailed technical story spec, not only the story brief. It must be

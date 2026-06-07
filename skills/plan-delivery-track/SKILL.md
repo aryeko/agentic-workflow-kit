@@ -108,7 +108,7 @@ expectations, open technical questions, and the exact note:
 not implementation-ready; create a detailed technical story spec before plan/code
 ```
 
-Story briefs are not implementation-ready; story briefs are not implementation-ready. Do not write detailed technical story specs or
+Remember: story briefs are not implementation-ready. Do not write detailed technical story specs or
 implementation plans from this skill.
 
 ### Step 8 - Register the track
@@ -126,7 +126,7 @@ Do not auto-commit and do not invoke implementation skills.
 
 ## Backward compatibility
 
-Existing trackers that link detailed specs under `docs/superpowers/specs/` remain valid. New
+Existing trackers that link a detailed spec directly (rather than a story brief) remain valid. New
 trackers should link story briefs under `<tracksDir>/<track>/stories/`.
 
 ## Anti-patterns

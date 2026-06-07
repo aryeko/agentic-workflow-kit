@@ -3,15 +3,15 @@
 A detailed technical story spec is created or refined by `implement-next` after it claims one
 tracker row and before it writes an implementation plan or code.
 
-Default location:
+Default location (resolved from `paths.specsDir`, default `docs/specs`):
 
 ```text
-docs/superpowers/specs/<YYYY-MM-DD>-<id-lc>-<slug>-design.md
+<specsDir>/<YYYY-MM-DD>-<id-lc>-<slug>-design.md
 ```
 
-Existing trackers that already link detailed specs under `docs/superpowers/specs/` remain valid.
-New trackers produced by `plan-delivery-track` link story briefs; `implement-next` expands those
-briefs into this detailed spec.
+Existing trackers that already link a detailed spec directly (rather than a story brief) remain
+valid. New trackers produced by `plan-delivery-track` link story briefs; `implement-next` expands
+those briefs into this detailed spec.
 
 ## Required content
 

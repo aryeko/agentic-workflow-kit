@@ -40,7 +40,8 @@ is a single file.
 Frontmatter keys: `title`, `status`, `owner`, `last-reviewed`, `related`. Body: a bold
 `Version · Date · Status` line, a TL;DR, an optional system-at-a-glance diagram, a
 **document map** table linking every section file, a short **PRD vs technical-design
-boundary** note (the PRD owns what/why; architecture owns high-level how for complex work), and a
+boundary** note (the PRD owns what/why; the technical solution owns high-level how for complex
+work), and a
 **Status & next steps** section linking to the technical solution doc and tracker once downstream
 planning creates them.
 

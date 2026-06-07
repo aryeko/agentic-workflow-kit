@@ -78,8 +78,8 @@ in a real repo) and is never reused.
    `plan-approved`.
 2. Claim it and flip **Status** to `implementing`.
 3. Read the linked story brief.
-4. Create/refine the detailed technical story spec under `docs/superpowers/specs/`.
-5. Draft an implementation plan under `docs/superpowers/plans/`.
+4. Create/refine the detailed technical story spec under `docs/specs/` (the configured `specsDir`).
+5. Draft an implementation plan under `docs/plans/` (the configured `plansDir`).
 6. Execute. Flip **Status** to `done` in this table in the same PR.
 
 ## Ground rules

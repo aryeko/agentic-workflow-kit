@@ -8,8 +8,8 @@ tracker row. It is stored under the track:
 ```
 
 Story briefs are not implementation-ready. They give `implement-next` enough context to create or
-refine the detailed technical story spec under `docs/superpowers/specs/`, then create an
-implementation plan under `docs/superpowers/plans/`, then code.
+refine the detailed technical story spec under `<specsDir>` (default `docs/specs`), then create an
+implementation plan under `<plansDir>` (default `docs/plans`), then code.
 
 Every story brief must include this exact note:
 
