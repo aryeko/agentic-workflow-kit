@@ -18,7 +18,9 @@ The core idea: one **markdown tracker** (a status matrix + dependency graph) plu
 ```mermaid
 flowchart LR
   subgraph Author["Author (skills)"]
-    PP[plan-product] --> PT[plan-track]
+    PP[plan-product] --> PA[plan-architecture<br/>when needed]
+    PP --> PT[plan-track]
+    PA --> PT
   end
   WI[workflow-init] --> CFG
   PT --> TRK
@@ -34,7 +36,8 @@ flowchart LR
   CODEX -. update .-> TRK
 ```
 
-`workflow-init` scaffolds the config; `plan-product` and `plan-track` produce the PRD and tracker.
+`workflow-init` scaffolds the config; `plan-product`, `plan-architecture` when needed, and
+`plan-track` produce the PRD, technical architecture, and tracker.
 That config + tracker is the single contract both drivers consume. Completion authority is always
 the tracker row — never a child session's prose. Full detail and more diagrams in
 [docs/architecture.md](docs/architecture.md).
@@ -44,27 +47,33 @@ the tracker row — never a child session's prose. Full detail and more diagrams
 ```mermaid
 flowchart LR
   A["/workflow-init<br/>config + scaffolding<br/><i>(once per repo)</i>"] --> B["/plan-product<br/>author PRD"]
-  B --> C["/plan-track<br/>PRD → tracker + specs"]
-  C --> D{Drive how?}
-  D -->|interactive| E["/implement-next<br/>one story end-to-end"]
-  D -->|autonomous| F["orchestrator run-eligible<br/>fan out child sessions"]
-  E --> G["ship per pr: policy<br/>(create / CI / review / merge)"]
-  F --> G
-  G --> H{More eligible<br/>stories?}
-  H -->|yes| D
-  H -->|no| I["track complete"]
+  B --> C{"technical<br/>architecture needed?"}
+  C -->|yes| D["/plan-architecture<br/>high-level technical how"]
+  C -->|no| E["/plan-track<br/>tracker + specs"]
+  D --> E
+  E --> F{Drive how?}
+  F -->|interactive| G["/implement-next<br/>one story end-to-end"]
+  F -->|autonomous| H["orchestrator run-eligible<br/>fan out child sessions"]
+  G --> I["ship per pr: policy<br/>(create / CI / review / merge)"]
+  H --> I
+  I --> J{More eligible<br/>stories?}
+  J -->|yes| F
+  J -->|no| K["track complete"]
 ```
 
 1. **Set up once** — `/workflow-init` detects your package manager, CI, default branch, and branch
    protection, picks a PR/merge preset, writes `.workflow/config.yaml`, and scaffolds a tracks
    index plus an example tracker.
 2. **Plan the product** — `/plan-product` runs a guided interview into a multi-file PRD.
-3. **Decompose into a tracker** — `/plan-track` turns the PRD into a tracker plus per-story specs.
-4. **Implement** — `/implement-next` takes one eligible story end-to-end (isolate → spec review →
+3. **Plan the architecture when needed** — `/plan-architecture` turns complex PRDs into a technical
+   architecture document before story slicing.
+4. **Decompose into a tracker** — `/plan-track` turns the PRD, and architecture when present, into a
+   tracker plus per-story specs.
+5. **Implement** — `/implement-next` takes one eligible story end-to-end (isolate → spec review →
    plan → implement → review → verify → ship), or `workflow-autopilot` uses the bundled MCP runtime
    to fan eligible stories out to Codex child sessions autonomously. The CLI provides the same
    runtime for local development, CI, and troubleshooting.
-5. **Ship** — under the declarative `pr:` policy (open a PR, wait on CI/review, auto-merge — or
+6. **Ship** — under the declarative `pr:` policy (open a PR, wait on CI/review, auto-merge — or
    not), then repeat until the tracker is drained.
 
 ## PR/merge presets
@@ -93,6 +102,7 @@ findings, and Codex PR review comments or PR comments are findings to triage whe
 - [references/config-schema.md](references/config-schema.md) — the `.workflow/config.yaml` reference
 - [references/tracker-contract.md](references/tracker-contract.md) — the tracker format + status vocabulary
 - [references/prd-contract.md](references/prd-contract.md) — the PRD format
+- [references/technical-architecture-contract.md](references/technical-architecture-contract.md) — the architecture gate format
 - [examples/](examples/) — a worked PRD and tracker (Linkly)
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to develop and contribute
 - [docs/brand.md](docs/brand.md) — the visual identity (logo, color, type, social/SEO kit)
@@ -165,7 +175,7 @@ Keep manual plugin smokes pending until they are run in the relevant tool enviro
 ## Layout
 
 - `skills/` — the plugin's instructions and slash-command entry points.
-- `references/` — the config schema (human + machine), the tracker contract, the PRD contract, and templates.
+- `references/` — the config schema (human + machine), tracker, PRD, technical architecture contracts, and templates.
 - `presets/` — the three starter configs.
 - `examples/` — a worked PRD and tracker.
 - `mcp/server.mjs` — the bundled MCP runtime used by plugin installs.
@@ -174,8 +184,8 @@ Keep manual plugin smokes pending until they are run in the relevant tool enviro
 
 ## Project status
 
-agentic-workflow-kit is published as **v0.1.0**: the five skills (`workflow-init`, `plan-product`,
-`plan-track`, `implement-next`, `workflow-autopilot`), the bundled MCP runtime, the contracts, the
+agentic-workflow-kit is published as **v0.1.0**: the six skills (`workflow-init`, `plan-product`,
+`plan-architecture`, `plan-track`, `implement-next`, `workflow-autopilot`), the bundled MCP runtime, the contracts, the
 three presets, the worked examples, and the optional standalone `@agentic-workflow-kit/orchestrator`
 CLI package (on npm) are implemented and covered by the test suite (`pnpm check`).
 

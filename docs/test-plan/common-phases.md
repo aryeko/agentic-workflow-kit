@@ -57,9 +57,14 @@ Invoke each skill the way your surface entry describes, then verify against thes
 - **`plan-product`** ([contract](../../references/prd-contract.md))
   - Produces a multi-file PRD under `docs/prds/<slug>/` (README index + numbered sections) conforming
     to the PRD contract; adds `paths.prdsDir` only if missing; does not clobber an existing PRD.
+- **`plan-architecture`** ([contract](../../references/technical-architecture-contract.md))
+  - For complex technical PRDs, produces `docs/prds/<slug>/architecture.md` with system shape,
+    modules, data/query design, AI prompts/triggers/tools, observability, migration/deploy surfaces,
+    testing strategy, and tracker/spec inputs. For simple PRDs, records why the gate was not needed.
 - **`plan-track`** ([contract](../../references/tracker-contract.md))
-  - Requires a PRD present. Emits a tracker plus per-story specs; stories map back to PRD
-    acceptance-criteria IDs.
+  - Requires a PRD present and requires architecture for complex technical PRDs. Emits a tracker plus
+    per-story specs; stories map back to PRD acceptance-criteria IDs and architecture sections when
+    architecture exists.
   - **Cross-check (the contract boundary between the two surfaces):**
     `wk list-stories --tracks-dir <produced tracksDir>` and `wk list-eligible ...`
     must parse the agent-written markdown through the strict orchestrator parser without error.

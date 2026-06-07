@@ -33,9 +33,10 @@ related:
 ## PRD vs technical-design boundary
 
 This PRD owns *what* and *why*. It is not a technical design document; *how* lives in the
-architecture/specs that `plan-track` produces downstream.
+technical architecture for complex work and in downstream per-story specs.
 
 ## Status & next steps
 
-<Current status. Once approved, run `/plan-track` to decompose this PRD into a tracker; link
-the tracker here when it exists.>
+<Current status. Once approved, run `/plan-architecture` first for complex technical work, or
+`/plan-track` directly for simple work. Link architecture and tracker artifacts here when they
+exist.>

@@ -2,7 +2,8 @@
 
 A PRD (product requirements document) defines a product — the *what* and *why* — before
 any technical decomposition. It is authored by the `plan-product` skill and consumed by
-`plan-track`, which maps tracker stories back to the PRD's acceptance criteria. This file
+`plan-architecture` for complex technical work and `plan-track`, which maps tracker stories back to
+the PRD's acceptance criteria. This file
 is the canonical format; it is the PRD analog of `tracker-contract.md`.
 
 ## Layout
@@ -39,8 +40,9 @@ is a single file.
 Frontmatter keys: `title`, `status`, `owner`, `last-reviewed`, `related`. Body: a bold
 `Version · Date · Status` line, a TL;DR, an optional system-at-a-glance diagram, a
 **document map** table linking every section file, a short **PRD vs technical-design
-boundary** note (the PRD owns what/why; technical design owns how), and a **Status & next
-steps** section linking to the tracker once `plan-track` creates it.
+boundary** note (the PRD owns what/why; architecture owns high-level how for complex work), and a
+**Status & next steps** section linking to the architecture doc and tracker once downstream
+planning creates them.
 
 ## Acceptance-criteria format
 

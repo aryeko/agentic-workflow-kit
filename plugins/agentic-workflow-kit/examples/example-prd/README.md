@@ -31,9 +31,10 @@ is visited. This example PRD demonstrates the agentic-workflow-kit PRD contract 
 
 ## PRD vs technical-design boundary
 
-This PRD owns what/why. How Linkly stores links, generates codes, or scales is technical
-design, decided downstream — not here.
+This PRD owns what/why. How Linkly stores links, generates codes, or scales is technical design,
+decided downstream. This small example goes directly to tracker planning; larger products should
+add `architecture.md` with `/plan-architecture` first.
 
 ## Status & next steps
 
-Approved. Next: run `/plan-track` to decompose this PRD into a tracker.
+Approved. Next: run `/plan-track` to decompose this small PRD into a tracker.

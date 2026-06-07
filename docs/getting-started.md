@@ -26,6 +26,7 @@ pnpm agentic-workflow-kit -- --help
 ```mermaid
 flowchart LR
   A["/workflow-init"] --> B["/plan-product"] --> C["/plan-track"] --> D["/implement-next<br/>or orchestrator"]
+  B --> E["/plan-architecture<br/>(when needed)"] --> C
 ```
 
 Each step writes into the shared contract (`.workflow/config.yaml` + a markdown tracker) that the
@@ -63,13 +64,25 @@ like [examples/example-prd/](../examples/example-prd/README.md): a `README.md` i
 map, then numbered sections (`01-context`, `08-acceptance-criteria`, and so on). The PRD owns
 *what/why*; it carries ID'd acceptance criteria (e.g. `L-1`, `A-1`) that the tracker links back to.
 
-## 3. Decompose into a tracker
+## 3. Plan technical architecture when needed
+
+```text
+/plan-architecture
+```
+
+For simple products, `plan-product` can recommend going straight to `plan-track`. For complex
+technical work - new modules, data/query changes, AI prompts/tools, observability, migrations,
+security boundaries, or multi-system integration - `plan-architecture` writes
+`<prdsDir>/<slug>/architecture.md` before tracker decomposition.
+
+## 4. Decompose into a tracker
 
 ```text
 /plan-track
 ```
 
-`plan-track` reads the PRD and emits a tracker plus per-story specs. The worked result is
+`plan-track` reads the PRD, requires architecture for complex technical PRDs, and emits a tracker
+plus per-story specs. The worked result is
 [examples/example-tracker/](../examples/example-tracker/README.md):
 
 - a **dependency graph** (Mermaid) showing hard dependencies,
@@ -91,7 +104,7 @@ the config is auto-discovered and the flag is unnecessary.
 `list-eligible` applies the eligibility rule (status is pickable, unowned, all dependencies
 complete) — see the decision diagram in [architecture.md](./architecture.md#eligibility).
 
-## 4. Implement
+## 5. Implement
 
 Two ways to drive the same tracker:
 
@@ -124,7 +137,7 @@ authority. Run artifacts land under `.codex/agentic-workflow-kit/runs/<runId>/`;
 pnpm agentic-workflow-kit -- analyze-run .codex/agentic-workflow-kit/runs/<runId>
 ```
 
-## 5. Ship and repeat
+## 6. Ship and repeat
 
 Each story ships under the declarative `pr:` policy from step 1. Repeat steps 4–5 until the tracker
 is drained. Switch ship behavior at any time by editing the `pr:` block in `.workflow/config.yaml`

@@ -1,7 +1,7 @@
 {
   "name": "agentic-workflow-kit",
   "version": "0.2.1",
-  "description": "Generic, tracker-driven, spec-first delivery workflow for any repo: plan tracks from a PRD, implement stories end-to-end, and optionally orchestrate autonomous multi-session runs. PR/merge policy is declarative config.",
+  "description": "Generic, tracker-driven, spec-first delivery workflow for any repo: plan PRDs, architecture, and tracks, implement stories end-to-end, and optionally orchestrate autonomous multi-session runs. PR/merge policy is declarative config.",
   "author": { "name": "Arye Kogan" },
   "license": "MIT",
   "keywords": ["workflow", "tracker", "spec-driven", "automation", "orchestration"],

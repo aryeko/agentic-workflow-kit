@@ -3,7 +3,14 @@ import { dirname, join, normalize } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import YAML from 'yaml';
 
-const skillNames = ['workflow-init', 'plan-product', 'plan-track', 'implement-next', 'workflow-autopilot'] as const;
+const skillNames = [
+  'workflow-init',
+  'plan-product',
+  'plan-architecture',
+  'plan-track',
+  'implement-next',
+  'workflow-autopilot',
+] as const;
 
 type SkillName = (typeof skillNames)[number];
 
@@ -15,6 +22,7 @@ type SkillDocument = {
 const implicitPolicy: Record<SkillName, boolean> = {
   'workflow-init': true,
   'plan-product': true,
+  'plan-architecture': true,
   'plan-track': true,
   'implement-next': false,
   'workflow-autopilot': false,
@@ -24,6 +32,7 @@ const sideEffectfulSkills = new Set<SkillName>(['implement-next', 'workflow-auto
 
 const skillsWithArguments: Partial<Record<SkillName, string>> = {
   'plan-product': 'slug_or_notes',
+  'plan-architecture': 'prd_slug_or_notes',
   'plan-track': 'prd_slug_or_notes',
   'implement-next': 'story_id',
   'workflow-autopilot': 'command',
@@ -103,6 +112,39 @@ describe('skill authoring', () => {
 
     expect(body).toContain('<tracksDir>/example-tracker/README.md');
     expect(body).not.toContain('<tracksDir>/example-track/README.md');
+  });
+
+  it('plan-product documents context-rich fast path and next-step routing', () => {
+    const { body } = readSkill('plan-product');
+
+    expect(body).toContain('context-rich fast path');
+    expect(body).toContain('show the assumed flow');
+    expect(body).toContain('ask only blocking questions');
+    expect(body).toContain('record safe assumptions');
+    expect(body).toContain('simple feature -> `plan-track`');
+    expect(body).toContain('technical feature -> `plan-architecture`');
+    expect(body).toContain('research-heavy feature -> validation/research first');
+  });
+
+  it('plan-architecture documents the technical architecture artifact contract', () => {
+    const { body } = readSkill('plan-architecture');
+
+    expect(body).toContain('technical architecture gate');
+    expect(body).toContain('references/technical-architecture-contract.md');
+    expect(body).toContain('references/templates/technical-architecture-template.md');
+    expect(body).toContain('ask only blocking questions');
+    expect(body).toContain('<prdsDir>/<slug>/architecture.md');
+    expect(body).toContain('suggest `/plan-track`');
+  });
+
+  it('plan-track blocks complex technical PRDs without architecture and cites architecture sections', () => {
+    const { body } = readSkill('plan-track');
+
+    expect(body).toContain('Architecture gate');
+    expect(body).toContain('complex technical PRD');
+    expect(body).toContain('If architecture is required and missing, stop');
+    expect(body).toContain('cite relevant architecture sections');
+    expect(body).toContain('PRD acceptance criteria and architecture sections');
   });
 
   it('implement-next documents canonical done semantics before human or CI verification', () => {

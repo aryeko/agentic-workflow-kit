@@ -1,7 +1,7 @@
 interface:
   display_name: "Plan Track"
-  short_description: "Turn a PRD into tracker stories"
-  default_prompt: "Use $plan-track to decompose an approved PRD into a delivery tracker and story specs."
+  short_description: "Turn a PRD and architecture into tracker stories"
+  default_prompt: "Use $plan-track to decompose an approved PRD into a delivery tracker, requiring a technical architecture first when the PRD is complex."
 
 policy:
   allow_implicit_invocation: true

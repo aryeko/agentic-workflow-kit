@@ -156,6 +156,15 @@ describe('plugin manifests', () => {
     expect(s['user-invocable']).toBe(true);
   });
 
+  it('ships the plan-architecture skill with frontmatter', () => {
+    expect(existsSync('skills/plan-architecture/SKILL.md')).toBe(true);
+    const s = readSkillFrontmatter('plan-architecture');
+    expect(s.name).toBe('plan-architecture');
+    expect(s.description).toEqual(expect.any(String));
+    expect(s['argument-hint']).toBe('[prd-slug or architecture notes]');
+    expect(s['user-invocable']).toBe(true);
+  });
+
   it('ships the plan-track skill with frontmatter', () => {
     expect(existsSync('skills/plan-track/SKILL.md')).toBe(true);
     const s = readSkillFrontmatter('plan-track');

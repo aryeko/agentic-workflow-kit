@@ -35,6 +35,7 @@ describe('codex local plugin smoke', () => {
     expect(existsSync(path.join(installedRoot, 'mcp/server.mjs'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/workflow-init/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/plan-product/SKILL.md'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, 'skills/plan-architecture/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/plan-track/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/implement-next/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/workflow-autopilot/SKILL.md'))).toBe(true);
@@ -48,6 +49,7 @@ describe('codex local plugin smoke', () => {
 
     expect(promptInput).toContain('agentic-workflow-kit:workflow-init');
     expect(promptInput).toContain('agentic-workflow-kit:plan-product');
+    expect(promptInput).toContain('agentic-workflow-kit:plan-architecture');
     expect(promptInput).toContain('agentic-workflow-kit:plan-track');
   }, 30_000);
 });

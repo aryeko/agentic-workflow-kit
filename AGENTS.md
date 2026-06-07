@@ -27,8 +27,8 @@ The shared contract:
   materialized `plugins/agentic-workflow-kit/` copy provide the local Codex marketplace fixture. Keep that
   fixture byte-in-sync with `.codex-plugin/`, `skills/`, `references/`, `presets/`, and `examples/`;
   keep its surface-specific `.mcp.json` and `mcp/server.mjs` materialized.
-- `skills/` contains the shared plugin skills: `workflow-init`, `plan-product`, `plan-track`, `implement-next`, and `workflow-autopilot`. These also provide the slash-command entry points; there is no separate `commands/` layer.
-- `references/` contains the canonical config schema, tracker contract, PRD contract, and templates.
+- `skills/` contains the shared plugin skills: `workflow-init`, `plan-product`, `plan-architecture`, `plan-track`, `implement-next`, and `workflow-autopilot`. These also provide the slash-command entry points; there is no separate `commands/` layer.
+- `references/` contains the canonical config schema, tracker contract, PRD contract, technical architecture contract, and templates.
   Keep the human and machine schema docs in sync.
 - `presets/` contains the three starter configs.
 - `examples/` contains worked PRD and tracker examples.
@@ -91,7 +91,7 @@ handoff. Report any skipped or failed verification with the exact reason.
 
 ## Status
 
-agentic-workflow-kit is published as v0.1.0. The current plugin ships the five skills, bundled MCP
+agentic-workflow-kit is published as v0.1.0. The current plugin ships the six skills, bundled MCP
 runtime, shared contracts, presets, and worked examples. The `@agentic-workflow-kit/orchestrator`
 package remains the standalone CLI/runtime source. Local plugin fixtures and smoke tests remain the
 development validation path for changes to the Claude Code and Codex plugin surfaces.
