@@ -1,8 +1,9 @@
 # PRD contract
 
 A PRD (product requirements document) defines a product — the *what* and *why* — before
-any technical decomposition. It is authored by the `plan-product` skill and consumed by
-`plan-track`, which maps tracker stories back to the PRD's acceptance criteria. This file
+any technical decomposition. It is authored by the `define-product` skill and consumed by
+`design-technical-solution` for complex technical work and `plan-delivery-track`, which maps tracker stories back to
+the PRD's acceptance criteria. This file
 is the canonical format; it is the PRD analog of `tracker-contract.md`.
 
 ## Layout
@@ -39,8 +40,10 @@ is a single file.
 Frontmatter keys: `title`, `status`, `owner`, `last-reviewed`, `related`. Body: a bold
 `Version · Date · Status` line, a TL;DR, an optional system-at-a-glance diagram, a
 **document map** table linking every section file, a short **PRD vs technical-design
-boundary** note (the PRD owns what/why; technical design owns how), and a **Status & next
-steps** section linking to the tracker once `plan-track` creates it.
+boundary** note (the PRD owns what/why; the technical solution owns high-level how for complex
+work), and a
+**Status & next steps** section linking to the technical solution doc and tracker once downstream
+planning creates them.
 
 ## Acceptance-criteria format
 
@@ -50,7 +53,7 @@ Each criterion is one table row carrying a **designation**: `[ship blocker]` or 
 A closing ship-blocker summary states that all `[ship blocker]` items must be met before the
 product ships; `[target]` items may be deferred with a documented workaround.
 
-`plan-track` references these IDs from tracker stories and per-story specs, making the PRD
+`plan-delivery-track` references these IDs from tracker stories and story briefs, making the PRD
 the authoritative source of done-ness rather than duplicating criteria.
 
 ## PRD status vocabulary

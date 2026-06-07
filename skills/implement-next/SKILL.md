@@ -1,6 +1,6 @@
 ---
 name: implement-next
-description: Use when the user asks to pick, claim, implement, ship, or merge the next eligible agentic-workflow-kit tracker story, or names a specific tracker ID such as PC03, WK4, AR12, or TU11. Reads .workflow/config.yaml plus references/tracker-contract.md, discovers active trackers, validates dependencies and ownership, runs one story through claim, spec/plan review, planning if needed, implementation, review, verification, tracker done bookkeeping, PR creation, configured CI/review gates, optional merge, and cleanup. Do not use for creating trackers (use plan-track), writing PRDs (use plan-product), or non-tracker one-off work.
+description: Use when the user asks to pick, claim, implement, ship, or merge the next eligible agentic-workflow-kit tracker story, or names a specific tracker ID such as PC03, WK4, AR12, or TU11. Reads .workflow/config.yaml plus references/tracker-contract.md, discovers active trackers, validates dependencies and ownership, expands new story briefs into detailed technical story specs, writes implementation plans, then implements, verifies, updates tracker state, creates PRs, handles configured CI/review gates, optional merge, and cleanup. Do not use for creating trackers (use plan-delivery-track), writing PRDs (use define-product), or non-tracker one-off work.
 argument-hint: "[story-id]"
 arguments: story_id
 disable-model-invocation: true
@@ -10,9 +10,10 @@ user-invocable: true
 # Pick and implement one tracker story
 
 Run one agentic-workflow-kit tracker story end-to-end inside the current repo. The skill consumes a
-tracker row produced by `plan-track`; it does not create product scope or technical
-decomposition. It is the generic execution layer between `plan-track` and the optional
-orchestrator.
+tracker row produced by `plan-delivery-track`. New tracker rows link a lightweight story brief;
+`implement-next` turns that brief into a detailed technical story spec, then writes the
+implementation plan, then code. It is the generic execution layer between `plan-delivery-track` and
+the optional orchestrator.
 
 ## Load first
 
@@ -23,7 +24,10 @@ Read these before changing state:
 | `.workflow/config.yaml` | Paths, statuses, verify commands, git strategy, PR/merge policy. If missing, stop and tell the user to run `/workflow-init`. |
 | `references/config-schema.md` | Defaults for missing optional config keys. |
 | `references/tracker-contract.md` | Eligibility rule, status matrix shape, dependency semantics, and status vocabulary. |
-| Repo instructions | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, architecture docs, and local docs. These win over specs and plans. |
+| `references/story-brief-contract.md` | New story brief shape produced by `plan-delivery-track`. |
+| `references/detailed-story-spec-contract.md` | Required detailed technical story spec content before planning/code. |
+| `references/templates/detailed-story-spec-template.md` | Template for specs created from story briefs. |
+| Repo instructions | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, technical solution docs, and local docs. These win over specs and plans. |
 
 Apply documented defaults when optional config keys are missing. At the start of every run,
 summarize the resolved policy: `paths`, `statuses`, `verify`, `git`, and `pr`.
@@ -36,8 +40,10 @@ summarize the resolved policy: `paths`, `statuses`, `verify`, `git`, and `pr`.
 - Re-read the tracker before every status transition.
 - Use configured paths and commands. Do not hardcode `docs/tracks`, `docs/specs`, `docs/plans`,
   `main`, `pnpm check`, or a review bot.
-- Do not add a spec-frontmatter status mirror. `plan-track` intentionally keeps status only in
+- Do not add a spec-frontmatter status mirror. `plan-delivery-track` intentionally keeps status only in
   the tracker matrix.
+- No implementation plan or code while the detailed technical story spec is missing or has
+  blocking technical questions.
 - Preserve unrelated user changes. Do not reset, discard, or overwrite unrelated work.
 - Follow `pr:` exactly. Auto-merge only when configured gates are satisfied.
 
@@ -143,11 +149,17 @@ git commit -m "chore(<id>): claim <id>"
 
 Read the row's `Spec` and `Plan` columns:
 
-- `[spec](path)` means read that spec.
-- `see <ID> + [delta](path)` means find `<ID>` in the same tracker, read its spec, and read the
-  delta path.
+- `[brief](path)` or a path under `<tracksDir>/<track>/stories/<ID>.md` means read the story brief
+  under `<tracksDir>/<track>/stories/<ID>.md`.
+- Backward compatibility: a detailed spec link (not a story brief) — typically under `<specsDir>` —
+  means continue the legacy behavior and read it as the detailed technical story spec.
+- Backward compatibility: a legacy `see <ID> + [delta](path)` link means read the referenced base
+  spec plus the delta together as the detailed technical story spec.
+- `[spec](path)` means inspect the path. If it points to a story brief, create/refine the detailed
+  technical story spec first. If it points to a detailed spec under `<specsDir>`, use the
+  backward-compatible detailed-spec path.
 - `Plan` with a link means read and assess it.
-- `Plan` as `—` means a plan must be written in Phase 4.
+- `Plan` as `—` means a plan must be written after the detailed technical story spec is ready.
 
 Also read repo contract docs and the tracker's dependency, parallelism, and coordination
 sections. Produce a short brief with:
@@ -160,7 +172,48 @@ sections. Produce a short brief with:
 
 If there is a blocker, pause for user input before planning or implementation.
 
-## Phase 4: Write a plan when needed
+## Phase 4: Create or refine the detailed technical story spec
+
+For story brief rows, create/refine the detailed technical story spec first.
+
+If the tracker row links a story brief under `<tracksDir>/<track>/stories/<ID>.md`, create/refine
+the detailed technical story spec before writing any implementation plan or code, under:
+
+```text
+<specsDir>/<YYYY-MM-DD>-<id-lc>-<slug>-design.md
+```
+
+Use `references/templates/detailed-story-spec-template.md` and satisfy
+`references/detailed-story-spec-contract.md`. The detailed technical story spec must include:
+
+- exact types/contracts,
+- exact files/modules,
+- query/schema/prompt/event/component design,
+- tests,
+- migration/deploy concerns,
+- decisions resolved from the story brief.
+
+Every blocking technical question from the story brief must be resolved in the detailed spec or the
+story must stop as blocked. The `## Blocking technical questions` section must say `None` before
+planning or code.
+
+Update the tracker row's **Spec** column from the brief link to a combined reference, for example:
+
+```markdown
+[brief](./stories/<ID>.md) + [spec](<specsDir-relative path>)
+```
+
+Commit:
+
+```bash
+git add <tracker README> <detailed spec file>
+git commit -m "chore(<id>): write detailed story spec"
+```
+
+If the row already links a detailed spec directly (not a story brief), keep the legacy path:
+review/refine that spec instead of creating a duplicate.
+
+## Phase 5: Write a plan when needed
 
 If the row was selected with Status `specced` and Plan `—`, write a plan under:
 
@@ -168,9 +221,10 @@ If the row was selected with Status `specced` and Plan `—`, write a plan under
 <plansDir>/<YYYY-MM-DD>-<id-lc>-<slug>.md
 ```
 
-The plan must be specific enough for a fresh worker: files, tests, exact commands, and small
-steps. Use tests first for behavior when the host repo has a test workflow. Update the tracker
-row's **Plan** column with a link and commit:
+The plan must be based on the detailed technical story spec, not only the story brief. It must be
+specific enough for a fresh worker: files, tests, exact commands, and small steps. Use tests first
+for behavior when the host repo has a test workflow. Update the tracker row's **Plan** column with a
+link and commit:
 
 ```bash
 git add <tracker README> <plan file>
@@ -180,7 +234,7 @@ git commit -m "chore(<id>): write implementation plan"
 If the row was already `plan-approved`, use the linked plan. Do not rewrite it unless the review
 found a concrete stale or unsafe step.
 
-## Phase 5: Implement and verify locally
+## Phase 6: Implement and verify locally
 
 Execute the plan in the isolated branch or worktree. Keep the diff scoped to one story.
 
@@ -194,7 +248,7 @@ Use configured verification:
 Failures must be fixed before shipping unless the user explicitly accepts an unrelated or
 pre-existing failure.
 
-## Phase 6: Review
+## Phase 7: Review
 
 Run a code/spec compliance review before shipping. The skill should prefer a dedicated review
 sub-agent or review skill when available, but it must remain usable in a plain Claude Code
@@ -208,7 +262,7 @@ installation. The review checks:
 
 Required changes are fixed and re-reviewed before proceeding.
 
-## Phase 7: Mark done and handle PR creation
+## Phase 8: Mark done and handle PR creation
 
 Re-read the tracker row. If it is still owned by this session and in `statuses.inProgress`,
 update:
@@ -239,7 +293,7 @@ includes:
 
 After the PR exists, update the tracker's **PR** column with the PR link, commit, and push.
 
-## Phase 8: CI and review gates
+## Phase 9: CI and review gates
 
 If `pr.ci.wait: true`, wait for CI. Use `pr.ci.command` when configured, replacing `{pr}` with
 the PR number or URL. If no command is configured, default to:
@@ -273,7 +327,7 @@ For `pr.review.wait: bot` and `pr.review.bot: codex`:
 After fixes, rerun configured verification and push again. Stop after three review-fix loops and
 ask the user.
 
-## Phase 9: Merge and cleanup
+## Phase 10: Merge and cleanup
 
 Auto-merge only when all are true:
 

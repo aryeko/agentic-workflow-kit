@@ -34,8 +34,9 @@ describe('codex local plugin smoke', () => {
     expect(existsSync(path.join(installedRoot, '.mcp.json'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'mcp/server.mjs'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/workflow-init/SKILL.md'))).toBe(true);
-    expect(existsSync(path.join(installedRoot, 'skills/plan-product/SKILL.md'))).toBe(true);
-    expect(existsSync(path.join(installedRoot, 'skills/plan-track/SKILL.md'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, 'skills/define-product/SKILL.md'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, 'skills/design-technical-solution/SKILL.md'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, 'skills/plan-delivery-track/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/implement-next/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/workflow-autopilot/SKILL.md'))).toBe(true);
 
@@ -47,7 +48,8 @@ describe('codex local plugin smoke', () => {
     });
 
     expect(promptInput).toContain('agentic-workflow-kit:workflow-init');
-    expect(promptInput).toContain('agentic-workflow-kit:plan-product');
-    expect(promptInput).toContain('agentic-workflow-kit:plan-track');
+    expect(promptInput).toContain('agentic-workflow-kit:define-product');
+    expect(promptInput).toContain('agentic-workflow-kit:design-technical-solution');
+    expect(promptInput).toContain('agentic-workflow-kit:plan-delivery-track');
   }, 30_000);
 });

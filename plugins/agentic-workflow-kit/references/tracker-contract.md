@@ -26,7 +26,10 @@ A markdown table with these columns, in order:
 - **Depends on** — comma/semicolon-separated IDs, or `—`.
 - **Wave** — grouping for parallelism.
 - **Status** — a term from the vocabulary below.
-- **Spec / Plan / PR** — links or `—`.
+- **Spec** — links or `—`. For new trackers, Spec links to the story brief under
+  `<tracksDir>/<track>/stories/<ID>.md`; the story brief is not implementation-ready.
+  Existing trackers that link a detailed spec directly remain valid for backward compatibility.
+- **Plan / PR** — links or `—`.
 - **Owner** — the claiming session, or `—`/empty when unowned.
 
 ## Dependency graph

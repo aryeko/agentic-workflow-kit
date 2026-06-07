@@ -43,7 +43,7 @@ mechanism. Each skill's trigger and default prompt live in `skills/<name>/agents
 
 | Skill | Invocation policy |
 | --- | --- |
-| `workflow-init`, `plan-product`, `plan-track` | implicit invocation allowed (`allow_implicit_invocation: true`) — may surface from a matching request, or invoke explicitly by name / its default prompt |
+| `workflow-init`, `define-product`, `design-technical-solution`, `plan-delivery-track` | implicit invocation allowed (`allow_implicit_invocation: true`) — may surface from a matching request, or invoke explicitly by name / its default prompt |
 | `implement-next`, `workflow-autopilot` | **explicit only** (`allow_implicit_invocation: false`) — invoke deliberately by name; they will not auto-trigger |
 
 Invoke explicitly by issuing the skill's `default_prompt` (e.g. for `workflow-init`: "Use agentic-workflow-kit
@@ -53,8 +53,9 @@ to initialize tracker-driven delivery in this repo") or by selecting the skill b
 
 1. **Setup** — common-phases.md → "Setup & containment" (build + create the no-remote `SMOKE` repo).
 2. **Phase 1 (plumbing)** — common-phases.md → Phase 1, run from a terminal (the `wk` alias).
-3. **Phase 2 (authoring)** — in the Codex session, invoke `workflow-init`, then `plan-product`, then
-   `plan-track`; verify each against common-phases.md → Phase 2 pass criteria. Run the
+3. **Phase 2 (authoring)** — in the Codex session, invoke `workflow-init`, then `define-product`, then
+   `design-technical-solution` for a complex sample or skip it for a simple sample with the reason recorded,
+   then `plan-delivery-track`; verify each against common-phases.md → Phase 2 pass criteria. Run the
    **list-stories cross-check** from a terminal.
 4. **Phase 3 (side-effectful)** — explicitly invoke `implement-next` on a trivial story; verify
    against common-phases.md → Phase 3 (must stop at "no remote", completion from the tracker row).

@@ -3,7 +3,7 @@
 # Acceptance criteria
 
 *Grouped, ID'd ship checklist. Each group picks a short PREFIX (1-3 letters). Each criterion
-is PREFIX-n and is designated `[ship blocker]` or `[target]`. `plan-track` maps stories to
+is PREFIX-n and is designated `[ship blocker]` or `[target]`. `plan-delivery-track` maps stories to
 these IDs.*
 
 ## <Group name> (PREFIX `<X>`)

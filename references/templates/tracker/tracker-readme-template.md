@@ -2,13 +2,14 @@
 
 Copy this skeleton verbatim into `<tracksDir>/<track>/README.md` and fill the bracketed
 sections. Every section listed here is mandatory unless marked `(optional)`. Resolve
-`<tracksDir>`, `<specsDir>`, and the status vocabulary from `.workflow/config.yaml`
+`<tracksDir>`, `<specsDir>`, `<plansDir>`, and the status vocabulary from `.workflow/config.yaml`
 (`paths.*`, `statuses.*`, `tracker.idPattern`). The output must conform to
 `references/tracker-contract.md` — in particular the status-matrix columns and the status
 vocabulary are fixed by that contract; do not add columns or invent statuses.
 
-The tracker is the **index** for the work, not the work itself. Per-story detail lives in the
-linked specs and per-target deltas — keep this file under ~250 lines.
+The tracker is the **index** for the work, not the work itself. New trackers link lightweight story
+briefs under `./stories/<ID>.md`; `implement-next` creates the detailed technical story spec and
+implementation plan later. Keep this file under ~250 lines.
 
 ---
 
@@ -21,15 +22,16 @@ last-reviewed: <YYYY-MM-DD>
 related:
   - <path to the PRD this track decomposes, e.g. ../../prds/<slug>/README.md>
   - <path to repo contract docs if any: AGENTS.md / CLAUDE.md / docs/architecture/*>
+  - <path to the technical solution this track decomposes, if present>
   - <paths to sibling trackers, if any>
 ---
 
 # <Track display name> tracker
 
 *One-paragraph italicized summary. What the track delivers, who it affects, what shape the
-artifacts take, and the boundary: "The PRD owns what/why; the technical specs own how; this
-doc owns sequencing and parallelism. Each story (<PREFIX>n) has its own spec; this doc is the
-index."*
+artifacts take, and the boundary: "The PRD owns what/why; the technical solution owns high-level
+how; this doc owns sequencing and parallelism. Each story (<PREFIX>n) has a lightweight brief; the
+detailed story spec and implementation plan are created by implement-next."*
 
 ## Context
 
@@ -39,7 +41,7 @@ Three short paragraphs maximum:
 2. **Audit findings.** What the reality audit found in this repo (contract docs, source roots,
    existing trackers). If little exists, say so honestly — do not fabricate.
 3. **What this tracker covers.** Restate the boundary: status, ordering, parallelism. Per-story
-   detail lives in each story's spec.
+   delivery context lives in each story brief; implementation detail comes later.
 
 ## Dependency graph
 
@@ -65,14 +67,14 @@ Statuses come from `references/tracker-contract.md`:
 
 | ID | Name | Depends on | Wave | Status | Spec | Plan | Owner | PR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <PREFIX>01 | <Short name> | — | W1 | specced | [spec](<specsDir-relative path>) | — | — | — |
-| <PREFIX>02 | <Short name> | <PREFIX>01 | W2 | specced | [spec](<path>) | — | — | — |
-| <PREFIX>03 | <Short name> | <PREFIX>02 | W3 | specced | see <PREFIX>01 + [delta](<path>) | — | — | — |
+| <PREFIX>01 | <Short name> | — | W1 | specced | [brief](./stories/<PREFIX>01.md) | — | — | — |
+| <PREFIX>02 | <Short name> | <PREFIX>01 | W2 | specced | [brief](./stories/<PREFIX>02.md) | — | — | — |
+| <PREFIX>03 | <Short name> | <PREFIX>02 | W3 | specced | [brief](./stories/<PREFIX>03.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
-plan. Rollout stories that share a playbook reference it via "see <playbook-id> + [delta](path)"
-in the Spec column. Each story maps to one or more PRD acceptance-criteria IDs (cite them in the
-story's spec, not as a new column).
+plan after creating the detailed technical story spec. For new trackers, **Spec** links to the
+story brief. Existing trackers that link a detailed spec directly remain valid. Each story maps
+to one or more PRD acceptance-criteria IDs (cite them in the story brief, not as a new column).
 
 ## Parallelism rules
 
@@ -107,10 +109,11 @@ never reused by another track.
    is in `statuses.eligible`.
 2. Claim it (set **Owner**; isolate per `git.strategy`) and flip **Status** to
    `statuses.inProgress`.
-3. Read the linked spec (for delta rows, read the playbook + the delta).
-4. If no plan exists, draft one under `<plansDir>/`.
-5. Execute. Before opening the PR, flip **Status** to `done` in this table in the same change.
-6. Fill the **PR** column once the PR exists.
+3. Read the linked story brief.
+4. Create/refine the detailed technical story spec under `<specsDir>` (default `docs/specs`).
+5. If no plan exists, draft one under `<plansDir>` (default `docs/plans`).
+6. Execute. Before opening the PR, flip **Status** to `done` in this table in the same change.
+7. Fill the **PR** column once the PR exists.
 
 ## Ground rules
 
@@ -120,12 +123,13 @@ never reused by another track.
   fix the spec.
 - **The tracker is the single source of truth for status** — never infer completion from prose
   elsewhere.
-- **When the playbook is wrong, update it in the same PR** as the story that surfaced the gap.
+- **When the story brief is wrong, update it in the same PR** as the detailed spec or code that
+  surfaced the gap.
 - **<Track-specific rule(s)>** — 1–3 unique to this track.
 
 ## Related
 
 - `<path to the PRD this track decomposes>`
 - `<path to repo contract docs>`
-- `<path to the delta directory>` — Pattern B deltas
+- `./stories/` — story briefs
 ```

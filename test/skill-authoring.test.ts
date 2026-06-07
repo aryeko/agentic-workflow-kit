@@ -3,7 +3,14 @@ import { dirname, join, normalize } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import YAML from 'yaml';
 
-const skillNames = ['workflow-init', 'plan-product', 'plan-track', 'implement-next', 'workflow-autopilot'] as const;
+const skillNames = [
+  'workflow-init',
+  'define-product',
+  'design-technical-solution',
+  'plan-delivery-track',
+  'implement-next',
+  'workflow-autopilot',
+] as const;
 
 type SkillName = (typeof skillNames)[number];
 
@@ -14,8 +21,9 @@ type SkillDocument = {
 
 const implicitPolicy: Record<SkillName, boolean> = {
   'workflow-init': true,
-  'plan-product': true,
-  'plan-track': true,
+  'define-product': true,
+  'design-technical-solution': true,
+  'plan-delivery-track': true,
   'implement-next': false,
   'workflow-autopilot': false,
 };
@@ -23,8 +31,9 @@ const implicitPolicy: Record<SkillName, boolean> = {
 const sideEffectfulSkills = new Set<SkillName>(['implement-next', 'workflow-autopilot']);
 
 const skillsWithArguments: Partial<Record<SkillName, string>> = {
-  'plan-product': 'slug_or_notes',
-  'plan-track': 'prd_slug_or_notes',
+  'define-product': 'slug_or_notes',
+  'design-technical-solution': 'prd_slug_or_notes',
+  'plan-delivery-track': 'prd_slug_or_notes',
   'implement-next': 'story_id',
   'workflow-autopilot': 'command',
 };
@@ -103,6 +112,58 @@ describe('skill authoring', () => {
 
     expect(body).toContain('<tracksDir>/example-tracker/README.md');
     expect(body).not.toContain('<tracksDir>/example-track/README.md');
+  });
+
+  it('does not ship the old public planning skill names', () => {
+    expect(existsSync('skills/plan-product')).toBe(false);
+    expect(existsSync('skills/plan-architecture')).toBe(false);
+    expect(existsSync('skills/plan-track')).toBe(false);
+  });
+
+  it('define-product documents context-rich fast path and next-step routing', () => {
+    const { body } = readSkill('define-product');
+
+    expect(body).toContain('context-rich fast path');
+    expect(body).toContain('show the assumed flow');
+    expect(body).toContain('ask only blocking questions');
+    expect(body).toContain('record safe assumptions');
+    expect(body).toContain('simple feature -> `plan-delivery-track`');
+    expect(body).toContain('technical feature -> `design-technical-solution`');
+    expect(body).toContain('research-heavy feature -> validation/research first');
+  });
+
+  it('design-technical-solution documents the technical solution artifact contract', () => {
+    const { body } = readSkill('design-technical-solution');
+
+    expect(body).toContain('technical solution gate');
+    expect(body).toContain('references/technical-solution-contract.md');
+    expect(body).toContain('references/templates/technical-solution-template.md');
+    expect(body).toContain('ask only blocking questions');
+    expect(body).toContain('<prdsDir>/<slug>/technical-solution.md');
+    expect(body).toContain('suggest `/plan-delivery-track`');
+  });
+
+  it('plan-delivery-track emits lightweight story briefs instead of detailed specs', () => {
+    const { body } = readSkill('plan-delivery-track');
+
+    expect(body).toContain('Technical solution gate');
+    expect(body).toContain('complex technical PRD');
+    expect(body).toContain('If technical solution is required and missing, stop');
+    expect(body).toContain('<tracksDir>/<track>/stories/<ID>.md');
+    expect(body).toContain('story briefs are not implementation-ready');
+    expect(body).toContain('Do not write detailed technical story specs');
+    expect(body).toContain('PRD criteria and technical solution sections');
+  });
+
+  it('implement-next owns detailed technical spec and implementation plan before code', () => {
+    const { body } = readSkill('implement-next');
+
+    expect(body).toContain('story brief under `<tracksDir>/<track>/stories/<ID>.md`');
+    expect(body).toContain('a detailed spec link (not a story brief)');
+    expect(body).toContain('No implementation plan or code while the detailed technical story spec is missing');
+    expect(body).toContain('blocking technical questions');
+    expect(body).toContain('<specsDir>');
+    expect(body).toContain('<plansDir>');
   });
 
   it('implement-next documents canonical done semantics before human or CI verification', () => {

@@ -11,7 +11,10 @@ Start here. This hub separates **using** agentic-workflow-kit from **developing*
 | [architecture.md](./architecture.md) | Architecture, story lifecycle, eligibility, bundled MCP runtime, standalone CLI, and orchestrator flow (with diagrams) |
 | [../references/config-schema.md](../references/config-schema.md) | The `.workflow/config.yaml` reference (every field, default, meaning) |
 | [../references/tracker-contract.md](../references/tracker-contract.md) | The tracker format + status vocabulary + eligibility rule |
-| [../references/prd-contract.md](../references/prd-contract.md) | The PRD format consumed by `plan-track` |
+| [../references/prd-contract.md](../references/prd-contract.md) | The PRD format consumed by `design-technical-solution` and `plan-delivery-track` |
+| [../references/technical-solution-contract.md](../references/technical-solution-contract.md) | The technical solution gate format consumed by `plan-delivery-track` for complex technical work |
+| [../references/story-brief-contract.md](../references/story-brief-contract.md) | The lightweight story brief format produced by `plan-delivery-track` |
+| [../references/detailed-story-spec-contract.md](../references/detailed-story-spec-contract.md) | The detailed technical story spec format created by `implement-next` before plans/code |
 | [../examples/example-prd/README.md](../examples/example-prd/README.md) | A full worked PRD (Linkly) |
 | [../examples/example-tracker/README.md](../examples/example-tracker/README.md) | A worked tracker with a dependency graph |
 | [../presets/](../presets/) | The three starter `pr:` configs |

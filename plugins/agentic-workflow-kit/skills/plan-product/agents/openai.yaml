@@ -1,7 +1,0 @@
-interface:
-  display_name: "Plan Product"
-  short_description: "Interview and write a PRD"
-  default_prompt: "Use $plan-product to define the product requirements before technical planning."
-
-policy:
-  allow_implicit_invocation: true

@@ -54,12 +54,18 @@ Invoke each skill the way your surface entry describes, then verify against thes
     existing config or tracker without explicit confirmation.
   - **Preset coverage:** repeat in repos with different signals — required reviews → `push-only`;
     CI + no required reviews → `gated-automerge`; neither → `push-and-merge`.
-- **`plan-product`** ([contract](../../references/prd-contract.md))
+- **`define-product`** ([contract](../../references/prd-contract.md))
   - Produces a multi-file PRD under `docs/prds/<slug>/` (README index + numbered sections) conforming
     to the PRD contract; adds `paths.prdsDir` only if missing; does not clobber an existing PRD.
-- **`plan-track`** ([contract](../../references/tracker-contract.md))
-  - Requires a PRD present. Emits a tracker plus per-story specs; stories map back to PRD
-    acceptance-criteria IDs.
+- **`design-technical-solution`** ([contract](../../references/technical-solution-contract.md))
+  - For complex technical PRDs, produces `docs/prds/<slug>/technical-solution.md` with system shape,
+    modules, data/query design, AI prompts/triggers/tools, observability, migration/deploy surfaces,
+    testing strategy, and tracker/story-brief inputs. For simple PRDs, records why the gate was not
+    needed.
+- **`plan-delivery-track`** ([contract](../../references/tracker-contract.md))
+  - Requires a PRD present and requires a technical solution for complex technical PRDs. Emits a
+    tracker plus story briefs; stories map back to PRD acceptance-criteria IDs and technical
+    solution sections when a technical solution exists.
   - **Cross-check (the contract boundary between the two surfaces):**
     `wk list-stories --tracks-dir <produced tracksDir>` and `wk list-eligible ...`
     must parse the agent-written markdown through the strict orchestrator parser without error.

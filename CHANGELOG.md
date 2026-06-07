@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Five skills that form the delivery pipeline: `workflow-init` (scaffold config + tracks),
-  `plan-product` (guided PRD authoring), `plan-track` (PRD to tracker + per-story specs),
-  `implement-next` (one story end-to-end: isolate, spec-review, implement, verify, ship),
-  and `workflow-autopilot` (autonomous fan-out to Codex child sessions).
+- Six skills that form the delivery pipeline: `workflow-init` (scaffold config + tracks),
+  `define-product` (guided PRD authoring), `design-technical-solution` (PRD to high-level
+  technical solution), `plan-delivery-track` (PRD/solution to tracker + story briefs),
+  `implement-next` (one story end-to-end: detailed spec, implementation plan, implement, verify,
+  ship), and `workflow-autopilot` (autonomous fan-out to Codex child sessions).
 - `.workflow/config.yaml` contract: the single shared spine read by both the interactive skill
   and the orchestrator, declaring paths, the status vocabulary buckets, verification commands,
   git strategy, and PR/merge policy.

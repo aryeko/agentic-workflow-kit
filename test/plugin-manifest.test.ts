@@ -147,19 +147,28 @@ describe('plugin manifests', () => {
     expect(s['user-invocable']).toBe(true);
   });
 
-  it('ships the plan-product skill with frontmatter', () => {
-    expect(existsSync('skills/plan-product/SKILL.md')).toBe(true);
-    const s = readSkillFrontmatter('plan-product');
-    expect(s.name).toBe('plan-product');
+  it('ships the define-product skill with frontmatter', () => {
+    expect(existsSync('skills/define-product/SKILL.md')).toBe(true);
+    const s = readSkillFrontmatter('define-product');
+    expect(s.name).toBe('define-product');
     expect(s.description).toEqual(expect.any(String));
     expect(s['argument-hint']).toBe('[slug or notes]');
     expect(s['user-invocable']).toBe(true);
   });
 
-  it('ships the plan-track skill with frontmatter', () => {
-    expect(existsSync('skills/plan-track/SKILL.md')).toBe(true);
-    const s = readSkillFrontmatter('plan-track');
-    expect(s.name).toBe('plan-track');
+  it('ships the design-technical-solution skill with frontmatter', () => {
+    expect(existsSync('skills/design-technical-solution/SKILL.md')).toBe(true);
+    const s = readSkillFrontmatter('design-technical-solution');
+    expect(s.name).toBe('design-technical-solution');
+    expect(s.description).toEqual(expect.any(String));
+    expect(s['argument-hint']).toBe('[prd-slug or technical notes]');
+    expect(s['user-invocable']).toBe(true);
+  });
+
+  it('ships the plan-delivery-track skill with frontmatter', () => {
+    expect(existsSync('skills/plan-delivery-track/SKILL.md')).toBe(true);
+    const s = readSkillFrontmatter('plan-delivery-track');
+    expect(s.name).toBe('plan-delivery-track');
     expect(s.description).toEqual(expect.any(String));
     expect(s['argument-hint']).toBe('[prd-slug or notes]');
     expect(s['user-invocable']).toBe(true);

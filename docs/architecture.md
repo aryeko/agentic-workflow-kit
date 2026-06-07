@@ -21,8 +21,11 @@ Everything reads and writes the same two things, parameterized by config:
   [tracker-contract.md](../references/tracker-contract.md).
 
 A **PRD** (`<prdsDir>/<slug>/`, [prd-contract.md](../references/prd-contract.md)) sits upstream of
-the tracker and defines the *what/why*; the tracker owns *sequencing*; each story's spec owns
-*how*.
+the tracker and defines the *what/why*. For complex technical work, a **technical solution**
+document (`<prdsDir>/<slug>/technical-solution.md`,
+[technical-solution-contract.md](../references/technical-solution-contract.md)) owns the
+high-level *how* before tracker decomposition. The tracker owns delivery sequencing; each story's
+spec owns story-local implementation detail.
 
 **Invariant:** automation never infers completion from a child session's prose. Completion comes
 only from the tracker row's status.
@@ -32,8 +35,9 @@ only from the tracker row's status.
 ```mermaid
 flowchart TB
   subgraph Authors["Authoring (interactive skills)"]
-    PP["plan-product<br/>PRD"]
-    PT["plan-track<br/>tracker + specs"]
+    PP["define-product<br/>PRD"]
+    PA["design-technical-solution<br/>technical solution"]
+    PT["plan-delivery-track<br/>tracker + briefs"]
     WI["workflow-init<br/>scaffold config"]
   end
 
@@ -41,6 +45,7 @@ flowchart TB
     CFG[".workflow/config.yaml"]
     TRK["markdown trackers<br/>&lt;tracksDir&gt;/&lt;track&gt;/README.md"]
     PRD["PRDs<br/>&lt;prdsDir&gt;/&lt;slug&gt;/"]
+    ARCH["technical solution<br/>&lt;prdsDir&gt;/&lt;slug&gt;/technical-solution.md"]
   end
 
   subgraph Drivers["Two drivers over one contract"]
@@ -63,7 +68,9 @@ flowchart TB
 
   CODEX["Codex MCP child sessions"]
 
-  PP --> PRD --> PT --> TRK
+  PP --> PRD
+  PRD --> PA --> ARCH --> PT --> TRK
+  PRD --> PT
   WI --> CFG
   PRESET --> CFG
   SCHEMA -. validates .-> CFG
@@ -84,13 +91,14 @@ flowchart TB
 ```
 
 ### Skills (`skills/`)
-Instruction-first Markdown that runs inside Claude Code or Codex. Five entry points:
+Instruction-first Markdown that runs inside Claude Code or Codex. Six entry points:
 
 | Skill | Role | Side effects |
 | --- | --- | --- |
 | `workflow-init` | Detect repo signals, pick a preset, write config, scaffold trackers | Writes files (idempotent) |
-| `plan-product` | Guided interview → multi-file PRD | Writes a PRD |
-| `plan-track` | PRD → tracker + per-story specs | Writes a tracker + specs |
+| `define-product` | Guided interview → multi-file PRD | Writes a PRD |
+| `design-technical-solution` | PRD -> high-level technical solution for complex work | Writes a technical solution doc |
+| `plan-delivery-track` | PRD plus technical solution when needed -> tracker + story briefs | Writes a tracker + briefs |
 | `implement-next` | One eligible story end-to-end | Branch/worktree, commits, PR, merge |
 | `workflow-autopilot` | Drive the orchestrator over the same contract | Launches child sessions |
 

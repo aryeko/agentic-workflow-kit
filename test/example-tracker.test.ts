@@ -16,8 +16,8 @@ const ID = /^[A-Z]{2,}[0-9]+$/;
 
 const md = readFileSync('examples/example-tracker/README.md', 'utf8');
 
-const STANDALONE = 'examples/example-tracker/specs/2026-06-02-lk01-short-code-foundation.md';
-const DELTA = 'examples/example-tracker/specs/linkly/endpoints/2026-06-02-lk02-redirect-endpoint.md';
+const LK01 = 'examples/example-tracker/stories/LK01.md';
+const LK02 = 'examples/example-tracker/stories/LK02.md';
 
 function matrixRows(markdown: string): string[][] {
   return markdown
@@ -43,26 +43,22 @@ describe('example tracker conforms to the contract', () => {
   });
 });
 
-describe('example tracker worked specs and PRD linkage', () => {
-  it('ships a worked standalone (Pattern A) spec', () => {
-    expect(existsSync(STANDALONE)).toBe(true);
-  });
-  it('ships a worked delta (Pattern B) spec under the track/category subfolder', () => {
-    expect(existsSync(DELTA)).toBe(true);
+describe('example tracker story briefs and PRD linkage', () => {
+  it('ships worked story briefs under the track', () => {
+    expect(existsSync(LK01)).toBe(true);
+    expect(existsSync(LK02)).toBe(true);
   });
   it('maps stories to example-prd acceptance-criteria IDs', () => {
     expect(md).toMatch(/L-1/);
     expect(md).toMatch(/L-2/);
     expect(md).toMatch(/A-1/);
   });
-  it('worked specs carry no status-mirror frontmatter field', () => {
-    const a = readFileSync(STANDALONE, 'utf8');
-    const b = readFileSync(DELTA, 'utf8');
+  it('worked story briefs carry the not-implementation-ready note and no status mirror', () => {
+    const a = readFileSync(LK01, 'utf8');
+    const b = readFileSync(LK02, 'utf8');
+    expect(a).toContain('not implementation-ready; create a detailed technical story spec before plan/code');
+    expect(b).toContain('not implementation-ready; create a detailed technical story spec before plan/code');
     expect(a).not.toMatch(/linkly-status:/);
     expect(b).not.toMatch(/linkly-status:/);
-  });
-  it('the delta spec includes a forbidden-behavioural-changes section', () => {
-    const b = readFileSync(DELTA, 'utf8');
-    expect(b).toContain('## Behavioural changes (forbidden)');
   });
 });

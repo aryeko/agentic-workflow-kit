@@ -8,10 +8,13 @@ describe('current-state documentation', () => {
     expect(agents).not.toContain('Current skill: `workflow-init`');
     expect(agents).not.toContain('`src/` contains shared TypeScript logic');
     expect(agents).not.toContain('not yet published');
-    expect(agents).toContain('workflow-init`, `plan-product`, `plan-track`, `implement-next`, and `workflow-autopilot');
+    expect(agents).toContain(
+      'workflow-init`, `define-product`, `design-technical-solution`, `plan-delivery-track`, `implement-next`, and `workflow-autopilot',
+    );
     expect(agents).not.toContain('packages/core');
     expect(agents).toContain('bundled MCP runtime');
     expect(agents).toContain('`mcp/server.mjs` is the generated plugin MCP runtime bundle');
+    expect(agents).toContain('technical solution contract');
   });
 
   it('keeps README local Codex install guidance aligned with the fixture path', () => {
