@@ -1,5 +1,4 @@
 ---
-"agentic-workflow-kit": minor
 "@agentic-workflow-kit/orchestrator": minor
 ---
 
