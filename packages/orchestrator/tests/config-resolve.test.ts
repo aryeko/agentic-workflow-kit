@@ -47,6 +47,12 @@ describe('ConfigSchema', () => {
     expect(() => ConfigSchema.parse({ version: 1, git: { strategy: 'fork' } })).toThrow(/git/);
   });
 
+  it('rejects git.worktreeDir values that are absolute or contain parent segments', () => {
+    expect(() => ConfigSchema.parse({ version: 1, git: { worktreeDir: '/tmp/worktrees' } })).toThrow(/git/);
+    expect(() => ConfigSchema.parse({ version: 1, git: { worktreeDir: '../outside' } })).toThrow(/git/);
+    expect(() => ConfigSchema.parse({ version: 1, git: { worktreeDir: 'nested/../outside' } })).toThrow(/git/);
+  });
+
   it('rejects a malformed pr.merge.method (previously silently ignored)', () => {
     expect(() => ConfigSchema.parse({ version: 1, pr: { merge: { method: 'rocket' } } })).toThrow(/pr/);
   });

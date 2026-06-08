@@ -22,6 +22,7 @@ export async function claimTrackerRow(args: {
   config: ResolvedWorkflowConfig;
   story: WorkflowStory;
   owner: string;
+  force?: boolean;
 }): Promise<TrackerClaimResult> {
   const filePath = trackerPath(args.config, args.story);
   const markdown = await readFile(filePath, 'utf8');
@@ -36,8 +37,13 @@ export async function claimTrackerRow(args: {
   const stories = parseTrackerStories(markdown, context);
   const current = stories.find((entry) => entry.id === args.story.id);
   if (!current) return { ok: false, reason: `story ${args.story.id} was not found` };
+  if (current.owner !== null) {
+    return { ok: false, reason: `owner is ${current.owner}`, story: current };
+  }
   if (!current.eligible) {
-    return { ok: false, reason: current.blockedReason ?? `story ${args.story.id} is not eligible`, story: current };
+    if (args.force !== true) {
+      return { ok: false, reason: current.blockedReason ?? `story ${args.story.id} is not eligible`, story: current };
+    }
   }
 
   const updated = updateTrackerStoryRow(markdown, context, args.story.id, {

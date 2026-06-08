@@ -149,6 +149,13 @@ git:
     expect(config.git.worktreeDir).toBe('.wk-worktrees');
   });
 
+  it('rejects git.worktreeDir values that escape the workspace', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-bad-worktree-dir-'));
+    await writeWorkflowConfig(root, 'version: 1\ngit:\n  worktreeDir: ../outside\n');
+
+    await expect(loadResolvedConfig({}, root)).rejects.toThrow(/git\.worktreeDir/);
+  });
+
   it('applies documented defaults for missing optional keys', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-defaults-'));
     await writeWorkflowConfig(root, 'version: 1\n');

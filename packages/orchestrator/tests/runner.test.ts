@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -925,6 +925,103 @@ describe('WorkflowRunner', () => {
     });
     expect(state.status).toBe('complete');
     expect(state.completed[0]).toMatchObject({ storyId: 'WK001', returnedStatus: 'done', returnedComplete: true });
+  });
+
+  it('blocks stale launch records before claiming a real tracker row', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-claim-duplicate-'));
+    const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
+    const staleChildrenDir = path.join(workspaceRoot, '.codex/agentic-workflow-kit/runs/older-run/children');
+    mkdirSync(path.dirname(trackerPath), { recursive: true });
+    mkdirSync(staleChildrenDir, { recursive: true });
+    writeFileSync(trackerPath, trackerMarkdown('specced'));
+    writeFileSync(
+      path.join(staleChildrenDir, 'WK001.launch.json'),
+      JSON.stringify({
+        storyId: 'WK001',
+        launchId: 'existing',
+        status: 'launched',
+        expectedBranch: 'sample/wk001-wire-parser-to-runner',
+        expectedWorktreePath: path.join(workspaceRoot, '.worktrees/sample/wk001-wire-parser-to-runner'),
+      }),
+    );
+
+    const resolvedConfig = configForWorkspace(workspaceRoot);
+    const storySource: StorySource = {
+      async listStories() {
+        const tracks = await discoverMarkdownTracks({
+          workspaceRoot,
+          tracksDir: resolvedConfig.paths.tracksDir,
+          archiveDir: resolvedConfig.paths.archiveDir,
+          completeStatuses: resolvedConfig.statuses.complete,
+          eligibleStatuses: resolvedConfig.statuses.eligible,
+          idPattern: resolvedConfig.tracker.idPattern,
+        });
+        return tracks.flatMap((track) => track.stories);
+      },
+    };
+    const storyRunner = new SyncRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: resolvedConfig,
+      storySource,
+      storyRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const state = await runner.runStory('WK001');
+
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toContain('duplicate active launch');
+    expect(storyRunner.requests).toEqual([]);
+    expect(readFileSync(trackerPath, 'utf8')).toContain(
+      '| WK001 | Wire parser to runner | — | 1 | specced | [spec](../../specs/WK001.md) | — | — | — |',
+    );
+  });
+
+  it('preserves forced runs for unowned status-ineligible tracker rows', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-force-claim-'));
+    const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
+    mkdirSync(path.dirname(trackerPath), { recursive: true });
+    writeFileSync(trackerPath, trackerMarkdown('blocked'));
+
+    const resolvedConfig = configForWorkspace(workspaceRoot);
+    const storySource: StorySource = {
+      async listStories() {
+        const tracks = await discoverMarkdownTracks({
+          workspaceRoot,
+          tracksDir: resolvedConfig.paths.tracksDir,
+          archiveDir: resolvedConfig.paths.archiveDir,
+          completeStatuses: resolvedConfig.statuses.complete,
+          eligibleStatuses: resolvedConfig.statuses.eligible,
+          idPattern: resolvedConfig.tracker.idPattern,
+        });
+        return tracks.flatMap((track) => track.stories);
+      },
+    };
+    const storyRunner = new CompletingTrackerRunner(trackerPath);
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: resolvedConfig,
+      storySource,
+      storyRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const state = await runner.runStory('WK001', { force: true });
+
+    expect(storyRunner.requests[0].story).toMatchObject({
+      status: 'implementing',
+      owner: 'awk:run-1:WK001',
+    });
+    expect(state.status).toBe('complete');
   });
 
   it('blocks before launching when the tracker claim fails', async () => {

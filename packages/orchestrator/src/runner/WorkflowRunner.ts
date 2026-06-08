@@ -147,7 +147,7 @@ export class WorkflowRunner {
       return await this.finish();
     }
 
-    const settled = await this.launchChild(story);
+    const settled = await this.launchChild(story, { force: options.force === true });
     if (!settled.ok) {
       await this.recordSettledChild(settled);
       await this.journal.record('child-error', { storyId: settled.storyId, error: settled.error });
@@ -202,6 +202,10 @@ export class WorkflowRunner {
 
       const launched: Array<{ story: WorkflowStory; launch: PreparedChildLaunch }> = [];
       for (const story of dispatchable) {
+        if (!(await this.preflightDuplicateLaunch(story))) {
+          stopLaunching = true;
+          break;
+        }
         const claimedStory = await this.claimBeforeLaunch(story);
         if (!claimedStory) {
           stopLaunching = true;
@@ -262,8 +266,18 @@ export class WorkflowRunner {
     return await this.finish();
   }
 
-  private async launchChild(story: WorkflowStory): Promise<SettledStoryRun> {
-    const claimedStory = await this.claimBeforeLaunch(story);
+  private async launchChild(story: WorkflowStory, options: { force?: boolean } = {}): Promise<SettledStoryRun> {
+    if (!(await this.preflightDuplicateLaunch(story))) {
+      return {
+        storyId: story.id,
+        ok: false,
+        sessionId: null,
+        error: this.state.blockedReason ?? 'duplicate active launch',
+        completedAt: this.dependencies.clock.now(),
+        baseShaAtLaunch: null,
+      };
+    }
+    const claimedStory = await this.claimBeforeLaunch(story, options);
     if (!claimedStory) {
       return {
         storyId: story.id,
@@ -288,10 +302,13 @@ export class WorkflowRunner {
     return await this.executeChild(claimedStory, launch);
   }
 
-  private async claimBeforeLaunch(story: WorkflowStory): Promise<WorkflowStory | null> {
+  private async claimBeforeLaunch(
+    story: WorkflowStory,
+    options: { force?: boolean } = {},
+  ): Promise<WorkflowStory | null> {
     if (!(await trackerFileExists(this.dependencies.config, story))) return story;
     const owner = `awk:${this.state.runId}:${story.id}`;
-    const claim = await claimTrackerRow({ config: this.dependencies.config, story, owner });
+    const claim = await claimTrackerRow({ config: this.dependencies.config, story, owner, force: options.force });
     if (!claim.ok) {
       this.blockOnce(story.id, claim.reason);
       await this.journal.record('tracker-claim-blocked', { storyId: story.id, reason: claim.reason });
@@ -303,26 +320,27 @@ export class WorkflowRunner {
     return claim.story;
   }
 
-  private async recordChildLaunch(story: WorkflowStory): Promise<PreparedChildLaunch | null> {
+  private async preflightDuplicateLaunch(story: WorkflowStory): Promise<boolean> {
     const duplicate = await findDuplicateLaunch({
       story,
       config: this.dependencies.config,
       activeChildren: this.state.activeChildren ?? [],
     });
-    if (duplicate) {
-      this.blockOnce(story.id, duplicate.reason);
-      await this.journal.record('child-launch-blocked', {
-        storyId: story.id,
-        reason: duplicate.reason,
-        duplicateStoryId: duplicate.storyId,
-        expectedBranch: duplicate.expectedBranch,
-        expectedWorktreePath: duplicate.expectedWorktreePath,
-      });
-      await this.writeState();
-      await this.writeLiveMetrics();
-      return null;
-    }
+    if (!duplicate) return true;
+    this.blockOnce(story.id, duplicate.reason);
+    await this.journal.record('child-launch-blocked', {
+      storyId: story.id,
+      reason: duplicate.reason,
+      duplicateStoryId: duplicate.storyId,
+      expectedBranch: duplicate.expectedBranch,
+      expectedWorktreePath: duplicate.expectedWorktreePath,
+    });
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return false;
+  }
 
+  private async recordChildLaunch(story: WorkflowStory): Promise<PreparedChildLaunch | null> {
     this.metrics.start(story.id);
     const startedAt = this.dependencies.clock.now();
     const childCwd = this.dependencies.config.codex.childSession.cwdAbs;

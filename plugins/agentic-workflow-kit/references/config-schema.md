@@ -55,7 +55,7 @@ Commands used as gates. Auto-detected from the package manager when unset (`null
 | `branchPattern` | string | `{track}/{id-lc}-{slug}` | Branch name template. |
 | `baseBranch` | string | `main` | Base branch for PRs. |
 | `commitOnBase` | `forbid` \| `allow` | `forbid` | Whether committing on the base branch is allowed. |
-| `worktreeDir` | string | `.worktrees` | Repo-relative directory for orchestrator-managed story worktrees. |
+| `worktreeDir` | string | `.worktrees` | Repo-relative, non-escaping directory for orchestrator-managed story worktrees. |
 
 ## `pr` — PR + merge policy (the headline knob)
 
