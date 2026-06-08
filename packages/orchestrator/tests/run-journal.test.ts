@@ -78,4 +78,33 @@ describe('RunJournal', () => {
       storyId: 'A001',
     });
   });
+
+  it('writes launch records before settled child results', async () => {
+    const artifacts = new MemoryArtifacts();
+    const journal = new RunJournal({ artifactStore: artifacts, clock });
+
+    await journal.recordChildLaunch({
+      storyId: 'A001',
+      launchId: 'A001-2026-06-08T00-00-00-000Z',
+      runId: 'run-1',
+      status: 'launched',
+      startedAt: '2026-06-02T00:00:01.000Z',
+      updatedAt: '2026-06-02T00:00:01.000Z',
+      trackerPath: 'docs/tracks/t/README.md',
+      expectedBranch: 't/a001-story',
+      expectedWorktreePath: '/repo/.worktrees/t/a001-story',
+      childCwd: '/repo',
+      baseShaAtLaunch: 'base',
+      promptHash: 'hash',
+      sessionId: null,
+      sessionLogPath: null,
+      lastHeartbeatAt: null,
+    });
+
+    expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+      storyId: 'A001',
+      status: 'launched',
+      expectedBranch: 't/a001-story',
+    });
+  });
 });

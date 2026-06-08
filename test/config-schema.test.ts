@@ -19,7 +19,13 @@ const goodConfig = {
   statuses: { eligible: ['specced', 'plan-approved'], inProgress: 'implementing', complete: ['done', 'verified'] },
   tracker: { idPattern: '^[A-Z]{2,}[0-9]+$' },
   verify: { changed: 'pnpm check:changed', full: 'pnpm check' },
-  git: { strategy: 'worktree', branchPattern: '{track}/{id-lc}-{slug}', baseBranch: 'main', commitOnBase: 'forbid' },
+  git: {
+    strategy: 'worktree',
+    branchPattern: '{track}/{id-lc}-{slug}',
+    baseBranch: 'main',
+    commitOnBase: 'forbid',
+    worktreeDir: '.worktrees',
+  },
   pr: {
     create: true,
     ci: { wait: false, command: null },

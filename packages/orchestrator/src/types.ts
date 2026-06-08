@@ -1,12 +1,36 @@
 export type OrchestratorDriver = 'codex-mcp';
 
-export type RunStatus = 'blocked' | 'complete' | 'dry-run' | 'running';
+export type RunStatus = 'blocked' | 'complete' | 'dry-run' | 'running' | 'supervision_lost';
 
 export interface ResolvedGitConfig {
   strategy: 'worktree' | 'branch';
   branchPattern: string;
   baseBranch: string;
   commitOnBase: 'forbid' | 'allow';
+  worktreeDir: string;
+}
+
+export interface ActiveChildRun {
+  storyId: string;
+  launchId: string;
+  expectedBranch: string;
+  expectedWorktreePath: string | null;
+  startedAt: string;
+  lastHeartbeatAt: string | null;
+}
+
+export type ChildLaunchStatus = 'launched' | 'settled' | 'supervision_lost';
+
+export interface ChildLaunchRecord extends ActiveChildRun {
+  runId: string;
+  status: ChildLaunchStatus;
+  updatedAt: string;
+  trackerPath: string;
+  childCwd: string;
+  baseShaAtLaunch: string | null;
+  promptHash: string;
+  sessionId: string | null;
+  sessionLogPath: string | null;
 }
 
 export interface ResolvedPrConfig {
@@ -221,6 +245,7 @@ export interface RunState {
   startedAt: string;
   completedAt?: string;
   active: string[];
+  activeChildren?: ActiveChildRun[];
   completed: Array<{
     storyId: string;
     ok: boolean;

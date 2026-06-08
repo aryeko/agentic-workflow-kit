@@ -40,6 +40,7 @@ export const ConfigSchema = z
         branchPattern: nonEmpty.default('{track}/{id-lc}-{slug}'),
         baseBranch: nonEmpty.default('main'),
         commitOnBase: z.enum(['forbid', 'allow']).default('forbid'),
+        worktreeDir: nonEmpty.default('.worktrees'),
       })
       .strict()
       .prefault({}),

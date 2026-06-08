@@ -6,8 +6,10 @@ import type { StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
 import type { GitInspector } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
+import { claimTrackerRow, trackerFileExists } from '../tracks/trackerClaimer.js';
 import type {
   ArtifactStore,
+  ChildLaunchRecord,
   Clock,
   Logger,
   ResolvedWorkflowConfig,
@@ -16,6 +18,8 @@ import type {
   WorkflowStory,
 } from '../types.js';
 import { CompletionGate, type ReturnEvaluation } from './CompletionGate.js';
+import { findDuplicateLaunch } from './DuplicateLaunchGuard.js';
+import { buildLaunchId, hashPrompt, renderExpectedBranch, renderExpectedWorktreePath } from './launchMetadata.js';
 import { MetricsCollector } from './MetricsCollector.js';
 import { RunJournal, type SettledStoryRun } from './RunJournal.js';
 
@@ -186,17 +190,35 @@ export class WorkflowRunner {
         maxParallel: this.dependencies.config.orchestrator.maxParallel,
         activeIds: new Set(active.keys()),
       });
-
-      const launched: WorkflowStory[] = [];
-      for (const story of dispatchable) {
-        await this.recordChildLaunch(story);
-        launched.push(story);
+      const batchConflict = this.findDispatchBatchConflict(dispatchable);
+      if (batchConflict) {
+        this.blockOnce(batchConflict.storyId, batchConflict.reason);
+        await this.journal.record('child-launch-blocked', batchConflict);
+        await this.writeState();
+        await this.writeLiveMetrics();
+        stopLaunching = true;
+        return;
       }
 
-      for (const story of launched) {
+      const launched: Array<{ story: WorkflowStory; launch: PreparedChildLaunch }> = [];
+      for (const story of dispatchable) {
+        const claimedStory = await this.claimBeforeLaunch(story);
+        if (!claimedStory) {
+          stopLaunching = true;
+          break;
+        }
+        const launch = await this.recordChildLaunch(claimedStory);
+        if (!launch) {
+          stopLaunching = true;
+          break;
+        }
+        launched.push({ story: claimedStory, launch });
+      }
+
+      for (const { story, launch } of launched) {
         active.set(
           story.id,
-          limit(() => this.executeChild(story)),
+          limit(() => this.executeChild(story, launch)),
         );
       }
     };
@@ -241,53 +263,158 @@ export class WorkflowRunner {
   }
 
   private async launchChild(story: WorkflowStory): Promise<SettledStoryRun> {
-    await this.recordChildLaunch(story);
-    return await this.executeChild(story);
+    const claimedStory = await this.claimBeforeLaunch(story);
+    if (!claimedStory) {
+      return {
+        storyId: story.id,
+        ok: false,
+        sessionId: null,
+        error: this.state.blockedReason ?? 'tracker claim failed',
+        completedAt: this.dependencies.clock.now(),
+        baseShaAtLaunch: null,
+      };
+    }
+    const launch = await this.recordChildLaunch(claimedStory);
+    if (!launch) {
+      return {
+        storyId: claimedStory.id,
+        ok: false,
+        sessionId: null,
+        error: this.state.blockedReason ?? 'duplicate active launch',
+        completedAt: this.dependencies.clock.now(),
+        baseShaAtLaunch: null,
+      };
+    }
+    return await this.executeChild(claimedStory, launch);
   }
 
-  private async recordChildLaunch(story: WorkflowStory): Promise<void> {
+  private async claimBeforeLaunch(story: WorkflowStory): Promise<WorkflowStory | null> {
+    if (!(await trackerFileExists(this.dependencies.config, story))) return story;
+    const owner = `awk:${this.state.runId}:${story.id}`;
+    const claim = await claimTrackerRow({ config: this.dependencies.config, story, owner });
+    if (!claim.ok) {
+      this.blockOnce(story.id, claim.reason);
+      await this.journal.record('tracker-claim-blocked', { storyId: story.id, reason: claim.reason });
+      await this.writeState();
+      await this.writeLiveMetrics();
+      return null;
+    }
+    await this.journal.record('tracker-claimed', { storyId: story.id, owner });
+    return claim.story;
+  }
+
+  private async recordChildLaunch(story: WorkflowStory): Promise<PreparedChildLaunch | null> {
+    const duplicate = await findDuplicateLaunch({
+      story,
+      config: this.dependencies.config,
+      activeChildren: this.state.activeChildren ?? [],
+    });
+    if (duplicate) {
+      this.blockOnce(story.id, duplicate.reason);
+      await this.journal.record('child-launch-blocked', {
+        storyId: story.id,
+        reason: duplicate.reason,
+        duplicateStoryId: duplicate.storyId,
+        expectedBranch: duplicate.expectedBranch,
+        expectedWorktreePath: duplicate.expectedWorktreePath,
+      });
+      await this.writeState();
+      await this.writeLiveMetrics();
+      return null;
+    }
+
     this.metrics.start(story.id);
-    this.state = { ...this.state, active: [...this.state.active, story.id] };
-    await this.journal.record('child-launched', { storyId: story.id });
-    await this.writeState();
-    await this.writeLiveMetrics();
-  }
-
-  private async executeChild(story: WorkflowStory): Promise<SettledStoryRun> {
-    const timeoutMs = this.dependencies.config.orchestrator.childTimeoutMs;
-    const timer = this.dependencies.childTimer ?? defaultChildTimer;
-    const startedAtMs = this.dependencies.clock.nowMs();
+    const startedAt = this.dependencies.clock.now();
     const childCwd = this.dependencies.config.codex.childSession.cwdAbs;
+    const prompt = buildGenericPrompt(story, this.dependencies.config);
     const baseShaAtLaunch =
       (await this.dependencies.gitInspector.snapshotBaseSha?.({
         git: this.dependencies.config.git,
         cwdAbs: childCwd,
       })) ?? null;
+    const activeChild = {
+      storyId: story.id,
+      launchId: buildLaunchId(story.id, startedAt),
+      expectedBranch: renderExpectedBranch(story, this.dependencies.config.git),
+      expectedWorktreePath: renderExpectedWorktreePath(
+        this.dependencies.config.workspace.rootAbs,
+        this.dependencies.config.git,
+        story,
+      ),
+      startedAt,
+      lastHeartbeatAt: null,
+    };
+    const launchRecord: ChildLaunchRecord = {
+      ...activeChild,
+      runId: this.state.runId,
+      status: 'launched',
+      updatedAt: startedAt,
+      trackerPath: story.metadata.trackerPath,
+      childCwd,
+      baseShaAtLaunch,
+      promptHash: hashPrompt(prompt),
+      sessionId: null,
+      sessionLogPath: null,
+    };
+    this.state = {
+      ...this.state,
+      active: [...this.state.active, story.id],
+      activeChildren: [...(this.state.activeChildren ?? []), activeChild],
+    };
+    await this.journal.recordChildLaunch(launchRecord);
+    await this.journal.record('child-launched', {
+      storyId: story.id,
+      launchId: launchRecord.launchId,
+      expectedBranch: launchRecord.expectedBranch,
+      expectedWorktreePath: launchRecord.expectedWorktreePath,
+    });
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return { record: launchRecord, prompt };
+  }
+
+  private async executeChild(story: WorkflowStory, launch: PreparedChildLaunch): Promise<SettledStoryRun> {
+    const timeoutMs = this.dependencies.config.orchestrator.childTimeoutMs;
+    const timer = this.dependencies.childTimer ?? defaultChildTimer;
+    const startedAtMs = this.dependencies.clock.nowMs();
     let timeoutHandle: unknown;
     let heartbeatHandle: unknown;
     try {
       const run = this.dependencies.storyRunner.runStory({
         story,
-        prompt: buildGenericPrompt(story, this.dependencies.config),
-        cwd: childCwd,
-        metadata: { runId: this.state.runId },
+        prompt: launch.prompt,
+        cwd: launch.record.childCwd,
+        metadata: { runId: this.state.runId, launchId: launch.record.launchId },
       });
       const timeout = new Promise<StoryRunResult>((_, reject) => {
         timeoutHandle = timer.setTimeout(() => reject(new Error('child-timeout')), timeoutMs);
       });
       heartbeatHandle = timer.setInterval(() => {
+        const heartbeatAt = this.dependencies.clock.now();
+        this.state = {
+          ...this.state,
+          activeChildren: this.state.activeChildren?.map((entry) =>
+            entry.storyId === story.id ? { ...entry, lastHeartbeatAt: heartbeatAt } : entry,
+          ),
+        };
         void this.journal.record('child-heartbeat', {
           storyId: story.id,
+          launchId: launch.record.launchId,
           elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
         });
       }, heartbeatIntervalMs(timeoutMs));
       const result: StoryRunResult = await Promise.race([run, timeout]);
       const completedAt = this.metrics.complete(story.id);
-      this.state = { ...this.state, active: this.state.active.filter((entry) => entry !== story.id) };
+      this.state = this.removeActiveChild(story.id);
       if (result.metrics) {
         this.metrics.updateChildMetric(story.id, result.metrics);
         await this.dependencies.artifactStore.writeJson(`children/${safeName(story.id)}.metrics.json`, result.metrics);
       }
+      await this.journal.updateChildLaunch(launch.record, {
+        status: 'settled',
+        sessionId: result.sessionId,
+        sessionLogPath: result.metrics?.sessionLogPath ?? null,
+      });
       return {
         storyId: story.id,
         ok: true,
@@ -297,18 +424,36 @@ export class WorkflowRunner {
         invocation: result.invocation,
         completedAt,
         metrics: result.metrics,
-        baseShaAtLaunch,
+        baseShaAtLaunch: launch.record.baseShaAtLaunch,
       };
     } catch (error) {
       const completedAt = this.metrics.complete(story.id);
-      this.state = { ...this.state, active: this.state.active.filter((entry) => entry !== story.id) };
+      const message = error instanceof Error ? error.message : String(error);
+      const isSupervisionLost = isSupervisionLostError(message);
+      this.state = this.removeActiveChild(story.id);
+      if (isSupervisionLost) {
+        this.state = {
+          ...this.state,
+          status: 'supervision_lost',
+          blockedStoryId: story.id,
+          blockedReason: message,
+        };
+        await this.journal.updateChildLaunch(launch.record, { status: 'supervision_lost' });
+        await this.journal.record('child-supervision-lost', {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          error: message,
+        });
+      } else {
+        await this.journal.updateChildLaunch(launch.record, { status: 'settled' });
+      }
       return {
         storyId: story.id,
         ok: false,
         sessionId: null,
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
         completedAt,
-        baseShaAtLaunch,
+        baseShaAtLaunch: launch.record.baseShaAtLaunch,
       };
     } finally {
       if (timeoutHandle !== undefined) timer.clearTimeout(timeoutHandle);
@@ -340,16 +485,26 @@ export class WorkflowRunner {
 
   private blockOnce(storyId: string, reason: string): void {
     if (this.state.status === 'blocked') return;
+    if (this.state.status === 'supervision_lost') return;
     this.state = { ...this.state, status: 'blocked', blockedStoryId: storyId, blockedReason: reason };
     this.dependencies.logger.warn('run blocked', { storyId, reason });
   }
 
   private async finish(): Promise<RunState> {
-    if (this.state.status !== 'blocked' && this.state.status !== 'dry-run') {
+    if (
+      this.state.status !== 'blocked' &&
+      this.state.status !== 'dry-run' &&
+      this.state.status !== 'supervision_lost'
+    ) {
       this.state = { ...this.state, status: 'complete' };
       await this.journal.record('run-complete');
     } else if (this.state.status === 'blocked') {
       await this.journal.record('run-blocked', {
+        blockedStoryId: this.state.blockedStoryId,
+        blockedReason: this.state.blockedReason,
+      });
+    } else if (this.state.status === 'supervision_lost') {
+      await this.journal.record('run-supervision-lost', {
         blockedStoryId: this.state.blockedStoryId,
         blockedReason: this.state.blockedReason,
       });
@@ -376,8 +531,47 @@ export class WorkflowRunner {
   private async writeLiveMetrics(): Promise<void> {
     await this.journal.writeLiveMetrics(this.state, this.metrics.observedChildMetrics());
   }
+
+  private removeActiveChild(storyId: string): RunState {
+    return {
+      ...this.state,
+      active: this.state.active.filter((entry) => entry !== storyId),
+      activeChildren: this.state.activeChildren?.filter((entry) => entry.storyId !== storyId),
+    };
+  }
+
+  private findDispatchBatchConflict(stories: WorkflowStory[]): { storyId: string; reason: string } | null {
+    const seenBranches = new Set<string>();
+    const seenWorktrees = new Set<string>();
+    for (const story of stories) {
+      const expectedBranch = renderExpectedBranch(story, this.dependencies.config.git);
+      const expectedWorktreePath = renderExpectedWorktreePath(
+        this.dependencies.config.workspace.rootAbs,
+        this.dependencies.config.git,
+        story,
+      );
+      if (seenBranches.has(expectedBranch)) {
+        return { storyId: story.id, reason: `duplicate active launch for ${story.id}` };
+      }
+      if (expectedWorktreePath !== null && seenWorktrees.has(expectedWorktreePath)) {
+        return { storyId: story.id, reason: `duplicate active launch for ${story.id}` };
+      }
+      seenBranches.add(expectedBranch);
+      if (expectedWorktreePath !== null) seenWorktrees.add(expectedWorktreePath);
+    }
+    return null;
+  }
 }
 
 function heartbeatIntervalMs(timeoutMs: number): number {
   return Math.max(1, Math.floor(timeoutMs / 4));
+}
+
+function isSupervisionLostError(message: string): boolean {
+  return /child-timeout|Codex MCP request timed out/i.test(message);
+}
+
+interface PreparedChildLaunch {
+  record: ChildLaunchRecord;
+  prompt: string;
 }

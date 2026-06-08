@@ -19,6 +19,7 @@ git:
   branchPattern: "{track}/{id-lc}-{slug}"
   baseBranch: main
   commitOnBase: forbid
+  worktreeDir: .worktrees
 pr:
   create: true
   ci:

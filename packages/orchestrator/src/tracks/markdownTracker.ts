@@ -125,6 +125,46 @@ export function parseTrackerStories(markdown: string, context: ParseTrackerStori
   });
 }
 
+export function updateTrackerStoryRow(
+  markdown: string,
+  context: Pick<ParseTrackerStoriesContext, 'idPattern' | 'trackerPath'>,
+  storyId: string,
+  updates: { status?: string; owner?: string },
+): string {
+  const lines = markdown.split(/\r?\n/);
+  const tableRows = extractTableRows(markdown, context.trackerPath);
+  let columns: ColumnIndexes | null = null;
+  let currentTable = -1;
+
+  for (const tableRow of tableRows) {
+    if (tableRow.tableIndex !== currentTable) {
+      columns = null;
+      currentTable = tableRow.tableIndex;
+    }
+
+    const header = readHeader(tableRow.cells, context.trackerPath);
+    if (header) {
+      columns = header;
+      continue;
+    }
+
+    if (!columns) continue;
+    const id = stripMarkdown(tableRow.cells[columns.id]);
+    if (id !== storyId) continue;
+    if (!context.idPattern.test(id)) {
+      throw new Error(`invalid story id ${id} in ${context.trackerPath} at line ${tableRow.line}`);
+    }
+
+    const cells = [...tableRow.rawCells];
+    if (updates.status !== undefined) cells[columns.status] = updates.status;
+    if (updates.owner !== undefined) cells[columns.owner] = updates.owner;
+    lines[tableRow.line - 1] = renderTableRow(cells);
+    return lines.join('\n');
+  }
+
+  throw new Error(`story ${storyId} was not found in ${context.trackerPath}`);
+}
+
 interface ParsedRow {
   order: number;
   id: string;
@@ -423,6 +463,14 @@ function parseRawTableCells(line: string): string[] {
 
   cells.push(cell.trim());
   return cells;
+}
+
+function renderTableRow(cells: string[]): string {
+  return `| ${cells.map(escapeTableCell).join(' | ')} |`;
+}
+
+function escapeTableCell(value: string): string {
+  return value.replace(/\|/g, '\\|');
 }
 
 function assertNoUnparsedIndentedTables(lines: string[], tableRanges: TableRange[], trackerPath: string): void {

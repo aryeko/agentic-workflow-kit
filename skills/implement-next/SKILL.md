@@ -129,7 +129,8 @@ Use an ISO timestamp run id with colons and periods replaced by hyphens. Keep th
 - `state.json`: current status, blocked reason, active story, and `interactive` child metadata.
 - `events.ndjson`: append phase events such as `story_selected`, `claimed`, `spec_written`,
   `plan_written`, `verification_passed`, `pre_pr_review_started`, `pre_pr_review_findings`,
-  `pre_pr_review_cleared`, `pr_created`, `pr_review_findings`, `merged`, and `blocked`.
+  `pre_pr_review_downgraded`, `pre_pr_review_cleared`, `pr_created`, `pr_review_findings`,
+  `merged`, and `blocked`.
 
 For compatibility with `analyze-run`, `state.json` must include:
 
@@ -195,9 +196,14 @@ Compute the branch name from `git.branchPattern`. Supported placeholders:
 - `{id-lc}`: lowercase story ID,
 - `{slug}`: kebab-case row name.
 
-If `git.strategy: worktree`, create a worktree from `git.baseBranch`. If `git.strategy: branch`,
-create or switch to the branch in the current worktree. If `git.commitOnBase: forbid`, refuse to
-commit directly on `git.baseBranch`.
+If `git.strategy: worktree`, create a worktree from `git.baseBranch` under `git.worktreeDir`
+(default `.worktrees`) relative to the workspace root. If `git.strategy: branch`, create or switch
+to the branch in the current worktree. If `git.commitOnBase: forbid`, refuse to commit directly on
+`git.baseBranch`.
+
+Do not create worktrees outside the workspace root unless the repo config explicitly says so. Do not
+symlink `node_modules` from another checkout. Use the package manager/store normally, and stop for
+approval if dependencies require network or privileged setup.
 
 Before editing the tracker, re-read the row and confirm it is still eligible. Then update:
 
@@ -322,7 +328,7 @@ Run a code/spec compliance review before tracker completion and PR creation when
 disabled it. `implement.review.prePr.mode` controls the reviewer:
 
 - `auto`: use a review subagent or review skill when available and subagents are enabled;
-  otherwise review inline.
+  otherwise review inline and append a `pre_pr_review_downgraded` journal event.
 - `subagent`: use a dedicated review subagent or review skill. If none is available, stop and
   report that the configured policy requires one.
 - `inline`: perform the review in this session.
@@ -346,6 +352,8 @@ For subagent/auto-subagent review, build a review context packet containing:
 Ask the reviewer to check correctness, implementation quality, spec/plan compliance,
 architecture/repo-instruction compliance, tests, and scope control. The reviewer output must include
 severity-ranked findings with file references where applicable and a clear pass/block verdict.
+If review downgrades to inline, use the same checklist and context packet requirements, and record
+the downgrade in the final report.
 
 Required changes are fixed and re-reviewed before proceeding. Review fixes rerun configured
 verification (`verify.changed` when scoped, `verify.full` before completion) before the next review.

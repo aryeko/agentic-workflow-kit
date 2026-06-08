@@ -59,6 +59,7 @@ function makeDeps(overrides: Partial<CompletionGateDeps> = {}): CompletionGateDe
       branchPattern: '{track}/{id-lc}-{slug}',
       baseBranch: 'main',
       commitOnBase: 'forbid',
+      worktreeDir: '.worktrees',
     },
     childCwdAbs: '/repo',
     ...overrides,
@@ -113,6 +114,7 @@ describe('CompletionGate', () => {
           branchPattern: '{track}/{id-lc}-{slug}',
           baseBranch: 'main',
           commitOnBase: 'forbid',
+          worktreeDir: '.worktrees',
         },
       }),
     );

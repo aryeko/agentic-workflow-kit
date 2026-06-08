@@ -86,4 +86,35 @@ describe('analyzeWorkflowRun', () => {
     expect(analysis.children).toEqual([]);
     expect(analysis.tokenTotals).toBeNull();
   });
+
+  it('derives supervision_lost from running launch-only artifacts', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-lost-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-1', status: 'running', active: ['A001'] }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'A001.launch.json'),
+      JSON.stringify({
+        storyId: 'A001',
+        launchId: 'launch-a001',
+        status: 'launched',
+        expectedBranch: 't/a001-story',
+        expectedWorktreePath: '/repo/.worktrees/t/a001-story',
+        sessionId: null,
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.derivedStatus).toBe('supervision_lost');
+    expect(analysis.children[0]).toMatchObject({
+      storyId: 'A001',
+      status: 'supervision_lost',
+      expectedBranch: 't/a001-story',
+    });
+    expect(analysis.issues).toContain('A001 has launch metadata but no settled child result');
+  });
 });

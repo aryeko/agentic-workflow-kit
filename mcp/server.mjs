@@ -415,11 +415,11 @@ var require_codegen = __commonJS({
         const rhs = this.rhs === void 0 ? "" : ` = ${this.rhs}`;
         return `${varKind} ${this.name}${rhs};` + _n;
       }
-      optimizeNames(names, constants) {
+      optimizeNames(names, constants2) {
         if (!names[this.name.str])
           return;
         if (this.rhs)
-          this.rhs = optimizeExpr(this.rhs, names, constants);
+          this.rhs = optimizeExpr(this.rhs, names, constants2);
         return this;
       }
       get names() {
@@ -436,10 +436,10 @@ var require_codegen = __commonJS({
       render({ _n }) {
         return `${this.lhs} = ${this.rhs};` + _n;
       }
-      optimizeNames(names, constants) {
+      optimizeNames(names, constants2) {
         if (this.lhs instanceof code_1.Name && !names[this.lhs.str] && !this.sideEffects)
           return;
-        this.rhs = optimizeExpr(this.rhs, names, constants);
+        this.rhs = optimizeExpr(this.rhs, names, constants2);
         return this;
       }
       get names() {
@@ -500,8 +500,8 @@ var require_codegen = __commonJS({
       optimizeNodes() {
         return `${this.code}` ? this : void 0;
       }
-      optimizeNames(names, constants) {
-        this.code = optimizeExpr(this.code, names, constants);
+      optimizeNames(names, constants2) {
+        this.code = optimizeExpr(this.code, names, constants2);
         return this;
       }
       get names() {
@@ -530,12 +530,12 @@ var require_codegen = __commonJS({
         }
         return nodes.length > 0 ? this : void 0;
       }
-      optimizeNames(names, constants) {
+      optimizeNames(names, constants2) {
         const { nodes } = this;
         let i = nodes.length;
         while (i--) {
           const n = nodes[i];
-          if (n.optimizeNames(names, constants))
+          if (n.optimizeNames(names, constants2))
             continue;
           subtractNames(names, n.names);
           nodes.splice(i, 1);
@@ -588,12 +588,12 @@ var require_codegen = __commonJS({
           return void 0;
         return this;
       }
-      optimizeNames(names, constants) {
+      optimizeNames(names, constants2) {
         var _a3;
-        this.else = (_a3 = this.else) === null || _a3 === void 0 ? void 0 : _a3.optimizeNames(names, constants);
-        if (!(super.optimizeNames(names, constants) || this.else))
+        this.else = (_a3 = this.else) === null || _a3 === void 0 ? void 0 : _a3.optimizeNames(names, constants2);
+        if (!(super.optimizeNames(names, constants2) || this.else))
           return;
-        this.condition = optimizeExpr(this.condition, names, constants);
+        this.condition = optimizeExpr(this.condition, names, constants2);
         return this;
       }
       get names() {
@@ -616,10 +616,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.iteration})` + super.render(opts);
       }
-      optimizeNames(names, constants) {
-        if (!super.optimizeNames(names, constants))
+      optimizeNames(names, constants2) {
+        if (!super.optimizeNames(names, constants2))
           return;
-        this.iteration = optimizeExpr(this.iteration, names, constants);
+        this.iteration = optimizeExpr(this.iteration, names, constants2);
         return this;
       }
       get names() {
@@ -655,10 +655,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.varKind} ${this.name} ${this.loop} ${this.iterable})` + super.render(opts);
       }
-      optimizeNames(names, constants) {
-        if (!super.optimizeNames(names, constants))
+      optimizeNames(names, constants2) {
+        if (!super.optimizeNames(names, constants2))
           return;
-        this.iterable = optimizeExpr(this.iterable, names, constants);
+        this.iterable = optimizeExpr(this.iterable, names, constants2);
         return this;
       }
       get names() {
@@ -700,11 +700,11 @@ var require_codegen = __commonJS({
         (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNodes();
         return this;
       }
-      optimizeNames(names, constants) {
+      optimizeNames(names, constants2) {
         var _a3, _b;
-        super.optimizeNames(names, constants);
-        (_a3 = this.catch) === null || _a3 === void 0 ? void 0 : _a3.optimizeNames(names, constants);
-        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names, constants);
+        super.optimizeNames(names, constants2);
+        (_a3 = this.catch) === null || _a3 === void 0 ? void 0 : _a3.optimizeNames(names, constants2);
+        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names, constants2);
         return this;
       }
       get names() {
@@ -1005,7 +1005,7 @@ var require_codegen = __commonJS({
     function addExprNames(names, from) {
       return from instanceof code_1._CodeOrName ? addNames(names, from.names) : names;
     }
-    function optimizeExpr(expr, names, constants) {
+    function optimizeExpr(expr, names, constants2) {
       if (expr instanceof code_1.Name)
         return replaceName(expr);
       if (!canOptimize(expr))
@@ -1020,14 +1020,14 @@ var require_codegen = __commonJS({
         return items;
       }, []));
       function replaceName(n) {
-        const c = constants[n.str];
+        const c = constants2[n.str];
         if (c === void 0 || names[n.str] !== 1)
           return n;
         delete names[n.str];
         return c;
       }
       function canOptimize(e) {
-        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names[c.str] === 1 && constants[c.str] !== void 0);
+        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names[c.str] === 1 && constants2[c.str] !== void 0);
       }
     }
     function subtractNames(names, from) {
@@ -3234,8 +3234,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path13) {
-      let input = path13;
+    function removeDotSegments(path16) {
+      let input = path16;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3487,8 +3487,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path13, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path13 && path13 !== "/" ? path13 : void 0;
+        const [path16, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path16 && path16 !== "/" ? path16 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6971,17 +6971,17 @@ var require_visit = __commonJS({
     visit2.BREAK = BREAK;
     visit2.SKIP = SKIP2;
     visit2.REMOVE = REMOVE;
-    function visit_(key, node2, visitor, path13) {
-      const ctrl = callVisitor(key, node2, visitor, path13);
+    function visit_(key, node2, visitor, path16) {
+      const ctrl = callVisitor(key, node2, visitor, path16);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path13, ctrl);
-        return visit_(key, ctrl, visitor, path13);
+        replaceNode(key, path16, ctrl);
+        return visit_(key, ctrl, visitor, path16);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node2)) {
-          path13 = Object.freeze(path13.concat(node2));
+          path16 = Object.freeze(path16.concat(node2));
           for (let i = 0; i < node2.items.length; ++i) {
-            const ci = visit_(i, node2.items[i], visitor, path13);
+            const ci = visit_(i, node2.items[i], visitor, path16);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -6992,13 +6992,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node2)) {
-          path13 = Object.freeze(path13.concat(node2));
-          const ck = visit_("key", node2.key, visitor, path13);
+          path16 = Object.freeze(path16.concat(node2));
+          const ck = visit_("key", node2.key, visitor, path16);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node2.key = null;
-          const cv = visit_("value", node2.value, visitor, path13);
+          const cv = visit_("value", node2.value, visitor, path16);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -7019,17 +7019,17 @@ var require_visit = __commonJS({
     visitAsync.BREAK = BREAK;
     visitAsync.SKIP = SKIP2;
     visitAsync.REMOVE = REMOVE;
-    async function visitAsync_(key, node2, visitor, path13) {
-      const ctrl = await callVisitor(key, node2, visitor, path13);
+    async function visitAsync_(key, node2, visitor, path16) {
+      const ctrl = await callVisitor(key, node2, visitor, path16);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path13, ctrl);
-        return visitAsync_(key, ctrl, visitor, path13);
+        replaceNode(key, path16, ctrl);
+        return visitAsync_(key, ctrl, visitor, path16);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node2)) {
-          path13 = Object.freeze(path13.concat(node2));
+          path16 = Object.freeze(path16.concat(node2));
           for (let i = 0; i < node2.items.length; ++i) {
-            const ci = await visitAsync_(i, node2.items[i], visitor, path13);
+            const ci = await visitAsync_(i, node2.items[i], visitor, path16);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -7040,13 +7040,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node2)) {
-          path13 = Object.freeze(path13.concat(node2));
-          const ck = await visitAsync_("key", node2.key, visitor, path13);
+          path16 = Object.freeze(path16.concat(node2));
+          const ck = await visitAsync_("key", node2.key, visitor, path16);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node2.key = null;
-          const cv = await visitAsync_("value", node2.value, visitor, path13);
+          const cv = await visitAsync_("value", node2.value, visitor, path16);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -7073,23 +7073,23 @@ var require_visit = __commonJS({
       }
       return visitor;
     }
-    function callVisitor(key, node2, visitor, path13) {
+    function callVisitor(key, node2, visitor, path16) {
       if (typeof visitor === "function")
-        return visitor(key, node2, path13);
+        return visitor(key, node2, path16);
       if (identity.isMap(node2))
-        return visitor.Map?.(key, node2, path13);
+        return visitor.Map?.(key, node2, path16);
       if (identity.isSeq(node2))
-        return visitor.Seq?.(key, node2, path13);
+        return visitor.Seq?.(key, node2, path16);
       if (identity.isPair(node2))
-        return visitor.Pair?.(key, node2, path13);
+        return visitor.Pair?.(key, node2, path16);
       if (identity.isScalar(node2))
-        return visitor.Scalar?.(key, node2, path13);
+        return visitor.Scalar?.(key, node2, path16);
       if (identity.isAlias(node2))
-        return visitor.Alias?.(key, node2, path13);
+        return visitor.Alias?.(key, node2, path16);
       return void 0;
     }
-    function replaceNode(key, path13, node2) {
-      const parent = path13[path13.length - 1];
+    function replaceNode(key, path16, node2) {
+      const parent = path16[path16.length - 1];
       if (identity.isCollection(parent)) {
         parent.items[key] = node2;
       } else if (identity.isPair(parent)) {
@@ -7699,10 +7699,10 @@ var require_Collection = __commonJS({
     var createNode = require_createNode();
     var identity = require_identity();
     var Node2 = require_Node();
-    function collectionFromPath(schema, path13, value) {
+    function collectionFromPath(schema, path16, value) {
       let v = value;
-      for (let i = path13.length - 1; i >= 0; --i) {
-        const k = path13[i];
+      for (let i = path16.length - 1; i >= 0; --i) {
+        const k = path16[i];
         if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
           const a = [];
           a[k] = v;
@@ -7721,7 +7721,7 @@ var require_Collection = __commonJS({
         sourceObjects: /* @__PURE__ */ new Map()
       });
     }
-    var isEmptyPath = (path13) => path13 == null || typeof path13 === "object" && !!path13[Symbol.iterator]().next().done;
+    var isEmptyPath = (path16) => path16 == null || typeof path16 === "object" && !!path16[Symbol.iterator]().next().done;
     var Collection = class extends Node2.NodeBase {
       constructor(type, schema) {
         super(type);
@@ -7751,11 +7751,11 @@ var require_Collection = __commonJS({
        * be a Pair instance or a `{ key, value }` object, which may not have a key
        * that already exists in the map.
        */
-      addIn(path13, value) {
-        if (isEmptyPath(path13))
+      addIn(path16, value) {
+        if (isEmptyPath(path16))
           this.add(value);
         else {
-          const [key, ...rest] = path13;
+          const [key, ...rest] = path16;
           const node2 = this.get(key, true);
           if (identity.isCollection(node2))
             node2.addIn(rest, value);
@@ -7769,8 +7769,8 @@ var require_Collection = __commonJS({
        * Removes a value from the collection.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path13) {
-        const [key, ...rest] = path13;
+      deleteIn(path16) {
+        const [key, ...rest] = path16;
         if (rest.length === 0)
           return this.delete(key);
         const node2 = this.get(key, true);
@@ -7784,8 +7784,8 @@ var require_Collection = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path13, keepScalar) {
-        const [key, ...rest] = path13;
+      getIn(path16, keepScalar) {
+        const [key, ...rest] = path16;
         const node2 = this.get(key, true);
         if (rest.length === 0)
           return !keepScalar && identity.isScalar(node2) ? node2.value : node2;
@@ -7803,8 +7803,8 @@ var require_Collection = __commonJS({
       /**
        * Checks if the collection includes a value with the key `key`.
        */
-      hasIn(path13) {
-        const [key, ...rest] = path13;
+      hasIn(path16) {
+        const [key, ...rest] = path16;
         if (rest.length === 0)
           return this.has(key);
         const node2 = this.get(key, true);
@@ -7814,8 +7814,8 @@ var require_Collection = __commonJS({
        * Sets a value in this collection. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path13, value) {
-        const [key, ...rest] = path13;
+      setIn(path16, value) {
+        const [key, ...rest] = path16;
         if (rest.length === 0) {
           this.set(key, value);
         } else {
@@ -10330,9 +10330,9 @@ var require_Document = __commonJS({
           this.contents.add(value);
       }
       /** Adds a value to the document. */
-      addIn(path13, value) {
+      addIn(path16, value) {
         if (assertCollection(this.contents))
-          this.contents.addIn(path13, value);
+          this.contents.addIn(path16, value);
       }
       /**
        * Create a new `Alias` node, ensuring that the target `node` has the required anchor.
@@ -10407,14 +10407,14 @@ var require_Document = __commonJS({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path13) {
-        if (Collection.isEmptyPath(path13)) {
+      deleteIn(path16) {
+        if (Collection.isEmptyPath(path16)) {
           if (this.contents == null)
             return false;
           this.contents = null;
           return true;
         }
-        return assertCollection(this.contents) ? this.contents.deleteIn(path13) : false;
+        return assertCollection(this.contents) ? this.contents.deleteIn(path16) : false;
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -10429,10 +10429,10 @@ var require_Document = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path13, keepScalar) {
-        if (Collection.isEmptyPath(path13))
+      getIn(path16, keepScalar) {
+        if (Collection.isEmptyPath(path16))
           return !keepScalar && identity.isScalar(this.contents) ? this.contents.value : this.contents;
-        return identity.isCollection(this.contents) ? this.contents.getIn(path13, keepScalar) : void 0;
+        return identity.isCollection(this.contents) ? this.contents.getIn(path16, keepScalar) : void 0;
       }
       /**
        * Checks if the document includes a value with the key `key`.
@@ -10443,10 +10443,10 @@ var require_Document = __commonJS({
       /**
        * Checks if the document includes a value at `path`.
        */
-      hasIn(path13) {
-        if (Collection.isEmptyPath(path13))
+      hasIn(path16) {
+        if (Collection.isEmptyPath(path16))
           return this.contents !== void 0;
-        return identity.isCollection(this.contents) ? this.contents.hasIn(path13) : false;
+        return identity.isCollection(this.contents) ? this.contents.hasIn(path16) : false;
       }
       /**
        * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -10463,13 +10463,13 @@ var require_Document = __commonJS({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path13, value) {
-        if (Collection.isEmptyPath(path13)) {
+      setIn(path16, value) {
+        if (Collection.isEmptyPath(path16)) {
           this.contents = value;
         } else if (this.contents == null) {
-          this.contents = Collection.collectionFromPath(this.schema, Array.from(path13), value);
+          this.contents = Collection.collectionFromPath(this.schema, Array.from(path16), value);
         } else if (assertCollection(this.contents)) {
-          this.contents.setIn(path13, value);
+          this.contents.setIn(path16, value);
         }
       }
       /**
@@ -12429,9 +12429,9 @@ var require_cst_visit = __commonJS({
     visit2.BREAK = BREAK;
     visit2.SKIP = SKIP2;
     visit2.REMOVE = REMOVE;
-    visit2.itemAtPath = (cst, path13) => {
+    visit2.itemAtPath = (cst, path16) => {
       let item = cst;
-      for (const [field, index2] of path13) {
+      for (const [field, index2] of path16) {
         const tok = item?.[field];
         if (tok && "items" in tok) {
           item = tok.items[index2];
@@ -12440,23 +12440,23 @@ var require_cst_visit = __commonJS({
       }
       return item;
     };
-    visit2.parentCollection = (cst, path13) => {
-      const parent = visit2.itemAtPath(cst, path13.slice(0, -1));
-      const field = path13[path13.length - 1][0];
+    visit2.parentCollection = (cst, path16) => {
+      const parent = visit2.itemAtPath(cst, path16.slice(0, -1));
+      const field = path16[path16.length - 1][0];
       const coll = parent?.[field];
       if (coll && "items" in coll)
         return coll;
       throw new Error("Parent collection not found");
     };
-    function _visit(path13, item, visitor) {
-      let ctrl = visitor(item, path13);
+    function _visit(path16, item, visitor) {
+      let ctrl = visitor(item, path16);
       if (typeof ctrl === "symbol")
         return ctrl;
       for (const field of ["key", "value"]) {
         const token = item[field];
         if (token && "items" in token) {
           for (let i = 0; i < token.items.length; ++i) {
-            const ci = _visit(Object.freeze(path13.concat([[field, i]])), token.items[i], visitor);
+            const ci = _visit(Object.freeze(path16.concat([[field, i]])), token.items[i], visitor);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -12467,10 +12467,10 @@ var require_cst_visit = __commonJS({
             }
           }
           if (typeof ctrl === "function" && field === "key")
-            ctrl = ctrl(item, path13);
+            ctrl = ctrl(item, path16);
         }
       }
-      return typeof ctrl === "function" ? ctrl(item, path13) : ctrl;
+      return typeof ctrl === "function" ? ctrl(item, path16) : ctrl;
     }
     exports2.visit = visit2;
   }
@@ -14227,7 +14227,7 @@ var require_windows = __commonJS({
     module2.exports = isexe;
     isexe.sync = sync2;
     var fs2 = __require("fs");
-    function checkPathExt(path13, options2) {
+    function checkPathExt(path16, options2) {
       var pathext = options2.pathExt !== void 0 ? options2.pathExt : process.env.PATHEXT;
       if (!pathext) {
         return true;
@@ -14238,25 +14238,25 @@ var require_windows = __commonJS({
       }
       for (var i = 0; i < pathext.length; i++) {
         var p = pathext[i].toLowerCase();
-        if (p && path13.substr(-p.length).toLowerCase() === p) {
+        if (p && path16.substr(-p.length).toLowerCase() === p) {
           return true;
         }
       }
       return false;
     }
-    function checkStat(stat3, path13, options2) {
+    function checkStat(stat3, path16, options2) {
       if (!stat3.isSymbolicLink() && !stat3.isFile()) {
         return false;
       }
-      return checkPathExt(path13, options2);
+      return checkPathExt(path16, options2);
     }
-    function isexe(path13, options2, cb) {
-      fs2.stat(path13, function(er, stat3) {
-        cb(er, er ? false : checkStat(stat3, path13, options2));
+    function isexe(path16, options2, cb) {
+      fs2.stat(path16, function(er, stat3) {
+        cb(er, er ? false : checkStat(stat3, path16, options2));
       });
     }
-    function sync2(path13, options2) {
-      return checkStat(fs2.statSync(path13), path13, options2);
+    function sync2(path16, options2) {
+      return checkStat(fs2.statSync(path16), path16, options2);
     }
   }
 });
@@ -14267,13 +14267,13 @@ var require_mode = __commonJS({
     module2.exports = isexe;
     isexe.sync = sync2;
     var fs2 = __require("fs");
-    function isexe(path13, options2, cb) {
-      fs2.stat(path13, function(er, stat3) {
+    function isexe(path16, options2, cb) {
+      fs2.stat(path16, function(er, stat3) {
         cb(er, er ? false : checkStat(stat3, options2));
       });
     }
-    function sync2(path13, options2) {
-      return checkStat(fs2.statSync(path13), options2);
+    function sync2(path16, options2) {
+      return checkStat(fs2.statSync(path16), options2);
     }
     function checkStat(stat3, options2) {
       return stat3.isFile() && checkMode(stat3, options2);
@@ -14306,7 +14306,7 @@ var require_isexe = __commonJS({
     }
     module2.exports = isexe;
     isexe.sync = sync2;
-    function isexe(path13, options2, cb) {
+    function isexe(path16, options2, cb) {
       if (typeof options2 === "function") {
         cb = options2;
         options2 = {};
@@ -14316,7 +14316,7 @@ var require_isexe = __commonJS({
           throw new TypeError("callback not provided");
         }
         return new Promise(function(resolve3, reject) {
-          isexe(path13, options2 || {}, function(er, is2) {
+          isexe(path16, options2 || {}, function(er, is2) {
             if (er) {
               reject(er);
             } else {
@@ -14325,7 +14325,7 @@ var require_isexe = __commonJS({
           });
         });
       }
-      core(path13, options2 || {}, function(er, is2) {
+      core(path16, options2 || {}, function(er, is2) {
         if (er) {
           if (er.code === "EACCES" || options2 && options2.ignoreErrors) {
             er = null;
@@ -14335,9 +14335,9 @@ var require_isexe = __commonJS({
         cb(er, is2);
       });
     }
-    function sync2(path13, options2) {
+    function sync2(path16, options2) {
       try {
-        return core.sync(path13, options2 || {});
+        return core.sync(path16, options2 || {});
       } catch (er) {
         if (options2 && options2.ignoreErrors || er.code === "EACCES") {
           return false;
@@ -14353,7 +14353,7 @@ var require_isexe = __commonJS({
 var require_which = __commonJS({
   "node_modules/.pnpm/which@2.0.2/node_modules/which/which.js"(exports2, module2) {
     var isWindows = process.platform === "win32" || process.env.OSTYPE === "cygwin" || process.env.OSTYPE === "msys";
-    var path13 = __require("path");
+    var path16 = __require("path");
     var COLON = isWindows ? ";" : ":";
     var isexe = require_isexe();
     var getNotFoundError = (cmd) => Object.assign(new Error(`not found: ${cmd}`), { code: "ENOENT" });
@@ -14391,7 +14391,7 @@ var require_which = __commonJS({
           return opt.all && found.length ? resolve3(found) : reject(getNotFoundError(cmd));
         const ppRaw = pathEnv[i];
         const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
-        const pCmd = path13.join(pathPart, cmd);
+        const pCmd = path16.join(pathPart, cmd);
         const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
         resolve3(subStep(p, i, 0));
       });
@@ -14418,7 +14418,7 @@ var require_which = __commonJS({
       for (let i = 0; i < pathEnv.length; i++) {
         const ppRaw = pathEnv[i];
         const pathPart = /^".*"$/.test(ppRaw) ? ppRaw.slice(1, -1) : ppRaw;
-        const pCmd = path13.join(pathPart, cmd);
+        const pCmd = path16.join(pathPart, cmd);
         const p = !pathPart && /^\.[\\\/]/.test(cmd) ? cmd.slice(0, 2) + pCmd : pCmd;
         for (let j = 0; j < pathExt.length; j++) {
           const cur = p + pathExt[j];
@@ -14466,7 +14466,7 @@ var require_path_key = __commonJS({
 var require_resolveCommand = __commonJS({
   "node_modules/.pnpm/cross-spawn@7.0.6/node_modules/cross-spawn/lib/util/resolveCommand.js"(exports2, module2) {
     "use strict";
-    var path13 = __require("path");
+    var path16 = __require("path");
     var which = require_which();
     var getPathKey = require_path_key();
     function resolveCommandAttempt(parsed, withoutPathExt) {
@@ -14484,7 +14484,7 @@ var require_resolveCommand = __commonJS({
       try {
         resolved = which.sync(parsed.command, {
           path: env[getPathKey({ env })],
-          pathExt: withoutPathExt ? path13.delimiter : void 0
+          pathExt: withoutPathExt ? path16.delimiter : void 0
         });
       } catch (e) {
       } finally {
@@ -14493,7 +14493,7 @@ var require_resolveCommand = __commonJS({
         }
       }
       if (resolved) {
-        resolved = path13.resolve(hasCustomCwd ? parsed.options.cwd : "", resolved);
+        resolved = path16.resolve(hasCustomCwd ? parsed.options.cwd : "", resolved);
       }
       return resolved;
     }
@@ -14547,8 +14547,8 @@ var require_shebang_command = __commonJS({
       if (!match) {
         return null;
       }
-      const [path13, argument] = match[0].replace(/#! ?/, "").split(" ");
-      const binary = path13.split("/").pop();
+      const [path16, argument] = match[0].replace(/#! ?/, "").split(" ");
+      const binary = path16.split("/").pop();
       if (binary === "env") {
         return argument;
       }
@@ -14583,7 +14583,7 @@ var require_readShebang = __commonJS({
 var require_parse = __commonJS({
   "node_modules/.pnpm/cross-spawn@7.0.6/node_modules/cross-spawn/lib/parse.js"(exports2, module2) {
     "use strict";
-    var path13 = __require("path");
+    var path16 = __require("path");
     var resolveCommand = require_resolveCommand();
     var escape2 = require_escape();
     var readShebang = require_readShebang();
@@ -14608,7 +14608,7 @@ var require_parse = __commonJS({
       const needsShell = !isExecutableRegExp.test(commandFile);
       if (parsed.options.forceShell || needsShell) {
         const needsDoubleEscapeMetaChars = isCmdShimRegExp.test(commandFile);
-        parsed.command = path13.normalize(parsed.command);
+        parsed.command = path16.normalize(parsed.command);
         parsed.command = escape2.command(parsed.command);
         parsed.args = parsed.args.map((arg) => escape2.argument(arg, needsDoubleEscapeMetaChars));
         const shellCommand = [parsed.command].concat(parsed.args).join(" ");
@@ -18547,8 +18547,8 @@ var require_utils3 = __commonJS({
       }
       return output;
     };
-    exports2.basename = (path13, { windows } = {}) => {
-      const segs = path13.split(windows ? /[\\/]/ : "/");
+    exports2.basename = (path16, { windows } = {}) => {
+      const segs = path16.split(windows ? /[\\/]/ : "/");
       const last = segs[segs.length - 1];
       if (last === "") {
         return segs[segs.length - 2];
@@ -18892,7 +18892,7 @@ var require_scan = __commonJS({
 var require_parse3 = __commonJS({
   "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js"(exports2, module2) {
     "use strict";
-    var constants = require_constants();
+    var constants2 = require_constants();
     var utils = require_utils3();
     var {
       MAX_LENGTH,
@@ -18900,7 +18900,7 @@ var require_parse3 = __commonJS({
       REGEX_NON_SPECIAL_CHARS,
       REGEX_SPECIAL_CHARS_BACKREF,
       REPLACEMENTS
-    } = constants;
+    } = constants2;
     var expandRange = (args, options2) => {
       if (typeof options2.expandRange === "function") {
         return options2.expandRange(...args, options2);
@@ -19106,7 +19106,7 @@ var require_parse3 = __commonJS({
       if (options2.maxExtglobRecursion === false) {
         return { risky: false };
       }
-      const max = typeof options2.maxExtglobRecursion === "number" ? options2.maxExtglobRecursion : constants.DEFAULT_MAX_EXTGLOB_RECURSION;
+      const max = typeof options2.maxExtglobRecursion === "number" ? options2.maxExtglobRecursion : constants2.DEFAULT_MAX_EXTGLOB_RECURSION;
       const branches = splitTopLevel(body).map((branch) => branch.trim());
       if (branches.length > 1) {
         if (branches.some((branch) => branch === "") || branches.some((branch) => /^[*?]+$/.test(branch)) || hasRepeatedCharPrefixOverlap(branches)) {
@@ -19138,8 +19138,8 @@ var require_parse3 = __commonJS({
       const bos = { type: "bos", value: "", output: opts.prepend || "" };
       const tokens = [bos];
       const capture = opts.capture ? "" : "?:";
-      const PLATFORM_CHARS = constants.globChars(opts.windows);
-      const EXTGLOB_CHARS = constants.extglobChars(PLATFORM_CHARS);
+      const PLATFORM_CHARS = constants2.globChars(opts.windows);
+      const EXTGLOB_CHARS = constants2.extglobChars(PLATFORM_CHARS);
       const {
         DOT_LITERAL,
         PLUS_LITERAL,
@@ -19834,7 +19834,7 @@ var require_parse3 = __commonJS({
         NO_DOTS_SLASH,
         STAR,
         START_ANCHOR
-      } = constants.globChars(opts.windows);
+      } = constants2.globChars(opts.windows);
       const nodot = opts.dot ? NO_DOTS : NO_DOT;
       const slashDot = opts.dot ? NO_DOTS_SLASH : NO_DOT;
       const capture = opts.capture ? "" : "?:";
@@ -19892,7 +19892,7 @@ var require_picomatch = __commonJS({
     var scan = require_scan();
     var parse5 = require_parse3();
     var utils = require_utils3();
-    var constants = require_constants();
+    var constants2 = require_constants();
     var isObject2 = (val) => val && typeof val === "object" && !Array.isArray(val);
     var picomatch2 = (glob2, options2, returnState = false) => {
       if (Array.isArray(glob2)) {
@@ -20020,7 +20020,7 @@ var require_picomatch = __commonJS({
         return /$^/;
       }
     };
-    picomatch2.constants = constants;
+    picomatch2.constants = constants2;
     module2.exports = picomatch2;
   }
 });
@@ -20406,8 +20406,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@4.4.3/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path13, errorMaps, issueData } = params;
-  const fullPath = [...path13, ...issueData.path || []];
+  const { data, path: path16, errorMaps, issueData } = params;
+  const fullPath = [...path16, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -20522,11 +20522,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@4.4.3/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path13, key) {
+  constructor(parent, value, path16, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path13;
+    this._path = path16;
     this._key = key;
   }
   get path() {
@@ -24446,10 +24446,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path13) {
-  if (!path13)
+function getElementAtPath(obj, path16) {
+  if (!path16)
     return obj;
-  return path13.reduce((acc, key) => acc?.[key], obj);
+  return path16.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -24858,11 +24858,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path13, issues) {
+function prefixIssues(path16, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path13);
+    iss.path.unshift(path16);
     return iss;
   });
 }
@@ -25009,16 +25009,16 @@ function flattenError(error51, mapper = (issue2) => issue2.message) {
 }
 function formatError(error51, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error52, path13 = []) => {
+  const processError = (error52, path16 = []) => {
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path13, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path16, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path13, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path16, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path13, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path16, ...issue2.path]);
       } else {
-        const fullpath = [...path13, ...issue2.path];
+        const fullpath = [...path16, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -25045,17 +25045,17 @@ function formatError(error51, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error51, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error52, path13 = []) => {
+  const processError = (error52, path16 = []) => {
     var _a3, _b;
     for (const issue2 of error52.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path13, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path16, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path13, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path16, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path13, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path16, ...issue2.path]);
       } else {
-        const fullpath = [...path13, ...issue2.path];
+        const fullpath = [...path16, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -25087,8 +25087,8 @@ function treeifyError(error51, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path13 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path13) {
+  const path16 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path16) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -38213,13 +38213,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path13 = ref.slice(1).split("/").filter(Boolean);
-  if (path13.length === 0) {
+  const path16 = ref.slice(1).split("/").filter(Boolean);
+  if (path16.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path13[0] === defsKey) {
-    const key = path13[1];
+  if (path16[0] === defsKey) {
+    const key = path16[1];
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -44111,8 +44111,8 @@ var StdioServerTransport = class {
 };
 
 // packages/orchestrator/src/commands/handlers.ts
-import { readFile as readFile4 } from "node:fs/promises";
-import path12 from "node:path";
+import { readFile as readFile6 } from "node:fs/promises";
+import path15 from "node:path";
 
 // packages/orchestrator/src/analysis/runAnalyzer.ts
 import { readdir, readFile, stat } from "node:fs/promises";
@@ -44171,17 +44171,26 @@ async function analyzeWorkflowRun(runDirectory, options2 = {}) {
   const logsBySession = await mapSessionLogsByThread(sessionLogs);
   const commandCounts = {};
   const subagentCounts = {};
+  const issues = [];
   let tokenTotals = emptyTokenTotals();
   let sawTokens = false;
   const analyzedChildren = [];
   for (const child of children) {
     const sessionId = typeof child.sessionId === "string" ? child.sessionId : typeof child.threadId === "string" ? child.threadId : null;
     const sessionLogPath = sessionId ? logsBySession.get(sessionId) ?? null : null;
+    const storyId = readString(child.storyId, "child.storyId");
+    const status2 = deriveChildStatus(state, child);
+    if (child.launchOnly === true && status2 === "supervision_lost") {
+      issues.push(`${storyId} has launch metadata but no settled child result`);
+    }
     analyzedChildren.push({
-      storyId: readString(child.storyId, "child.storyId"),
+      storyId,
       ok: child.ok === true,
       sessionId,
-      sessionLogPath
+      sessionLogPath,
+      status: status2,
+      expectedBranch: typeof child.expectedBranch === "string" ? child.expectedBranch : null,
+      expectedWorktreePath: typeof child.expectedWorktreePath === "string" ? child.expectedWorktreePath : null
     });
     if (!sessionLogPath) continue;
     const sessionMetrics = await analyzeSessionLog(sessionLogPath);
@@ -44192,10 +44201,13 @@ async function analyzeWorkflowRun(runDirectory, options2 = {}) {
       tokenTotals = addTokenTotals(tokenTotals, sessionMetrics.tokenTotals);
     }
   }
+  const status = readString(state.status, "state.status");
   return {
     runId: readString(state.runId, "state.runId"),
-    status: readString(state.status, "state.status"),
+    status,
+    derivedStatus: deriveRunStatus(status, analyzedChildren),
     blockedReason: typeof state.blockedReason === "string" ? state.blockedReason : null,
+    issues,
     children: analyzedChildren,
     commandCounts,
     subagentCounts,
@@ -44210,13 +44222,46 @@ async function readChildren(childrenDirectory, state) {
     if (isNodeError(error51) && error51.code === "ENOENT") return interactiveStateChildren(state);
     throw error51;
   }
-  const childFiles = names.filter((name) => name.endsWith(".json") && !name.endsWith(".raw.json") && !name.endsWith(".metrics.json")).sort();
-  if (childFiles.length === 0) return interactiveStateChildren(state);
-  return await Promise.all(childFiles.map((name) => readJsonObject(path.join(childrenDirectory, name))));
+  const childFiles = names.filter(
+    (name) => name.endsWith(".json") && !name.endsWith(".launch.json") && !name.endsWith(".raw.json") && !name.endsWith(".metrics.json")
+  ).sort();
+  const settled = await Promise.all(childFiles.map((name) => readJsonObject(path.join(childrenDirectory, name))));
+  const launches = await readLaunches(childrenDirectory, names);
+  if (settled.length === 0 && launches.length === 0) return interactiveStateChildren(state);
+  return mergeChildren(settled, launches);
 }
 function interactiveStateChildren(state) {
   if (state.command !== "implement-next" || !isRecord(state.interactive)) return [];
   return [state.interactive];
+}
+async function readLaunches(childrenDirectory, names) {
+  const launchFiles = names.filter((name) => name.endsWith(".launch.json")).sort();
+  return await Promise.all(launchFiles.map((name) => readJsonObject(path.join(childrenDirectory, name))));
+}
+function mergeChildren(settledChildren, launchRecords) {
+  const byStory = /* @__PURE__ */ new Map();
+  for (const launch of launchRecords) {
+    if (typeof launch.storyId === "string") byStory.set(launch.storyId, { ...launch, launchOnly: true });
+  }
+  for (const settled of settledChildren) {
+    if (typeof settled.storyId !== "string") continue;
+    const launch = byStory.get(settled.storyId);
+    byStory.set(settled.storyId, launch ? { ...launch, ...settled, launchOnly: false } : settled);
+  }
+  return [...byStory.values()].sort(
+    (a, b) => readString(a.storyId, "child.storyId").localeCompare(readString(b.storyId, "child.storyId"))
+  );
+}
+function deriveChildStatus(state, child) {
+  if (child.launchOnly === true && state.status === "running") return "supervision_lost";
+  if (typeof child.status === "string") return child.status;
+  return "settled";
+}
+function deriveRunStatus(status, children) {
+  if (status === "running" && children.some((child) => child.status === "supervision_lost")) {
+    return "supervision_lost";
+  }
+  return status;
 }
 async function findSessionLogs(roots) {
   const logs = [];
@@ -47464,9 +47509,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
    * @param {string} [path]
    * @return {(string|null|Command)}
    */
-  executableDir(path13) {
-    if (path13 === void 0) return this._executableDir;
-    this._executableDir = path13;
+  executableDir(path16) {
+    if (path16 === void 0) return this._executableDir;
+    this._executableDir = path16;
     return this;
   }
   /**
@@ -47770,7 +47815,8 @@ var ConfigSchema = external_exports.object({
     strategy: external_exports.enum(["worktree", "branch"]).default("worktree"),
     branchPattern: nonEmpty.default("{track}/{id-lc}-{slug}"),
     baseBranch: nonEmpty.default("main"),
-    commitOnBase: external_exports.enum(["forbid", "allow"]).default("forbid")
+    commitOnBase: external_exports.enum(["forbid", "allow"]).default("forbid"),
+    worktreeDir: nonEmpty.default(".worktrees")
   }).strict().prefault({}),
   pr: external_exports.object({
     create: external_exports.boolean().default(true),
@@ -47925,7 +47971,8 @@ function resolveCwdOnlyConfig(cwd = process.cwd()) {
       strategy: "worktree",
       branchPattern: "{track}/{id-lc}-{slug}",
       baseBranch: "main",
-      commitOnBase: "forbid"
+      commitOnBase: "forbid",
+      worktreeDir: ".worktrees"
     },
     pr: {
       create: true,
@@ -49177,7 +49224,7 @@ function buildCodexToolInput(config2, story, prompt = buildGenericPrompt(story, 
   if (childSession.sandbox) input.sandbox = childSession.sandbox;
   const workspaceRoot = childSession.cwdAbs;
   const gitAbs = path7.join(workspaceRoot, ".git");
-  const worktreesAbs = path7.join(workspaceRoot, ".worktrees");
+  const worktreesAbs = path7.join(workspaceRoot, config2.git.worktreeDir);
   const writableRootsEntry = {
     sandbox_workspace_write: { writable_roots: [gitAbs, worktreesAbs] }
   };
@@ -49209,8 +49256,11 @@ function buildGenericPrompt(story, policy) {
     "Git policy (from .workflow/config.yaml - follow exactly):",
     `- Isolation strategy: ${git.strategy}`,
     `- Create/use branch: ${branchPattern} (base: ${git.baseBranch})`,
+    git.strategy === "worktree" ? `- Worktree directory: ${git.worktreeDir} under the workspace root.` : null,
     `- ${commitOnBase}`,
     "- You MUST create the isolated branch/worktree, commit your work there, and confirm the commit exists BEFORE reporting the story done. An uncommitted tracker edit is not acceptance.",
+    "- Do not create story worktrees outside the workspace root unless the repo config explicitly says so.",
+    "- Do not symlink node_modules from another checkout. Use the package manager/store normally, and stop for approval if dependencies require network or privileged setup.",
     "",
     "PR policy (from .workflow/config.yaml - follow exactly):",
     `- Create PR: ${pr.create ? "yes" : "no"}.`,
@@ -49230,6 +49280,8 @@ function buildGenericPrompt(story, policy) {
     `- Worker subagents may write files: ${implement.subagents.allowWorkers ? "yes" : "no"}.`,
     "- Subagents are for bounded sidecar analysis/review; do not delegate blocking critical-path implementation.",
     "- Workers require disjoint write scopes and explicit permission.",
+    "- If pre-PR review mode auto downgrades to inline, record/report the downgrade and use the full review checklist.",
+    "- If pre-PR review mode subagent cannot spawn a reviewer, fail closed and report the blocker.",
     "",
     "Instructions:",
     "1. Read repository instructions first, including AGENTS.md when present.",
@@ -49480,7 +49532,7 @@ function format(level, message, fields) {
 }
 
 // packages/orchestrator/src/runner/WorkflowRunner.ts
-import path9 from "node:path";
+import path14 from "node:path";
 
 // node_modules/.pnpm/yocto-queue@1.2.2/node_modules/yocto-queue/index.js
 var Node = class {
@@ -49648,511 +49700,15 @@ function isCompleteStatus(status, completeStatuses) {
   return status !== void 0 && completeStatuses.includes(status);
 }
 
-// packages/orchestrator/src/runner/CompletionGate.ts
-var CompletionGate = class {
-  constructor(deps) {
-    this.deps = deps;
-  }
-  deps;
-  async evaluate(settled, stories) {
-    const returnedStory = stories.find((entry) => entry.id === settled.storyId) ?? null;
-    if (!returnedStory) {
-      return {
-        complete: false,
-        returnedStory,
-        reason: `${settled.storyId} returned but story source no longer contains it`
-      };
-    }
-    if (!isCompleteStatus(returnedStory.status, this.deps.statuses.complete)) {
-      return {
-        complete: false,
-        returnedStory,
-        reason: `${settled.storyId} returned but status is ${returnedStory.status}`
-      };
-    }
-    let commitEvidence;
-    try {
-      commitEvidence = await this.deps.gitInspector.inspectStory({
-        story: returnedStory,
-        git: this.deps.git,
-        cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
-        baseShaAtLaunch: settled.baseShaAtLaunch
-      });
-    } catch (error51) {
-      const message = error51 instanceof Error ? error51.message : String(error51);
-      return { complete: false, returnedStory, reason: `inspect-failed: ${message}` };
-    }
-    const dirtyBlocks = this.deps.git.strategy !== "worktree" && commitEvidence.uncommittedChanges;
-    if (!commitEvidence.committed || dirtyBlocks) {
-      return { complete: false, returnedStory, reason: "complete-but-uncommitted", commitEvidence };
-    }
-    if (this.deps.git.commitOnBase === "forbid" && commitEvidence.isBaseBranch) {
-      return { complete: false, returnedStory, reason: "complete-on-forbidden-base", commitEvidence };
-    }
-    return { complete: true, returnedStory, commitEvidence };
-  }
-};
-function invocationCwd(settled) {
-  const cwd = settled.invocation?.cwd;
-  return typeof cwd === "string" && cwd.length > 0 ? cwd : null;
-}
-
-// packages/orchestrator/src/runner/MetricsCollector.ts
-var MetricsCollector = class {
-  constructor(clock) {
-    this.clock = clock;
-  }
-  clock;
-  childMetrics = /* @__PURE__ */ new Map();
-  observedMetrics = {};
-  start(storyId) {
-    const startedAt = this.clock.now();
-    this.childMetrics.set(storyId, { startedAt });
-    return startedAt;
-  }
-  complete(storyId) {
-    const completedAt = this.clock.now();
-    const existing = this.childMetrics.get(storyId);
-    if (existing) {
-      this.childMetrics.set(storyId, {
-        ...existing,
-        completedAt,
-        durationMs: Date.parse(completedAt) - Date.parse(existing.startedAt)
-      });
-    }
-    return completedAt;
-  }
-  updateChildMetric(storyId, metrics) {
-    this.observedMetrics[storyId] = metrics;
-  }
-  childTiming(storyId) {
-    return this.childMetrics.get(storyId);
-  }
-  observedChildMetrics() {
-    return this.observedMetrics;
-  }
-  buildRunMetrics(input) {
-    const completedChildren = [...this.childMetrics.entries()].flatMap(
-      ([storyId, metric]) => metric.completedAt && metric.durationMs !== void 0 ? [{ storyId, startedAt: metric.startedAt, completedAt: metric.completedAt, durationMs: metric.durationMs }] : []
-    ).sort((left, right) => left.startedAt.localeCompare(right.startedAt));
-    return {
-      elapsedMs: input.completedAt ? Date.parse(input.completedAt) - Date.parse(input.startedAt) : 0,
-      launchedCount: this.childMetrics.size,
-      completedCount: input.completedCount,
-      blockedCount: input.status === "blocked" ? 1 : 0,
-      blockedReason: input.blockedReason,
-      criticalPath: completedChildren
-    };
-  }
-};
-
-// packages/orchestrator/src/runner/RunJournal.ts
-import path8 from "node:path";
-
-// packages/orchestrator/src/metrics/liveMetrics.ts
-function buildLiveMetricsSnapshot(input) {
-  return {
-    runId: input.runId,
-    status: input.status,
-    elapsedMs: Date.parse(input.now) - Date.parse(input.startedAt),
-    maxParallel: input.maxParallel,
-    active: input.active,
-    completedCount: input.completed.length,
-    blockedStoryId: input.blockedStoryId,
-    blockedReason: input.blockedReason,
-    children: input.childMetrics,
-    aggregate: mergeChildMetrics(Object.values(input.childMetrics))
-  };
-}
-
-// packages/orchestrator/src/runner/RunJournal.ts
-var RunJournal = class {
-  constructor(dependencies) {
-    this.dependencies = dependencies;
-  }
-  dependencies;
-  async writeRunMetadata(state) {
-    await this.dependencies.artifactStore.writeJson("run.json", {
-      runId: state.runId,
-      command: state.command,
-      workspaceRoot: state.workspaceRoot,
-      artifactDir: state.artifactDir,
-      startedAt: state.startedAt
-    });
-  }
-  async writeConfigSnapshot(config2) {
-    await this.dependencies.artifactStore.writeJson("config.resolved.json", config2);
-  }
-  async writeState(state) {
-    await this.dependencies.artifactStore.writeJson("state.json", state);
-  }
-  async writeLiveMetrics(state, childMetrics) {
-    await this.dependencies.artifactStore.writeJson(
-      "metrics.live.json",
-      buildLiveMetricsSnapshot({
-        runId: state.runId,
-        status: state.status,
-        startedAt: state.startedAt,
-        now: this.dependencies.clock.now(),
-        maxParallel: state.maxParallel,
-        active: state.active,
-        completed: state.completed,
-        blockedStoryId: state.blockedStoryId,
-        blockedReason: state.blockedReason,
-        childMetrics
-      })
-    );
-  }
-  async writeStorySnapshot(label, stories) {
-    const fileName = `${safeName(label)}.json`;
-    await this.dependencies.artifactStore.writeJson(path8.join("stories", fileName), stories);
-    if (label === "initial") {
-      await this.dependencies.artifactStore.writeJson("stories.initial.json", stories);
-    }
-  }
-  async recordSettledChild(metrics, settled, returnedStory, returnedComplete) {
-    const childMetric = metrics.childTiming(settled.storyId);
-    const returnedStatus = returnedStory?.status ?? null;
-    const normalizedReturnedComplete = returnedComplete ?? null;
-    const augmentedSettled = {
-      ...settled,
-      startedAt: childMetric?.startedAt,
-      durationMs: childMetric?.durationMs,
-      returnedStatus,
-      returnedComplete: normalizedReturnedComplete
-    };
-    await this.dependencies.artifactStore.writeJson(`children/${safeName(settled.storyId)}.json`, augmentedSettled);
-    if (settled.rawResult !== void 0) {
-      await this.dependencies.artifactStore.writeJson(
-        `children/${safeName(settled.storyId)}.raw.json`,
-        settled.rawResult
-      );
-    }
-    return {
-      storyId: settled.storyId,
-      ok: settled.ok,
-      sessionId: settled.sessionId,
-      completedAt: settled.completedAt,
-      startedAt: childMetric?.startedAt,
-      durationMs: childMetric?.durationMs,
-      returnedStatus,
-      returnedComplete: normalizedReturnedComplete
-    };
-  }
-  async record(type, fields = {}) {
-    await this.dependencies.artifactStore.appendEvent({
-      ts: this.dependencies.clock.now(),
-      type,
-      ...fields
-    });
-  }
-};
-
-// packages/orchestrator/src/runner/WorkflowRunner.ts
-var defaultChildTimer = {
-  setTimeout: (callback2, ms) => globalThis.setTimeout(callback2, ms),
-  clearTimeout: (handle2) => globalThis.clearTimeout(handle2),
-  setInterval: (callback2, ms) => globalThis.setInterval(callback2, ms),
-  clearInterval: (handle2) => globalThis.clearInterval(handle2)
-};
-var WorkflowRunner = class {
-  constructor(dependencies) {
-    this.dependencies = dependencies;
-    this.metrics = new MetricsCollector(dependencies.clock);
-    this.journal = new RunJournal({ artifactStore: dependencies.artifactStore, clock: dependencies.clock });
-    this.completionGate = new CompletionGate({
-      gitInspector: dependencies.gitInspector,
-      statuses: dependencies.config.statuses,
-      git: dependencies.config.git,
-      childCwdAbs: dependencies.config.codex.childSession.cwdAbs
-    });
-    this.state = {
-      runId: dependencies.runId,
-      command: dependencies.command,
-      workspaceRoot: dependencies.config.workspace.rootAbs,
-      artifactDir: path9.join(dependencies.config.artifacts.runsDirAbs, dependencies.runId),
-      status: "running",
-      maxParallel: dependencies.config.orchestrator.maxParallel,
-      startedAt: dependencies.clock.now(),
-      active: [],
-      completed: [],
-      blockedStoryId: null,
-      blockedReason: null
-    };
-  }
-  dependencies;
-  state;
-  metrics;
-  journal;
-  completionGate;
-  async listEligible() {
-    const stories = await this.dependencies.storySource.listStories();
-    return stories.filter((story) => story.eligible);
-  }
-  async dryRunEligible() {
-    await this.journal.writeRunMetadata(this.state);
-    await this.journal.writeConfigSnapshot(this.dependencies.config);
-    await this.journal.record("run-started", { command: "run-eligible", dryRun: true });
-    const stories = await this.dependencies.storySource.listStories();
-    await this.journal.writeStorySnapshot("initial", stories);
-    const dispatchable = selectDispatchableStories(stories, {
-      maxParallel: this.dependencies.config.orchestrator.maxParallel
-    });
-    this.state = { ...this.state, status: "dry-run", dryRunDispatch: dispatchable.map((story) => story.id) };
-    await this.writeState();
-    await this.writeLiveMetrics();
-    return { ...this.state };
-  }
-  async dryRunStory(storyId, options2 = {}) {
-    await this.journal.writeRunMetadata(this.state);
-    await this.journal.writeConfigSnapshot(this.dependencies.config);
-    await this.journal.record("run-started", {
-      command: "run-story",
-      storyId,
-      dryRun: true,
-      force: options2.force === true
-    });
-    const stories = await this.dependencies.storySource.listStories();
-    await this.journal.writeStorySnapshot("initial", stories);
-    const story = stories.find((entry) => entry.id === storyId);
-    if (!story) {
-      this.blockOnce(storyId, `story ${storyId} was not found`);
-      return await this.finish();
-    }
-    if (!story.eligible && options2.force !== true) {
-      this.blockOnce(story.id, story.blockedReason ?? `story ${story.id} is not eligible`);
-      return await this.finish();
-    }
-    this.state = { ...this.state, status: "dry-run", dryRunDispatch: [story.id] };
-    await this.writeState();
-    await this.writeLiveMetrics();
-    return { ...this.state };
-  }
-  async runStory(storyId, options2 = {}) {
-    await this.journal.writeRunMetadata(this.state);
-    await this.journal.writeConfigSnapshot(this.dependencies.config);
-    await this.journal.record("run-started", { command: "run-story", storyId, force: options2.force === true });
-    const stories = await this.dependencies.storySource.listStories();
-    await this.journal.writeStorySnapshot("initial", stories);
-    const story = stories.find((entry) => entry.id === storyId);
-    if (!story) {
-      this.blockOnce(storyId, `story ${storyId} was not found`);
-      return await this.finish();
-    }
-    if (!story.eligible && options2.force !== true) {
-      this.blockOnce(story.id, story.blockedReason ?? `story ${story.id} is not eligible`);
-      return await this.finish();
-    }
-    const settled = await this.launchChild(story);
-    if (!settled.ok) {
-      await this.recordSettledChild(settled);
-      await this.journal.record("child-error", { storyId: settled.storyId, error: settled.error });
-      this.blockOnce(story.id, settled.error ?? "child session failed");
-      return await this.finish();
-    }
-    const evaluation = await this.processSettled(settled);
-    if (!evaluation.complete) {
-      this.blockOnce(settled.storyId, evaluation.reason);
-      await this.journal.record("story-not-complete", {
-        storyId: settled.storyId,
-        status: evaluation.returnedStory?.status ?? null
-      });
-      return await this.finish();
-    }
-    await this.journal.record("child-complete", { storyId: settled.storyId, sessionId: settled.sessionId });
-    return await this.finish();
-  }
-  async runEligible() {
-    await this.journal.writeRunMetadata(this.state);
-    await this.journal.writeConfigSnapshot(this.dependencies.config);
-    await this.journal.record("run-started", {
-      command: "run-eligible",
-      maxParallel: this.dependencies.config.orchestrator.maxParallel
-    });
-    let stories = await this.dependencies.storySource.listStories();
-    await this.journal.writeStorySnapshot("initial", stories);
-    const active = /* @__PURE__ */ new Map();
-    const limit = pLimit(this.dependencies.config.orchestrator.maxParallel);
-    let stopLaunching = false;
-    const launchAvailable = async () => {
-      if (stopLaunching) return;
-      const dispatchable = selectDispatchableStories(stories, {
-        maxParallel: this.dependencies.config.orchestrator.maxParallel,
-        activeIds: new Set(active.keys())
-      });
-      const launched = [];
-      for (const story of dispatchable) {
-        await this.recordChildLaunch(story);
-        launched.push(story);
-      }
-      for (const story of launched) {
-        active.set(
-          story.id,
-          limit(() => this.executeChild(story))
-        );
-      }
-    };
-    await launchAvailable();
-    if (active.size === 0) return await this.finish();
-    while (active.size > 0) {
-      const settled = await Promise.race(active.values());
-      active.delete(settled.storyId);
-      if (!settled.ok) {
-        await this.recordSettledChild(settled);
-        await this.journal.record("child-error", { storyId: settled.storyId, error: settled.error });
-        this.blockOnce(settled.storyId, settled.error ?? "child session failed");
-        stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
-        await this.writeState();
-        await this.writeLiveMetrics();
-        await launchAvailable();
-        continue;
-      }
-      stories = await this.dependencies.storySource.listStories();
-      const evaluation = await this.processSettled(settled, stories);
-      if (!evaluation.complete) {
-        this.blockOnce(settled.storyId, evaluation.reason);
-        await this.journal.record("story-not-complete", {
-          storyId: settled.storyId,
-          status: evaluation.returnedStory?.status ?? null
-        });
-        stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
-        await launchAvailable();
-        continue;
-      }
-      await this.journal.record("child-complete", { storyId: settled.storyId, sessionId: settled.sessionId });
-      await launchAvailable();
-    }
-    return await this.finish();
-  }
-  async launchChild(story) {
-    await this.recordChildLaunch(story);
-    return await this.executeChild(story);
-  }
-  async recordChildLaunch(story) {
-    this.metrics.start(story.id);
-    this.state = { ...this.state, active: [...this.state.active, story.id] };
-    await this.journal.record("child-launched", { storyId: story.id });
-    await this.writeState();
-    await this.writeLiveMetrics();
-  }
-  async executeChild(story) {
-    const timeoutMs = this.dependencies.config.orchestrator.childTimeoutMs;
-    const timer = this.dependencies.childTimer ?? defaultChildTimer;
-    const startedAtMs = this.dependencies.clock.nowMs();
-    const childCwd = this.dependencies.config.codex.childSession.cwdAbs;
-    const baseShaAtLaunch = await this.dependencies.gitInspector.snapshotBaseSha?.({
-      git: this.dependencies.config.git,
-      cwdAbs: childCwd
-    }) ?? null;
-    let timeoutHandle;
-    let heartbeatHandle;
-    try {
-      const run = this.dependencies.storyRunner.runStory({
-        story,
-        prompt: buildGenericPrompt(story, this.dependencies.config),
-        cwd: childCwd,
-        metadata: { runId: this.state.runId }
-      });
-      const timeout = new Promise((_, reject) => {
-        timeoutHandle = timer.setTimeout(() => reject(new Error("child-timeout")), timeoutMs);
-      });
-      heartbeatHandle = timer.setInterval(() => {
-        void this.journal.record("child-heartbeat", {
-          storyId: story.id,
-          elapsedMs: this.dependencies.clock.nowMs() - startedAtMs
-        });
-      }, heartbeatIntervalMs(timeoutMs));
-      const result = await Promise.race([run, timeout]);
-      const completedAt = this.metrics.complete(story.id);
-      this.state = { ...this.state, active: this.state.active.filter((entry) => entry !== story.id) };
-      if (result.metrics) {
-        this.metrics.updateChildMetric(story.id, result.metrics);
-        await this.dependencies.artifactStore.writeJson(`children/${safeName(story.id)}.metrics.json`, result.metrics);
-      }
-      return {
-        storyId: story.id,
-        ok: true,
-        sessionId: result.sessionId,
-        content: result.content,
-        rawResult: result.rawResult,
-        invocation: result.invocation,
-        completedAt,
-        metrics: result.metrics,
-        baseShaAtLaunch
-      };
-    } catch (error51) {
-      const completedAt = this.metrics.complete(story.id);
-      this.state = { ...this.state, active: this.state.active.filter((entry) => entry !== story.id) };
-      return {
-        storyId: story.id,
-        ok: false,
-        sessionId: null,
-        error: error51 instanceof Error ? error51.message : String(error51),
-        completedAt,
-        baseShaAtLaunch
-      };
-    } finally {
-      if (timeoutHandle !== void 0) timer.clearTimeout(timeoutHandle);
-      if (heartbeatHandle !== void 0) timer.clearInterval(heartbeatHandle);
-    }
-  }
-  async processSettled(settled, stories) {
-    const returnedStories = stories ?? await this.dependencies.storySource.listStories();
-    await this.journal.writeStorySnapshot(`after-${settled.storyId}`, returnedStories);
-    const evaluation = await this.completionGate.evaluate(settled, returnedStories);
-    const settledWithEvidence = evaluation.commitEvidence ? { ...settled, commitEvidence: evaluation.commitEvidence } : settled;
-    await this.recordSettledChild(settledWithEvidence, evaluation.returnedStory, evaluation.complete);
-    return evaluation;
-  }
-  async recordSettledChild(settled, returnedStory, returnedComplete) {
-    const entry = await this.journal.recordSettledChild(this.metrics, settled, returnedStory, returnedComplete);
-    this.state = { ...this.state, completed: [...this.state.completed, entry] };
-    await this.writeState();
-    await this.writeLiveMetrics();
-  }
-  blockOnce(storyId, reason) {
-    if (this.state.status === "blocked") return;
-    this.state = { ...this.state, status: "blocked", blockedStoryId: storyId, blockedReason: reason };
-    this.dependencies.logger.warn("run blocked", { storyId, reason });
-  }
-  async finish() {
-    if (this.state.status !== "blocked" && this.state.status !== "dry-run") {
-      this.state = { ...this.state, status: "complete" };
-      await this.journal.record("run-complete");
-    } else if (this.state.status === "blocked") {
-      await this.journal.record("run-blocked", {
-        blockedStoryId: this.state.blockedStoryId,
-        blockedReason: this.state.blockedReason
-      });
-    }
-    const completedAt = this.dependencies.clock.now();
-    const runMetrics = this.metrics.buildRunMetrics({
-      startedAt: this.state.startedAt,
-      completedAt,
-      completedCount: this.state.completed.length,
-      status: this.state.status,
-      blockedReason: this.state.blockedReason
-    });
-    this.state = { ...this.state, completedAt, metrics: runMetrics };
-    await this.writeState();
-    await this.writeLiveMetrics();
-    return { ...this.state };
-  }
-  async writeState() {
-    await this.journal.writeState(this.state);
-  }
-  async writeLiveMetrics() {
-    await this.journal.writeLiveMetrics(this.state, this.metrics.observedChildMetrics());
-  }
-};
-function heartbeatIntervalMs(timeoutMs) {
-  return Math.max(1, Math.floor(timeoutMs / 4));
-}
+// packages/orchestrator/src/tracks/trackerClaimer.ts
+import { constants } from "node:fs";
+import { access, readFile as readFile4, rename, writeFile as writeFile2 } from "node:fs/promises";
+import path10 from "node:path";
 
 // packages/orchestrator/src/tracks/markdownTracker.ts
 var import_gray_matter = __toESM(require_gray_matter(), 1);
 import { readFile as readFile3 } from "node:fs/promises";
-import path11 from "node:path";
+import path9 from "node:path";
 
 // node_modules/.pnpm/mdast-util-to-string@4.0.0/node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
@@ -59216,13 +58772,13 @@ var VFile = class {
    * @returns {undefined}
    *   Nothing.
    */
-  set path(path13) {
-    if (isUrl(path13)) {
-      path13 = fileURLToPath(path13);
+  set path(path16) {
+    if (isUrl(path16)) {
+      path16 = fileURLToPath(path16);
     }
-    assertNonEmpty(path13, "path");
-    if (this.path !== path13) {
-      this.history.push(path13);
+    assertNonEmpty(path16, "path");
+    if (this.path !== path16) {
+      this.history.push(path16);
     }
   }
   /**
@@ -59489,8 +59045,8 @@ function assertNonEmpty(part, name) {
     throw new Error("`" + name + "` cannot be empty");
   }
 }
-function assertPath(path13, name) {
-  if (!path13) {
+function assertPath(path16, name) {
+  if (!path16) {
     throw new Error("Setting `" + name + "` requires `path` to be set too");
   }
 }
@@ -60374,7 +59930,7 @@ function transformGfmAutolinkLiterals(tree) {
     { ignore: ["link", "linkReference"] }
   );
 }
-function findUrl(_, protocol, domain3, path13, match) {
+function findUrl(_, protocol, domain3, path16, match) {
   let prefix = "";
   if (!previous2(match)) {
     return false;
@@ -60387,7 +59943,7 @@ function findUrl(_, protocol, domain3, path13, match) {
   if (!isCorrectDomain(domain3)) {
     return false;
   }
-  const parts = splitUrl(domain3 + path13);
+  const parts = splitUrl(domain3 + path16);
   if (!parts[0]) return false;
   const result = {
     type: "link",
@@ -61009,7 +60565,7 @@ var domain2 = {
   tokenize: tokenizeDomain,
   partial: true
 };
-var path10 = {
+var path8 = {
   tokenize: tokenizePath,
   partial: true
 };
@@ -61115,7 +60671,7 @@ function tokenizeWwwAutolink(effects, ok3, nok) {
     }
     effects.enter("literalAutolink");
     effects.enter("literalAutolinkWww");
-    return effects.check(wwwPrefix, effects.attempt(domain2, effects.attempt(path10, wwwAfter), nok), nok)(code3);
+    return effects.check(wwwPrefix, effects.attempt(domain2, effects.attempt(path8, wwwAfter), nok), nok)(code3);
   }
   function wwwAfter(code3) {
     effects.exit("literalAutolinkWww");
@@ -61165,7 +60721,7 @@ function tokenizeProtocolAutolink(effects, ok3, nok) {
     return nok(code3);
   }
   function afterProtocol(code3) {
-    return code3 === null || asciiControl(code3) || markdownLineEndingOrSpace(code3) || unicodeWhitespace(code3) || unicodePunctuation(code3) ? nok(code3) : effects.attempt(domain2, effects.attempt(path10, protocolAfter), nok)(code3);
+    return code3 === null || asciiControl(code3) || markdownLineEndingOrSpace(code3) || unicodeWhitespace(code3) || unicodePunctuation(code3) ? nok(code3) : effects.attempt(domain2, effects.attempt(path8, protocolAfter), nok)(code3);
   }
   function protocolAfter(code3) {
     effects.exit("literalAutolinkHttp");
@@ -62315,27 +61871,27 @@ import { createRequire } from "module";
 import { basename, dirname, normalize, relative, resolve, sep } from "path";
 import * as nativeFs from "fs";
 var __require2 = /* @__PURE__ */ createRequire(import.meta.url);
-function cleanPath(path13) {
-  let normalized = normalize(path13);
+function cleanPath(path16) {
+  let normalized = normalize(path16);
   if (normalized.length > 1 && normalized[normalized.length - 1] === sep) normalized = normalized.substring(0, normalized.length - 1);
   return normalized;
 }
 var SLASHES_REGEX = /[\\/]/g;
-function convertSlashes(path13, separator) {
-  return path13.replace(SLASHES_REGEX, separator);
+function convertSlashes(path16, separator) {
+  return path16.replace(SLASHES_REGEX, separator);
 }
 var WINDOWS_ROOT_DIR_REGEX = /^[a-z]:[\\/]$/i;
-function isRootDirectory(path13) {
-  return path13 === "/" || WINDOWS_ROOT_DIR_REGEX.test(path13);
+function isRootDirectory(path16) {
+  return path16 === "/" || WINDOWS_ROOT_DIR_REGEX.test(path16);
 }
-function normalizePath(path13, options2) {
+function normalizePath(path16, options2) {
   const { resolvePaths, normalizePath: normalizePath$1, pathSeparator } = options2;
-  const pathNeedsCleaning = process.platform === "win32" && path13.includes("/") || path13.startsWith(".");
-  if (resolvePaths) path13 = resolve(path13);
-  if (normalizePath$1 || pathNeedsCleaning) path13 = cleanPath(path13);
-  if (path13 === ".") return "";
-  const needsSeperator = path13[path13.length - 1] !== pathSeparator;
-  return convertSlashes(needsSeperator ? path13 + pathSeparator : path13, pathSeparator);
+  const pathNeedsCleaning = process.platform === "win32" && path16.includes("/") || path16.startsWith(".");
+  if (resolvePaths) path16 = resolve(path16);
+  if (normalizePath$1 || pathNeedsCleaning) path16 = cleanPath(path16);
+  if (path16 === ".") return "";
+  const needsSeperator = path16[path16.length - 1] !== pathSeparator;
+  return convertSlashes(needsSeperator ? path16 + pathSeparator : path16, pathSeparator);
 }
 function joinPathWithBasePath(filename, directoryPath) {
   return directoryPath + filename;
@@ -62372,8 +61928,8 @@ var pushDirectory = (directoryPath, paths) => {
   paths.push(directoryPath || ".");
 };
 var pushDirectoryFilter = (directoryPath, paths, filters) => {
-  const path13 = directoryPath || ".";
-  if (filters.every((filter) => filter(path13, true))) paths.push(path13);
+  const path16 = directoryPath || ".";
+  if (filters.every((filter) => filter(path16, true))) paths.push(path16);
 };
 var empty$2 = () => {
 };
@@ -62425,26 +61981,26 @@ var empty2 = () => {
 function build$3(options2) {
   return options2.group ? groupFiles : empty2;
 }
-var resolveSymlinksAsync = function(path13, state, callback$1) {
+var resolveSymlinksAsync = function(path16, state, callback$1) {
   const { queue, fs: fs2, options: { suppressErrors } } = state;
   queue.enqueue();
-  fs2.realpath(path13, (error51, resolvedPath) => {
+  fs2.realpath(path16, (error51, resolvedPath) => {
     if (error51) return queue.dequeue(suppressErrors ? null : error51, state);
     fs2.stat(resolvedPath, (error$1, stat3) => {
       if (error$1) return queue.dequeue(suppressErrors ? null : error$1, state);
-      if (stat3.isDirectory() && isRecursive(path13, resolvedPath, state)) return queue.dequeue(null, state);
+      if (stat3.isDirectory() && isRecursive(path16, resolvedPath, state)) return queue.dequeue(null, state);
       callback$1(stat3, resolvedPath);
       queue.dequeue(null, state);
     });
   });
 };
-var resolveSymlinks = function(path13, state, callback$1) {
+var resolveSymlinks = function(path16, state, callback$1) {
   const { queue, fs: fs2, options: { suppressErrors } } = state;
   queue.enqueue();
   try {
-    const resolvedPath = fs2.realpathSync(path13);
+    const resolvedPath = fs2.realpathSync(path16);
     const stat3 = fs2.statSync(resolvedPath);
-    if (stat3.isDirectory() && isRecursive(path13, resolvedPath, state)) return;
+    if (stat3.isDirectory() && isRecursive(path16, resolvedPath, state)) return;
     callback$1(stat3, resolvedPath);
   } catch (e) {
     if (!suppressErrors) throw e;
@@ -62454,9 +62010,9 @@ function build$2(options2, isSynchronous) {
   if (!options2.resolveSymlinks || options2.excludeSymlinks) return null;
   return isSynchronous ? resolveSymlinks : resolveSymlinksAsync;
 }
-function isRecursive(path13, resolved, state) {
+function isRecursive(path16, resolved, state) {
   if (state.options.useRealPaths) return isRecursiveUsingRealPaths(resolved, state);
-  let parent = dirname(path13);
+  let parent = dirname(path16);
   let depth = 1;
   while (parent !== state.root && depth < 2) {
     const resolvedPath = state.symlinks.get(parent);
@@ -62464,7 +62020,7 @@ function isRecursive(path13, resolved, state) {
     if (isSameRoot) depth++;
     else parent = dirname(parent);
   }
-  state.symlinks.set(path13, resolved);
+  state.symlinks.set(path16, resolved);
   return depth > 1;
 }
 function isRecursiveUsingRealPaths(resolved, state) {
@@ -62636,19 +62192,19 @@ var Walker = class {
         const filename = this.joinPath(entry.name, directoryPath);
         this.pushFile(filename, files, this.state.counts, filters);
       } else if (entry.isDirectory()) {
-        let path13 = joinDirectoryPath(entry.name, directoryPath, this.state.options.pathSeparator);
-        if (exclude && exclude(entry.name, path13)) continue;
-        this.pushDirectory(path13, paths, filters);
-        this.walkDirectory(this.state, path13, path13, depth - 1, this.walk);
+        let path16 = joinDirectoryPath(entry.name, directoryPath, this.state.options.pathSeparator);
+        if (exclude && exclude(entry.name, path16)) continue;
+        this.pushDirectory(path16, paths, filters);
+        this.walkDirectory(this.state, path16, path16, depth - 1, this.walk);
       } else if (this.resolveSymlink && entry.isSymbolicLink()) {
-        let path13 = joinPathWithBasePath(entry.name, directoryPath);
-        this.resolveSymlink(path13, this.state, (stat3, resolvedPath) => {
+        let path16 = joinPathWithBasePath(entry.name, directoryPath);
+        this.resolveSymlink(path16, this.state, (stat3, resolvedPath) => {
           if (stat3.isDirectory()) {
             resolvedPath = normalizePath(resolvedPath, this.state.options);
-            if (exclude && exclude(entry.name, useRealPaths ? resolvedPath : path13 + pathSeparator)) return;
-            this.walkDirectory(this.state, resolvedPath, useRealPaths ? resolvedPath : path13 + pathSeparator, depth - 1, this.walk);
+            if (exclude && exclude(entry.name, useRealPaths ? resolvedPath : path16 + pathSeparator)) return;
+            this.walkDirectory(this.state, resolvedPath, useRealPaths ? resolvedPath : path16 + pathSeparator, depth - 1, this.walk);
           } else {
-            resolvedPath = useRealPaths ? resolvedPath : path13;
+            resolvedPath = useRealPaths ? resolvedPath : path16;
             const filename = basename(resolvedPath);
             const directoryPath$1 = normalizePath(dirname(resolvedPath), this.state.options);
             resolvedPath = this.joinPath(filename, directoryPath$1);
@@ -62814,7 +62370,7 @@ var Builder = class {
       isMatch = globFn(patterns, ...options2);
       this.globCache[patterns.join("\0")] = isMatch;
     }
-    this.options.filters.push((path13) => isMatch(path13));
+    this.options.filters.push((path16) => isMatch(path16));
     return this;
   }
 };
@@ -62889,19 +62445,19 @@ function buildRelative(cwd, root2) {
     return p[p.length - 1] === "/" && result !== "" ? `${result}/` : result || ".";
   };
 }
-function ensureNonDriveRelativePath(path13) {
-  return path13.replace(DRIVE_RELATIVE_PATH, (match) => `${match}/`);
+function ensureNonDriveRelativePath(path16) {
+  return path16.replace(DRIVE_RELATIVE_PATH, (match) => `${match}/`);
 }
 var splitPatternOptions = { parts: true };
-function splitPattern(path13) {
+function splitPattern(path16) {
   var _result$parts;
-  const result = import_picomatch.default.scan(path13, splitPatternOptions);
-  return ((_result$parts = result.parts) === null || _result$parts === void 0 ? void 0 : _result$parts.length) ? result.parts : [path13];
+  const result = import_picomatch.default.scan(path16, splitPatternOptions);
+  return ((_result$parts = result.parts) === null || _result$parts === void 0 ? void 0 : _result$parts.length) ? result.parts : [path16];
 }
 var POSIX_UNESCAPED_GLOB_SYMBOLS = /(?<!\\)([()[\]{}*?|]|^!|[!+@](?=\()|\\(?![()[\]{}!*+?@|]))/g;
 var WIN32_UNESCAPED_GLOB_SYMBOLS = /(?<!\\)([()[\]{}]|^!|[!+@](?=\())/g;
-var escapePosixPath = (path13) => path13.replace(POSIX_UNESCAPED_GLOB_SYMBOLS, "\\$&");
-var escapeWin32Path = (path13) => path13.replace(WIN32_UNESCAPED_GLOB_SYMBOLS, "\\$&");
+var escapePosixPath = (path16) => path16.replace(POSIX_UNESCAPED_GLOB_SYMBOLS, "\\$&");
+var escapeWin32Path = (path16) => path16.replace(WIN32_UNESCAPED_GLOB_SYMBOLS, "\\$&");
 var escapePath = isWin ? escapeWin32Path : escapePosixPath;
 function isDynamicPattern(pattern, options2) {
   if ((options2 === null || options2 === void 0 ? void 0 : options2.caseSensitiveMatch) === false) return true;
@@ -63008,13 +62564,13 @@ function buildCrawler(options2, patterns) {
   if (options2.deep !== void 0) maxDepth = Math.round(options2.deep - props.depthOffset);
   const crawler = new Builder({
     filters: [debug ? (p, isDirectory) => {
-      const path13 = format2(p, isDirectory);
-      const matches = matcher(path13) && !ignore(path13);
-      if (matches) log(`matched ${path13}`);
+      const path16 = format2(p, isDirectory);
+      const matches = matcher(path16) && !ignore(path16);
+      if (matches) log(`matched ${path16}`);
       return matches;
     } : (p, isDirectory) => {
-      const path13 = format2(p, isDirectory);
-      return matcher(path13) && !ignore(path13);
+      const path16 = format2(p, isDirectory);
+      return matcher(path16) && !ignore(path16);
     }],
     exclude: debug ? (_, p) => {
       const skipped = excludePredicate(_, p);
@@ -63102,8 +62658,8 @@ var EmptyStorySource = class {
   }
 };
 async function discoverMarkdownTracks(options2) {
-  const tracksRoot = path11.resolve(options2.workspaceRoot, options2.tracksDir);
-  const archiveRoot = path11.resolve(options2.workspaceRoot, options2.archiveDir);
+  const tracksRoot = path9.resolve(options2.workspaceRoot, options2.tracksDir);
+  const archiveRoot = path9.resolve(options2.workspaceRoot, options2.archiveDir);
   const readmes = await findReadmes(tracksRoot);
   const tracks = [];
   for (const readmePath of readmes) {
@@ -63115,7 +62671,7 @@ async function discoverMarkdownTracks(options2) {
     if (frontmatter.status === "archived") {
       continue;
     }
-    const relativePath = slash(path11.relative(options2.workspaceRoot, readmePath));
+    const relativePath = slash(path9.relative(options2.workspaceRoot, readmePath));
     const trackId = trackIdFromPath(tracksRoot, readmePath);
     const title = frontmatter.title ?? titleFromTrackId(trackId);
     const stories = parseTrackerStories(markdown, {
@@ -63167,6 +62723,35 @@ function parseTrackerStories(markdown, context) {
     };
   });
 }
+function updateTrackerStoryRow(markdown, context, storyId, updates) {
+  const lines = markdown.split(/\r?\n/);
+  const tableRows = extractTableRows(markdown, context.trackerPath);
+  let columns = null;
+  let currentTable = -1;
+  for (const tableRow of tableRows) {
+    if (tableRow.tableIndex !== currentTable) {
+      columns = null;
+      currentTable = tableRow.tableIndex;
+    }
+    const header = readHeader(tableRow.cells, context.trackerPath);
+    if (header) {
+      columns = header;
+      continue;
+    }
+    if (!columns) continue;
+    const id = stripMarkdown(tableRow.cells[columns.id]);
+    if (id !== storyId) continue;
+    if (!context.idPattern.test(id)) {
+      throw new Error(`invalid story id ${id} in ${context.trackerPath} at line ${tableRow.line}`);
+    }
+    const cells = [...tableRow.rawCells];
+    if (updates.status !== void 0) cells[columns.status] = updates.status;
+    if (updates.owner !== void 0) cells[columns.owner] = updates.owner;
+    lines[tableRow.line - 1] = renderTableRow(cells);
+    return lines.join("\n");
+  }
+  throw new Error(`story ${storyId} was not found in ${context.trackerPath}`);
+}
 async function findReadmes(root2) {
   try {
     return await glob("**/README.md", { cwd: root2, absolute: true, caseSensitiveMatch: false });
@@ -63175,8 +62760,8 @@ async function findReadmes(root2) {
     throw error51;
   }
 }
-function parseRows(markdown, trackerPath, idPattern) {
-  const tableRows = extractTableRows(markdown, trackerPath);
+function parseRows(markdown, trackerPath2, idPattern) {
+  const tableRows = extractTableRows(markdown, trackerPath2);
   const rows = [];
   let columns = null;
   let sawPotentialMatrix = false;
@@ -63186,7 +62771,7 @@ function parseRows(markdown, trackerPath, idPattern) {
       columns = null;
       currentTable = tableRow.tableIndex;
     }
-    const header = readHeader(tableRow.cells, trackerPath);
+    const header = readHeader(tableRow.cells, trackerPath2);
     if (header) {
       columns = header;
       sawPotentialMatrix = false;
@@ -63198,19 +62783,19 @@ function parseRows(markdown, trackerPath, idPattern) {
     if (!columns) {
       continue;
     }
-    const row = parseStoryRow(tableRow, columns, idPattern, trackerPath);
+    const row = parseStoryRow(tableRow, columns, idPattern, trackerPath2);
     if (row) rows.push(row);
   }
   if (rows.length === 0 && sawPotentialMatrix) {
-    throw new Error(`${trackerPath} must contain the contract status matrix columns`);
+    throw new Error(`${trackerPath2} must contain the contract status matrix columns`);
   }
   return rows;
 }
-function parseStoryRow(tableRow, columns, idPattern, trackerPath) {
+function parseStoryRow(tableRow, columns, idPattern, trackerPath2) {
   const { cells, rawCells, line } = tableRow;
   const id = stripMarkdown(cells[columns.id]);
   if (!idPattern.test(id)) {
-    throw new Error(`invalid story id ${id} in ${trackerPath} at line ${line}`);
+    throw new Error(`invalid story id ${id} in ${trackerPath2} at line ${line}`);
   }
   const parsedDependencies = parseDependencies(cells[columns.dependencies], idPattern);
   return {
@@ -63227,13 +62812,13 @@ function parseStoryRow(tableRow, columns, idPattern, trackerPath) {
     pr: readOptionalCell(rawCells, columns.pr)
   };
 }
-function readHeader(cells, trackerPath) {
+function readHeader(cells, trackerPath2) {
   const normalized = cells.map((cell) => normalizeHeader(cell));
   if (!normalized.includes("id") || !normalized.includes("status")) {
     return null;
   }
   if (normalized.length < CONTRACT_COLUMNS.length || !CONTRACT_COLUMNS.every((column, index2) => normalized[index2] === column)) {
-    throw new Error(`${trackerPath} must contain the contract status matrix columns`);
+    throw new Error(`${trackerPath2} must contain the contract status matrix columns`);
   }
   return {
     id: 0,
@@ -63283,15 +62868,15 @@ function parseFrontmatter(markdown) {
   const pick2 = (value) => typeof value === "string" ? value.trim() : void 0;
   return { title: pick2(data.title), status: pick2(data.status), owner: pick2(data.owner) };
 }
-function validateUniqueStoryIds(rows, trackerPath) {
+function validateUniqueStoryIds(rows, trackerPath2) {
   const seen = /* @__PURE__ */ new Set();
   for (const row of rows) {
-    if (seen.has(row.id)) throw new Error(`duplicate story id ${row.id} in ${trackerPath}`);
+    if (seen.has(row.id)) throw new Error(`duplicate story id ${row.id} in ${trackerPath2}`);
     seen.add(row.id);
   }
 }
 function trackIdFromPath(tracksRoot, readmePath) {
-  const relativeDir = slash(path11.relative(tracksRoot, path11.dirname(readmePath)));
+  const relativeDir = slash(path9.relative(tracksRoot, path9.dirname(readmePath)));
   return relativeDir === "" ? "root" : relativeDir;
 }
 function titleFromTrackId(trackId) {
@@ -63300,7 +62885,7 @@ function titleFromTrackId(trackId) {
 function stripMarkdown(value) {
   return (value ?? "").replace(/\*\*/g, "").replace(/\[([^\]]+)]\([^)]+\)/g, "$1").trim();
 }
-function extractTableRows(markdown, trackerPath) {
+function extractTableRows(markdown, trackerPath2) {
   const lines = markdown.split(/\r?\n/);
   const tree = remark().use(remarkGfm).parse(markdown);
   const rows = [];
@@ -63322,7 +62907,7 @@ function extractTableRows(markdown, trackerPath) {
     }
     tableIndex += 1;
   });
-  assertNoUnparsedIndentedTables(lines, tableRanges, trackerPath);
+  assertNoUnparsedIndentedTables(lines, tableRanges, trackerPath2);
   return rows;
 }
 function visitTables(node2, visitor) {
@@ -63357,13 +62942,19 @@ function parseRawTableCells(line) {
   cells.push(cell.trim());
   return cells;
 }
-function assertNoUnparsedIndentedTables(lines, tableRanges, trackerPath) {
+function renderTableRow(cells) {
+  return `| ${cells.map(escapeTableCell).join(" | ")} |`;
+}
+function escapeTableCell(value) {
+  return value.replace(/\|/g, "\\|");
+}
+function assertNoUnparsedIndentedTables(lines, tableRanges, trackerPath2) {
   lines.forEach((line, index2) => {
     const lineNumber = index2 + 1;
     if (isLineInParsedTable(lineNumber, tableRanges)) return;
     if (!hasLeadingWhitespace(line)) return;
     if (!looksLikeGfmTableStart(line, lines[index2 + 1] ?? "")) return;
-    throw new Error(`Tracker table at ${trackerPath}:${lineNumber} is indented; GFM tables must start at column 0`);
+    throw new Error(`Tracker table at ${trackerPath2}:${lineNumber} is indented; GFM tables must start at column 0`);
   });
 }
 function isLineInParsedTable(lineNumber, tableRanges) {
@@ -63389,11 +62980,850 @@ function hasStoryTableMarkers(cells) {
   return normalized.includes("id") && (normalized.includes("status") || normalized.includes("name"));
 }
 function isPathUnder(candidate, parent) {
-  const relative2 = path11.relative(parent, candidate);
-  return relative2 === "" || !relative2.startsWith("..") && !path11.isAbsolute(relative2);
+  const relative2 = path9.relative(parent, candidate);
+  return relative2 === "" || !relative2.startsWith("..") && !path9.isAbsolute(relative2);
 }
 function slash(value) {
-  return value.split(path11.sep).join("/");
+  return value.split(path9.sep).join("/");
+}
+
+// packages/orchestrator/src/tracks/trackerClaimer.ts
+async function trackerFileExists(config2, story) {
+  try {
+    await access(trackerPath(config2, story), constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function claimTrackerRow(args) {
+  const filePath = trackerPath(args.config, args.story);
+  const markdown = await readFile4(filePath, "utf8");
+  const context = {
+    completeStatuses: new Set(args.config.statuses.complete),
+    eligibleStatuses: new Set(args.config.statuses.eligible),
+    idPattern: new RegExp(args.config.tracker.idPattern),
+    trackId: args.story.metadata.trackId,
+    trackTitle: args.story.metadata.trackTitle,
+    trackerPath: args.story.metadata.trackerPath
+  };
+  const stories = parseTrackerStories(markdown, context);
+  const current = stories.find((entry) => entry.id === args.story.id);
+  if (!current) return { ok: false, reason: `story ${args.story.id} was not found` };
+  if (!current.eligible) {
+    return { ok: false, reason: current.blockedReason ?? `story ${args.story.id} is not eligible`, story: current };
+  }
+  const updated = updateTrackerStoryRow(markdown, context, args.story.id, {
+    status: args.config.statuses.inProgress,
+    owner: args.owner
+  });
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile2(tempPath, updated);
+  await rename(tempPath, filePath);
+  const claimedStories = parseTrackerStories(await readFile4(filePath, "utf8"), context);
+  const claimed = claimedStories.find((entry) => entry.id === args.story.id);
+  return claimed ? { ok: true, story: claimed } : { ok: false, reason: `story ${args.story.id} was not found after claim` };
+}
+function trackerPath(config2, story) {
+  return path10.resolve(config2.workspace.rootAbs, story.metadata.trackerPath);
+}
+
+// packages/orchestrator/src/runner/CompletionGate.ts
+var CompletionGate = class {
+  constructor(deps) {
+    this.deps = deps;
+  }
+  deps;
+  async evaluate(settled, stories) {
+    const returnedStory = stories.find((entry) => entry.id === settled.storyId) ?? null;
+    if (!returnedStory) {
+      return {
+        complete: false,
+        returnedStory,
+        reason: `${settled.storyId} returned but story source no longer contains it`
+      };
+    }
+    if (!isCompleteStatus(returnedStory.status, this.deps.statuses.complete)) {
+      return {
+        complete: false,
+        returnedStory,
+        reason: `${settled.storyId} returned but status is ${returnedStory.status}`
+      };
+    }
+    let commitEvidence;
+    try {
+      commitEvidence = await this.deps.gitInspector.inspectStory({
+        story: returnedStory,
+        git: this.deps.git,
+        cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
+        baseShaAtLaunch: settled.baseShaAtLaunch
+      });
+    } catch (error51) {
+      const message = error51 instanceof Error ? error51.message : String(error51);
+      return { complete: false, returnedStory, reason: `inspect-failed: ${message}` };
+    }
+    const dirtyBlocks = this.deps.git.strategy !== "worktree" && commitEvidence.uncommittedChanges;
+    if (!commitEvidence.committed || dirtyBlocks) {
+      return { complete: false, returnedStory, reason: "complete-but-uncommitted", commitEvidence };
+    }
+    if (this.deps.git.commitOnBase === "forbid" && commitEvidence.isBaseBranch) {
+      return { complete: false, returnedStory, reason: "complete-on-forbidden-base", commitEvidence };
+    }
+    return { complete: true, returnedStory, commitEvidence };
+  }
+};
+function invocationCwd(settled) {
+  const cwd = settled.invocation?.cwd;
+  return typeof cwd === "string" && cwd.length > 0 ? cwd : null;
+}
+
+// packages/orchestrator/src/runner/DuplicateLaunchGuard.ts
+import { access as access2, readdir as readdir3, readFile as readFile5 } from "node:fs/promises";
+import path12 from "node:path";
+
+// packages/orchestrator/src/runner/launchMetadata.ts
+import { createHash } from "node:crypto";
+import path11 from "node:path";
+function renderExpectedBranch(story, git) {
+  return renderBranchPattern2(story, git.branchPattern, slugify2(story.title));
+}
+function renderExpectedWorktreePath(workspaceRoot, git, story) {
+  if (git.strategy !== "worktree") return null;
+  return path11.join(
+    workspaceRoot,
+    git.worktreeDir,
+    story.metadata.trackId,
+    `${story.id.toLowerCase()}-${slugify2(story.title)}`
+  );
+}
+function buildLaunchId(storyId, startedAt) {
+  return `${storyId}-${startedAt.replace(/[:.]/g, "-")}`;
+}
+function hashPrompt(prompt) {
+  return createHash("sha256").update(prompt).digest("hex");
+}
+function renderBranchPattern2(story, pattern, slug) {
+  return pattern.replaceAll("{track}", story.metadata.trackId).replaceAll("{id}", story.id).replaceAll("{id-lc}", story.id.toLowerCase()).replaceAll("{slug}", slug);
+}
+function slugify2(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+}
+
+// packages/orchestrator/src/runner/DuplicateLaunchGuard.ts
+async function findDuplicateLaunch(args) {
+  const expectedBranch = renderExpectedBranch(args.story, args.config.git);
+  const expectedWorktreePath = renderExpectedWorktreePath(args.config.workspace.rootAbs, args.config.git, args.story);
+  const activeConflict = conflictFromActiveChildren({
+    story: args.story,
+    activeChildren: args.activeChildren,
+    expectedBranch,
+    expectedWorktreePath
+  });
+  if (activeConflict) return activeConflict;
+  return await conflictFromRunArtifacts({
+    runsDir: args.config.artifacts.runsDirAbs,
+    story: args.story,
+    expectedBranch,
+    expectedWorktreePath
+  });
+}
+function conflictFromActiveChildren(args) {
+  for (const active of args.activeChildren) {
+    if (active.storyId === args.story.id || active.expectedBranch === args.expectedBranch || args.expectedWorktreePath !== null && active.expectedWorktreePath === args.expectedWorktreePath) {
+      return {
+        reason: `duplicate active launch for ${args.story.id}`,
+        storyId: active.storyId,
+        expectedBranch: active.expectedBranch,
+        expectedWorktreePath: active.expectedWorktreePath
+      };
+    }
+  }
+  return null;
+}
+async function conflictFromRunArtifacts(args) {
+  let runNames;
+  try {
+    runNames = await readdir3(args.runsDir);
+  } catch (error51) {
+    if (isNodeError(error51) && error51.code === "ENOENT") return null;
+    throw error51;
+  }
+  for (const runName of runNames.sort()) {
+    const childrenDir = path12.join(args.runsDir, runName, "children");
+    let childNames;
+    try {
+      childNames = await readdir3(childrenDir);
+    } catch (error51) {
+      if (isNodeError(error51) && error51.code === "ENOENT") continue;
+      throw error51;
+    }
+    for (const childName of childNames.filter((name) => name.endsWith(".launch.json")).sort()) {
+      const launch = await readLaunchRecord(path12.join(childrenDir, childName));
+      if (launch?.status !== "launched") continue;
+      const launchStoryId = typeof launch.storyId === "string" ? launch.storyId : null;
+      if (launchStoryId && await settledResultExists(childrenDir, launchStoryId)) continue;
+      const launchBranch = typeof launch.expectedBranch === "string" ? launch.expectedBranch : null;
+      const launchWorktree = typeof launch.expectedWorktreePath === "string" ? launch.expectedWorktreePath : null;
+      if (launchStoryId === args.story.id || launchBranch === args.expectedBranch || args.expectedWorktreePath !== null && launchWorktree === args.expectedWorktreePath) {
+        return {
+          reason: `duplicate active launch for ${args.story.id}`,
+          storyId: launchStoryId ?? args.story.id,
+          expectedBranch: launchBranch ?? args.expectedBranch,
+          expectedWorktreePath: launchWorktree
+        };
+      }
+    }
+  }
+  return null;
+}
+async function readLaunchRecord(filePath) {
+  const parsed = JSON.parse(await readFile5(filePath, "utf8"));
+  return isRecord(parsed) ? parsed : null;
+}
+async function settledResultExists(childrenDir, storyId) {
+  try {
+    await access2(path12.join(childrenDir, `${safeName(storyId)}.json`));
+    return true;
+  } catch (error51) {
+    if (isNodeError(error51) && error51.code === "ENOENT") return false;
+    throw error51;
+  }
+}
+
+// packages/orchestrator/src/runner/MetricsCollector.ts
+var MetricsCollector = class {
+  constructor(clock) {
+    this.clock = clock;
+  }
+  clock;
+  childMetrics = /* @__PURE__ */ new Map();
+  observedMetrics = {};
+  start(storyId) {
+    const startedAt = this.clock.now();
+    this.childMetrics.set(storyId, { startedAt });
+    return startedAt;
+  }
+  complete(storyId) {
+    const completedAt = this.clock.now();
+    const existing = this.childMetrics.get(storyId);
+    if (existing) {
+      this.childMetrics.set(storyId, {
+        ...existing,
+        completedAt,
+        durationMs: Date.parse(completedAt) - Date.parse(existing.startedAt)
+      });
+    }
+    return completedAt;
+  }
+  updateChildMetric(storyId, metrics) {
+    this.observedMetrics[storyId] = metrics;
+  }
+  childTiming(storyId) {
+    return this.childMetrics.get(storyId);
+  }
+  observedChildMetrics() {
+    return this.observedMetrics;
+  }
+  buildRunMetrics(input) {
+    const completedChildren = [...this.childMetrics.entries()].flatMap(
+      ([storyId, metric]) => metric.completedAt && metric.durationMs !== void 0 ? [{ storyId, startedAt: metric.startedAt, completedAt: metric.completedAt, durationMs: metric.durationMs }] : []
+    ).sort((left, right) => left.startedAt.localeCompare(right.startedAt));
+    return {
+      elapsedMs: input.completedAt ? Date.parse(input.completedAt) - Date.parse(input.startedAt) : 0,
+      launchedCount: this.childMetrics.size,
+      completedCount: input.completedCount,
+      blockedCount: input.status === "blocked" ? 1 : 0,
+      blockedReason: input.blockedReason,
+      criticalPath: completedChildren
+    };
+  }
+};
+
+// packages/orchestrator/src/runner/RunJournal.ts
+import path13 from "node:path";
+
+// packages/orchestrator/src/metrics/liveMetrics.ts
+function buildLiveMetricsSnapshot(input) {
+  return {
+    runId: input.runId,
+    status: input.status,
+    elapsedMs: Date.parse(input.now) - Date.parse(input.startedAt),
+    maxParallel: input.maxParallel,
+    active: input.active,
+    completedCount: input.completed.length,
+    blockedStoryId: input.blockedStoryId,
+    blockedReason: input.blockedReason,
+    children: input.childMetrics,
+    aggregate: mergeChildMetrics(Object.values(input.childMetrics))
+  };
+}
+
+// packages/orchestrator/src/runner/RunJournal.ts
+var RunJournal = class {
+  constructor(dependencies) {
+    this.dependencies = dependencies;
+  }
+  dependencies;
+  async writeRunMetadata(state) {
+    await this.dependencies.artifactStore.writeJson("run.json", {
+      runId: state.runId,
+      command: state.command,
+      workspaceRoot: state.workspaceRoot,
+      artifactDir: state.artifactDir,
+      startedAt: state.startedAt
+    });
+  }
+  async writeConfigSnapshot(config2) {
+    await this.dependencies.artifactStore.writeJson("config.resolved.json", config2);
+  }
+  async writeState(state) {
+    await this.dependencies.artifactStore.writeJson("state.json", state);
+  }
+  async writeLiveMetrics(state, childMetrics) {
+    await this.dependencies.artifactStore.writeJson(
+      "metrics.live.json",
+      buildLiveMetricsSnapshot({
+        runId: state.runId,
+        status: state.status,
+        startedAt: state.startedAt,
+        now: this.dependencies.clock.now(),
+        maxParallel: state.maxParallel,
+        active: state.active,
+        completed: state.completed,
+        blockedStoryId: state.blockedStoryId,
+        blockedReason: state.blockedReason,
+        childMetrics
+      })
+    );
+  }
+  async writeStorySnapshot(label, stories) {
+    const fileName = `${safeName(label)}.json`;
+    await this.dependencies.artifactStore.writeJson(path13.join("stories", fileName), stories);
+    if (label === "initial") {
+      await this.dependencies.artifactStore.writeJson("stories.initial.json", stories);
+    }
+  }
+  async recordSettledChild(metrics, settled, returnedStory, returnedComplete) {
+    const childMetric = metrics.childTiming(settled.storyId);
+    const returnedStatus = returnedStory?.status ?? null;
+    const normalizedReturnedComplete = returnedComplete ?? null;
+    const augmentedSettled = {
+      ...settled,
+      startedAt: childMetric?.startedAt,
+      durationMs: childMetric?.durationMs,
+      returnedStatus,
+      returnedComplete: normalizedReturnedComplete
+    };
+    await this.dependencies.artifactStore.writeJson(`children/${safeName(settled.storyId)}.json`, augmentedSettled);
+    if (settled.rawResult !== void 0) {
+      await this.dependencies.artifactStore.writeJson(
+        `children/${safeName(settled.storyId)}.raw.json`,
+        settled.rawResult
+      );
+    }
+    return {
+      storyId: settled.storyId,
+      ok: settled.ok,
+      sessionId: settled.sessionId,
+      completedAt: settled.completedAt,
+      startedAt: childMetric?.startedAt,
+      durationMs: childMetric?.durationMs,
+      returnedStatus,
+      returnedComplete: normalizedReturnedComplete
+    };
+  }
+  async recordChildLaunch(record2) {
+    await this.dependencies.artifactStore.writeJson(`children/${safeName(record2.storyId)}.launch.json`, record2);
+  }
+  async updateChildLaunch(record2, fields) {
+    const updated = { ...record2, ...fields, updatedAt: this.dependencies.clock.now() };
+    await this.recordChildLaunch(updated);
+    return updated;
+  }
+  async record(type, fields = {}) {
+    await this.dependencies.artifactStore.appendEvent({
+      ts: this.dependencies.clock.now(),
+      type,
+      ...fields
+    });
+  }
+};
+
+// packages/orchestrator/src/runner/WorkflowRunner.ts
+var defaultChildTimer = {
+  setTimeout: (callback2, ms) => globalThis.setTimeout(callback2, ms),
+  clearTimeout: (handle2) => globalThis.clearTimeout(handle2),
+  setInterval: (callback2, ms) => globalThis.setInterval(callback2, ms),
+  clearInterval: (handle2) => globalThis.clearInterval(handle2)
+};
+var WorkflowRunner = class {
+  constructor(dependencies) {
+    this.dependencies = dependencies;
+    this.metrics = new MetricsCollector(dependencies.clock);
+    this.journal = new RunJournal({ artifactStore: dependencies.artifactStore, clock: dependencies.clock });
+    this.completionGate = new CompletionGate({
+      gitInspector: dependencies.gitInspector,
+      statuses: dependencies.config.statuses,
+      git: dependencies.config.git,
+      childCwdAbs: dependencies.config.codex.childSession.cwdAbs
+    });
+    this.state = {
+      runId: dependencies.runId,
+      command: dependencies.command,
+      workspaceRoot: dependencies.config.workspace.rootAbs,
+      artifactDir: path14.join(dependencies.config.artifacts.runsDirAbs, dependencies.runId),
+      status: "running",
+      maxParallel: dependencies.config.orchestrator.maxParallel,
+      startedAt: dependencies.clock.now(),
+      active: [],
+      completed: [],
+      blockedStoryId: null,
+      blockedReason: null
+    };
+  }
+  dependencies;
+  state;
+  metrics;
+  journal;
+  completionGate;
+  async listEligible() {
+    const stories = await this.dependencies.storySource.listStories();
+    return stories.filter((story) => story.eligible);
+  }
+  async dryRunEligible() {
+    await this.journal.writeRunMetadata(this.state);
+    await this.journal.writeConfigSnapshot(this.dependencies.config);
+    await this.journal.record("run-started", { command: "run-eligible", dryRun: true });
+    const stories = await this.dependencies.storySource.listStories();
+    await this.journal.writeStorySnapshot("initial", stories);
+    const dispatchable = selectDispatchableStories(stories, {
+      maxParallel: this.dependencies.config.orchestrator.maxParallel
+    });
+    this.state = { ...this.state, status: "dry-run", dryRunDispatch: dispatchable.map((story) => story.id) };
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return { ...this.state };
+  }
+  async dryRunStory(storyId, options2 = {}) {
+    await this.journal.writeRunMetadata(this.state);
+    await this.journal.writeConfigSnapshot(this.dependencies.config);
+    await this.journal.record("run-started", {
+      command: "run-story",
+      storyId,
+      dryRun: true,
+      force: options2.force === true
+    });
+    const stories = await this.dependencies.storySource.listStories();
+    await this.journal.writeStorySnapshot("initial", stories);
+    const story = stories.find((entry) => entry.id === storyId);
+    if (!story) {
+      this.blockOnce(storyId, `story ${storyId} was not found`);
+      return await this.finish();
+    }
+    if (!story.eligible && options2.force !== true) {
+      this.blockOnce(story.id, story.blockedReason ?? `story ${story.id} is not eligible`);
+      return await this.finish();
+    }
+    this.state = { ...this.state, status: "dry-run", dryRunDispatch: [story.id] };
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return { ...this.state };
+  }
+  async runStory(storyId, options2 = {}) {
+    await this.journal.writeRunMetadata(this.state);
+    await this.journal.writeConfigSnapshot(this.dependencies.config);
+    await this.journal.record("run-started", { command: "run-story", storyId, force: options2.force === true });
+    const stories = await this.dependencies.storySource.listStories();
+    await this.journal.writeStorySnapshot("initial", stories);
+    const story = stories.find((entry) => entry.id === storyId);
+    if (!story) {
+      this.blockOnce(storyId, `story ${storyId} was not found`);
+      return await this.finish();
+    }
+    if (!story.eligible && options2.force !== true) {
+      this.blockOnce(story.id, story.blockedReason ?? `story ${story.id} is not eligible`);
+      return await this.finish();
+    }
+    const settled = await this.launchChild(story);
+    if (!settled.ok) {
+      await this.recordSettledChild(settled);
+      await this.journal.record("child-error", { storyId: settled.storyId, error: settled.error });
+      this.blockOnce(story.id, settled.error ?? "child session failed");
+      return await this.finish();
+    }
+    const evaluation = await this.processSettled(settled);
+    if (!evaluation.complete) {
+      this.blockOnce(settled.storyId, evaluation.reason);
+      await this.journal.record("story-not-complete", {
+        storyId: settled.storyId,
+        status: evaluation.returnedStory?.status ?? null
+      });
+      return await this.finish();
+    }
+    await this.journal.record("child-complete", { storyId: settled.storyId, sessionId: settled.sessionId });
+    return await this.finish();
+  }
+  async runEligible() {
+    await this.journal.writeRunMetadata(this.state);
+    await this.journal.writeConfigSnapshot(this.dependencies.config);
+    await this.journal.record("run-started", {
+      command: "run-eligible",
+      maxParallel: this.dependencies.config.orchestrator.maxParallel
+    });
+    let stories = await this.dependencies.storySource.listStories();
+    await this.journal.writeStorySnapshot("initial", stories);
+    const active = /* @__PURE__ */ new Map();
+    const limit = pLimit(this.dependencies.config.orchestrator.maxParallel);
+    let stopLaunching = false;
+    const launchAvailable = async () => {
+      if (stopLaunching) return;
+      const dispatchable = selectDispatchableStories(stories, {
+        maxParallel: this.dependencies.config.orchestrator.maxParallel,
+        activeIds: new Set(active.keys())
+      });
+      const batchConflict = this.findDispatchBatchConflict(dispatchable);
+      if (batchConflict) {
+        this.blockOnce(batchConflict.storyId, batchConflict.reason);
+        await this.journal.record("child-launch-blocked", batchConflict);
+        await this.writeState();
+        await this.writeLiveMetrics();
+        stopLaunching = true;
+        return;
+      }
+      const launched = [];
+      for (const story of dispatchable) {
+        const claimedStory = await this.claimBeforeLaunch(story);
+        if (!claimedStory) {
+          stopLaunching = true;
+          break;
+        }
+        const launch = await this.recordChildLaunch(claimedStory);
+        if (!launch) {
+          stopLaunching = true;
+          break;
+        }
+        launched.push({ story: claimedStory, launch });
+      }
+      for (const { story, launch } of launched) {
+        active.set(
+          story.id,
+          limit(() => this.executeChild(story, launch))
+        );
+      }
+    };
+    await launchAvailable();
+    if (active.size === 0) return await this.finish();
+    while (active.size > 0) {
+      const settled = await Promise.race(active.values());
+      active.delete(settled.storyId);
+      if (!settled.ok) {
+        await this.recordSettledChild(settled);
+        await this.journal.record("child-error", { storyId: settled.storyId, error: settled.error });
+        this.blockOnce(settled.storyId, settled.error ?? "child session failed");
+        stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
+        await this.writeState();
+        await this.writeLiveMetrics();
+        await launchAvailable();
+        continue;
+      }
+      stories = await this.dependencies.storySource.listStories();
+      const evaluation = await this.processSettled(settled, stories);
+      if (!evaluation.complete) {
+        this.blockOnce(settled.storyId, evaluation.reason);
+        await this.journal.record("story-not-complete", {
+          storyId: settled.storyId,
+          status: evaluation.returnedStory?.status ?? null
+        });
+        stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
+        await launchAvailable();
+        continue;
+      }
+      await this.journal.record("child-complete", { storyId: settled.storyId, sessionId: settled.sessionId });
+      await launchAvailable();
+    }
+    return await this.finish();
+  }
+  async launchChild(story) {
+    const claimedStory = await this.claimBeforeLaunch(story);
+    if (!claimedStory) {
+      return {
+        storyId: story.id,
+        ok: false,
+        sessionId: null,
+        error: this.state.blockedReason ?? "tracker claim failed",
+        completedAt: this.dependencies.clock.now(),
+        baseShaAtLaunch: null
+      };
+    }
+    const launch = await this.recordChildLaunch(claimedStory);
+    if (!launch) {
+      return {
+        storyId: claimedStory.id,
+        ok: false,
+        sessionId: null,
+        error: this.state.blockedReason ?? "duplicate active launch",
+        completedAt: this.dependencies.clock.now(),
+        baseShaAtLaunch: null
+      };
+    }
+    return await this.executeChild(claimedStory, launch);
+  }
+  async claimBeforeLaunch(story) {
+    if (!await trackerFileExists(this.dependencies.config, story)) return story;
+    const owner = `awk:${this.state.runId}:${story.id}`;
+    const claim = await claimTrackerRow({ config: this.dependencies.config, story, owner });
+    if (!claim.ok) {
+      this.blockOnce(story.id, claim.reason);
+      await this.journal.record("tracker-claim-blocked", { storyId: story.id, reason: claim.reason });
+      await this.writeState();
+      await this.writeLiveMetrics();
+      return null;
+    }
+    await this.journal.record("tracker-claimed", { storyId: story.id, owner });
+    return claim.story;
+  }
+  async recordChildLaunch(story) {
+    const duplicate = await findDuplicateLaunch({
+      story,
+      config: this.dependencies.config,
+      activeChildren: this.state.activeChildren ?? []
+    });
+    if (duplicate) {
+      this.blockOnce(story.id, duplicate.reason);
+      await this.journal.record("child-launch-blocked", {
+        storyId: story.id,
+        reason: duplicate.reason,
+        duplicateStoryId: duplicate.storyId,
+        expectedBranch: duplicate.expectedBranch,
+        expectedWorktreePath: duplicate.expectedWorktreePath
+      });
+      await this.writeState();
+      await this.writeLiveMetrics();
+      return null;
+    }
+    this.metrics.start(story.id);
+    const startedAt = this.dependencies.clock.now();
+    const childCwd = this.dependencies.config.codex.childSession.cwdAbs;
+    const prompt = buildGenericPrompt(story, this.dependencies.config);
+    const baseShaAtLaunch = await this.dependencies.gitInspector.snapshotBaseSha?.({
+      git: this.dependencies.config.git,
+      cwdAbs: childCwd
+    }) ?? null;
+    const activeChild = {
+      storyId: story.id,
+      launchId: buildLaunchId(story.id, startedAt),
+      expectedBranch: renderExpectedBranch(story, this.dependencies.config.git),
+      expectedWorktreePath: renderExpectedWorktreePath(
+        this.dependencies.config.workspace.rootAbs,
+        this.dependencies.config.git,
+        story
+      ),
+      startedAt,
+      lastHeartbeatAt: null
+    };
+    const launchRecord = {
+      ...activeChild,
+      runId: this.state.runId,
+      status: "launched",
+      updatedAt: startedAt,
+      trackerPath: story.metadata.trackerPath,
+      childCwd,
+      baseShaAtLaunch,
+      promptHash: hashPrompt(prompt),
+      sessionId: null,
+      sessionLogPath: null
+    };
+    this.state = {
+      ...this.state,
+      active: [...this.state.active, story.id],
+      activeChildren: [...this.state.activeChildren ?? [], activeChild]
+    };
+    await this.journal.recordChildLaunch(launchRecord);
+    await this.journal.record("child-launched", {
+      storyId: story.id,
+      launchId: launchRecord.launchId,
+      expectedBranch: launchRecord.expectedBranch,
+      expectedWorktreePath: launchRecord.expectedWorktreePath
+    });
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return { record: launchRecord, prompt };
+  }
+  async executeChild(story, launch) {
+    const timeoutMs = this.dependencies.config.orchestrator.childTimeoutMs;
+    const timer = this.dependencies.childTimer ?? defaultChildTimer;
+    const startedAtMs = this.dependencies.clock.nowMs();
+    let timeoutHandle;
+    let heartbeatHandle;
+    try {
+      const run = this.dependencies.storyRunner.runStory({
+        story,
+        prompt: launch.prompt,
+        cwd: launch.record.childCwd,
+        metadata: { runId: this.state.runId, launchId: launch.record.launchId }
+      });
+      const timeout = new Promise((_, reject) => {
+        timeoutHandle = timer.setTimeout(() => reject(new Error("child-timeout")), timeoutMs);
+      });
+      heartbeatHandle = timer.setInterval(() => {
+        const heartbeatAt = this.dependencies.clock.now();
+        this.state = {
+          ...this.state,
+          activeChildren: this.state.activeChildren?.map(
+            (entry) => entry.storyId === story.id ? { ...entry, lastHeartbeatAt: heartbeatAt } : entry
+          )
+        };
+        void this.journal.record("child-heartbeat", {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          elapsedMs: this.dependencies.clock.nowMs() - startedAtMs
+        });
+      }, heartbeatIntervalMs(timeoutMs));
+      const result = await Promise.race([run, timeout]);
+      const completedAt = this.metrics.complete(story.id);
+      this.state = this.removeActiveChild(story.id);
+      if (result.metrics) {
+        this.metrics.updateChildMetric(story.id, result.metrics);
+        await this.dependencies.artifactStore.writeJson(`children/${safeName(story.id)}.metrics.json`, result.metrics);
+      }
+      await this.journal.updateChildLaunch(launch.record, {
+        status: "settled",
+        sessionId: result.sessionId,
+        sessionLogPath: result.metrics?.sessionLogPath ?? null
+      });
+      return {
+        storyId: story.id,
+        ok: true,
+        sessionId: result.sessionId,
+        content: result.content,
+        rawResult: result.rawResult,
+        invocation: result.invocation,
+        completedAt,
+        metrics: result.metrics,
+        baseShaAtLaunch: launch.record.baseShaAtLaunch
+      };
+    } catch (error51) {
+      const completedAt = this.metrics.complete(story.id);
+      const message = error51 instanceof Error ? error51.message : String(error51);
+      const isSupervisionLost = isSupervisionLostError(message);
+      this.state = this.removeActiveChild(story.id);
+      if (isSupervisionLost) {
+        this.state = {
+          ...this.state,
+          status: "supervision_lost",
+          blockedStoryId: story.id,
+          blockedReason: message
+        };
+        await this.journal.updateChildLaunch(launch.record, { status: "supervision_lost" });
+        await this.journal.record("child-supervision-lost", {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          error: message
+        });
+      } else {
+        await this.journal.updateChildLaunch(launch.record, { status: "settled" });
+      }
+      return {
+        storyId: story.id,
+        ok: false,
+        sessionId: null,
+        error: message,
+        completedAt,
+        baseShaAtLaunch: launch.record.baseShaAtLaunch
+      };
+    } finally {
+      if (timeoutHandle !== void 0) timer.clearTimeout(timeoutHandle);
+      if (heartbeatHandle !== void 0) timer.clearInterval(heartbeatHandle);
+    }
+  }
+  async processSettled(settled, stories) {
+    const returnedStories = stories ?? await this.dependencies.storySource.listStories();
+    await this.journal.writeStorySnapshot(`after-${settled.storyId}`, returnedStories);
+    const evaluation = await this.completionGate.evaluate(settled, returnedStories);
+    const settledWithEvidence = evaluation.commitEvidence ? { ...settled, commitEvidence: evaluation.commitEvidence } : settled;
+    await this.recordSettledChild(settledWithEvidence, evaluation.returnedStory, evaluation.complete);
+    return evaluation;
+  }
+  async recordSettledChild(settled, returnedStory, returnedComplete) {
+    const entry = await this.journal.recordSettledChild(this.metrics, settled, returnedStory, returnedComplete);
+    this.state = { ...this.state, completed: [...this.state.completed, entry] };
+    await this.writeState();
+    await this.writeLiveMetrics();
+  }
+  blockOnce(storyId, reason) {
+    if (this.state.status === "blocked") return;
+    if (this.state.status === "supervision_lost") return;
+    this.state = { ...this.state, status: "blocked", blockedStoryId: storyId, blockedReason: reason };
+    this.dependencies.logger.warn("run blocked", { storyId, reason });
+  }
+  async finish() {
+    if (this.state.status !== "blocked" && this.state.status !== "dry-run" && this.state.status !== "supervision_lost") {
+      this.state = { ...this.state, status: "complete" };
+      await this.journal.record("run-complete");
+    } else if (this.state.status === "blocked") {
+      await this.journal.record("run-blocked", {
+        blockedStoryId: this.state.blockedStoryId,
+        blockedReason: this.state.blockedReason
+      });
+    } else if (this.state.status === "supervision_lost") {
+      await this.journal.record("run-supervision-lost", {
+        blockedStoryId: this.state.blockedStoryId,
+        blockedReason: this.state.blockedReason
+      });
+    }
+    const completedAt = this.dependencies.clock.now();
+    const runMetrics = this.metrics.buildRunMetrics({
+      startedAt: this.state.startedAt,
+      completedAt,
+      completedCount: this.state.completed.length,
+      status: this.state.status,
+      blockedReason: this.state.blockedReason
+    });
+    this.state = { ...this.state, completedAt, metrics: runMetrics };
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return { ...this.state };
+  }
+  async writeState() {
+    await this.journal.writeState(this.state);
+  }
+  async writeLiveMetrics() {
+    await this.journal.writeLiveMetrics(this.state, this.metrics.observedChildMetrics());
+  }
+  removeActiveChild(storyId) {
+    return {
+      ...this.state,
+      active: this.state.active.filter((entry) => entry !== storyId),
+      activeChildren: this.state.activeChildren?.filter((entry) => entry.storyId !== storyId)
+    };
+  }
+  findDispatchBatchConflict(stories) {
+    const seenBranches = /* @__PURE__ */ new Set();
+    const seenWorktrees = /* @__PURE__ */ new Set();
+    for (const story of stories) {
+      const expectedBranch = renderExpectedBranch(story, this.dependencies.config.git);
+      const expectedWorktreePath = renderExpectedWorktreePath(
+        this.dependencies.config.workspace.rootAbs,
+        this.dependencies.config.git,
+        story
+      );
+      if (seenBranches.has(expectedBranch)) {
+        return { storyId: story.id, reason: `duplicate active launch for ${story.id}` };
+      }
+      if (expectedWorktreePath !== null && seenWorktrees.has(expectedWorktreePath)) {
+        return { storyId: story.id, reason: `duplicate active launch for ${story.id}` };
+      }
+      seenBranches.add(expectedBranch);
+      if (expectedWorktreePath !== null) seenWorktrees.add(expectedWorktreePath);
+    }
+    return null;
+  }
+};
+function heartbeatIntervalMs(timeoutMs) {
+  return Math.max(1, Math.floor(timeoutMs / 4));
+}
+function isSupervisionLostError(message) {
+  return /child-timeout|Codex MCP request timed out/i.test(message);
 }
 
 // packages/orchestrator/src/commands/handlers.ts
@@ -63412,15 +63842,15 @@ async function listEligibleHandler(overrides = {}, _options = {}) {
   return { config: config2, stories };
 }
 async function analyzeRunHandler(runPath, overrides = {}) {
-  return await analyzeWorkflowRun(path12.resolve(runPath), {
-    sessionRoots: overrides.sessionRoot ? [path12.resolve(overrides.sessionRoot)] : void 0
+  return await analyzeWorkflowRun(path15.resolve(runPath), {
+    sessionRoots: overrides.sessionRoot ? [path15.resolve(overrides.sessionRoot)] : void 0
   });
 }
 async function watchRunHandler(runPath, _overrides = {}) {
-  const runDirectory = path12.resolve(runPath);
+  const runDirectory = path15.resolve(runPath);
   const [state, metrics] = await Promise.all([
-    readJsonIfExists(path12.join(runDirectory, "state.json")),
-    readJsonIfExists(path12.join(runDirectory, "metrics.live.json"))
+    readJsonIfExists(path15.join(runDirectory, "state.json")),
+    readJsonIfExists(path15.join(runDirectory, "metrics.live.json"))
   ]);
   return { state, metrics };
 }
@@ -63438,7 +63868,7 @@ async function runWorkflowHandler(command, options2 = {}) {
   const config2 = await loadResolvedConfig(command.overrides, cwd);
   const tracks = await discoverTracks(config2, command.overrides);
   const runId = createRunId();
-  const runDirectory = path12.join(config2.artifacts.runsDirAbs, runId);
+  const runDirectory = path15.join(config2.artifacts.runsDirAbs, runId);
   const storySource = command.kind === "run-story" ? selectStorySourceForStory(config2, tracks, command.storyId, command.overrides) : selectStorySourceForRunEligible(config2, tracks, command.overrides);
   const workflowRunner = new WorkflowRunner({
     command: command.kind,
@@ -63533,7 +63963,7 @@ async function runWithEventWatch(run, runDirectory, overrides, stdout) {
   }
 }
 async function watchRunEvents(runDirectory, overrides, isDone, stdout) {
-  const eventPath = path12.join(runDirectory, "events.ndjson");
+  const eventPath = path15.join(runDirectory, "events.ndjson");
   let printed = 0;
   while (!isDone()) {
     printed = await printNewEvents(eventPath, printed, overrides, stdout);
@@ -63544,7 +63974,7 @@ async function watchRunEvents(runDirectory, overrides, isDone, stdout) {
 async function printNewEvents(eventPath, printed, overrides, stdout) {
   let content3;
   try {
-    content3 = await readFile4(eventPath, "utf8");
+    content3 = await readFile6(eventPath, "utf8");
   } catch (error51) {
     if (error51 instanceof Error && "code" in error51 && error51.code === "ENOENT") return printed;
     throw error51;
@@ -63567,7 +63997,7 @@ function delay(ms) {
 }
 async function readJsonIfExists(filePath) {
   try {
-    return JSON.parse(await readFile4(filePath, "utf8"));
+    return JSON.parse(await readFile6(filePath, "utf8"));
   } catch (error51) {
     if (error51 instanceof Error && "code" in error51 && error51.code === "ENOENT") return null;
     throw error51;

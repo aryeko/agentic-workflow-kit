@@ -143,6 +143,11 @@
             "forbid",
             "allow"
           ]
+        },
+        "worktreeDir": {
+          "default": ".worktrees",
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
