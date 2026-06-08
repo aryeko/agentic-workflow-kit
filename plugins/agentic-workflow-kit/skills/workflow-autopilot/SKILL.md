@@ -93,6 +93,9 @@ Artifacts are under `.codex/agentic-workflow-kit/runs/<run-id>/`.
   blocked reason, and parent timing metrics.
 - `metrics.live.json` records live parent metrics and best-effort child metrics.
 - `children/<story-id>.json` records normalized child output.
+- `children/<story-id>.launch.json` records parent-owned launch metadata before child execution:
+  story id, launch id, expected branch/worktree path, child cwd, base SHA, prompt hash, and known
+  child session/log identifiers.
 - `children/<story-id>.raw.json` records raw driver output when available.
 - `children/<story-id>.metrics.json` records best-effort child tool, token, and subagent metrics
   when available.
@@ -102,4 +105,6 @@ time, and behavior, but they never drive scheduling or completion.
 
 Interactive `implement-next` journals use the same run directory and state/config/event semantics
 where practical. They may omit orchestrator child files; in that case `analyze-run` treats
-`state.json` field `interactive` as the single analyzed child.
+`state.json` field `interactive` as the single analyzed child. A run with launch metadata but no
+settled child result is stale; `analyze-run` reports it as `supervision_lost` rather than
+authoritatively `running`.

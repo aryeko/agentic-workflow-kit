@@ -4,6 +4,7 @@ import { safeName } from '../internal/guards.js';
 import { buildLiveMetricsSnapshot } from '../metrics/liveMetrics.js';
 import type {
   ArtifactStore,
+  ChildLaunchRecord,
   ChildMetricsSnapshot,
   Clock,
   ResolvedWorkflowConfig,
@@ -112,6 +113,16 @@ export class RunJournal {
       returnedStatus,
       returnedComplete: normalizedReturnedComplete,
     };
+  }
+
+  async recordChildLaunch(record: ChildLaunchRecord): Promise<void> {
+    await this.dependencies.artifactStore.writeJson(`children/${safeName(record.storyId)}.launch.json`, record);
+  }
+
+  async updateChildLaunch(record: ChildLaunchRecord, fields: Partial<ChildLaunchRecord>): Promise<ChildLaunchRecord> {
+    const updated = { ...record, ...fields, updatedAt: this.dependencies.clock.now() };
+    await this.recordChildLaunch(updated);
+    return updated;
   }
 
   async record(type: string, fields: Record<string, unknown> = {}): Promise<void> {

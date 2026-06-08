@@ -26,8 +26,8 @@ export function buildCodexToolInput(
   if (childSession.approvalPolicy) input['approval-policy'] = childSession.approvalPolicy;
   if (childSession.sandbox) input.sandbox = childSession.sandbox;
 
-  // D8 fix: inject the workspace .git and .worktrees directories as codex writable roots so the
-  // child session can run `git commit` and `git worktree add` under --sandbox workspace-write.
+  // D8 fix: inject the workspace .git and configured worktree directory as codex writable roots so
+  // the child session can run `git commit` and `git worktree add` under --sandbox workspace-write.
   // Under workspace-write codex makes .git read-only by default, which prevents any git commit
   // (every commit updates a ref under .git/refs/heads). Granting these two paths as writable roots
   // keeps workspace-write restrictions intact for everything else (network, system dirs) while
@@ -41,7 +41,7 @@ export function buildCodexToolInput(
   // `codex exec -c 'sandbox_workspace_write.writable_roots=[...]'` (see d8-dispatch-sandbox-plan.md).
   const workspaceRoot = childSession.cwdAbs;
   const gitAbs = path.join(workspaceRoot, '.git');
-  const worktreesAbs = path.join(workspaceRoot, '.worktrees');
+  const worktreesAbs = path.join(workspaceRoot, config.git.worktreeDir);
   const writableRootsEntry: Record<string, unknown> = {
     sandbox_workspace_write: { writable_roots: [gitAbs, worktreesAbs] },
   };
@@ -82,8 +82,11 @@ export function buildGenericPrompt(
     'Git policy (from .workflow/config.yaml - follow exactly):',
     `- Isolation strategy: ${git.strategy}`,
     `- Create/use branch: ${branchPattern} (base: ${git.baseBranch})`,
+    git.strategy === 'worktree' ? `- Worktree directory: ${git.worktreeDir} under the workspace root.` : null,
     `- ${commitOnBase}`,
     '- You MUST create the isolated branch/worktree, commit your work there, and confirm the commit exists BEFORE reporting the story done. An uncommitted tracker edit is not acceptance.',
+    '- Do not create story worktrees outside the workspace root unless the repo config explicitly says so.',
+    '- Do not symlink node_modules from another checkout. Use the package manager/store normally, and stop for approval if dependencies require network or privileged setup.',
     '',
     'PR policy (from .workflow/config.yaml - follow exactly):',
     `- Create PR: ${pr.create ? 'yes' : 'no'}.`,
@@ -103,6 +106,8 @@ export function buildGenericPrompt(
     `- Worker subagents may write files: ${implement.subagents.allowWorkers ? 'yes' : 'no'}.`,
     '- Subagents are for bounded sidecar analysis/review; do not delegate blocking critical-path implementation.',
     '- Workers require disjoint write scopes and explicit permission.',
+    '- If pre-PR review mode auto downgrades to inline, record/report the downgrade and use the full review checklist.',
+    '- If pre-PR review mode subagent cannot spawn a reviewer, fail closed and report the blocker.',
     '',
     'Instructions:',
     '1. Read repository instructions first, including AGENTS.md when present.',

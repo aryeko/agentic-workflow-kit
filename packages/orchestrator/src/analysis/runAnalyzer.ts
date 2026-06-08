@@ -12,7 +12,9 @@ interface AnalyzeOptions {
 export interface WorkflowRunAnalysis {
   runId: string;
   status: string;
+  derivedStatus: string;
   blockedReason: string | null;
+  issues: string[];
   children: AnalyzedChild[];
   commandCounts: Record<string, number>;
   subagentCounts: Record<string, number>;
@@ -24,6 +26,9 @@ interface AnalyzedChild {
   ok: boolean;
   sessionId: string | null;
   sessionLogPath: string | null;
+  status: string;
+  expectedBranch: string | null;
+  expectedWorktreePath: string | null;
 }
 
 export async function analyzeWorkflowRun(
@@ -37,6 +42,7 @@ export async function analyzeWorkflowRun(
 
   const commandCounts: Record<string, number> = {};
   const subagentCounts: Record<string, number> = {};
+  const issues: string[] = [];
   let tokenTotals: TokenTotals = emptyTokenTotals();
   let sawTokens = false;
 
@@ -49,11 +55,19 @@ export async function analyzeWorkflowRun(
           ? child.threadId
           : null;
     const sessionLogPath = sessionId ? (logsBySession.get(sessionId) ?? null) : null;
+    const storyId = readString(child.storyId, 'child.storyId');
+    const status = deriveChildStatus(state, child);
+    if (child.launchOnly === true && status === 'supervision_lost') {
+      issues.push(`${storyId} has launch metadata but no settled child result`);
+    }
     analyzedChildren.push({
-      storyId: readString(child.storyId, 'child.storyId'),
+      storyId,
       ok: child.ok === true,
       sessionId,
       sessionLogPath,
+      status,
+      expectedBranch: typeof child.expectedBranch === 'string' ? child.expectedBranch : null,
+      expectedWorktreePath: typeof child.expectedWorktreePath === 'string' ? child.expectedWorktreePath : null,
     });
 
     if (!sessionLogPath) continue;
@@ -67,10 +81,14 @@ export async function analyzeWorkflowRun(
     }
   }
 
+  const status = readString(state.status, 'state.status');
+
   return {
     runId: readString(state.runId, 'state.runId'),
-    status: readString(state.status, 'state.status'),
+    status,
+    derivedStatus: deriveRunStatus(status, analyzedChildren),
     blockedReason: typeof state.blockedReason === 'string' ? state.blockedReason : null,
+    issues,
     children: analyzedChildren,
     commandCounts,
     subagentCounts,
@@ -90,15 +108,59 @@ async function readChildren(
     throw error;
   }
   const childFiles = names
-    .filter((name) => name.endsWith('.json') && !name.endsWith('.raw.json') && !name.endsWith('.metrics.json'))
+    .filter(
+      (name) =>
+        name.endsWith('.json') &&
+        !name.endsWith('.launch.json') &&
+        !name.endsWith('.raw.json') &&
+        !name.endsWith('.metrics.json'),
+    )
     .sort();
-  if (childFiles.length === 0) return interactiveStateChildren(state);
-  return await Promise.all(childFiles.map((name) => readJsonObject(path.join(childrenDirectory, name))));
+  const settled = await Promise.all(childFiles.map((name) => readJsonObject(path.join(childrenDirectory, name))));
+  const launches = await readLaunches(childrenDirectory, names);
+  if (settled.length === 0 && launches.length === 0) return interactiveStateChildren(state);
+  return mergeChildren(settled, launches);
 }
 
 function interactiveStateChildren(state: Record<string, unknown>): Record<string, unknown>[] {
   if (state.command !== 'implement-next' || !isRecord(state.interactive)) return [];
   return [state.interactive];
+}
+
+async function readLaunches(childrenDirectory: string, names: string[]): Promise<Record<string, unknown>[]> {
+  const launchFiles = names.filter((name) => name.endsWith('.launch.json')).sort();
+  return await Promise.all(launchFiles.map((name) => readJsonObject(path.join(childrenDirectory, name))));
+}
+
+function mergeChildren(
+  settledChildren: Record<string, unknown>[],
+  launchRecords: Record<string, unknown>[],
+): Record<string, unknown>[] {
+  const byStory = new Map<string, Record<string, unknown>>();
+  for (const launch of launchRecords) {
+    if (typeof launch.storyId === 'string') byStory.set(launch.storyId, { ...launch, launchOnly: true });
+  }
+  for (const settled of settledChildren) {
+    if (typeof settled.storyId !== 'string') continue;
+    const launch = byStory.get(settled.storyId);
+    byStory.set(settled.storyId, launch ? { ...launch, ...settled, launchOnly: false } : settled);
+  }
+  return [...byStory.values()].sort((a, b) =>
+    readString(a.storyId, 'child.storyId').localeCompare(readString(b.storyId, 'child.storyId')),
+  );
+}
+
+function deriveChildStatus(state: Record<string, unknown>, child: Record<string, unknown>): string {
+  if (child.launchOnly === true && state.status === 'running') return 'supervision_lost';
+  if (typeof child.status === 'string') return child.status;
+  return 'settled';
+}
+
+function deriveRunStatus(status: string, children: AnalyzedChild[]): string {
+  if (status === 'running' && children.some((child) => child.status === 'supervision_lost')) {
+    return 'supervision_lost';
+  }
+  return status;
 }
 
 async function findSessionLogs(roots: string[]): Promise<string[]> {

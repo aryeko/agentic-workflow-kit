@@ -76,6 +76,7 @@ orchestrator:
       branchPattern: '{track}/{id-lc}-{slug}',
       baseBranch: 'main',
       commitOnBase: 'forbid',
+      worktreeDir: '.worktrees',
     });
     expect(config.pr).toEqual({
       create: true,
@@ -123,8 +124,36 @@ orchestrator:
       branchPattern: 'stories/{id-lc}',
       baseBranch: 'trunk',
       commitOnBase: 'allow',
+      worktreeDir: '.worktrees',
     });
     expect(config.orchestrator.childTimeoutMs).toBe(84);
+  });
+
+  it('resolves configured git.worktreeDir', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-worktree-dir-'));
+    await writeWorkflowConfig(
+      root,
+      `
+version: 1
+git:
+  strategy: worktree
+  branchPattern: "{track}/{id-lc}-{slug}"
+  baseBranch: main
+  commitOnBase: forbid
+  worktreeDir: .wk-worktrees
+`,
+    );
+
+    const config = await loadResolvedConfig({}, root);
+
+    expect(config.git.worktreeDir).toBe('.wk-worktrees');
+  });
+
+  it('rejects git.worktreeDir values that escape the workspace', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-bad-worktree-dir-'));
+    await writeWorkflowConfig(root, 'version: 1\ngit:\n  worktreeDir: ../outside\n');
+
+    await expect(loadResolvedConfig({}, root)).rejects.toThrow(/git\.worktreeDir/);
   });
 
   it('applies documented defaults for missing optional keys', async () => {
@@ -147,6 +176,7 @@ orchestrator:
       branchPattern: '{track}/{id-lc}-{slug}',
       baseBranch: 'main',
       commitOnBase: 'forbid',
+      worktreeDir: '.worktrees',
     });
     expect(config.pr).toEqual({
       create: true,
@@ -218,6 +248,7 @@ orchestrator:
       branchPattern: '{track}/{id-lc}-{slug}',
       baseBranch: 'main',
       commitOnBase: 'forbid',
+      worktreeDir: '.worktrees',
     });
   });
 

@@ -94,6 +94,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       branchPattern: '{track}/{id-lc}-{slug}',
       baseBranch: 'main',
       commitOnBase: 'forbid',
+      worktreeDir: '.worktrees',
     },
     pr: {
       create: true,

@@ -1,6 +1,10 @@
+import path from 'node:path';
 import { z } from 'zod';
 
 const nonEmpty = z.string().min(1);
+const repoRelativePath = nonEmpty.refine((value) => !path.isAbsolute(value) && !value.split(/[\\/]+/).includes('..'), {
+  message: 'must be a repo-relative path that does not contain .. segments',
+});
 
 export const ConfigSchema = z
   .object({
@@ -40,6 +44,7 @@ export const ConfigSchema = z
         branchPattern: nonEmpty.default('{track}/{id-lc}-{slug}'),
         baseBranch: nonEmpty.default('main'),
         commitOnBase: z.enum(['forbid', 'allow']).default('forbid'),
+        worktreeDir: repoRelativePath.default('.worktrees'),
       })
       .strict()
       .prefault({}),

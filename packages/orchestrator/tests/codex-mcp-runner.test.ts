@@ -20,7 +20,13 @@ function config(): ResolvedWorkflowConfig {
     },
     statuses: { eligible: ['specced'], inProgress: 'implementing', complete: ['done'] },
     tracker: { idPattern: '^[A-Z]+[0-9]+$' },
-    git: { strategy: 'worktree', branchPattern: '{track}/{id-lc}-{slug}', baseBranch: 'main', commitOnBase: 'forbid' },
+    git: {
+      strategy: 'worktree',
+      branchPattern: '{track}/{id-lc}-{slug}',
+      baseBranch: 'main',
+      commitOnBase: 'forbid',
+      worktreeDir: '.worktrees',
+    },
     pr: {
       create: true,
       ci: { wait: false, command: null },
@@ -183,7 +189,7 @@ describe('CodexMcpStoryRunner', () => {
     });
 
     await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      /timed out/i,
+      'Codex MCP request timed out',
     );
     expect(client.closed).toBe(true);
   });
@@ -201,7 +207,7 @@ describe('CodexMcpStoryRunner', () => {
     });
 
     await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      /timed out/i,
+      'Codex MCP request timed out',
     );
     expect(createClientCalls).toBe(1);
     expect(client.callToolCalls).toBe(1);
@@ -219,7 +225,7 @@ describe('CodexMcpStoryRunner', () => {
     });
 
     await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      /timed out/i,
+      'Codex MCP request timed out',
     );
     expect(client.closed).toBe(true);
   });

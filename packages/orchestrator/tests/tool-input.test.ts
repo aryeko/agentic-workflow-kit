@@ -19,7 +19,13 @@ const config: ResolvedWorkflowConfig = {
   },
   statuses: { eligible: ['specced'], inProgress: 'implementing', complete: ['done'] },
   tracker: { idPattern: '^[A-Z]+[0-9]+$' },
-  git: { strategy: 'worktree', branchPattern: '{track}/{id-lc}-{slug}', baseBranch: 'main', commitOnBase: 'forbid' },
+  git: {
+    strategy: 'worktree',
+    branchPattern: '{track}/{id-lc}-{slug}',
+    baseBranch: 'main',
+    commitOnBase: 'forbid',
+    worktreeDir: '.worktrees',
+  },
   pr: {
     create: true,
     ci: { wait: true, command: null },
@@ -83,9 +89,12 @@ describe('buildGenericPrompt', () => {
     expect(prompt).toContain('Git policy');
     expect(prompt).toContain('- Isolation strategy: worktree');
     expect(prompt).toContain('- Create/use branch: linkly/l002-{slug} (base: main)');
+    expect(prompt).toContain('- Worktree directory: .worktrees under the workspace root.');
     expect(prompt).toContain('Committing directly on `main` is forbidden.');
     expect(prompt).toContain('commit your work there, and confirm the commit exists BEFORE reporting the story done');
     expect(prompt).toContain('An uncommitted tracker edit is not acceptance.');
+    expect(prompt).toContain('Do not create story worktrees outside the workspace root');
+    expect(prompt).toContain('Do not symlink node_modules from another checkout');
   });
 
   it('renders permissive base-commit wording when commitOnBase is allow', () => {
@@ -118,6 +127,8 @@ describe('buildGenericPrompt', () => {
     expect(prompt).toContain('- Sidecar subagents: enabled, max parallel 2.');
     expect(prompt).toContain('- Worker subagents may write files: no.');
     expect(prompt).toContain('Workers require disjoint write scopes and explicit permission.');
+    expect(prompt).toContain('auto downgrades to inline, record/report the downgrade');
+    expect(prompt).toContain('subagent cannot spawn a reviewer, fail closed');
     expect(prompt).toContain('- PR review fix batches: 1.');
     expect(prompt).toContain('- Re-request review after fixes: no.');
   });

@@ -11,6 +11,7 @@ const gitPolicy: ResolvedGitConfig = {
   branchPattern: '{track}/{id-lc}-{slug}',
   baseBranch: 'main',
   commitOnBase: 'forbid',
+  worktreeDir: '.worktrees',
 };
 
 function story(id = 'WK001'): WorkflowStory {
