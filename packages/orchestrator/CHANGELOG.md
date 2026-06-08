@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.0
+
+### Minor Changes
+
+- 01bee94: Add durable child launch records, supervision-lost run analysis, duplicate launch blocking, parent-owned tracker claims, and configurable repo-local worktree directories for orchestrated story runs.
+
 ## 0.4.0
 
 ### Minor Changes
