@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.5
+
+### Patch Changes
+
+- 9f944ea: Fix Codex plugin MCP startup from consumer repositories by pinning the bundled server command to the installed plugin root and expanding installed-plugin smoke coverage.
+
 ## 0.5.4
 
 ### Patch Changes
