@@ -146,9 +146,10 @@ instructions cover cross-tool workflow guidance: inspect tracks and eligibility 
 operate on the target repo cwd, require explicit user approval before non-dry-run launches, treat
 tracker state as authoritative, and inspect launched runs with `watch_run` / `analyze_run`.
 Tool-specific descriptions stay with the individual MCP tools. The Codex plugin uses
-`.codex-plugin/.mcp.json`; that `mcpServers` configuration does not set `cwd`, so Codex should
-preserve the active target repo for workflow tools, and hosts that cannot provide that context must
-pass `cwd` explicitly.
+`.codex-plugin/.mcp.json`; that `mcpServers` configuration sets `cwd: "."` so Codex starts
+`node ./mcp/server.mjs` from the installed plugin root instead of resolving the bundle path against
+the consumer repo. Target repository context is a tool-level concern: callers pass `cwd` explicitly
+when the MCP process is not already running from that repo.
 
 Both surfaces carry the config layer above. They wire concrete implementations into a `WorkflowRunner` that
 depends only on interfaces (`StoryRunner`, `StorySource`, `ArtifactStore`, `Logger`, `Clock`). The
@@ -297,7 +298,7 @@ mcp/server.mjs              generated MCP runtime bundled into plugin installs; 
 .claude-plugin/             Claude Code plugin + marketplace manifests
 .codex-plugin/              Codex plugin manifest; points `mcpServers` at `./.codex-plugin/.mcp.json`
 plugins/agentic-workflow-kit/       materialized copy for the local Codex marketplace fixture, including
-                                    Codex-specific .codex-plugin/.mcp.json (`mcpServers`, no `cwd`)
+                                    Codex-specific .codex-plugin/.mcp.json (`mcpServers`, `cwd: "."`)
                                     and mcp/server.mjs
 docs/                       this architecture and the docs hub
 ```

@@ -38,9 +38,21 @@ Confirm the installed plugin cache contains `.codex-plugin/.mcp.json`, `.mcp.jso
 `mcpServers: "./.codex-plugin/.mcp.json"`. The Codex MCP manifest should use the plugin-bundled
 `mcpServers` shape. In the Codex session, prefer the bundled MCP runtime through
 `workflow-autopilot`; use the standalone CLI only as a fallback or cross-check. The Codex MCP entry
-must not set `cwd`; the session cwd should remain the throwaway target repo. If a host cannot provide
-that repo context, the workflow MCP tools should ask for an explicit `cwd` instead of reading
-trackers from the installed plugin cache.
+must set `cwd: "."` so the relative `./mcp/server.mjs` command resolves inside the installed plugin
+cache rather than the throwaway target repo. Because the MCP process may start from the plugin root,
+pass tool-level `cwd` explicitly for target-repo operations when needed.
+
+If Codex reports a generic MCP warning such as `connection closed: initialize response`, distinguish
+these states before changing consumer repos:
+
+- **Marketplace source version:** the version Codex can install from the marketplace entry.
+- **Installed cache version:** the copy under
+  `$CODEX_HOME/plugins/cache/agentic-workflow-kit/agentic-workflow-kit/<version>`.
+- **Active session version:** the plugin copy already loaded by the running Codex app/session.
+
+After MCP manifest or bundled-runtime changes, reinstall the plugin into the intended `CODEX_HOME`
+and relaunch Codex. A refreshed marketplace entry alone does not replace an already-installed cache
+or reload an active session.
 
 ## Invocation (this surface)
 In the Codex session (fixture `CODEX_HOME`, cwd `$SMOKE`), trigger each skill via Codex's skill

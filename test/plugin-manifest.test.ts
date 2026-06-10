@@ -62,6 +62,7 @@ describe('plugin manifests', () => {
     const mcp = JSON.parse(readFileSync(manifest.mcpServers, 'utf8'));
 
     expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
+      cwd: '.',
       command: 'node',
       args: ['./mcp/server.mjs'],
     });
@@ -145,6 +146,7 @@ describe('plugin manifests', () => {
 
     expect(manifest.mcpServers).toBe('./.codex-plugin/.mcp.json');
     expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
+      cwd: '.',
       command: 'node',
       args: ['./mcp/server.mjs'],
     });

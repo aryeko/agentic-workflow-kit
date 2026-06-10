@@ -159,9 +159,10 @@ The repository includes local-only plugin metadata for development testing:
   the fixture-specific MCP manifest and bundled `mcp/server.mjs`. The Codex plugin manifest declares
   `mcpServers: "./.codex-plugin/.mcp.json"`; that file uses Codex's `mcpServers` shape so Codex can
   launch the server from the installed plugin without reusing Claude Code's root `.mcp.json`. The
-  Codex entries intentionally do not set `cwd`, preserving the active target repo as the MCP
-  working directory. If a host cannot provide that repo context, workflow MCP tools return an
-  actionable error asking the caller to pass `cwd` explicitly.
+  Codex entry sets `cwd: "."` so `node ./mcp/server.mjs` resolves from the installed plugin root,
+  even when Codex itself is running from a consumer repo. Workflow MCP tools still operate on the
+  target repo: pass the tool `cwd` argument when the MCP process is not already running from that
+  repo. If `cwd` is omitted and no workflow config is visible, the tools return an actionable error.
 
 ```bash
 tmp_home="$(mktemp -d)"
@@ -176,6 +177,21 @@ The same Codex install and prompt-visibility check is available as:
 ```bash
 pnpm smoke:codex-plugin
 ```
+
+That smoke installs through a temporary `CODEX_HOME`, verifies prompt visibility, starts the
+installed bundled MCP command from a non-plugin consumer cwd, and reaches `tools/list`. If Codex
+reports `connection closed: initialize response`, do not assume the bundled server JavaScript is
+invalid. First check the installed MCP config and cache version:
+
+```bash
+codex plugin list
+find "$CODEX_HOME/plugins/cache/agentic-workflow-kit/agentic-workflow-kit" -maxdepth 1 -type d
+cat "$CODEX_HOME/plugins/cache/agentic-workflow-kit/agentic-workflow-kit/<version>/.codex-plugin/.mcp.json"
+```
+
+The marketplace source version, installed cache version, and already-running Codex session can
+drift. After changing plugin manifests or MCP wiring, reinstall the plugin into the relevant
+`CODEX_HOME` and relaunch Codex so the active session reloads the installed cache.
 
 Keep manual plugin smokes pending until they are run in the relevant tool environment.
 
