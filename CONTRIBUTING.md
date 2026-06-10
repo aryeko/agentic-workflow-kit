@@ -48,10 +48,11 @@ Several artifacts are deliberately kept in sync by tests; editing one means edit
   `references/config-schema.md` is the human mirror; keep its fields and defaults aligned.
 - **Materialized plugin copy.** `plugins/agentic-workflow-kit/` is a byte-for-byte copy of `references/`,
   `presets/`, `examples/`, `skills/`, and `.codex-plugin/` (the local Codex marketplace fixture). It
-  also carries a Codex-specific `.mcp.json` and generated `mcp/server.mjs`. The root and fixture
-  `.mcp.json` files use Codex's `mcpServers` shape with the plugin-bundled server path. Codex MCP
-  entries intentionally omit `cwd` so the MCP process can operate on the active target repo instead
-  of pinning itself to the installed plugin cache. Tests assert the mirrored content and runtime
+  also carries a fixture `.mcp.json` and generated `mcp/server.mjs`. The root `.mcp.json` is the
+  Claude Code manifest and uses plugin-root variables; `.codex-plugin/.mcp.json` is the Codex plugin
+  manifest and uses Codex's `mcpServers` shape with the plugin-bundled server path. Codex MCP entries
+  intentionally omit `cwd` so the MCP process can operate on the active target repo instead of
+  pinning itself to the installed plugin cache. Tests assert the mirrored content and runtime
   artifact stay aligned — re-sync the copy after editing any canonical source, or the gate fails.
 - **Presets** must stay fully populated and schema-valid.
 - **Tracker completion** comes only from tracker state, never from a child session's prose.

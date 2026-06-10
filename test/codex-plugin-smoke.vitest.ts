@@ -31,11 +31,12 @@ describe('codex local plugin smoke', () => {
     );
 
     expect(existsSync(path.join(installedRoot, '.codex-plugin/plugin.json'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, '.codex-plugin/.mcp.json'))).toBe(true);
     expect(existsSync(path.join(installedRoot, '.mcp.json'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'mcp/server.mjs'))).toBe(true);
     const installedManifest = JSON.parse(readFileSync(path.join(installedRoot, '.codex-plugin/plugin.json'), 'utf8'));
-    const installedMcp = JSON.parse(readFileSync(path.join(installedRoot, '.mcp.json'), 'utf8'));
-    expect(installedManifest.mcpServers).toBe('./.mcp.json');
+    const installedMcp = JSON.parse(readFileSync(path.join(installedRoot, installedManifest.mcpServers), 'utf8'));
+    expect(installedManifest.mcpServers).toBe('./.codex-plugin/.mcp.json');
     expect(installedMcp.mcpServers?.['agentic-workflow-kit']).toEqual({
       command: 'node',
       args: ['./mcp/server.mjs'],
