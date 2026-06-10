@@ -129,10 +129,10 @@ export class RunJournal {
     const recordedAt = this.dependencies.clock.now();
     const explicitEventAt = typeof fields.eventAt === 'string' ? fields.eventAt : null;
     await this.dependencies.artifactStore.appendEvent({
+      ...fields,
       recordedAt,
       eventAt: explicitEventAt ?? recordedAt,
       type,
-      ...fields,
     });
   }
 }

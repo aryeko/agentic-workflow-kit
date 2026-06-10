@@ -88,6 +88,51 @@ describe('run analyzer', () => {
     expect(analysis.tokenTotals?.totalTokens).toBe(18);
   });
 
+  it('uses explicit interactive sessionLogPath when sessionId is unavailable', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-session-path-'));
+    tempRoots.push(root);
+    const runDirectory = path.join(root, 'repo/.codex/agentic-workflow-kit/runs/2026-06-11T10-00-00-000Z');
+    const sessionLogPath = path.join(root, 'explicit-session.jsonl');
+    mkdirSync(runDirectory, { recursive: true });
+
+    writeFileSync(
+      path.join(runDirectory, 'state.json'),
+      JSON.stringify(
+        {
+          runId: '2026-06-11T10-00-00-000Z',
+          command: 'implement-next',
+          status: 'complete',
+          blockedReason: null,
+          interactive: {
+            storyId: 'PLD06',
+            ok: true,
+            sessionId: null,
+            sessionLogPath,
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      sessionLogPath,
+      [
+        JSON.stringify({ type: 'session_meta', payload: { id: '019e-explicit-session' } }),
+        JSON.stringify({ type: 'response_item', payload: { type: 'function_call', name: 'exec_command' } }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDirectory, { sessionRoots: [] });
+
+    expect(analysis.children[0]).toMatchObject({
+      storyId: 'PLD06',
+      sessionId: null,
+      sessionLogPath,
+      metricsStatus: 'available',
+    });
+    expect(analysis.commandCounts).toEqual({ exec_command: 1 });
+  });
+
   it('reconstructs PLD05-style review loops, PR follow-up, and merge aliases', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-pld05-'));
     tempRoots.push(root);

@@ -27,6 +27,10 @@ describe('run journal', () => {
 
     await journal.record('phase_started');
     await journal.record('external_phase_completed', { eventAt: '2026-06-10T20:59:00.000Z' });
+    await journal.record('caller_timestamp_ignored', {
+      recordedAt: '2026-01-01T00:00:00.000Z',
+      eventAt: '2026-06-10T20:58:00.000Z',
+    });
 
     expect(artifactStore.events).toEqual([
       {
@@ -38,6 +42,11 @@ describe('run journal', () => {
         recordedAt: '2026-06-10T21:00:00.000Z',
         eventAt: '2026-06-10T20:59:00.000Z',
         type: 'external_phase_completed',
+      },
+      {
+        recordedAt: '2026-06-10T21:00:00.000Z',
+        eventAt: '2026-06-10T20:58:00.000Z',
+        type: 'caller_timestamp_ignored',
       },
     ]);
   });

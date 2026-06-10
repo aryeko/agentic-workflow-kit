@@ -44181,7 +44181,8 @@ async function analyzeWorkflowRun(runDirectory, options2 = {}) {
   const analyzedChildren = [];
   for (const child of children) {
     const sessionId = typeof child.sessionId === "string" ? child.sessionId : typeof child.threadId === "string" ? child.threadId : null;
-    const sessionLogPath = sessionId ? logsBySession.get(sessionId) ?? null : null;
+    const explicitSessionLogPath = typeof child.sessionLogPath === "string" && await pathExists(child.sessionLogPath) ? child.sessionLogPath : null;
+    const sessionLogPath = explicitSessionLogPath ?? (sessionId ? logsBySession.get(sessionId) ?? null : null);
     const storyId = readString(child.storyId, "child.storyId");
     const status2 = deriveChildStatus(state, child);
     if (child.launchOnly === true && status2 === "supervision_lost") {
@@ -44192,7 +44193,7 @@ async function analyzeWorkflowRun(runDirectory, options2 = {}) {
       ok: child.ok === true,
       sessionId,
       sessionLogPath,
-      metricsStatus: sessionId === null ? "session_linkage_unavailable" : sessionLogPath === null ? "session_log_missing" : "available",
+      metricsStatus: childMetricsStatus(sessionId, sessionLogPath),
       status: status2,
       expectedBranch: typeof child.expectedBranch === "string" ? child.expectedBranch : null,
       expectedWorktreePath: typeof child.expectedWorktreePath === "string" ? child.expectedWorktreePath : null
@@ -44448,6 +44449,10 @@ function deriveChildStatus(state, child) {
   if (child.launchOnly === true && state.status === "running") return "supervision_lost";
   if (typeof child.status === "string") return child.status;
   return "settled";
+}
+function childMetricsStatus(sessionId, sessionLogPath) {
+  if (sessionLogPath !== null) return "available";
+  return sessionId === null ? "session_linkage_unavailable" : "session_log_missing";
 }
 function deriveRunStatus(status, children) {
   if (status === "running" && children.some((child) => child.status === "supervision_lost")) {
@@ -63675,10 +63680,10 @@ var RunJournal = class {
     const recordedAt = this.dependencies.clock.now();
     const explicitEventAt = typeof fields.eventAt === "string" ? fields.eventAt : null;
     await this.dependencies.artifactStore.appendEvent({
+      ...fields,
       recordedAt,
       eventAt: explicitEventAt ?? recordedAt,
-      type,
-      ...fields
+      type
     });
   }
 };

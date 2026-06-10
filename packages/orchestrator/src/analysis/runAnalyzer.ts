@@ -140,7 +140,11 @@ export async function analyzeWorkflowRun(
         : typeof child.threadId === 'string'
           ? child.threadId
           : null;
-    const sessionLogPath = sessionId ? (logsBySession.get(sessionId) ?? null) : null;
+    const explicitSessionLogPath =
+      typeof child.sessionLogPath === 'string' && (await pathExists(child.sessionLogPath))
+        ? child.sessionLogPath
+        : null;
+    const sessionLogPath = explicitSessionLogPath ?? (sessionId ? (logsBySession.get(sessionId) ?? null) : null);
     const storyId = readString(child.storyId, 'child.storyId');
     const status = deriveChildStatus(state, child);
     if (child.launchOnly === true && status === 'supervision_lost') {
@@ -151,12 +155,7 @@ export async function analyzeWorkflowRun(
       ok: child.ok === true,
       sessionId,
       sessionLogPath,
-      metricsStatus:
-        sessionId === null
-          ? 'session_linkage_unavailable'
-          : sessionLogPath === null
-            ? 'session_log_missing'
-            : 'available',
+      metricsStatus: childMetricsStatus(sessionId, sessionLogPath),
       status,
       expectedBranch: typeof child.expectedBranch === 'string' ? child.expectedBranch : null,
       expectedWorktreePath: typeof child.expectedWorktreePath === 'string' ? child.expectedWorktreePath : null,
@@ -483,6 +482,11 @@ function deriveChildStatus(state: Record<string, unknown>, child: Record<string,
   if (child.launchOnly === true && state.status === 'running') return 'supervision_lost';
   if (typeof child.status === 'string') return child.status;
   return 'settled';
+}
+
+function childMetricsStatus(sessionId: string | null, sessionLogPath: string | null): AnalyzedChild['metricsStatus'] {
+  if (sessionLogPath !== null) return 'available';
+  return sessionId === null ? 'session_linkage_unavailable' : 'session_log_missing';
 }
 
 function deriveRunStatus(status: string, children: AnalyzedChild[]): string {
