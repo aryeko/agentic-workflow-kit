@@ -141,6 +141,14 @@ token metric as completion — the tracker row remains the only completion autho
 annotated read-only/idempotent and run tools destructive; large responses are bounded and can be
 widened with `responseFormat: detailed`.
 
+The MCP server also returns concise server-level instructions during initialization. Those
+instructions cover cross-tool workflow guidance: inspect tracks and eligibility before dispatch,
+operate on the target repo cwd, require explicit user approval before non-dry-run launches, treat
+tracker state as authoritative, and inspect launched runs with `watch_run` / `analyze_run`.
+Tool-specific descriptions stay with the individual MCP tools. The Codex plugin `mcp_servers`
+configuration does not set `cwd`; Codex should preserve the active target repo for workflow tools,
+and hosts that cannot provide that context must pass `cwd` explicitly.
+
 Both surfaces carry the config layer above. They wire concrete implementations into a `WorkflowRunner` that
 depends only on interfaces (`StoryRunner`, `StorySource`, `ArtifactStore`, `Logger`, `Clock`). The
 only shipped driver is `codex-mcp`; the driver boundary is reserved so new drivers can be added
@@ -282,12 +290,14 @@ examples/                   worked PRD + tracker (Linkly)
 packages/orchestrator/      the only TS package: config (Zod schema, loadConfig, presets, schema gen),
                             shared handlers, MCP server adapter, CLI, tracker parser, scheduler,
                             WorkflowRunner, codex-mcp driver
-mcp/server.mjs              generated MCP runtime bundled into plugin installs
-.mcp.json                   Claude Code plugin MCP wiring
+mcp/server.mjs              generated MCP runtime bundled into plugin installs; includes server
+                            instructions for cross-tool workflow guidance
+.mcp.json                   Claude Code plugin MCP wiring plus a Codex-readable `mcp_servers`
+                            entry for the root Codex manifest; Codex entries omit `cwd`
 .claude-plugin/             Claude Code plugin + marketplace manifests
-.codex-plugin/              Codex plugin manifest
+.codex-plugin/              Codex plugin manifest; points `mcpServers` at `./.mcp.json`
 plugins/agentic-workflow-kit/       materialized copy for the local Codex marketplace fixture, including
-                                    Codex-specific .mcp.json and mcp/server.mjs
+                                    Codex-specific .mcp.json (`mcp_servers` wrapper, no `cwd`) and mcp/server.mjs
 docs/                       this architecture and the docs hub
 ```
 

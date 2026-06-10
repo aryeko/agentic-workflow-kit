@@ -49,11 +49,22 @@ describe('plugin manifests', () => {
     expect(m.license).toBe('MIT');
     expect(Array.isArray(m.keywords)).toBe(true);
     expect(m.skills).toBe('./skills/');
+    expect(m.mcpServers).toBe('./.mcp.json');
     expect(m.repository).toBeUndefined();
     expect(m.homepage).toBeUndefined();
     expect(m.interface?.displayName).toBe('agentic-workflow-kit');
     expect(m.interface?.category).toBe('Productivity');
     expect(m.interface?.capabilities).toEqual(expect.arrayContaining(['Read', 'Write', 'Shell']));
+  });
+
+  it('codex plugin manifest points at a Codex-readable MCP config', () => {
+    const manifest = JSON.parse(readFileSync('.codex-plugin/plugin.json', 'utf8'));
+    const mcp = JSON.parse(readFileSync(manifest.mcpServers, 'utf8'));
+
+    expect(mcp.mcp_servers?.['agentic-workflow-kit']).toEqual({
+      command: 'node',
+      args: ['./mcp/server.mjs'],
+    });
   });
 
   it('marketplace.json lists the root plugin with source "./"', () => {
@@ -126,13 +137,15 @@ describe('plugin manifests', () => {
   });
 
   it('codex local marketplace fixture includes the bundled MCP runtime', () => {
+    const manifest = JSON.parse(readFileSync('plugins/agentic-workflow-kit/.codex-plugin/plugin.json', 'utf8'));
     const mcp = JSON.parse(readFileSync('plugins/agentic-workflow-kit/.mcp.json', 'utf8'));
 
-    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
+    expect(manifest.mcpServers).toBe('./.mcp.json');
+    expect(mcp.mcp_servers?.['agentic-workflow-kit']).toEqual({
       command: 'node',
       args: ['./mcp/server.mjs'],
-      cwd: '.',
     });
+    expect(mcp.mcpServers).toBeUndefined();
     expect(readFileSync('plugins/agentic-workflow-kit/mcp/server.mjs', 'utf8')).toBe(
       readFileSync('mcp/server.mjs', 'utf8'),
     );

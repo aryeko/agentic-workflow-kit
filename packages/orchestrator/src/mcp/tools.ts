@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
@@ -25,7 +27,10 @@ export const ORCHESTRATOR_MCP_TOOLS = [
 ] as const;
 
 const baseInputSchema = z.object({
-  cwd: z.string().optional().describe('Repo root to operate in; defaults to the MCP server current working directory.'),
+  cwd: z
+    .string()
+    .optional()
+    .describe('Target repo root to operate in; omit only when the MCP session is already running from that repo.'),
   configPath: z.string().optional().describe('Path to .workflow/config.yaml; defaults to <cwd>/.workflow/config.yaml.'),
   track: z
     .string()
@@ -111,7 +116,11 @@ export function registerOrchestratorTools(server: McpServer): void {
       outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => handleTool('list_tracks', input.responseFormat, () => listTracksHandler(toOverrides(input))),
+    async (input) =>
+      handleTool('list_tracks', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return listTracksHandler(toOverrides(input));
+      }),
   );
 
   server.registerTool(
@@ -123,7 +132,11 @@ export function registerOrchestratorTools(server: McpServer): void {
       outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => handleTool('list_stories', input.responseFormat, () => listStoriesHandler(toOverrides(input))),
+    async (input) =>
+      handleTool('list_stories', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return listStoriesHandler(toOverrides(input));
+      }),
   );
 
   server.registerTool(
@@ -135,7 +148,11 @@ export function registerOrchestratorTools(server: McpServer): void {
       outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) => handleTool('list_eligible', input.responseFormat, () => listEligibleHandler(toOverrides(input))),
+    async (input) =>
+      handleTool('list_eligible', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return listEligibleHandler(toOverrides(input));
+      }),
   );
 
   server.registerTool(
@@ -152,7 +169,10 @@ export function registerOrchestratorTools(server: McpServer): void {
       return handleTool(
         'run_eligible',
         input.responseFormat,
-        () => runWorkflowHandler({ kind: 'run-eligible', overrides }, { logger: nullLogger, stdout: noopStdout }),
+        () => {
+          assertWorkflowRepoContext(input);
+          return runWorkflowHandler({ kind: 'run-eligible', overrides }, { logger: nullLogger, stdout: noopStdout });
+        },
         summarizeRun,
       );
     },
@@ -172,11 +192,13 @@ export function registerOrchestratorTools(server: McpServer): void {
       return handleTool(
         'run_story',
         input.responseFormat,
-        () =>
-          runWorkflowHandler(
+        () => {
+          assertWorkflowRepoContext(input);
+          return runWorkflowHandler(
             { kind: 'run-story', storyId: input.storyId, overrides },
             { logger: nullLogger, stdout: noopStdout },
-          ),
+          );
+        },
         summarizeRun,
       );
     },
@@ -218,9 +240,21 @@ export function registerOrchestratorTools(server: McpServer): void {
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     async (input) =>
-      handleTool('check_codex_mcp', input.responseFormat, () =>
-        mcpCheckHandler(toOverrides(input), { logger: nullLogger }),
-      ),
+      handleTool('check_codex_mcp', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return mcpCheckHandler(toOverrides(input), { logger: nullLogger });
+      }),
+  );
+}
+
+function assertWorkflowRepoContext(input: { cwd?: string; configPath?: string }): void {
+  if (input.cwd !== undefined || input.configPath !== undefined) return;
+
+  const implicitCwd = process.env.INIT_CWD ? path.resolve(process.env.INIT_CWD) : process.cwd();
+  if (existsSync(path.join(implicitCwd, '.workflow', 'config.yaml'))) return;
+
+  throw new Error(
+    `Target repo cwd is required for agentic-workflow-kit MCP tools when the session is not running from a workflow repo. Pass cwd as the target repository root. Checked: ${implicitCwd}`,
   );
 }
 

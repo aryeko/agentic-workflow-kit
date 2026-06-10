@@ -34,8 +34,12 @@ Keep `CODEX_HOME` exported for the whole Codex session, and run that session wit
 (the throwaway repo) so the skills act there.
 
 Confirm the installed plugin cache contains `.mcp.json` and `mcp/server.mjs` (the automated smoke
-does this). In the Codex session, prefer the bundled MCP runtime through `workflow-autopilot`; use
-the standalone CLI only as a fallback or cross-check.
+does this), and that `.codex-plugin/plugin.json` declares `mcpServers: "./.mcp.json"`. The fixture
+`.mcp.json` should use the plugin-bundled `mcp_servers` wrapper. In the Codex session, prefer the
+bundled MCP runtime through `workflow-autopilot`; use the standalone CLI only as a fallback or
+cross-check. The Codex MCP entry must not set `cwd`; the session cwd should remain the throwaway
+target repo. If a host cannot provide that repo context, the workflow MCP tools should ask for an
+explicit `cwd` instead of reading trackers from the installed plugin cache.
 
 ## Invocation (this surface)
 In the Codex session (fixture `CODEX_HOME`, cwd `$SMOKE`), trigger each skill via Codex's skill

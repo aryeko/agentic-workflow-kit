@@ -6,6 +6,7 @@
   "license": "MIT",
   "keywords": ["workflow", "tracker", "spec-driven", "automation", "orchestration"],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "agentic-workflow-kit",
     "shortDescription": "Tracker-driven delivery workflow",
