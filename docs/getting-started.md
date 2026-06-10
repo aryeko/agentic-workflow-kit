@@ -139,7 +139,9 @@ pnpm agentic-workflow-kit -- analyze-run .codex/agentic-workflow-kit/runs/<runId
 ```
 
 `analyze-run` also accepts compatible interactive `/implement-next` journals written to the same
-run directory shape.
+run directory shape. When `events.ndjson` is present, the analyzer also reconstructs review
+downgrades/blockers, PR review findings and fix batches, final verification, merge/cleanup status,
+and the sorted event timeline even if a session log is unavailable.
 
 ## 6. Ship and repeat
 

@@ -139,4 +139,15 @@ describe('config-schema.md stays in sync with config.schema.json', () => {
     expect(doc).toContain('A native `PullRequestReview` with `APPROVED` or `CHANGES_REQUESTED` is not required');
     expect(doc).toContain('Mentioning `@codex` is only a fallback/manual trigger');
   });
+
+  it('documents pre-PR review modes, local loops, and analyzer outcomes', () => {
+    expect(doc).toContain('Pre-PR review modes');
+    expect(doc).toContain('`subagent` is fail-closed');
+    expect(doc).toContain(
+      'You are explicitly authorized to delegate the pre-PR review to a read-only review subagent if configured.',
+    );
+    expect(doc).toContain('Local pre-PR review loops are separate from external PR review gates');
+    expect(doc).toContain('`pre_pr_review_downgraded` is reported as an analyzer warning');
+    expect(doc).toContain('`pre_pr_review_blocked` is reported as an analyzer blocker');
+  });
 });

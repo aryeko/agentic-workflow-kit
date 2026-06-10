@@ -19,6 +19,10 @@ export interface WorkflowRunAnalysis {
   commandCounts: Record<string, number>;
   subagentCounts: Record<string, number>;
   tokenTotals: TokenTotals | null;
+  review: ReviewSummary;
+  verification: VerificationSummary;
+  merge: MergeSummary;
+  timeline: TimelineEvent[];
 }
 
 interface AnalyzedChild {
@@ -31,11 +35,84 @@ interface AnalyzedChild {
   expectedWorktreePath: string | null;
 }
 
+interface ReviewSummary {
+  prePr: PrePrReviewSummary;
+  pr: PrReviewSummary;
+}
+
+interface PrePrReviewSummary {
+  requestedMode: string | null;
+  actualMode: string | null;
+  status: 'not_configured' | 'not_started' | 'downgraded' | 'blocked' | 'passed' | 'findings';
+  warnings: string[];
+  blockers: string[];
+  maxLoops: number | null;
+  loopMode: string | null;
+  loops: PrePrReviewLoop[];
+  subagent: {
+    agentId: string | null;
+    status: string | null;
+  };
+}
+
+interface PrePrReviewLoop {
+  loop: number | null;
+  mode: string | null;
+  status: string;
+  findings: number | null;
+}
+
+interface PrReviewSummary {
+  findings: PrReviewFinding[];
+  fixBatchCount: number;
+  rerequestAfterFix: boolean | null;
+}
+
+interface PrReviewFinding {
+  severity: string | null;
+  summary: string;
+  file: string | null;
+}
+
+interface VerificationSummary {
+  commands: VerificationCommandSummary[];
+  finalPassedAt: string | null;
+}
+
+interface VerificationCommandSummary {
+  phase: string | null;
+  command: string | null;
+  status: string;
+  eventAt: string | null;
+}
+
+interface MergeSummary {
+  merged: boolean;
+  mergedAt: string | null;
+  cleanupStatus: string | null;
+  mergeBeforeFinalVerification: boolean;
+}
+
+interface TimelineEvent {
+  type: string;
+  eventAt: string | null;
+  recordedAt: string | null;
+  index: number;
+}
+
+interface NormalizedEvent extends TimelineEvent {
+  raw: Record<string, unknown>;
+}
+
 export async function analyzeWorkflowRun(
   runDirectory: string,
   options: AnalyzeOptions = {},
 ): Promise<WorkflowRunAnalysis> {
   const state = await readJsonObject(path.join(runDirectory, 'state.json'));
+  const [config, events] = await Promise.all([
+    readJsonObjectIfExists(path.join(runDirectory, 'config.resolved.json')),
+    readEvents(path.join(runDirectory, 'events.ndjson')),
+  ]);
   const children = await readChildren(path.join(runDirectory, 'children'), state);
   const sessionLogs = await findSessionLogs(options.sessionRoots ?? defaultSessionRoots());
   const logsBySession = await mapSessionLogsByThread(sessionLogs);
@@ -82,18 +159,225 @@ export async function analyzeWorkflowRun(
   }
 
   const status = readString(state.status, 'state.status');
+  const eventSummary = summarizeEvents(events, config);
 
   return {
     runId: readString(state.runId, 'state.runId'),
     status,
     derivedStatus: deriveRunStatus(status, analyzedChildren),
     blockedReason: typeof state.blockedReason === 'string' ? state.blockedReason : null,
-    issues,
+    issues: [...issues, ...eventSummary.issues],
     children: analyzedChildren,
     commandCounts,
     subagentCounts,
     tokenTotals: sawTokens ? tokenTotals : null,
+    review: eventSummary.review,
+    verification: eventSummary.verification,
+    merge: eventSummary.merge,
+    timeline: eventSummary.timeline,
   };
+}
+
+function summarizeEvents(
+  events: NormalizedEvent[],
+  config: Record<string, unknown> | null,
+): {
+  issues: string[];
+  review: ReviewSummary;
+  verification: VerificationSummary;
+  merge: MergeSummary;
+  timeline: TimelineEvent[];
+} {
+  const prePrConfig = readPrePrConfig(config);
+  const prReviewConfig = readPrReviewConfig(config);
+  const warnings: string[] = [];
+  const blockers: string[] = [];
+  const loops: PrePrReviewLoop[] = [];
+  const prFindings: PrReviewFinding[] = [];
+  const verificationCommands: VerificationCommandSummary[] = [];
+  const issues: string[] = [];
+
+  let requestedMode = prePrConfig.requestedMode;
+  let actualMode: string | null = null;
+  let prePrStatus: PrePrReviewSummary['status'] = prePrConfig.configured ? 'not_started' : 'not_configured';
+  let subagentAgentId: string | null = null;
+  let subagentStatus: string | null = null;
+  let fixBatchCount = 0;
+  let rerequestAfterFix = prReviewConfig.rerequestAfterFix;
+  let latestReviewFixAt: string | null = null;
+  let finalPassedAt: string | null = null;
+  let mergedAt: string | null = null;
+  let cleanupStatus: string | null = null;
+
+  for (const event of events) {
+    if (event.type === 'pre_pr_review_started') {
+      requestedMode = readRequestedMode(event.raw) ?? requestedMode;
+      actualMode = readActualMode(event.raw) ?? actualMode;
+    }
+
+    if (event.type === 'pre_pr_review_downgraded') {
+      const from = readRequestedMode(event.raw) ?? requestedMode ?? 'unknown';
+      const to = readActualMode(event.raw) ?? 'inline';
+      const reason = readOptionalString(event.raw.reason) ?? 'no reason recorded';
+      requestedMode = from;
+      actualMode = to;
+      prePrStatus = 'downgraded';
+      warnings.push(`pre-PR review downgraded from ${from} to ${to}: ${reason}`);
+    }
+
+    if (event.type === 'pre_pr_review_blocked') {
+      const reason = readOptionalString(event.raw.reason) ?? 'subagent review could not run';
+      requestedMode = readRequestedMode(event.raw) ?? requestedMode;
+      actualMode = readActualMode(event.raw) ?? actualMode;
+      prePrStatus = 'blocked';
+      blockers.push(`pre-PR review blocked: ${reason}`);
+    }
+
+    if (event.type === 'pre_pr_review_findings') {
+      actualMode = readActualMode(event.raw) ?? actualMode;
+      prePrStatus = prePrStatus === 'blocked' ? prePrStatus : 'findings';
+      loops.push({
+        loop: readOptionalNumber(event.raw.loop),
+        mode: readActualMode(event.raw),
+        status: 'findings',
+        findings: countFindings(event.raw.findings),
+      });
+    }
+
+    if (event.type === 'pre_pr_review_cleared') {
+      const eventMode = readActualMode(event.raw);
+      actualMode = eventMode ?? actualMode;
+      if (prePrStatus !== 'downgraded' && prePrStatus !== 'blocked') prePrStatus = 'passed';
+      loops.push({
+        loop: readOptionalNumber(event.raw.loop),
+        mode: eventMode,
+        status: 'passed',
+        findings: 0,
+      });
+      if (eventMode?.startsWith('subagent') || typeof event.raw.agentId === 'string') {
+        subagentAgentId = readOptionalString(event.raw.agentId) ?? subagentAgentId;
+        subagentStatus = 'passed';
+      }
+    }
+
+    if (event.type === 'pr_review_findings') {
+      prFindings.push(...readPrFindings(event.raw));
+    }
+
+    if (event.type === 'pr_review_fix_batch' || event.type === 'pr_review_fix_pushed') {
+      fixBatchCount += 1;
+      rerequestAfterFix = readOptionalBoolean(event.raw.rerequestAfterFix) ?? rerequestAfterFix;
+      latestReviewFixAt = event.eventAt;
+      verificationCommands.push(...readVerificationCommands(event, null, 'verification'));
+    }
+
+    if (isVerificationEvent(event.type)) {
+      const status = event.type.endsWith('_failed') ? 'failed' : (readOptionalString(event.raw.status) ?? 'passed');
+      const phase =
+        readOptionalString(event.raw.phase) ??
+        (event.type.startsWith('final_') || event.raw.afterReviewFix === true ? 'final' : null);
+      verificationCommands.push(...readVerificationCommands(event, phase, 'commands', status));
+      if (status === 'passed' && phase === 'final') {
+        finalPassedAt = maxIso(finalPassedAt, event.eventAt);
+      }
+    }
+
+    if (event.type === 'merged') {
+      mergedAt = event.eventAt;
+    }
+
+    if (event.type === 'cleanup_complete') {
+      cleanupStatus = readOptionalString(event.raw.status) ?? 'complete';
+    }
+  }
+
+  for (const warning of warnings) issues.push(warning);
+  for (const blocker of blockers) issues.push(blocker);
+
+  const hasReviewFixes = fixBatchCount > 0;
+  const hasRequiredFinalVerification =
+    !hasReviewFixes ||
+    (finalPassedAt !== null &&
+      latestReviewFixAt !== null &&
+      compareNullableIso(finalPassedAt, latestReviewFixAt) >= 0 &&
+      (mergedAt === null || compareNullableIso(finalPassedAt, mergedAt) <= 0));
+  const mergeBeforeFinalVerification =
+    hasReviewFixes && mergedAt !== null && finalPassedAt !== null && compareNullableIso(mergedAt, finalPassedAt) < 0;
+
+  if (mergedAt !== null && hasReviewFixes && !hasRequiredFinalVerification) {
+    issues.push(
+      finalPassedAt === null
+        ? 'merge occurred after PR review fixes without final verification'
+        : 'merge occurred before final verification after PR review fixes completed',
+    );
+  }
+
+  return {
+    issues,
+    review: {
+      prePr: {
+        requestedMode,
+        actualMode,
+        status: prePrStatus,
+        warnings,
+        blockers,
+        maxLoops: prePrConfig.maxLoops,
+        loopMode: prePrConfig.loopMode,
+        loops,
+        subagent: {
+          agentId: subagentAgentId,
+          status: subagentStatus,
+        },
+      },
+      pr: {
+        findings: prFindings,
+        fixBatchCount,
+        rerequestAfterFix,
+      },
+    },
+    verification: {
+      commands: verificationCommands,
+      finalPassedAt,
+    },
+    merge: {
+      merged: mergedAt !== null,
+      mergedAt,
+      cleanupStatus,
+      mergeBeforeFinalVerification,
+    },
+    timeline: events.map(({ type, eventAt, recordedAt, index }) => ({ type, eventAt, recordedAt, index })),
+  };
+}
+
+function readPrePrConfig(config: Record<string, unknown> | null): {
+  configured: boolean;
+  requestedMode: string | null;
+  maxLoops: number | null;
+  loopMode: string | null;
+} {
+  const implement = readRecord(config?.implement);
+  const review = readRecord(implement?.review);
+  const prePr = readRecord(review?.prePr);
+  if (!prePr || prePr.enabled === false) {
+    return {
+      configured: false,
+      requestedMode: null,
+      maxLoops: null,
+      loopMode: null,
+    };
+  }
+  return {
+    configured: true,
+    requestedMode: readOptionalString(prePr?.mode),
+    maxLoops: readOptionalNumber(prePr?.maxLoops),
+    loopMode: readOptionalString(prePr?.loopMode),
+  };
+}
+
+function readPrReviewConfig(config: Record<string, unknown> | null): { rerequestAfterFix: boolean | null } {
+  const pr = readRecord(config?.pr);
+  const review = readRecord(pr?.review);
+  return { rerequestAfterFix: readOptionalBoolean(review?.rerequestAfterFix) };
 }
 
 async function readChildren(
@@ -170,6 +454,117 @@ async function findSessionLogs(roots: string[]): Promise<string[]> {
     await walkJsonl(root, logs);
   }
   return logs;
+}
+
+async function readEvents(filePath: string): Promise<NormalizedEvent[]> {
+  let content: string;
+  try {
+    content = await readFile(filePath, 'utf8');
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') return [];
+    throw error;
+  }
+
+  return content
+    .split('\n')
+    .map((line, index) => ({ entry: parseJsonLine(line), index }))
+    .filter((item): item is { entry: Record<string, unknown>; index: number } => item.entry !== null)
+    .map(({ entry, index }) => normalizeEvent(entry, index))
+    .filter((event): event is NormalizedEvent => event !== null)
+    .sort(compareEvents);
+}
+
+function normalizeEvent(entry: Record<string, unknown>, index: number): NormalizedEvent | null {
+  const type = readOptionalString(entry.type) ?? readOptionalString(entry.event);
+  if (!type) return null;
+  const eventAt =
+    readOptionalString(entry.eventAt) ??
+    readOptionalString(entry.ts) ??
+    readOptionalString(entry.time) ??
+    readOptionalString(entry.recordedAt);
+  const recordedAt =
+    readOptionalString(entry.recordedAt) ?? readOptionalString(entry.ts) ?? readOptionalString(entry.time) ?? eventAt;
+  return { type, eventAt, recordedAt, index, raw: entry };
+}
+
+function compareEvents(a: NormalizedEvent, b: NormalizedEvent): number {
+  const byEventAt = compareNullableIso(a.eventAt, b.eventAt);
+  if (byEventAt !== 0) return byEventAt;
+  const byRecordedAt = compareNullableIso(a.recordedAt, b.recordedAt);
+  return byRecordedAt === 0 ? a.index - b.index : byRecordedAt;
+}
+
+function readPrFindings(event: Record<string, unknown>): PrReviewFinding[] {
+  const findings = Array.isArray(event.findings) ? event.findings : [event];
+  return findings.flatMap((finding) => {
+    if (!isRecord(finding)) return [];
+    const summary =
+      readOptionalString(finding.summary) ??
+      readOptionalString(finding.message) ??
+      readOptionalString(finding.title) ??
+      null;
+    if (!summary) return [];
+    return [
+      {
+        severity: readOptionalString(finding.severity) ?? readOptionalString(finding.priority),
+        summary,
+        file: readOptionalString(finding.file) ?? readOptionalString(finding.path),
+      },
+    ];
+  });
+}
+
+function readVerificationCommands(
+  event: NormalizedEvent,
+  phase: string | null,
+  arrayField: 'commands' | 'verification',
+  status = 'passed',
+): VerificationCommandSummary[] {
+  const command = readOptionalString(event.raw.command);
+  const commands = Array.isArray(event.raw[arrayField])
+    ? event.raw[arrayField].filter((entry): entry is string => typeof entry === 'string')
+    : [];
+  const values = command ? [command] : commands;
+  if (values.length === 0) {
+    return [{ phase, command: null, status, eventAt: event.eventAt }];
+  }
+  return values.map((value) => ({ phase, command: value, status, eventAt: event.eventAt }));
+}
+
+function readRequestedMode(event: Record<string, unknown>): string | null {
+  return readOptionalString(event.requestedMode) ?? readOptionalString(event.from);
+}
+
+function readActualMode(event: Record<string, unknown>): string | null {
+  return readOptionalString(event.actualMode) ?? readOptionalString(event.to) ?? readOptionalString(event.mode);
+}
+
+function countFindings(value: unknown): number | null {
+  if (Array.isArray(value)) return value.length;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  return null;
+}
+
+function isVerificationEvent(type: string): boolean {
+  return (
+    type === 'verification_passed' ||
+    type === 'verification_failed' ||
+    type === 'final_verification_passed' ||
+    type === 'final_verification_failed'
+  );
+}
+
+function maxIso(current: string | null, candidate: string | null): string | null {
+  if (candidate === null) return current;
+  if (current === null) return candidate;
+  return compareNullableIso(current, candidate) >= 0 ? current : candidate;
+}
+
+function compareNullableIso(a: string | null, b: string | null): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return Date.parse(a) - Date.parse(b);
 }
 
 async function walkJsonl(directory: string, logs: string[]): Promise<void> {
@@ -258,6 +653,15 @@ async function readJsonObject(filePath: string): Promise<Record<string, unknown>
   return parsed;
 }
 
+async function readJsonObjectIfExists(filePath: string): Promise<Record<string, unknown> | null> {
+  try {
+    return await readJsonObject(filePath);
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
 async function pathExists(filePath: string): Promise<boolean> {
   try {
     await stat(filePath);
@@ -288,4 +692,20 @@ function readString(value: unknown, name: string): string {
 
 function readNumber(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function readOptionalString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function readOptionalNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function readOptionalBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return isRecord(value) ? value : null;
 }

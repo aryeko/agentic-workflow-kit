@@ -117,4 +117,320 @@ describe('analyzeWorkflowRun', () => {
     });
     expect(analysis.issues).toContain('A001 has launch metadata but no settled child result');
   });
+
+  it('reconstructs review and merge evidence from interactive events without session metadata', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-events-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({
+        runId: 'run-1',
+        command: 'implement-next',
+        status: 'complete',
+        blockedReason: null,
+        interactive: { storyId: 'PLD04', ok: true, sessionId: null },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        implement: {
+          review: { prePr: { mode: 'auto', maxLoops: 2, loopMode: 'incremental' } },
+        },
+        pr: { review: { rerequestAfterFix: false } },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'events.ndjson'),
+      [
+        JSON.stringify({
+          type: 'pre_pr_review_downgraded',
+          ts: '2026-06-08T18:10:00.000Z',
+          requestedMode: 'auto',
+          actualMode: 'inline',
+          reason: 'multi-agent spawn tool requires explicit user request for delegation',
+        }),
+        JSON.stringify({
+          type: 'pre_pr_review_cleared',
+          ts: '2026-06-08T18:20:00.000Z',
+          actualMode: 'inline',
+          loop: 1,
+        }),
+        JSON.stringify({
+          type: 'pre_pr_review_cleared',
+          ts: '2026-06-08T18:25:00.000Z',
+          actualMode: 'subagent',
+          agentId: 'subagent-extra',
+          loop: 2,
+        }),
+        JSON.stringify({
+          type: 'pr_review_findings',
+          ts: '2026-06-08T18:30:00.000Z',
+          findings: [
+            {
+              severity: 'P2',
+              summary: 'Repeated-miss reduction count target is formatted as a percentage',
+              file: 'src/dashboard.ts',
+            },
+          ],
+        }),
+        JSON.stringify({
+          type: 'pr_review_fix_batch',
+          ts: '2026-06-08T18:40:00.000Z',
+          batch: 1,
+          rerequestAfterFix: false,
+        }),
+        JSON.stringify({
+          type: 'verification_passed',
+          ts: '2026-06-08T18:50:00.000Z',
+          phase: 'final',
+          command: 'pnpm run check',
+        }),
+        JSON.stringify({ type: 'merged', ts: '2026-06-08T19:00:00.000Z' }),
+        JSON.stringify({ type: 'cleanup_complete', ts: '2026-06-08T19:05:00.000Z', status: 'complete' }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.children[0]).toMatchObject({ storyId: 'PLD04', sessionId: null, sessionLogPath: null });
+    expect(analysis.review.prePr).toMatchObject({
+      requestedMode: 'auto',
+      actualMode: 'subagent',
+      status: 'downgraded',
+      maxLoops: 2,
+      loopMode: 'incremental',
+      subagent: { agentId: 'subagent-extra', status: 'passed' },
+    });
+    expect(analysis.review.prePr.warnings).toContain(
+      'pre-PR review downgraded from auto to inline: multi-agent spawn tool requires explicit user request for delegation',
+    );
+    expect(analysis.review.pr).toMatchObject({
+      fixBatchCount: 1,
+      rerequestAfterFix: false,
+      findings: [
+        {
+          severity: 'P2',
+          summary: 'Repeated-miss reduction count target is formatted as a percentage',
+          file: 'src/dashboard.ts',
+        },
+      ],
+    });
+    expect(analysis.verification.finalPassedAt).toBe('2026-06-08T18:50:00.000Z');
+    expect(analysis.merge).toMatchObject({
+      merged: true,
+      mergedAt: '2026-06-08T19:00:00.000Z',
+      cleanupStatus: 'complete',
+      mergeBeforeFinalVerification: false,
+    });
+    expect(analysis.timeline.map((event) => event.type)).toEqual([
+      'pre_pr_review_downgraded',
+      'pre_pr_review_cleared',
+      'pre_pr_review_cleared',
+      'pr_review_findings',
+      'pr_review_fix_batch',
+      'verification_passed',
+      'merged',
+      'cleanup_complete',
+    ]);
+    expect(analysis.issues).toContain(
+      'pre-PR review downgraded from auto to inline: multi-agent spawn tool requires explicit user request for delegation',
+    );
+  });
+
+  it('treats disabled pre-PR review policy as not configured', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-disabled-review-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({
+        runId: 'run-1',
+        command: 'implement-next',
+        status: 'complete',
+        interactive: { storyId: 'WK01', ok: true, sessionId: null },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        implement: {
+          review: { prePr: { enabled: false, mode: 'auto', maxLoops: 2, loopMode: 'incremental' } },
+        },
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.review.prePr).toMatchObject({
+      requestedMode: null,
+      actualMode: null,
+      status: 'not_configured',
+      maxLoops: null,
+      loopMode: null,
+    });
+  });
+
+  it('reconstructs real PLD04-style legacy event journals', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-pld04-'));
+    const runDir = path.join(root, 'runs', '2026-06-08T18-04-18-300Z');
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({
+        runId: '2026-06-08T18-04-18-300Z',
+        command: 'implement-next',
+        status: 'complete',
+        blockedReason: null,
+        interactive: { storyId: 'PLD04', ok: true, sessionId: null },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        implement: {
+          review: { prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' } },
+        },
+        pr: { review: { rerequestAfterFix: false } },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'events.ndjson'),
+      [
+        JSON.stringify({
+          time: '2026-06-08T18:39:10.000Z',
+          event: 'verification_passed',
+          commands: ['pnpm run check:turbo', 'pnpm run check'],
+        }),
+        JSON.stringify({
+          time: '2026-06-08T18:39:20.000Z',
+          event: 'pre_pr_review_downgraded',
+          from: 'auto-subagent',
+          to: 'inline',
+          reason: 'multi-agent spawn tool requires explicit user request for delegation',
+        }),
+        JSON.stringify({
+          time: '2026-06-08T18:39:25.000Z',
+          event: 'pre_pr_review_started',
+          mode: 'inline',
+        }),
+        JSON.stringify({
+          time: '2026-06-08T18:43:10.000Z',
+          event: 'pre_pr_review_cleared',
+          mode: 'inline',
+          findings: [],
+        }),
+        JSON.stringify({
+          time: '2026-06-08T18:52:30.000Z',
+          event: 'pre_pr_review_cleared',
+          mode: 'subagent-extra',
+          findings: [],
+          agentId: '019ea877-eba0-77b0-a0e8-22eeac24ba3b',
+        }),
+        JSON.stringify({
+          time: '2026-06-08T18:55:05.000Z',
+          event: 'pr_review_findings',
+          findings: [
+            {
+              priority: 'P2',
+              url: 'https://github.com/aryeko/pathway/pull/83#discussion_r3375446828',
+              summary: 'Dashboard goal labels converted count target 1 into 100 for repeated-miss reduction.',
+            },
+          ],
+        }),
+        JSON.stringify({
+          time: '2026-06-08T18:58:20.000Z',
+          event: 'pr_review_fix_pushed',
+          verification: ['pnpm run check:turbo', 'pre-push typecheck'],
+        }),
+        JSON.stringify({
+          time: '2026-06-08T19:00:35.000Z',
+          event: 'verification_passed',
+          commands: ['pnpm run check'],
+          afterReviewFix: true,
+        }),
+        JSON.stringify({
+          time: '2026-06-08T18:58:35.000Z',
+          event: 'merged',
+        }),
+        JSON.stringify({
+          time: '2026-06-08T19:01:15.000Z',
+          event: 'cleanup_complete',
+        }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.timeline.map((event) => event.type)).toEqual([
+      'verification_passed',
+      'pre_pr_review_downgraded',
+      'pre_pr_review_started',
+      'pre_pr_review_cleared',
+      'pre_pr_review_cleared',
+      'pr_review_findings',
+      'pr_review_fix_pushed',
+      'merged',
+      'verification_passed',
+      'cleanup_complete',
+    ]);
+    expect(analysis.review.prePr).toMatchObject({
+      requestedMode: 'auto-subagent',
+      actualMode: 'subagent-extra',
+      status: 'downgraded',
+      subagent: { agentId: '019ea877-eba0-77b0-a0e8-22eeac24ba3b', status: 'passed' },
+    });
+    expect(analysis.review.pr).toMatchObject({
+      fixBatchCount: 1,
+      rerequestAfterFix: false,
+      findings: [
+        {
+          severity: 'P2',
+          summary: 'Dashboard goal labels converted count target 1 into 100 for repeated-miss reduction.',
+          file: null,
+        },
+      ],
+    });
+    expect(analysis.verification.commands).toEqual([
+      {
+        phase: null,
+        command: 'pnpm run check:turbo',
+        status: 'passed',
+        eventAt: '2026-06-08T18:39:10.000Z',
+      },
+      {
+        phase: null,
+        command: 'pnpm run check',
+        status: 'passed',
+        eventAt: '2026-06-08T18:39:10.000Z',
+      },
+      {
+        phase: null,
+        command: 'pnpm run check:turbo',
+        status: 'passed',
+        eventAt: '2026-06-08T18:58:20.000Z',
+      },
+      {
+        phase: null,
+        command: 'pre-push typecheck',
+        status: 'passed',
+        eventAt: '2026-06-08T18:58:20.000Z',
+      },
+      {
+        phase: 'final',
+        command: 'pnpm run check',
+        status: 'passed',
+        eventAt: '2026-06-08T19:00:35.000Z',
+      },
+    ]);
+    expect(analysis.verification.finalPassedAt).toBe('2026-06-08T19:00:35.000Z');
+    expect(analysis.merge).toMatchObject({
+      merged: true,
+      mergedAt: '2026-06-08T18:58:35.000Z',
+      cleanupStatus: 'complete',
+      mergeBeforeFinalVerification: true,
+    });
+    expect(analysis.issues).toContain('merge occurred before final verification after PR review fixes completed');
+  });
 });
