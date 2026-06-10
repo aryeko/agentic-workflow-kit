@@ -101,6 +101,9 @@ Deepest smoke — launches a real Codex child session. Keep it bounded.
    the Codex session logs and derives review, verification, merge, cleanup, and timeline summaries
    from `events.ndjson`. The same command also accepts compatible interactive `implement-next`
    journals when `state.json` contains `command: "implement-next"` and an `interactive` child record.
+   Confirm that pre-PR review execution blockers are separate from review findings, local fix
+   batches are counted against `implement.review.prePr.maxLoops`, PR review threads/fix batches are
+   reconstructed, and the timeline preserves journal order while exposing recorded/action times.
 
 ## Evidence
 

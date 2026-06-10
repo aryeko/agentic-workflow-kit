@@ -30,6 +30,7 @@ interface AnalyzedChild {
   ok: boolean;
   sessionId: string | null;
   sessionLogPath: string | null;
+  metricsStatus: 'available' | 'session_linkage_unavailable' | 'session_log_missing';
   status: string;
   expectedBranch: string | null;
   expectedWorktreePath: string | null;
@@ -48,6 +49,8 @@ interface PrePrReviewSummary {
   blockers: string[];
   maxLoops: number | null;
   loopMode: string | null;
+  fixBatchCount: number;
+  maxLoopsReached: boolean;
   loops: PrePrReviewLoop[];
   subagent: {
     agentId: string | null;
@@ -65,6 +68,7 @@ interface PrePrReviewLoop {
 interface PrReviewSummary {
   findings: PrReviewFinding[];
   fixBatchCount: number;
+  resolvedThreadCount: number;
   rerequestAfterFix: boolean | null;
 }
 
@@ -102,6 +106,11 @@ interface TimelineEvent {
 
 interface NormalizedEvent extends TimelineEvent {
   raw: Record<string, unknown>;
+}
+
+interface AnalyzerIssue {
+  key: string;
+  message: string;
 }
 
 export async function analyzeWorkflowRun(
@@ -142,6 +151,12 @@ export async function analyzeWorkflowRun(
       ok: child.ok === true,
       sessionId,
       sessionLogPath,
+      metricsStatus:
+        sessionId === null
+          ? 'session_linkage_unavailable'
+          : sessionLogPath === null
+            ? 'session_log_missing'
+            : 'available',
       status,
       expectedBranch: typeof child.expectedBranch === 'string' ? child.expectedBranch : null,
       expectedWorktreePath: typeof child.expectedWorktreePath === 'string' ? child.expectedWorktreePath : null,
@@ -190,19 +205,21 @@ function summarizeEvents(
 } {
   const prePrConfig = readPrePrConfig(config);
   const prReviewConfig = readPrReviewConfig(config);
-  const warnings: string[] = [];
-  const blockers: string[] = [];
+  const warnings: AnalyzerIssue[] = [];
+  const blockers: AnalyzerIssue[] = [];
   const loops: PrePrReviewLoop[] = [];
   const prFindings: PrReviewFinding[] = [];
   const verificationCommands: VerificationCommandSummary[] = [];
-  const issues: string[] = [];
+  const issues: AnalyzerIssue[] = [];
 
   let requestedMode = prePrConfig.requestedMode;
   let actualMode: string | null = null;
   let prePrStatus: PrePrReviewSummary['status'] = prePrConfig.configured ? 'not_started' : 'not_configured';
   let subagentAgentId: string | null = null;
   let subagentStatus: string | null = null;
-  let fixBatchCount = 0;
+  let prePrFixBatchCount = 0;
+  let prFixBatchCount = 0;
+  let resolvedThreadCount = 0;
   let rerequestAfterFix = prReviewConfig.rerequestAfterFix;
   let latestReviewFixAt: string | null = null;
   let finalPassedAt: string | null = null;
@@ -222,34 +239,45 @@ function summarizeEvents(
       requestedMode = from;
       actualMode = to;
       prePrStatus = 'downgraded';
-      warnings.push(`pre-PR review downgraded from ${from} to ${to}: ${reason}`);
+      warnings.push({
+        key: `pre-pr-downgraded:${from}:${to}:${reason}`,
+        message: `pre-PR review downgraded from ${from} to ${to}: ${reason}`,
+      });
     }
 
-    if (event.type === 'pre_pr_review_blocked') {
-      const reason = readOptionalString(event.raw.reason) ?? 'subagent review could not run';
-      requestedMode = readRequestedMode(event.raw) ?? requestedMode;
-      actualMode = readActualMode(event.raw) ?? actualMode;
-      prePrStatus = 'blocked';
-      blockers.push(`pre-PR review blocked: ${reason}`);
-    }
-
-    if (event.type === 'pre_pr_review_findings') {
-      actualMode = readActualMode(event.raw) ?? actualMode;
-      prePrStatus = prePrStatus === 'blocked' ? prePrStatus : 'findings';
+    if (isPrePrFindingsEvent(event)) {
+      const eventMode = readActualMode(event.raw);
+      actualMode = eventMode ?? actualMode;
+      if (prePrStatus !== 'blocked') prePrStatus = 'findings';
       loops.push({
-        loop: readOptionalNumber(event.raw.loop),
-        mode: readActualMode(event.raw),
+        loop: readOptionalNumber(event.raw.loop) ?? nextReviewLoop(loops, prePrFixBatchCount),
+        mode: eventMode,
         status: 'findings',
         findings: countFindings(event.raw.findings),
       });
     }
 
-    if (event.type === 'pre_pr_review_cleared') {
+    if (isPrePrExecutionBlockedEvent(event)) {
+      const reason = readOptionalString(event.raw.reason) ?? 'subagent review could not run';
+      requestedMode = readRequestedMode(event.raw) ?? requestedMode;
+      actualMode = readActualMode(event.raw) ?? actualMode;
+      prePrStatus = 'blocked';
+      blockers.push({
+        key: `pre-pr-blocked:${reason}`,
+        message: `pre-PR review blocked: ${reason}`,
+      });
+    }
+
+    if (event.type === 'pre_pr_review_fix_batch_applied') {
+      prePrFixBatchCount += 1;
+    }
+
+    if (isPrePrPassedEvent(event)) {
       const eventMode = readActualMode(event.raw);
       actualMode = eventMode ?? actualMode;
       if (prePrStatus !== 'downgraded' && prePrStatus !== 'blocked') prePrStatus = 'passed';
       loops.push({
-        loop: readOptionalNumber(event.raw.loop),
+        loop: readOptionalNumber(event.raw.loop) ?? lastReviewLoop(loops),
         mode: eventMode,
         status: 'passed',
         findings: 0,
@@ -264,11 +292,19 @@ function summarizeEvents(
       prFindings.push(...readPrFindings(event.raw));
     }
 
-    if (event.type === 'pr_review_fix_batch' || event.type === 'pr_review_fix_pushed') {
-      fixBatchCount += 1;
+    if (isPrReviewFixBatchEvent(event.type)) {
+      prFixBatchCount += 1;
       rerequestAfterFix = readOptionalBoolean(event.raw.rerequestAfterFix) ?? rerequestAfterFix;
       latestReviewFixAt = event.eventAt;
       verificationCommands.push(...readVerificationCommands(event, null, 'verification'));
+    }
+
+    if (isPrReviewThreadResolvedEvent(event.type)) {
+      resolvedThreadCount += 1;
+      if (!isPrReviewFixBatchEvent(event.type)) {
+        prFixBatchCount += 1;
+        latestReviewFixAt = event.eventAt;
+      }
     }
 
     if (isVerificationEvent(event.type)) {
@@ -282,7 +318,7 @@ function summarizeEvents(
       }
     }
 
-    if (event.type === 'merged') {
+    if (event.type === 'merged' || event.type === 'pr_merged') {
       mergedAt = event.eventAt;
     }
 
@@ -291,10 +327,9 @@ function summarizeEvents(
     }
   }
 
-  for (const warning of warnings) issues.push(warning);
-  for (const blocker of blockers) issues.push(blocker);
+  issues.push(...warnings, ...blockers);
 
-  const hasReviewFixes = fixBatchCount > 0;
+  const hasReviewFixes = prFixBatchCount > 0;
   const hasRequiredFinalVerification =
     !hasReviewFixes ||
     (finalPassedAt !== null &&
@@ -305,24 +340,30 @@ function summarizeEvents(
     hasReviewFixes && mergedAt !== null && finalPassedAt !== null && compareNullableIso(mergedAt, finalPassedAt) < 0;
 
   if (mergedAt !== null && hasReviewFixes && !hasRequiredFinalVerification) {
-    issues.push(
+    const message =
       finalPassedAt === null
-        ? 'merge occurred after PR review fixes without final verification'
-        : 'merge occurred before final verification after PR review fixes completed',
-    );
+        ? 'PR review fix evidence was followed by merge without a recorded final verification event'
+        : 'merge timestamp is earlier than recorded final verification after PR review fixes';
+    issues.push({ key: `merge-final-verification:${message}`, message });
   }
 
+  const warningMessages = dedupeIssues(warnings).map((issue) => issue.message);
+  const blockerMessages = dedupeIssues(blockers).map((issue) => issue.message);
+
   return {
-    issues,
+    issues: dedupeIssues(issues).map((issue) => issue.message),
     review: {
       prePr: {
         requestedMode,
         actualMode,
         status: prePrStatus,
-        warnings,
-        blockers,
+        warnings: warningMessages,
+        blockers: blockerMessages,
         maxLoops: prePrConfig.maxLoops,
         loopMode: prePrConfig.loopMode,
+        fixBatchCount: prePrFixBatchCount,
+        maxLoopsReached:
+          prePrConfig.maxLoops !== null && prePrStatus !== 'passed' && prePrFixBatchCount >= prePrConfig.maxLoops,
         loops,
         subagent: {
           agentId: subagentAgentId,
@@ -331,7 +372,8 @@ function summarizeEvents(
       },
       pr: {
         findings: prFindings,
-        fixBatchCount,
+        fixBatchCount: prFixBatchCount,
+        resolvedThreadCount,
         rerequestAfterFix,
       },
     },
@@ -345,7 +387,10 @@ function summarizeEvents(
       cleanupStatus,
       mergeBeforeFinalVerification,
     },
-    timeline: events.map(({ type, eventAt, recordedAt, index }) => ({ type, eventAt, recordedAt, index })),
+    timeline: events
+      .slice()
+      .sort((a, b) => a.index - b.index)
+      .map(({ type, eventAt, recordedAt, index }) => ({ type, eventAt, recordedAt, index })),
   };
 }
 
@@ -470,8 +515,7 @@ async function readEvents(filePath: string): Promise<NormalizedEvent[]> {
     .map((line, index) => ({ entry: parseJsonLine(line), index }))
     .filter((item): item is { entry: Record<string, unknown>; index: number } => item.entry !== null)
     .map(({ entry, index }) => normalizeEvent(entry, index))
-    .filter((event): event is NormalizedEvent => event !== null)
-    .sort(compareEvents);
+    .filter((event): event is NormalizedEvent => event !== null);
 }
 
 function normalizeEvent(entry: Record<string, unknown>, index: number): NormalizedEvent | null {
@@ -485,13 +529,6 @@ function normalizeEvent(entry: Record<string, unknown>, index: number): Normaliz
   const recordedAt =
     readOptionalString(entry.recordedAt) ?? readOptionalString(entry.ts) ?? readOptionalString(entry.time) ?? eventAt;
   return { type, eventAt, recordedAt, index, raw: entry };
-}
-
-function compareEvents(a: NormalizedEvent, b: NormalizedEvent): number {
-  const byEventAt = compareNullableIso(a.eventAt, b.eventAt);
-  if (byEventAt !== 0) return byEventAt;
-  const byRecordedAt = compareNullableIso(a.recordedAt, b.recordedAt);
-  return byRecordedAt === 0 ? a.index - b.index : byRecordedAt;
 }
 
 function readPrFindings(event: Record<string, unknown>): PrReviewFinding[] {
@@ -511,6 +548,64 @@ function readPrFindings(event: Record<string, unknown>): PrReviewFinding[] {
         file: readOptionalString(finding.file) ?? readOptionalString(finding.path),
       },
     ];
+  });
+}
+
+function isPrePrFindingsEvent(event: NormalizedEvent): boolean {
+  if (event.type === 'pre_pr_review_findings') return true;
+  if (event.type === 'pre_pr_review_blocked') return hasFindingsPayload(event.raw.findings);
+  if (event.type !== 'pre_pr_review_completed') return false;
+  const verdict = readOptionalString(event.raw.verdict)?.toUpperCase();
+  return verdict === 'BLOCK' || hasFindingsPayload(event.raw.findings);
+}
+
+function isPrePrExecutionBlockedEvent(event: NormalizedEvent): boolean {
+  return event.type === 'pre_pr_review_blocked' && !hasFindingsPayload(event.raw.findings);
+}
+
+function isPrePrPassedEvent(event: NormalizedEvent): boolean {
+  if (event.type === 'pre_pr_review_cleared' || event.type === 'pre_pr_review_passed') return true;
+  if (event.type !== 'pre_pr_review_completed') return false;
+  return readOptionalString(event.raw.verdict)?.toUpperCase() === 'PASS';
+}
+
+function isPrReviewFixBatchEvent(type: string): boolean {
+  return (
+    type === 'pr_review_fix_batch' ||
+    type === 'pr_review_fix_pushed' ||
+    type === 'pr_review_fix_batch_started' ||
+    type === 'pr_review_fix_batch_applied'
+  );
+}
+
+function isPrReviewThreadResolvedEvent(type: string): boolean {
+  return type === 'pr_review_thread_resolved' || type === 'codex_pr_review_thread_resolved';
+}
+
+function hasFindingsPayload(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function nextReviewLoop(loops: PrePrReviewLoop[], fixBatchCount: number): number {
+  const last = lastReviewLoop(loops);
+  return Math.max(last ?? 0, fixBatchCount) + 1;
+}
+
+function lastReviewLoop(loops: PrePrReviewLoop[]): number | null {
+  for (let index = loops.length - 1; index >= 0; index -= 1) {
+    const loop = loops[index]?.loop;
+    if (typeof loop === 'number') return loop;
+  }
+  return null;
+}
+
+function dedupeIssues(issues: AnalyzerIssue[]): AnalyzerIssue[] {
+  const seen = new Set<string>();
+  return issues.filter((issue) => {
+    if (seen.has(issue.key)) return false;
+    seen.add(issue.key);
+    return true;
   });
 }
 

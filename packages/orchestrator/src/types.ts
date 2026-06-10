@@ -263,7 +263,8 @@ export interface RunState {
 }
 
 export interface RunEvent {
-  ts: string;
+  recordedAt: string;
+  eventAt: string;
   type: string;
   [key: string]: unknown;
 }

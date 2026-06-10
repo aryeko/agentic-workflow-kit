@@ -147,7 +147,10 @@ describe('config-schema.md stays in sync with config.schema.json', () => {
       'You are explicitly authorized to delegate the pre-PR review to a read-only review subagent if configured.',
     );
     expect(doc).toContain('Local pre-PR review loops are separate from external PR review gates');
+    expect(doc).toContain('maximum number of local review fix batches');
     expect(doc).toContain('`pre_pr_review_downgraded` is reported as an analyzer warning');
     expect(doc).toContain('`pre_pr_review_blocked` is reported as an analyzer blocker');
+    expect(doc).toContain('findings result, not an execution blocker');
+    expect(doc).toContain('not request new visible controls');
   });
 });

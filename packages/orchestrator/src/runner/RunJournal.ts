@@ -126,8 +126,11 @@ export class RunJournal {
   }
 
   async record(type: string, fields: Record<string, unknown> = {}): Promise<void> {
+    const recordedAt = this.dependencies.clock.now();
+    const explicitEventAt = typeof fields.eventAt === 'string' ? fields.eventAt : null;
     await this.dependencies.artifactStore.appendEvent({
-      ts: this.dependencies.clock.now(),
+      recordedAt,
+      eventAt: explicitEventAt ?? recordedAt,
       type,
       ...fields,
     });

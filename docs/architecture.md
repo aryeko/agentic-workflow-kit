@@ -153,8 +153,11 @@ per-child JSON), and `analyze-run` reconstructs metrics from Codex session logs.
 `implement-next` journals use the same run directory and can be analyzed when `state.json` contains
 `command: "implement-next"` plus an `interactive` child record. Event journals are also audit
 artifacts: `analyze-run` normalizes legacy `ts` events and newer `eventAt`/`recordedAt` events into
-a deterministic timeline, then derives local pre-PR review mode, downgrades or blockers, PR review
-findings, fix batches, final verification, merge, and cleanup status from the event stream.
+a deterministic file-order timeline, then derives local pre-PR review mode, downgrades, execution
+blockers, review findings, local fix batches, PR review findings, resolved threads, final
+verification, merge, and cleanup status from the event stream. Local `pre_pr_review_blocked` is
+reserved for review execution failures in new journals; completed reviews that return blocking
+findings use `pre_pr_review_completed` with `verdict: "BLOCK"` or `pre_pr_review_findings`.
 
 ## Story lifecycle
 

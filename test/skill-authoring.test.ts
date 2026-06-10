@@ -193,26 +193,30 @@ describe('skill authoring', () => {
     expect(body).toContain('implement.review.prePr.loopMode');
     expect(body).toContain('implement.subagents.allowWorkers');
     expect(body).toContain('review context packet');
-    expect(body).toContain('pass/block verdict');
+    expect(body).toContain('Do not include `items: []` alongside `message`');
+    expect(body).toContain('clear `PASS` or `BLOCK` verdict');
     expect(body).toContain('incremental');
     expect(body).toContain('Pre-PR review happens before tracker completion and PR creation');
     expect(body).toContain('Review fixes rerun configured verification');
-    expect(body).toContain('Stop after the configured review-loop limit');
+    expect(body).toContain('Stop after the configured review fix-batch limit');
     expect(body).toContain('Workers require disjoint write scopes');
     expect(body).toContain('pr.review.maxFixBatches');
     expect(body).toContain('pr.review.rerequestAfterFix');
     expect(body).toContain('.codex/agentic-workflow-kit/runs/<run-id>');
     expect(body).toContain('analyzable by `analyze-run`');
     expect(body).toContain('pre_pr_review_blocked');
+    expect(body).toContain('pre_pr_review_completed');
+    expect(body).toContain('pre_pr_review_fix_batch_applied');
     expect(body).toContain('fail closed before PR creation');
     expect(body).toContain(
       'You are explicitly authorized to delegate the pre-PR review to a read-only review subagent if configured.',
     );
     expect(body).toContain('Never record `actualMode: "subagent"`');
     expect(body).toContain('acceptance criteria against actual behavior');
+    expect(body).toContain('Do not request visible UX changes unless those sources explicitly require them');
     expect(body).toContain('percent vs count/unit formatting');
     expect(body).toContain('locale-backed Hebrew copy semantics');
-    expect(body).toContain('final verification completion before merge');
+    expect(body).toContain('append a final verification completion event before merge');
   });
 
   it('workflow-autopilot prefers the bundled MCP runtime with CLI fallback', () => {
