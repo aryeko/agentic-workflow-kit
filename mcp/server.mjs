@@ -44245,12 +44245,12 @@ function summarizeEvents(events, config2) {
   let cleanupStatus = null;
   for (const event of events) {
     if (event.type === "pre_pr_review_started") {
-      requestedMode = readOptionalString(event.raw.requestedMode) ?? requestedMode;
-      actualMode = readOptionalString(event.raw.actualMode) ?? actualMode;
+      requestedMode = readRequestedMode(event.raw) ?? requestedMode;
+      actualMode = readActualMode(event.raw) ?? actualMode;
     }
     if (event.type === "pre_pr_review_downgraded") {
-      const from = readOptionalString(event.raw.requestedMode) ?? requestedMode ?? "unknown";
-      const to = readOptionalString(event.raw.actualMode) ?? "inline";
+      const from = readRequestedMode(event.raw) ?? requestedMode ?? "unknown";
+      const to = readActualMode(event.raw) ?? "inline";
       const reason = readOptionalString(event.raw.reason) ?? "no reason recorded";
       requestedMode = from;
       actualMode = to;
@@ -44259,23 +44259,23 @@ function summarizeEvents(events, config2) {
     }
     if (event.type === "pre_pr_review_blocked") {
       const reason = readOptionalString(event.raw.reason) ?? "subagent review could not run";
-      requestedMode = readOptionalString(event.raw.requestedMode) ?? requestedMode;
-      actualMode = readOptionalString(event.raw.actualMode) ?? actualMode;
+      requestedMode = readRequestedMode(event.raw) ?? requestedMode;
+      actualMode = readActualMode(event.raw) ?? actualMode;
       prePrStatus = "blocked";
       blockers.push(`pre-PR review blocked: ${reason}`);
     }
     if (event.type === "pre_pr_review_findings") {
-      actualMode = readOptionalString(event.raw.actualMode) ?? actualMode;
+      actualMode = readActualMode(event.raw) ?? actualMode;
       prePrStatus = prePrStatus === "blocked" ? prePrStatus : "findings";
       loops.push({
         loop: readOptionalNumber(event.raw.loop),
-        mode: readOptionalString(event.raw.actualMode),
+        mode: readActualMode(event.raw),
         status: "findings",
         findings: countFindings(event.raw.findings)
       });
     }
     if (event.type === "pre_pr_review_cleared") {
-      const eventMode = readOptionalString(event.raw.actualMode);
+      const eventMode = readActualMode(event.raw);
       actualMode = eventMode ?? actualMode;
       if (prePrStatus !== "downgraded" && prePrStatus !== "blocked") prePrStatus = "passed";
       loops.push({
@@ -44284,7 +44284,7 @@ function summarizeEvents(events, config2) {
         status: "passed",
         findings: 0
       });
-      if (eventMode === "subagent" || typeof event.raw.agentId === "string") {
+      if (eventMode?.startsWith("subagent") || typeof event.raw.agentId === "string") {
         subagentAgentId = readOptionalString(event.raw.agentId) ?? subagentAgentId;
         subagentStatus = "passed";
       }
@@ -44292,20 +44292,16 @@ function summarizeEvents(events, config2) {
     if (event.type === "pr_review_findings") {
       prFindings.push(...readPrFindings(event.raw));
     }
-    if (event.type === "pr_review_fix_batch") {
+    if (event.type === "pr_review_fix_batch" || event.type === "pr_review_fix_pushed") {
       fixBatchCount += 1;
       rerequestAfterFix = readOptionalBoolean(event.raw.rerequestAfterFix) ?? rerequestAfterFix;
       latestReviewFixAt = event.eventAt;
+      verificationCommands.push(...readVerificationCommands(event, null, "verification"));
     }
     if (isVerificationEvent(event.type)) {
       const status = event.type.endsWith("_failed") ? "failed" : readOptionalString(event.raw.status) ?? "passed";
-      const phase = readOptionalString(event.raw.phase) ?? (event.type.startsWith("final_") ? "final" : null);
-      verificationCommands.push({
-        phase,
-        command: readOptionalString(event.raw.command),
-        status,
-        eventAt: event.eventAt
-      });
+      const phase = readOptionalString(event.raw.phase) ?? (event.type.startsWith("final_") || event.raw.afterReviewFix === true ? "final" : null);
+      verificationCommands.push(...readVerificationCommands(event, phase, "commands", status));
       if (status === "passed" && phase === "final") {
         finalPassedAt = maxIso(finalPassedAt, event.eventAt);
       }
@@ -44367,8 +44363,16 @@ function readPrePrConfig(config2) {
   const implement = readRecord(config2?.implement);
   const review = readRecord(implement?.review);
   const prePr = readRecord(review?.prePr);
+  if (!prePr || prePr.enabled === false) {
+    return {
+      configured: false,
+      requestedMode: null,
+      maxLoops: null,
+      loopMode: null
+    };
+  }
   return {
-    configured: prePr !== null,
+    configured: true,
     requestedMode: readOptionalString(prePr?.mode),
     maxLoops: readOptionalNumber(prePr?.maxLoops),
     loopMode: readOptionalString(prePr?.loopMode)
@@ -44447,10 +44451,10 @@ async function readEvents(filePath) {
   return content3.split("\n").map((line, index2) => ({ entry: parseJsonLine(line), index: index2 })).filter((item) => item.entry !== null).map(({ entry, index: index2 }) => normalizeEvent(entry, index2)).filter((event) => event !== null).sort(compareEvents);
 }
 function normalizeEvent(entry, index2) {
-  const type = readOptionalString(entry.type);
+  const type = readOptionalString(entry.type) ?? readOptionalString(entry.event);
   if (!type) return null;
-  const eventAt = readOptionalString(entry.eventAt) ?? readOptionalString(entry.ts) ?? readOptionalString(entry.recordedAt);
-  const recordedAt = readOptionalString(entry.recordedAt) ?? readOptionalString(entry.ts) ?? eventAt;
+  const eventAt = readOptionalString(entry.eventAt) ?? readOptionalString(entry.ts) ?? readOptionalString(entry.time) ?? readOptionalString(entry.recordedAt);
+  const recordedAt = readOptionalString(entry.recordedAt) ?? readOptionalString(entry.ts) ?? readOptionalString(entry.time) ?? eventAt;
   return { type, eventAt, recordedAt, index: index2, raw: entry };
 }
 function compareEvents(a, b) {
@@ -44467,12 +44471,27 @@ function readPrFindings(event) {
     if (!summary) return [];
     return [
       {
-        severity: readOptionalString(finding.severity),
+        severity: readOptionalString(finding.severity) ?? readOptionalString(finding.priority),
         summary,
         file: readOptionalString(finding.file) ?? readOptionalString(finding.path)
       }
     ];
   });
+}
+function readVerificationCommands(event, phase, arrayField, status = "passed") {
+  const command = readOptionalString(event.raw.command);
+  const commands = Array.isArray(event.raw[arrayField]) ? event.raw[arrayField].filter((entry) => typeof entry === "string") : [];
+  const values = command ? [command] : commands;
+  if (values.length === 0) {
+    return [{ phase, command: null, status, eventAt: event.eventAt }];
+  }
+  return values.map((value) => ({ phase, command: value, status, eventAt: event.eventAt }));
+}
+function readRequestedMode(event) {
+  return readOptionalString(event.requestedMode) ?? readOptionalString(event.from);
+}
+function readActualMode(event) {
+  return readOptionalString(event.actualMode) ?? readOptionalString(event.to) ?? readOptionalString(event.mode);
 }
 function countFindings(value) {
   if (Array.isArray(value)) return value.length;
