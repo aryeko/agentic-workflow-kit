@@ -1,5 +1,12 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.1
+
+### Patch Changes
+
+- 36432a8: Harden interactive implement-next review policy docs and extend analyze-run to reconstruct review,
+  verification, merge, cleanup, and deterministic timeline summaries from event journals.
+
 ## 0.5.0
 
 ### Minor Changes
