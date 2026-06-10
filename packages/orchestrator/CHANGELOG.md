@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.2
+
+### Patch Changes
+
+- 3992148: Fix implement-next run analysis telemetry for review loops, PR follow-up, session log paths, and journal timestamps.
+
 ## 0.5.1
 
 ### Patch Changes
