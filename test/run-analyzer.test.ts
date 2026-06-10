@@ -86,4 +86,65 @@ describe('run analyzer', () => {
     expect(analysis.subagentCounts).toEqual({ reviewer: 1 });
     expect(analysis.tokenTotals?.totalTokens).toBe(18);
   });
+
+  it('flags merges that happen before required final verification after review fixes', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-order-'));
+    tempRoots.push(root);
+    const runDirectory = path.join(root, 'repo/.codex/agentic-workflow-kit/runs/2026-06-08T18-04-18-300Z');
+    mkdirSync(runDirectory, { recursive: true });
+
+    writeFileSync(
+      path.join(runDirectory, 'state.json'),
+      JSON.stringify(
+        {
+          runId: '2026-06-08T18-04-18-300Z',
+          command: 'implement-next',
+          status: 'complete',
+          blockedReason: null,
+          interactive: {
+            storyId: 'PLD04',
+            ok: true,
+            sessionId: null,
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'events.ndjson'),
+      [
+        JSON.stringify({
+          type: 'pr_review_fix_batch',
+          recordedAt: '2026-06-08T18:42:00.000Z',
+          eventAt: '2026-06-08T18:40:00.000Z',
+          batch: 1,
+        }),
+        JSON.stringify({
+          type: 'verification_passed',
+          recordedAt: '2026-06-08T18:45:00.000Z',
+          eventAt: '2026-06-08T19:05:00.000Z',
+          phase: 'final',
+          command: 'pnpm run check',
+        }),
+        JSON.stringify({
+          type: 'merged',
+          recordedAt: '2026-06-08T18:50:00.000Z',
+          eventAt: '2026-06-08T19:00:00.000Z',
+        }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDirectory, { sessionRoots: [] });
+
+    expect(analysis.review.pr.fixBatchCount).toBe(1);
+    expect(analysis.verification.finalPassedAt).toBe('2026-06-08T19:05:00.000Z');
+    expect(analysis.merge.mergeBeforeFinalVerification).toBe(true);
+    expect(analysis.timeline.map((event) => event.type)).toEqual([
+      'pr_review_fix_batch',
+      'merged',
+      'verification_passed',
+    ]);
+    expect(analysis.issues).toContain('merge occurred before final verification after PR review fixes completed');
+  });
 });

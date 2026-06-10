@@ -129,8 +129,23 @@ Use an ISO timestamp run id with colons and periods replaced by hyphens. Keep th
 - `state.json`: current status, blocked reason, active story, and `interactive` child metadata.
 - `events.ndjson`: append phase events such as `story_selected`, `claimed`, `spec_written`,
   `plan_written`, `verification_passed`, `pre_pr_review_started`, `pre_pr_review_findings`,
-  `pre_pr_review_downgraded`, `pre_pr_review_cleared`, `pr_created`, `pr_review_findings`,
-  `merged`, and `blocked`.
+  `pre_pr_review_downgraded`, `pre_pr_review_blocked`, `pre_pr_review_cleared`, `pr_created`,
+  `pr_review_findings`, `pr_review_fix_batch`, `final_verification_passed`, `merged`,
+  `cleanup_complete`, and `blocked`.
+
+Prefer event records with both chronology fields:
+
+```json
+{
+  "recordedAt": "<ISO timestamp when this event was written>",
+  "eventAt": "<ISO timestamp when the action happened>",
+  "type": "<event name>"
+}
+```
+
+For immediate events, `recordedAt` and `eventAt` may be the same. Legacy `ts` remains accepted, but
+new journals should make action time and write time explicit so `analyze-run` can answer ordering
+questions such as whether final verification completion before merge was recorded.
 
 For compatibility with `analyze-run`, `state.json` must include:
 
@@ -150,7 +165,8 @@ For compatibility with `analyze-run`, `state.json` must include:
   "interactive": {
     "storyId": "<ID>",
     "ok": false,
-    "sessionId": "<current Codex/Claude session id when known>"
+    "sessionId": "<current Codex/Claude session id when known>",
+    "sessionLogPath": "<current Codex/Claude session log path when known, otherwise null>"
   }
 }
 ```
@@ -327,17 +343,31 @@ Run a code/spec compliance review before tracker completion and PR creation when
 `implement.review.prePr.enabled: false`, skip pre-PR review and state that the configured policy
 disabled it. `implement.review.prePr.mode` controls the reviewer:
 
-- `auto`: use a review subagent or review skill when available and subagents are enabled;
-  otherwise review inline and append a `pre_pr_review_downgraded` journal event.
-- `subagent`: use a dedicated review subagent or review skill. If none is available, stop and
-  report that the configured policy requires one.
 - `inline`: perform the review in this session.
+- `auto`: attempt a review subagent when `implement.subagents.enabled: true` and the host tool
+  policy already permits explicit delegation. If the subagent cannot run, review inline, append a
+  `pre_pr_review_downgraded` journal event with `requestedMode`, `actualMode`, and `reason`, and
+  report the warning in the final handoff.
+- `subagent`: require a real spawned review agent result. If explicit delegation is missing, the
+  subagent tool is unavailable, or the review agent cannot run, fail closed before PR creation:
+  append `pre_pr_review_blocked`, set the run blocked, and stop with this actionable wording:
+  "You are explicitly authorized to delegate the pre-PR review to a read-only review subagent if configured."
+
+Never record `actualMode: "subagent"` or subagent review success unless a real spawned review agent
+returns a result. A manual inline review, even if thorough, is `actualMode: "inline"`.
 
 Semantic checks are required when `implement.review.semanticChecks.enabled: true`. The review checks:
 
+- acceptance criteria against actual behavior,
+- product semantics and visible UI states, not only code shape,
+- label/value consistency,
+- percent vs count/unit formatting,
+- route intent correctness,
+- dashboard visible states and empty/loading/error states when applicable,
+- locale-backed Hebrew copy semantics when applicable,
+- architecture boundaries and repo instruction violations,
+- tests covering risky behavior,
 - spec and plan compliance,
-- missing tests,
-- repo instruction violations,
 - tracker hygiene,
 - accidental scope expansion.
 
@@ -350,8 +380,9 @@ For subagent/auto-subagent review, build a review context packet containing:
 - latest verification commands and output.
 
 Ask the reviewer to check correctness, implementation quality, spec/plan compliance,
-architecture/repo-instruction compliance, tests, and scope control. The reviewer output must include
-severity-ranked findings with file references where applicable and a clear pass/block verdict.
+product/spec/UI semantic correctness, label and unit semantics, architecture/repo-instruction
+compliance, tests, and scope control. The reviewer output must include severity-ranked findings with
+file references where applicable and a clear pass/block verdict.
 If review downgrades to inline, use the same checklist and context packet requirements, and record
 the downgrade in the final report.
 
@@ -446,8 +477,13 @@ Auto-merge only when all are true:
 
 - `pr.merge.auto: true`,
 - configured CI and review gates are satisfied,
-- local verification has passed on the current branch tip,
+- local verification has passed on the current branch tip, including final verification after any PR
+  review fix batch,
 - the PR branch contains the tracker `done` update and PR link.
+
+After PR review fixes, append a final verification completion event before merge. If final
+verification fails, stop before merge. If event ordering suggests merge happened before required
+final verification, report that as a blocker instead of treating the journal as clean.
 
 Merge with `pr.merge.method`. Delete the branch when `pr.merge.deleteBranch: true`. For
 `git.strategy: worktree`, remove the worktree only after confirming it is clean. Fast-forward

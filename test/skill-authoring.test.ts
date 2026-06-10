@@ -203,6 +203,16 @@ describe('skill authoring', () => {
     expect(body).toContain('pr.review.rerequestAfterFix');
     expect(body).toContain('.codex/agentic-workflow-kit/runs/<run-id>');
     expect(body).toContain('analyzable by `analyze-run`');
+    expect(body).toContain('pre_pr_review_blocked');
+    expect(body).toContain('fail closed before PR creation');
+    expect(body).toContain(
+      'You are explicitly authorized to delegate the pre-PR review to a read-only review subagent if configured.',
+    );
+    expect(body).toContain('Never record `actualMode: "subagent"`');
+    expect(body).toContain('acceptance criteria against actual behavior');
+    expect(body).toContain('percent vs count/unit formatting');
+    expect(body).toContain('locale-backed Hebrew copy semantics');
+    expect(body).toContain('final verification completion before merge');
   });
 
   it('workflow-autopilot prefers the bundled MCP runtime with CLI fallback', () => {

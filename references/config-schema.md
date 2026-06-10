@@ -98,13 +98,41 @@ state remains the only completion source.
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `review.prePr.enabled` | boolean | `true` | Run a pre-PR implementation review before tracker completion and PR creation. |
-| `review.prePr.mode` | `auto` \| `subagent` \| `inline` | `auto` | Preferred pre-PR review mode. `auto` uses a review subagent when available, otherwise inline review. |
+| `review.prePr.mode` | `auto` \| `subagent` \| `inline` | `auto` | Preferred pre-PR review mode. See "Pre-PR review modes" below for downgrade and fail-closed behavior. |
 | `review.prePr.maxLoops` | integer | `2` | Maximum pre-PR review-fix loops before stopping for user input. |
-| `review.prePr.loopMode` | `incremental` \| `full` | `incremental` | Whether follow-up review loops receive only fix-context deltas or the full review packet again. |
+| `review.prePr.loopMode` | `incremental` \| `full` | `incremental` | Whether follow-up local review loops receive only fix-context deltas or the full review packet again. |
 | `review.semanticChecks.enabled` | boolean | `true` | Require semantic checks for spec, plan, tests, tracker hygiene, and repo instructions. |
 | `subagents.enabled` | boolean | `true` | Allow bounded sidecar subagents for analysis/review. |
 | `subagents.maxParallel` | integer | `2` | Maximum concurrent sidecar subagents during interactive implementation. |
 | `subagents.allowWorkers` | boolean | `false` | Permit worker subagents to write files; workers still require disjoint write scopes. |
+
+### Pre-PR review modes
+
+`review.prePr.mode` controls the local review before tracker completion and PR creation:
+
+- `inline`: always review in the current session.
+- `auto`: attempt a review subagent when `subagents.enabled: true` and the host tool policy already
+  permits explicit delegation. If the subagent cannot run, continue with inline review and record
+  `pre_pr_review_downgraded`. `pre_pr_review_downgraded` is reported as an analyzer warning.
+- `subagent`: require a real spawned review agent result. `subagent` is fail-closed: if explicit
+  delegation is missing, the subagent tool is unavailable, or the review agent cannot run, stop
+  before PR creation and record `pre_pr_review_blocked`. `pre_pr_review_blocked` is reported as an analyzer blocker.
+
+Recommended invocation text for hosts that require explicit delegation:
+
+```text
+You are explicitly authorized to delegate the pre-PR review to a read-only review subagent if configured.
+```
+
+Only record subagent review success when a spawned review agent returns a result. Inline review must
+not be reported as subagent success.
+
+Local pre-PR review loops are separate from external PR review gates. `review.prePr.maxLoops` bounds
+the local review/fix/re-review cycle before PR creation. With the default `review.prePr.loopMode:
+incremental`, the first local review receives the full review packet and later loops receive prior
+findings, fix summaries, changed diffs since the previous loop, and latest verification evidence.
+External PR review fix behavior is controlled by `pr.review.rerequestAfterFix`; when it is `false`,
+one external PR review pass plus local fix verification and comment resolution is enough.
 
 ## `orchestrator` (optional)
 

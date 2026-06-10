@@ -117,4 +117,125 @@ describe('analyzeWorkflowRun', () => {
     });
     expect(analysis.issues).toContain('A001 has launch metadata but no settled child result');
   });
+
+  it('reconstructs review and merge evidence from interactive events without session metadata', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-events-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    await mkdir(runDir, { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({
+        runId: 'run-1',
+        command: 'implement-next',
+        status: 'complete',
+        blockedReason: null,
+        interactive: { storyId: 'PLD04', ok: true, sessionId: null },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        implement: {
+          review: { prePr: { mode: 'auto', maxLoops: 2, loopMode: 'incremental' } },
+        },
+        pr: { review: { rerequestAfterFix: false } },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'events.ndjson'),
+      [
+        JSON.stringify({
+          type: 'pre_pr_review_downgraded',
+          ts: '2026-06-08T18:10:00.000Z',
+          requestedMode: 'auto',
+          actualMode: 'inline',
+          reason: 'multi-agent spawn tool requires explicit user request for delegation',
+        }),
+        JSON.stringify({
+          type: 'pre_pr_review_cleared',
+          ts: '2026-06-08T18:20:00.000Z',
+          actualMode: 'inline',
+          loop: 1,
+        }),
+        JSON.stringify({
+          type: 'pre_pr_review_cleared',
+          ts: '2026-06-08T18:25:00.000Z',
+          actualMode: 'subagent',
+          agentId: 'subagent-extra',
+          loop: 2,
+        }),
+        JSON.stringify({
+          type: 'pr_review_findings',
+          ts: '2026-06-08T18:30:00.000Z',
+          findings: [
+            {
+              severity: 'P2',
+              summary: 'Repeated-miss reduction count target is formatted as a percentage',
+              file: 'src/dashboard.ts',
+            },
+          ],
+        }),
+        JSON.stringify({
+          type: 'pr_review_fix_batch',
+          ts: '2026-06-08T18:40:00.000Z',
+          batch: 1,
+          rerequestAfterFix: false,
+        }),
+        JSON.stringify({
+          type: 'verification_passed',
+          ts: '2026-06-08T18:50:00.000Z',
+          phase: 'final',
+          command: 'pnpm run check',
+        }),
+        JSON.stringify({ type: 'merged', ts: '2026-06-08T19:00:00.000Z' }),
+        JSON.stringify({ type: 'cleanup_complete', ts: '2026-06-08T19:05:00.000Z', status: 'complete' }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.children[0]).toMatchObject({ storyId: 'PLD04', sessionId: null, sessionLogPath: null });
+    expect(analysis.review.prePr).toMatchObject({
+      requestedMode: 'auto',
+      actualMode: 'subagent',
+      status: 'downgraded',
+      maxLoops: 2,
+      loopMode: 'incremental',
+      subagent: { agentId: 'subagent-extra', status: 'passed' },
+    });
+    expect(analysis.review.prePr.warnings).toContain(
+      'pre-PR review downgraded from auto to inline: multi-agent spawn tool requires explicit user request for delegation',
+    );
+    expect(analysis.review.pr).toMatchObject({
+      fixBatchCount: 1,
+      rerequestAfterFix: false,
+      findings: [
+        {
+          severity: 'P2',
+          summary: 'Repeated-miss reduction count target is formatted as a percentage',
+          file: 'src/dashboard.ts',
+        },
+      ],
+    });
+    expect(analysis.verification.finalPassedAt).toBe('2026-06-08T18:50:00.000Z');
+    expect(analysis.merge).toMatchObject({
+      merged: true,
+      mergedAt: '2026-06-08T19:00:00.000Z',
+      cleanupStatus: 'complete',
+      mergeBeforeFinalVerification: false,
+    });
+    expect(analysis.timeline.map((event) => event.type)).toEqual([
+      'pre_pr_review_downgraded',
+      'pre_pr_review_cleared',
+      'pre_pr_review_cleared',
+      'pr_review_findings',
+      'pr_review_fix_batch',
+      'verification_passed',
+      'merged',
+      'cleanup_complete',
+    ]);
+    expect(analysis.issues).toContain(
+      'pre-PR review downgraded from auto to inline: multi-agent spawn tool requires explicit user request for delegation',
+    );
+  });
 });

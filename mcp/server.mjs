@@ -44166,6 +44166,10 @@ function emptyTokenTotals() {
 // packages/orchestrator/src/analysis/runAnalyzer.ts
 async function analyzeWorkflowRun(runDirectory, options2 = {}) {
   const state = await readJsonObject(path.join(runDirectory, "state.json"));
+  const [config2, events] = await Promise.all([
+    readJsonObjectIfExists(path.join(runDirectory, "config.resolved.json")),
+    readEvents(path.join(runDirectory, "events.ndjson"))
+  ]);
   const children = await readChildren(path.join(runDirectory, "children"), state);
   const sessionLogs = await findSessionLogs(options2.sessionRoots ?? defaultSessionRoots());
   const logsBySession = await mapSessionLogsByThread(sessionLogs);
@@ -44202,17 +44206,178 @@ async function analyzeWorkflowRun(runDirectory, options2 = {}) {
     }
   }
   const status = readString(state.status, "state.status");
+  const eventSummary = summarizeEvents(events, config2);
   return {
     runId: readString(state.runId, "state.runId"),
     status,
     derivedStatus: deriveRunStatus(status, analyzedChildren),
     blockedReason: typeof state.blockedReason === "string" ? state.blockedReason : null,
-    issues,
+    issues: [...issues, ...eventSummary.issues],
     children: analyzedChildren,
     commandCounts,
     subagentCounts,
-    tokenTotals: sawTokens ? tokenTotals : null
+    tokenTotals: sawTokens ? tokenTotals : null,
+    review: eventSummary.review,
+    verification: eventSummary.verification,
+    merge: eventSummary.merge,
+    timeline: eventSummary.timeline
   };
+}
+function summarizeEvents(events, config2) {
+  const prePrConfig = readPrePrConfig(config2);
+  const prReviewConfig = readPrReviewConfig(config2);
+  const warnings = [];
+  const blockers = [];
+  const loops = [];
+  const prFindings = [];
+  const verificationCommands = [];
+  const issues = [];
+  let requestedMode = prePrConfig.requestedMode;
+  let actualMode = null;
+  let prePrStatus = prePrConfig.configured ? "not_started" : "not_configured";
+  let subagentAgentId = null;
+  let subagentStatus = null;
+  let fixBatchCount = 0;
+  let rerequestAfterFix = prReviewConfig.rerequestAfterFix;
+  let latestReviewFixAt = null;
+  let finalPassedAt = null;
+  let mergedAt = null;
+  let cleanupStatus = null;
+  for (const event of events) {
+    if (event.type === "pre_pr_review_started") {
+      requestedMode = readOptionalString(event.raw.requestedMode) ?? requestedMode;
+      actualMode = readOptionalString(event.raw.actualMode) ?? actualMode;
+    }
+    if (event.type === "pre_pr_review_downgraded") {
+      const from = readOptionalString(event.raw.requestedMode) ?? requestedMode ?? "unknown";
+      const to = readOptionalString(event.raw.actualMode) ?? "inline";
+      const reason = readOptionalString(event.raw.reason) ?? "no reason recorded";
+      requestedMode = from;
+      actualMode = to;
+      prePrStatus = "downgraded";
+      warnings.push(`pre-PR review downgraded from ${from} to ${to}: ${reason}`);
+    }
+    if (event.type === "pre_pr_review_blocked") {
+      const reason = readOptionalString(event.raw.reason) ?? "subagent review could not run";
+      requestedMode = readOptionalString(event.raw.requestedMode) ?? requestedMode;
+      actualMode = readOptionalString(event.raw.actualMode) ?? actualMode;
+      prePrStatus = "blocked";
+      blockers.push(`pre-PR review blocked: ${reason}`);
+    }
+    if (event.type === "pre_pr_review_findings") {
+      actualMode = readOptionalString(event.raw.actualMode) ?? actualMode;
+      prePrStatus = prePrStatus === "blocked" ? prePrStatus : "findings";
+      loops.push({
+        loop: readOptionalNumber(event.raw.loop),
+        mode: readOptionalString(event.raw.actualMode),
+        status: "findings",
+        findings: countFindings(event.raw.findings)
+      });
+    }
+    if (event.type === "pre_pr_review_cleared") {
+      const eventMode = readOptionalString(event.raw.actualMode);
+      actualMode = eventMode ?? actualMode;
+      if (prePrStatus !== "downgraded" && prePrStatus !== "blocked") prePrStatus = "passed";
+      loops.push({
+        loop: readOptionalNumber(event.raw.loop),
+        mode: eventMode,
+        status: "passed",
+        findings: 0
+      });
+      if (eventMode === "subagent" || typeof event.raw.agentId === "string") {
+        subagentAgentId = readOptionalString(event.raw.agentId) ?? subagentAgentId;
+        subagentStatus = "passed";
+      }
+    }
+    if (event.type === "pr_review_findings") {
+      prFindings.push(...readPrFindings(event.raw));
+    }
+    if (event.type === "pr_review_fix_batch") {
+      fixBatchCount += 1;
+      rerequestAfterFix = readOptionalBoolean(event.raw.rerequestAfterFix) ?? rerequestAfterFix;
+      latestReviewFixAt = event.eventAt;
+    }
+    if (isVerificationEvent(event.type)) {
+      const status = event.type.endsWith("_failed") ? "failed" : readOptionalString(event.raw.status) ?? "passed";
+      const phase = readOptionalString(event.raw.phase) ?? (event.type.startsWith("final_") ? "final" : null);
+      verificationCommands.push({
+        phase,
+        command: readOptionalString(event.raw.command),
+        status,
+        eventAt: event.eventAt
+      });
+      if (status === "passed" && phase === "final") {
+        finalPassedAt = maxIso(finalPassedAt, event.eventAt);
+      }
+    }
+    if (event.type === "merged") {
+      mergedAt = event.eventAt;
+    }
+    if (event.type === "cleanup_complete") {
+      cleanupStatus = readOptionalString(event.raw.status) ?? "complete";
+    }
+  }
+  for (const warning of warnings) issues.push(warning);
+  for (const blocker of blockers) issues.push(blocker);
+  const hasReviewFixes = fixBatchCount > 0;
+  const hasRequiredFinalVerification = !hasReviewFixes || finalPassedAt !== null && latestReviewFixAt !== null && compareNullableIso(finalPassedAt, latestReviewFixAt) >= 0 && (mergedAt === null || compareNullableIso(finalPassedAt, mergedAt) <= 0);
+  const mergeBeforeFinalVerification = hasReviewFixes && mergedAt !== null && finalPassedAt !== null && compareNullableIso(mergedAt, finalPassedAt) < 0;
+  if (mergedAt !== null && hasReviewFixes && !hasRequiredFinalVerification) {
+    issues.push(
+      finalPassedAt === null ? "merge occurred after PR review fixes without final verification" : "merge occurred before final verification after PR review fixes completed"
+    );
+  }
+  return {
+    issues,
+    review: {
+      prePr: {
+        requestedMode,
+        actualMode,
+        status: prePrStatus,
+        warnings,
+        blockers,
+        maxLoops: prePrConfig.maxLoops,
+        loopMode: prePrConfig.loopMode,
+        loops,
+        subagent: {
+          agentId: subagentAgentId,
+          status: subagentStatus
+        }
+      },
+      pr: {
+        findings: prFindings,
+        fixBatchCount,
+        rerequestAfterFix
+      }
+    },
+    verification: {
+      commands: verificationCommands,
+      finalPassedAt
+    },
+    merge: {
+      merged: mergedAt !== null,
+      mergedAt,
+      cleanupStatus,
+      mergeBeforeFinalVerification
+    },
+    timeline: events.map(({ type, eventAt, recordedAt, index: index2 }) => ({ type, eventAt, recordedAt, index: index2 }))
+  };
+}
+function readPrePrConfig(config2) {
+  const implement = readRecord(config2?.implement);
+  const review = readRecord(implement?.review);
+  const prePr = readRecord(review?.prePr);
+  return {
+    configured: prePr !== null,
+    requestedMode: readOptionalString(prePr?.mode),
+    maxLoops: readOptionalNumber(prePr?.maxLoops),
+    loopMode: readOptionalString(prePr?.loopMode)
+  };
+}
+function readPrReviewConfig(config2) {
+  const pr = readRecord(config2?.pr);
+  const review = readRecord(pr?.review);
+  return { rerequestAfterFix: readOptionalBoolean(review?.rerequestAfterFix) };
 }
 async function readChildren(childrenDirectory, state) {
   let names;
@@ -44270,6 +44435,63 @@ async function findSessionLogs(roots) {
     await walkJsonl(root2, logs);
   }
   return logs;
+}
+async function readEvents(filePath) {
+  let content3;
+  try {
+    content3 = await readFile(filePath, "utf8");
+  } catch (error51) {
+    if (isNodeError(error51) && error51.code === "ENOENT") return [];
+    throw error51;
+  }
+  return content3.split("\n").map((line, index2) => ({ entry: parseJsonLine(line), index: index2 })).filter((item) => item.entry !== null).map(({ entry, index: index2 }) => normalizeEvent(entry, index2)).filter((event) => event !== null).sort(compareEvents);
+}
+function normalizeEvent(entry, index2) {
+  const type = readOptionalString(entry.type);
+  if (!type) return null;
+  const eventAt = readOptionalString(entry.eventAt) ?? readOptionalString(entry.ts) ?? readOptionalString(entry.recordedAt);
+  const recordedAt = readOptionalString(entry.recordedAt) ?? readOptionalString(entry.ts) ?? eventAt;
+  return { type, eventAt, recordedAt, index: index2, raw: entry };
+}
+function compareEvents(a, b) {
+  const byEventAt = compareNullableIso(a.eventAt, b.eventAt);
+  if (byEventAt !== 0) return byEventAt;
+  const byRecordedAt = compareNullableIso(a.recordedAt, b.recordedAt);
+  return byRecordedAt === 0 ? a.index - b.index : byRecordedAt;
+}
+function readPrFindings(event) {
+  const findings = Array.isArray(event.findings) ? event.findings : [event];
+  return findings.flatMap((finding) => {
+    if (!isRecord(finding)) return [];
+    const summary = readOptionalString(finding.summary) ?? readOptionalString(finding.message) ?? readOptionalString(finding.title) ?? null;
+    if (!summary) return [];
+    return [
+      {
+        severity: readOptionalString(finding.severity),
+        summary,
+        file: readOptionalString(finding.file) ?? readOptionalString(finding.path)
+      }
+    ];
+  });
+}
+function countFindings(value) {
+  if (Array.isArray(value)) return value.length;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return null;
+}
+function isVerificationEvent(type) {
+  return type === "verification_passed" || type === "verification_failed" || type === "final_verification_passed" || type === "final_verification_failed";
+}
+function maxIso(current, candidate) {
+  if (candidate === null) return current;
+  if (current === null) return candidate;
+  return compareNullableIso(current, candidate) >= 0 ? current : candidate;
+}
+function compareNullableIso(a, b) {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return Date.parse(a) - Date.parse(b);
 }
 async function walkJsonl(directory, logs) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -44341,6 +44563,14 @@ async function readJsonObject(filePath) {
   if (!isRecord(parsed)) throw new Error(`${filePath} must contain a JSON object`);
   return parsed;
 }
+async function readJsonObjectIfExists(filePath) {
+  try {
+    return await readJsonObject(filePath);
+  } catch (error51) {
+    if (isNodeError(error51) && error51.code === "ENOENT") return null;
+    throw error51;
+  }
+}
 async function pathExists(filePath) {
   try {
     await stat(filePath);
@@ -44367,6 +44597,18 @@ function readString(value, name) {
 }
 function readNumber(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+function readOptionalString(value) {
+  return typeof value === "string" ? value : null;
+}
+function readOptionalNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+function readOptionalBoolean(value) {
+  return typeof value === "boolean" ? value : null;
+}
+function readRecord(value) {
+  return isRecord(value) ? value : null;
 }
 
 // packages/orchestrator/src/artifacts/FileArtifactStore.ts
