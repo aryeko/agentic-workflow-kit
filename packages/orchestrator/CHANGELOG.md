@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.4
+
+### Patch Changes
+
+- 8c08549: Use the `mcpServers` manifest shape that Codex Desktop accepts for plugin-bundled MCP servers.
+
 ## 0.5.3
 
 ### Patch Changes
