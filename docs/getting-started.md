@@ -140,8 +140,11 @@ pnpm agentic-workflow-kit -- analyze-run .codex/agentic-workflow-kit/runs/<runId
 
 `analyze-run` also accepts compatible interactive `/implement-next` journals written to the same
 run directory shape. When `events.ndjson` is present, the analyzer also reconstructs review
-downgrades/blockers, PR review findings and fix batches, final verification, merge/cleanup status,
-and the sorted event timeline even if a session log is unavailable.
+downgrades, pre-PR review execution blockers, review findings, local fix batches, PR review
+findings, resolved threads, final verification, merge/cleanup status, and the journal-order event
+timeline even if a session log is unavailable. A review that ran and returned `BLOCK` findings is
+reported as a review result; `pre_pr_review_blocked` is reserved for cases where the review step
+could not run.
 
 ## 6. Ship and repeat
 

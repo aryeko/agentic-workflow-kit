@@ -73,7 +73,8 @@ describe('RunJournal', () => {
       returnedComplete: true,
     });
     expect(artifacts.events[0]).toEqual({
-      ts: '2026-06-02T00:00:01.000Z',
+      recordedAt: '2026-06-02T00:00:01.000Z',
+      eventAt: '2026-06-02T00:00:01.000Z',
       type: 'child-complete',
       storyId: 'A001',
     });

@@ -371,8 +371,8 @@ describe('analyzeWorkflowRun', () => {
       'pre_pr_review_cleared',
       'pr_review_findings',
       'pr_review_fix_pushed',
-      'merged',
       'verification_passed',
+      'merged',
       'cleanup_complete',
     ]);
     expect(analysis.review.prePr).toMatchObject({
@@ -431,6 +431,8 @@ describe('analyzeWorkflowRun', () => {
       cleanupStatus: 'complete',
       mergeBeforeFinalVerification: true,
     });
-    expect(analysis.issues).toContain('merge occurred before final verification after PR review fixes completed');
+    expect(analysis.issues).toContain(
+      'merge timestamp is earlier than recorded final verification after PR review fixes',
+    );
   });
 });

@@ -12,8 +12,16 @@ describe('FileArtifactStore', () => {
 
     await store.writeJson('state.json', { status: 'running' });
     await store.writeText('logs/output.txt', 'hello');
-    await store.appendEvent({ ts: '2026-06-02T00:00:00.000Z', type: 'run-started' });
-    await store.appendEvent({ ts: '2026-06-02T00:00:01.000Z', type: 'run-complete' });
+    await store.appendEvent({
+      recordedAt: '2026-06-02T00:00:00.000Z',
+      eventAt: '2026-06-02T00:00:00.000Z',
+      type: 'run-started',
+    });
+    await store.appendEvent({
+      recordedAt: '2026-06-02T00:00:01.000Z',
+      eventAt: '2026-06-02T00:00:01.000Z',
+      type: 'run-complete',
+    });
 
     expect(JSON.parse(await readFile(path.join(root, 'state.json'), 'utf8'))).toEqual({ status: 'running' });
     expect(await readFile(path.join(root, 'logs/output.txt'), 'utf8')).toBe('hello');

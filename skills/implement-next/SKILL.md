@@ -51,7 +51,7 @@ summarize the resolved policy: `paths`, `statuses`, `verify`, `git`, `implement`
 - Pre-PR review happens before tracker completion and PR creation for nontrivial implementation
   work when `implement.review.prePr.enabled: true`.
 - Review fixes rerun configured verification before the next review loop or PR update.
-- Stop after the configured review-loop limit; do not silently continue with unreviewed changes.
+- Stop after the configured review fix-batch limit; do not silently continue with unreviewed changes.
 - Use subagents only for bounded sidecar analysis/review. Do not put blocking critical-path
   implementation work in a subagent.
 - Workers require disjoint write scopes and explicit `implement.subagents.allowWorkers: true`.
@@ -128,10 +128,11 @@ Use an ISO timestamp run id with colons and periods replaced by hyphens. Keep th
 - `config.resolved.json`: resolved config snapshot, including `implement` and `pr` policy.
 - `state.json`: current status, blocked reason, active story, and `interactive` child metadata.
 - `events.ndjson`: append phase events such as `story_selected`, `claimed`, `spec_written`,
-  `plan_written`, `verification_passed`, `pre_pr_review_started`, `pre_pr_review_findings`,
-  `pre_pr_review_downgraded`, `pre_pr_review_blocked`, `pre_pr_review_cleared`, `pr_created`,
-  `pr_review_findings`, `pr_review_fix_batch`, `final_verification_passed`, `merged`,
-  `cleanup_complete`, and `blocked`.
+  `plan_written`, `verification_passed`, `pre_pr_review_started`, `pre_pr_review_completed`,
+  `pre_pr_review_fix_batch_applied`, `pre_pr_review_downgraded`, `pre_pr_review_blocked`,
+  `pr_created`, `pr_review_started`, `pr_review_findings`, `pr_review_fix_batch_started`,
+  `pr_review_fix_batch_applied`, `pr_review_thread_resolved`, `pr_review_completed`,
+  `final_verification_passed`, `pr_merged`, `cleanup_complete`, and `blocked`.
 
 Prefer event records with both chronology fields:
 
@@ -144,8 +145,10 @@ Prefer event records with both chronology fields:
 ```
 
 For immediate events, `recordedAt` and `eventAt` may be the same. Legacy `ts` remains accepted, but
-new journals should make action time and write time explicit so `analyze-run` can answer ordering
-questions such as whether final verification completion before merge was recorded.
+new journals should make action time and write time explicit. Prefer automatic write-time stamping
+from the journal writer and supply `eventAt` only for imported external events. `analyze-run` keeps
+journal file order in the timeline while exposing both timestamps so users can spot out-of-order
+caller-supplied event times.
 
 For compatibility with `analyze-run`, `state.json` must include:
 
@@ -175,7 +178,9 @@ When the story finishes, set `status` to `complete` or `blocked`, update `blocke
 blocked, set `interactive.ok`, and append final timing/status fields when available. The analyzer
 also accepts `children/<ID>.json`; use that if the host environment can write it easily. Do not
 fabricate token totals or command counts. `analyze-run` derives those from real session logs when
-`interactive.sessionId` or the child file's `sessionId` points to a known Codex JSONL session.
+`interactive.sessionId`, `interactive.sessionLogPath`, or the child file's session metadata points
+to a known Codex JSONL session. If linkage is not available, report it as unavailable instead of
+implying no commands, subagents, or tokens were used.
 
 Report the journal path in the final report. The run must be analyzable by `analyze-run`:
 
@@ -371,6 +376,13 @@ Semantic checks are required when `implement.review.semanticChecks.enabled: true
 - tracker hygiene,
 - accidental scope expansion.
 
+Treat the product docs, architecture docs, tracker row, story brief, detailed spec, and plan as the
+scope boundary. Do not request visible UX changes unless those sources explicitly require them. For
+telemetry or observability stories, requiring instrumentation of existing interactions, model
+opportunities, impressions, starts, outcomes, and internal state transitions is valid; requiring new
+buttons, controls, or visible flows is out of scope unless the story asks for that UI. Flag
+out-of-scope additions as review findings.
+
 For subagent/auto-subagent review, build a review context packet containing:
 
 - repo instructions and relevant local docs,
@@ -379,17 +391,25 @@ For subagent/auto-subagent review, build a review context packet containing:
 - implementation diff,
 - latest verification commands and output.
 
+When spawning a review subagent in Codex, send exactly one accepted tool shape: a single `message`
+with the review context. Do not include `items: []` alongside `message`.
+
 Ask the reviewer to check correctness, implementation quality, spec/plan compliance,
 product/spec/UI semantic correctness, label and unit semantics, architecture/repo-instruction
 compliance, tests, and scope control. The reviewer output must include severity-ranked findings with
-file references where applicable and a clear pass/block verdict.
+file references where applicable and a clear `PASS` or `BLOCK` verdict.
 If review downgrades to inline, use the same checklist and context packet requirements, and record
 the downgrade in the final report.
 
 Required changes are fixed and re-reviewed before proceeding. Review fixes rerun configured
 verification (`verify.changed` when scoped, `verify.full` before completion) before the next review.
-Stop after `implement.review.prePr.maxLoops` loops and ask the user. `implement.review.prePr.loopMode`
-controls follow-up review context:
+Record review execution failures as `pre_pr_review_blocked`. Record successful review results as
+`pre_pr_review_completed` with `verdict: "PASS" | "BLOCK"`, `mode`, `agentId` when applicable,
+`loop`, `findings`, and `summary`. After each local fix batch, append
+`pre_pr_review_fix_batch_applied`.
+
+Stop after `implement.review.prePr.maxLoops` local review fix batches and ask the user.
+`implement.review.prePr.loopMode` controls follow-up review context:
 
 - `incremental`: first review gets the full review context packet; follow-up loops get prior
   findings, fix summary, changed diff since the previous review, and latest verification evidence.
@@ -467,6 +487,11 @@ Treat PR review as one external pass by default. After findings from the first e
 pass, fix locally, rerun configured verification, and reply/resolve findings as needed. Do not
 request or wait for a fresh Codex PR review after every fix unless `pr.review.rerequestAfterFix`
 is configured as `true`.
+
+Record the external review lifecycle with `pr_review_started`, `pr_review_findings`,
+`pr_review_fix_batch_started`, `pr_review_fix_batch_applied`, `pr_review_thread_resolved`, and
+`pr_review_completed` when those steps happen. After merge, append `pr_merged`; legacy `merged`
+remains analyzable.
 
 Stop after `pr.review.maxFixBatches` finding-fix batches and ask the user. Stop if no configured
 review signal arrives within `pr.review.waitTimeoutMinutes`.
