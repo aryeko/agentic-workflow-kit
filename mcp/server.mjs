@@ -64615,11 +64615,17 @@ var nullLogger = {
 };
 
 // packages/orchestrator/src/mcp/server.ts
+var SERVER_INSTRUCTIONS = "Use agentic-workflow-kit for tracker-driven repo delivery. Prefer list_tracks/list_stories/list_eligible before dispatch. run_story and run_eligible default to dry-run; set dryRun=false only after explicit user approval. Tracker state is authoritative for completion. Use watch_run and analyze_run to inspect launched runs.";
 function createOrchestratorMcpServer() {
-  const server = new McpServer({
-    name: "agentic-workflow-kit",
-    version: "0.1.0"
-  });
+  const server = new McpServer(
+    {
+      name: "agentic-workflow-kit",
+      version: "0.1.0"
+    },
+    {
+      instructions: SERVER_INSTRUCTIONS
+    }
+  );
   registerOrchestratorTools(server);
   return server;
 }
@@ -64642,6 +64648,7 @@ function isDirectMcpExecution(entrypoint = process7.argv[1], moduleUrl = import.
   }
 }
 export {
+  SERVER_INSTRUCTIONS,
   createOrchestratorMcpServer,
   isDirectMcpExecution,
   startOrchestratorMcpServer

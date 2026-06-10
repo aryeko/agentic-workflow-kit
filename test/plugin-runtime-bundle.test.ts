@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
+import { SERVER_INSTRUCTIONS } from '../packages/orchestrator/src/mcp/server.js';
+
 describe('plugin MCP runtime bundle', () => {
   it('ships a plain Node-importable MCP server artifact', () => {
     expect(existsSync('mcp/server.mjs')).toBe(true);
@@ -30,5 +32,14 @@ describe('plugin MCP runtime bundle', () => {
 
     expect(attributes).toContain('mcp/server.mjs linguist-generated=true');
     expect(attributes).toContain('plugins/agentic-workflow-kit/mcp/server.mjs linguist-generated=true');
+  });
+
+  it('bundles server-wide MCP instructions for Codex tool selection', () => {
+    const bundle = readFileSync('mcp/server.mjs', 'utf8');
+
+    expect(SERVER_INSTRUCTIONS).toContain('Use agentic-workflow-kit for tracker-driven repo delivery.');
+    expect(SERVER_INSTRUCTIONS.length).toBeLessThanOrEqual(512);
+    expect(bundle).toContain('Use agentic-workflow-kit for tracker-driven repo delivery.');
+    expect(bundle).toContain('instructions: SERVER_INSTRUCTIONS');
   });
 });
