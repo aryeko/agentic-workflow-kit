@@ -2,13 +2,6 @@
   "mcpServers": {
     "agentic-workflow-kit": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.mjs"],
-      "cwd": "${CLAUDE_PROJECT_DIR}"
-    }
-  },
-  "mcp_servers": {
-    "agentic-workflow-kit": {
-      "command": "node",
       "args": ["./mcp/server.mjs"]
     }
   }

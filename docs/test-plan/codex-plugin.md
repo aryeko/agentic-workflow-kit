@@ -35,7 +35,7 @@ Keep `CODEX_HOME` exported for the whole Codex session, and run that session wit
 
 Confirm the installed plugin cache contains `.mcp.json` and `mcp/server.mjs` (the automated smoke
 does this), and that `.codex-plugin/plugin.json` declares `mcpServers: "./.mcp.json"`. The fixture
-`.mcp.json` should use the plugin-bundled `mcp_servers` wrapper. In the Codex session, prefer the
+`.mcp.json` should use the plugin-bundled `mcpServers` shape. In the Codex session, prefer the
 bundled MCP runtime through `workflow-autopilot`; use the standalone CLI only as a fallback or
 cross-check. The Codex MCP entry must not set `cwd`; the session cwd should remain the throwaway
 target repo. If a host cannot provide that repo context, the workflow MCP tools should ask for an
