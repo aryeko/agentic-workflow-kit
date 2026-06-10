@@ -49,7 +49,7 @@ describe('plugin manifests', () => {
     expect(m.license).toBe('MIT');
     expect(Array.isArray(m.keywords)).toBe(true);
     expect(m.skills).toBe('./skills/');
-    expect(m.mcpServers).toBe('./.mcp.json');
+    expect(m.mcpServers).toBe('./.codex-plugin/.mcp.json');
     expect(m.repository).toBeUndefined();
     expect(m.homepage).toBeUndefined();
     expect(m.interface?.displayName).toBe('agentic-workflow-kit');
@@ -61,10 +61,11 @@ describe('plugin manifests', () => {
     const manifest = JSON.parse(readFileSync('.codex-plugin/plugin.json', 'utf8'));
     const mcp = JSON.parse(readFileSync(manifest.mcpServers, 'utf8'));
 
-    expect(mcp.mcp_servers?.['agentic-workflow-kit']).toEqual({
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
       command: 'node',
       args: ['./mcp/server.mjs'],
     });
+    expect(mcp.mcp_servers).toBeUndefined();
   });
 
   it('marketplace.json lists the root plugin with source "./"', () => {
@@ -87,6 +88,7 @@ describe('plugin manifests', () => {
       args: [`${claudePluginRootVariable}/mcp/server.mjs`],
       cwd: claudeProjectDirVariable,
     });
+    expect(mcp.mcp_servers).toBeUndefined();
   });
 
   it('codex local marketplace fixture points at an installable plugin directory', () => {
@@ -104,6 +106,7 @@ describe('plugin manifests', () => {
 
     for (const requiredPath of [
       'plugins/agentic-workflow-kit/.codex-plugin/plugin.json',
+      'plugins/agentic-workflow-kit/.codex-plugin/.mcp.json',
       'plugins/agentic-workflow-kit/.mcp.json',
       'plugins/agentic-workflow-kit/mcp/server.mjs',
       'plugins/agentic-workflow-kit/skills',
@@ -138,14 +141,14 @@ describe('plugin manifests', () => {
 
   it('codex local marketplace fixture includes the bundled MCP runtime', () => {
     const manifest = JSON.parse(readFileSync('plugins/agentic-workflow-kit/.codex-plugin/plugin.json', 'utf8'));
-    const mcp = JSON.parse(readFileSync('plugins/agentic-workflow-kit/.mcp.json', 'utf8'));
+    const mcp = JSON.parse(readFileSync(path.join('plugins/agentic-workflow-kit', manifest.mcpServers), 'utf8'));
 
-    expect(manifest.mcpServers).toBe('./.mcp.json');
-    expect(mcp.mcp_servers?.['agentic-workflow-kit']).toEqual({
+    expect(manifest.mcpServers).toBe('./.codex-plugin/.mcp.json');
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
       command: 'node',
       args: ['./mcp/server.mjs'],
     });
-    expect(mcp.mcpServers).toBeUndefined();
+    expect(mcp.mcp_servers).toBeUndefined();
     expect(readFileSync('plugins/agentic-workflow-kit/mcp/server.mjs', 'utf8')).toBe(
       readFileSync('mcp/server.mjs', 'utf8'),
     );

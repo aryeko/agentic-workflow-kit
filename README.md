@@ -152,15 +152,14 @@ so the default development gate works on machines that only have the package too
 The repository includes local-only plugin metadata for development testing:
 
 - Claude Code: load this repo with `claude --plugin-dir ./`, then invoke namespaced skills such as
-  `/agentic-workflow-kit:workflow-init`; the root `.mcp.json` wires the bundled MCP runtime through
-  Claude's `mcpServers` shape.
+  `/agentic-workflow-kit:workflow-init`; the root `.mcp.json` wires the bundled MCP runtime.
 - Codex: `.agents/plugins/marketplace.json` is the marketplace manifest — the same one a public
   `codex plugin marketplace add aryeko/agentic-workflow-kit` reads. Locally you add it from the repo
   directory; it points at the materialized fixture at `./plugins/agentic-workflow-kit`, including
-  the fixture-specific `.mcp.json` and bundled `mcp/server.mjs`. The Codex plugin manifest declares
-  `mcpServers: "./.mcp.json"`; the root `.mcp.json` and fixture `.mcp.json` both include Codex's
-  plugin-bundled `mcp_servers` wrapper so Codex can launch the server from the installed plugin.
-  The Codex entries intentionally do not set `cwd`, preserving the active target repo as the MCP
+  the fixture-specific MCP manifest and bundled `mcp/server.mjs`. The Codex plugin manifest declares
+  `mcpServers: "./.codex-plugin/.mcp.json"`; that file uses Codex's `mcpServers` shape so Codex can
+  launch the server from the installed plugin without reusing Claude Code's root `.mcp.json`. The
+  Codex entries intentionally do not set `cwd`, preserving the active target repo as the MCP
   working directory. If a host cannot provide that repo context, workflow MCP tools return an
   actionable error asking the caller to pass `cwd` explicitly.
 
