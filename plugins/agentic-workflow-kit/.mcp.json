@@ -2,8 +2,7 @@
   "mcp_servers": {
     "agentic-workflow-kit": {
       "command": "node",
-      "args": ["./mcp/server.mjs"],
-      "cwd": "."
+      "args": ["./mcp/server.mjs"]
     }
   }
 }

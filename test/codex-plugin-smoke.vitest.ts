@@ -39,7 +39,6 @@ describe('codex local plugin smoke', () => {
     expect(installedMcp.mcp_servers?.['agentic-workflow-kit']).toEqual({
       command: 'node',
       args: ['./mcp/server.mjs'],
-      cwd: '.',
     });
     expect(installedMcp.mcpServers).toBeUndefined();
     expect(existsSync(path.join(installedRoot, 'skills/workflow-init/SKILL.md'))).toBe(true);

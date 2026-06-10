@@ -3,10 +3,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { createOrchestratorMcpServer } from '../src/mcp/server';
 import { ORCHESTRATOR_MCP_TOOLS } from '../src/mcp/tools';
+
+const originalInitCwd = process.env.INIT_CWD;
 
 function trackerMarkdown(storyCount = 3): string {
   const generatedRows =
@@ -67,6 +69,14 @@ async function connectClient() {
 }
 
 describe('agentic-workflow-kit MCP server', () => {
+  afterEach(() => {
+    if (originalInitCwd === undefined) {
+      delete process.env.INIT_CWD;
+    } else {
+      process.env.INIT_CWD = originalInitCwd;
+    }
+  });
+
   it('registers the orchestrator tool surface', async () => {
     const { client, server } = await connectClient();
 
@@ -81,7 +91,7 @@ describe('agentic-workflow-kit MCP server', () => {
     expect(runEligible?.description).toContain('Defaults to dry-run');
     expect(runEligible?.description).toContain('unsupervised child sessions with full disk access');
     expect(runEligible?.inputSchema.properties?.cwd).toMatchObject({
-      description: expect.stringContaining('Repo root'),
+      description: expect.stringContaining('Target repo root'),
     });
     expect(runEligible?.inputSchema.properties?.sandbox).toMatchObject({
       description: expect.stringContaining('full local disk access'),
@@ -147,6 +157,30 @@ describe('agentic-workflow-kit MCP server', () => {
     ]);
     await client.close();
     await server.close();
+  });
+
+  it('requires an explicit cwd when the MCP session is not in a workflow repo', async () => {
+    const originalCwd = process.cwd();
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-no-workflow-'));
+    const { client, server } = await connectClient();
+
+    try {
+      process.chdir(tempRoot);
+      delete process.env.INIT_CWD;
+      const result = await client.callTool({
+        name: 'list_tracks',
+        arguments: {},
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent).toMatchObject({
+        error: expect.stringContaining('Pass cwd as the target repository root'),
+      });
+    } finally {
+      process.chdir(originalCwd);
+      await client.close();
+      await server.close();
+    }
   });
 
   it('truncates large structured responses by default', async () => {

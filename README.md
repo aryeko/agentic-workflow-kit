@@ -160,6 +160,9 @@ The repository includes local-only plugin metadata for development testing:
   the fixture-specific `.mcp.json` and bundled `mcp/server.mjs`. The Codex plugin manifest declares
   `mcpServers: "./.mcp.json"`; the root `.mcp.json` and fixture `.mcp.json` both include Codex's
   plugin-bundled `mcp_servers` wrapper so Codex can launch the server from the installed plugin.
+  The Codex entries intentionally do not set `cwd`, preserving the active target repo as the MCP
+  working directory. If a host cannot provide that repo context, workflow MCP tools return an
+  actionable error asking the caller to pass `cwd` explicitly.
 
 ```bash
 tmp_home="$(mktemp -d)"

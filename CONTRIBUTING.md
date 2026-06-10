@@ -51,8 +51,10 @@ Several artifacts are deliberately kept in sync by tests; editing one means edit
   also carries a Codex-specific `.mcp.json` and generated `mcp/server.mjs`. The root `.mcp.json`
   keeps Claude's `mcpServers` wiring and a Codex-readable `mcp_servers` entry because the root
   Codex manifest points at it; the fixture `.mcp.json` only needs the Codex plugin-bundled shape.
-  Tests assert the mirrored content and runtime artifact stay aligned — re-sync the copy after
-  editing any canonical source, or the gate fails.
+  Codex `mcp_servers` entries intentionally omit `cwd` so the MCP process can operate on the active
+  target repo instead of pinning itself to the installed plugin cache. Tests assert the mirrored
+  content and runtime artifact stay aligned — re-sync the copy after editing any canonical source,
+  or the gate fails.
 - **Presets** must stay fully populated and schema-valid.
 - **Tracker completion** comes only from tracker state, never from a child session's prose.
 

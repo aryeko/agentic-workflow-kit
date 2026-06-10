@@ -10,7 +10,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { registerOrchestratorTools } from './tools.js';
 
 export const SERVER_INSTRUCTIONS =
-  'Use agentic-workflow-kit for tracker-driven repo delivery. Prefer list_tracks/list_stories/list_eligible before dispatch. run_story and run_eligible default to dry-run; set dryRun=false only after explicit user approval. Tracker state is authoritative for completion. Use watch_run and analyze_run to inspect launched runs.';
+  'Use agentic-workflow-kit for tracker-driven repo delivery. Prefer list_tracks/list_stories/list_eligible before dispatch. Tools operate on the target repo cwd; pass cwd explicitly when the MCP session is not already running from that repo. run_story and run_eligible default to dry-run; set dryRun=false only after explicit user approval. Tracker state is authoritative for completion. Use watch_run and analyze_run to inspect launched runs.';
 
 export function createOrchestratorMcpServer(): McpServer {
   const server = new McpServer(
