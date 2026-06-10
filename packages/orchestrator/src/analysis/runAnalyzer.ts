@@ -294,7 +294,7 @@ function summarizeEvents(
     if (isPrReviewFixBatchEvent(event.type)) {
       prFixBatchCount += 1;
       rerequestAfterFix = readOptionalBoolean(event.raw.rerequestAfterFix) ?? rerequestAfterFix;
-      latestReviewFixAt = event.eventAt;
+      latestReviewFixAt = maxIso(latestReviewFixAt, event.eventAt);
       verificationCommands.push(...readVerificationCommands(event, null, 'verification'));
     }
 
@@ -302,7 +302,7 @@ function summarizeEvents(
       resolvedThreadCount += 1;
       if (!isPrReviewFixBatchEvent(event.type)) {
         prFixBatchCount += 1;
-        latestReviewFixAt = event.eventAt;
+        latestReviewFixAt = maxIso(latestReviewFixAt, event.eventAt);
       }
     }
 
@@ -342,7 +342,9 @@ function summarizeEvents(
     const message =
       finalPassedAt === null
         ? 'PR review fix evidence was followed by merge without a recorded final verification event'
-        : 'merge timestamp is earlier than recorded final verification after PR review fixes';
+        : mergeBeforeFinalVerification
+          ? 'merge timestamp is earlier than recorded final verification after PR review fixes'
+          : 'final verification timestamp is earlier than latest PR review fix evidence';
     issues.push({ key: `merge-final-verification:${message}`, message });
   }
 

@@ -328,4 +328,63 @@ describe('run analyzer', () => {
       'merge timestamp is earlier than recorded final verification after PR review fixes',
     );
   });
+
+  it('keeps the latest PR review fix timestamp when older external events are appended later', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-latest-fix-'));
+    tempRoots.push(root);
+    const runDirectory = path.join(root, 'repo/.codex/agentic-workflow-kit/runs/2026-06-11T12-00-00-000Z');
+    mkdirSync(runDirectory, { recursive: true });
+
+    writeFileSync(
+      path.join(runDirectory, 'state.json'),
+      JSON.stringify(
+        {
+          runId: '2026-06-11T12-00-00-000Z',
+          command: 'implement-next',
+          status: 'complete',
+          blockedReason: null,
+          interactive: {
+            storyId: 'PLD05',
+            ok: true,
+            sessionId: null,
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'events.ndjson'),
+      [
+        JSON.stringify({
+          type: 'pr_review_fix_batch_applied',
+          recordedAt: '2026-06-11T12:01:00.000Z',
+          eventAt: '2026-06-11T12:30:00.000Z',
+        }),
+        JSON.stringify({
+          type: 'verification_passed',
+          recordedAt: '2026-06-11T12:02:00.000Z',
+          eventAt: '2026-06-11T12:15:00.000Z',
+          phase: 'final',
+          command: 'pnpm run check',
+        }),
+        JSON.stringify({
+          type: 'codex_pr_review_thread_resolved',
+          recordedAt: '2026-06-11T12:03:00.000Z',
+          eventAt: '2026-06-11T12:05:00.000Z',
+        }),
+        JSON.stringify({
+          type: 'pr_merged',
+          recordedAt: '2026-06-11T12:04:00.000Z',
+          eventAt: '2026-06-11T12:45:00.000Z',
+        }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDirectory, { sessionRoots: [] });
+
+    expect(analysis.review.pr.fixBatchCount).toBe(2);
+    expect(analysis.verification.finalPassedAt).toBe('2026-06-11T12:15:00.000Z');
+    expect(analysis.issues).toContain('final verification timestamp is earlier than latest PR review fix evidence');
+  });
 });

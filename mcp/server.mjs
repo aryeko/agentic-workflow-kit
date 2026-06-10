@@ -44309,14 +44309,14 @@ function summarizeEvents(events, config2) {
     if (isPrReviewFixBatchEvent(event.type)) {
       prFixBatchCount += 1;
       rerequestAfterFix = readOptionalBoolean(event.raw.rerequestAfterFix) ?? rerequestAfterFix;
-      latestReviewFixAt = event.eventAt;
+      latestReviewFixAt = maxIso(latestReviewFixAt, event.eventAt);
       verificationCommands.push(...readVerificationCommands(event, null, "verification"));
     }
     if (isPrReviewThreadResolvedEvent(event.type)) {
       resolvedThreadCount += 1;
       if (!isPrReviewFixBatchEvent(event.type)) {
         prFixBatchCount += 1;
-        latestReviewFixAt = event.eventAt;
+        latestReviewFixAt = maxIso(latestReviewFixAt, event.eventAt);
       }
     }
     if (isVerificationEvent(event.type)) {
@@ -44339,7 +44339,7 @@ function summarizeEvents(events, config2) {
   const hasRequiredFinalVerification = !hasReviewFixes || finalPassedAt !== null && latestReviewFixAt !== null && compareNullableIso(finalPassedAt, latestReviewFixAt) >= 0 && (mergedAt === null || compareNullableIso(finalPassedAt, mergedAt) <= 0);
   const mergeBeforeFinalVerification = hasReviewFixes && mergedAt !== null && finalPassedAt !== null && compareNullableIso(mergedAt, finalPassedAt) < 0;
   if (mergedAt !== null && hasReviewFixes && !hasRequiredFinalVerification) {
-    const message = finalPassedAt === null ? "PR review fix evidence was followed by merge without a recorded final verification event" : "merge timestamp is earlier than recorded final verification after PR review fixes";
+    const message = finalPassedAt === null ? "PR review fix evidence was followed by merge without a recorded final verification event" : mergeBeforeFinalVerification ? "merge timestamp is earlier than recorded final verification after PR review fixes" : "final verification timestamp is earlier than latest PR review fix evidence";
     issues.push({ key: `merge-final-verification:${message}`, message });
   }
   const warningMessages = dedupeIssues(warnings).map((issue2) => issue2.message);
