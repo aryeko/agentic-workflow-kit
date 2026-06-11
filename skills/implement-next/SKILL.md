@@ -231,7 +231,7 @@ Before editing, run a child preflight in the checkout where the story work will 
 - cwd,
 - git top-level,
 - current branch,
-- expected worktree path,
+- the exact expected worktree path rendered in the child prompt/launch metadata,
 - configured base branch.
 
 If any value does not match the resolved git policy, stop and report the mismatch before editing.

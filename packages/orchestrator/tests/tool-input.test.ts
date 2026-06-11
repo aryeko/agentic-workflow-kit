@@ -97,6 +97,7 @@ describe('buildGenericPrompt', () => {
     expect(prompt).toContain('- Isolation strategy: worktree');
     expect(prompt).toContain('- Create/use branch: linkly/l002-{slug} (base: main)');
     expect(prompt).toContain('- Worktree directory: .worktrees under the workspace root.');
+    expect(prompt).toContain('- Expected worktree path: /repo/.worktrees/l002-pilot');
     expect(prompt).toContain('Committing directly on `main` is forbidden.');
     expect(prompt).toContain('commit your work there, and confirm the commit exists BEFORE reporting the story done');
     expect(prompt).toContain('An uncommitted tracker edit is not acceptance.');
@@ -145,7 +146,7 @@ describe('buildGenericPrompt', () => {
 
     expect(prompt).toContain('Before editing, run a child preflight');
     expect(prompt).toContain('git top-level');
-    expect(prompt).toContain('expected worktree path');
+    expect(prompt).toContain('expected worktree path `/repo/.worktrees/l002-pilot`');
     expect(prompt).toContain('configured base branch');
     expect(prompt).toContain('Validate `spawn_agent` payloads before calling');
     expect(prompt).toContain('product docs, architecture docs, story brief, spec, and plan');

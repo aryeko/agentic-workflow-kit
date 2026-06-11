@@ -10,12 +10,12 @@ export interface RecoveryGuardInput {
   };
   git: {
     expectedBranch: string;
-    remoteBranchExists: boolean;
+    remoteBranchExists: boolean | null;
     latestCommitSha: string | null;
     worktreeClean: boolean;
   };
   pr: {
-    state: 'none' | 'open' | 'merged' | 'closed';
+    state: 'none' | 'open' | 'merged' | 'closed' | 'unknown';
     number: number | null;
     mergedAt: string | null;
   };
@@ -45,7 +45,9 @@ export function evaluateRecoveryGuard(input: RecoveryGuardInput): RecoveryGuardR
     evidence.push('no linked child session');
   }
 
-  if (input.git.remoteBranchExists) {
+  if (input.git.remoteBranchExists === null) {
+    blockers.push(`remote branch ${input.git.expectedBranch} was not verified`);
+  } else if (input.git.remoteBranchExists) {
     blockers.push(`remote branch ${input.git.expectedBranch} still exists`);
   } else {
     evidence.push(`remote branch ${input.git.expectedBranch} is absent`);
@@ -63,7 +65,11 @@ export function evaluateRecoveryGuard(input: RecoveryGuardInput): RecoveryGuardR
     blockers.push('worktree is dirty');
   }
 
-  if (input.pr.state === 'open' && input.pr.number !== null) {
+  if (input.pr.state === 'unknown') {
+    blockers.push(
+      input.pr.number !== null ? `PR #${input.pr.number} state was not verified` : 'PR state was not verified',
+    );
+  } else if (input.pr.state === 'open' && input.pr.number !== null) {
     blockers.push(`PR #${input.pr.number} is open`);
   } else if (input.pr.state === 'merged' && input.pr.number !== null) {
     blockers.push(`PR #${input.pr.number} is merged`);

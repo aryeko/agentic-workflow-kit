@@ -21,6 +21,7 @@ import { CompletionGate, type ReturnEvaluation } from './CompletionGate.js';
 import { findDuplicateLaunch } from './DuplicateLaunchGuard.js';
 import { buildLaunchId, hashPrompt, renderExpectedBranch, renderExpectedWorktreePath } from './launchMetadata.js';
 import { MetricsCollector } from './MetricsCollector.js';
+import { evaluateRecoveryGuard } from './RecoveryGuard.js';
 import { RunJournal, type SettledStoryRun } from './RunJournal.js';
 
 export interface WorkflowRunnerDependencies {
@@ -510,6 +511,7 @@ export class WorkflowRunner {
           blockedReason: message,
         };
         await this.journal.updateChildLaunch(launch.record, { status: 'supervision_lost' });
+        await this.recordRecoveryGuard(story, launch.record);
         await this.journal.record('child-supervision-lost', {
           storyId: story.id,
           launchId: launch.record.launchId,
@@ -560,6 +562,52 @@ export class WorkflowRunner {
     this.state = { ...this.state, completed: [...this.state.completed, entry] };
     await this.writeState();
     await this.writeLiveMetrics();
+  }
+
+  private async recordRecoveryGuard(story: WorkflowStory, launch: ChildLaunchRecord): Promise<void> {
+    try {
+      const evidence = await this.dependencies.gitInspector.inspectStory({
+        story,
+        git: this.dependencies.config.git,
+        cwdAbs: launch.childCwd,
+        baseShaAtLaunch: launch.baseShaAtLaunch,
+      });
+      const result = evaluateRecoveryGuard({
+        storyId: story.id,
+        now: this.dependencies.clock.now(),
+        staleAfterMs: this.dependencies.config.orchestrator.childNoProgressTimeoutMs,
+        session: {
+          sessionId: launch.sessionId,
+          lastHeartbeatAt: launch.lastHeartbeatAt,
+        },
+        git: {
+          expectedBranch: launch.expectedBranch,
+          remoteBranchExists: null,
+          latestCommitSha: evidence.headSha,
+          worktreeClean: !evidence.uncommittedChanges,
+        },
+        pr: prRecoveryState(story),
+        trackerOnBase: {
+          status: story.status,
+          complete: this.dependencies.config.statuses.complete.includes(story.status),
+        },
+      });
+      await this.journal.record(recoveryEventType(result.decision), {
+        storyId: story.id,
+        launchId: launch.launchId,
+        decision: result.decision,
+        evidence: result.evidence,
+      });
+    } catch (error) {
+      await this.journal.record('parent_takeover_blocked', {
+        storyId: story.id,
+        launchId: launch.launchId,
+        decision: 'manual_recovery_required',
+        evidence: [
+          `recovery guard could not inspect child evidence: ${error instanceof Error ? error.message : String(error)}`,
+        ],
+      });
+    }
   }
 
   private blockOnce(storyId: string, reason: string): void {
@@ -648,6 +696,27 @@ function heartbeatIntervalMs(timeoutMs: number): number {
 
 function isSupervisionLostError(message: string): boolean {
   return /child-(?:no-progress|max-runtime)-timeout|child-timeout|Codex MCP request timed out/i.test(message);
+}
+
+function recoveryEventType(decision: string): 'parent_takeover_allowed' | 'parent_takeover_blocked' {
+  return decision === 'safe_to_take_over' ? 'parent_takeover_allowed' : 'parent_takeover_blocked';
+}
+
+function prRecoveryState(story: WorkflowStory): {
+  state: 'none' | 'unknown';
+  number: number | null;
+  mergedAt: null;
+} {
+  const value = story.metadata.pr;
+  if (!value || value === '—') return { state: 'none', number: null, mergedAt: null };
+  return { state: 'unknown', number: pullRequestNumber(value), mergedAt: null };
+}
+
+function pullRequestNumber(value: string): number | null {
+  const match = value.match(/(?:pull\/|#|PR\s*#)(\d+)/i);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 interface PreparedChildLaunch {

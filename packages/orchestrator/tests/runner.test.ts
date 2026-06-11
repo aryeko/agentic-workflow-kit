@@ -653,6 +653,14 @@ describe('WorkflowRunner', () => {
     });
     expect(artifacts.events.map((event) => event.type)).toContain('child-supervision-lost');
     expect(artifacts.events.map((event) => event.type)).toContain('run-supervision-lost');
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'parent_takeover_blocked',
+        storyId: 'A001',
+        decision: 'manual_recovery_required',
+        evidence: expect.arrayContaining(['no linked child session']),
+      }),
+    );
   });
 
   it('persists child session linkage as soon as the child runner reports it', async () => {
