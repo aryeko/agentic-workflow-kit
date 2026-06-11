@@ -1,6 +1,6 @@
 ---
 name: workflow-autopilot
-description: Use when the user asks to discover tracks, dry-run eligible tracker stories, run autonomous multi-session workflow dispatch, watch orchestrator events, or analyze agentic-workflow-kit orchestrator runs. Reads .workflow/config.yaml plus references/tracker-contract.md and prefers the bundled MCP runtime, with the CLI as a fallback. Do not use for writing PRDs, creating trackers, or implementing one story interactively.
+description: Use when the user asks to discover tracks, dry-run eligible tracker stories, run autonomous multi-session workflow dispatch, watch orchestrator events, or analyze agentic-workflow-kit orchestrator runs. Reads .workflow/config.yaml plus references/tracker-contract.md and prefers the plugin-provided MCP runtime, with the CLI as a fallback. Do not use for writing PRDs, creating trackers, or implementing one story interactively.
 argument-hint: "<command> [options]"
 arguments: command
 disable-model-invocation: true
@@ -11,7 +11,7 @@ user-invocable: true
 
 Operation requested: $ARGUMENTS
 
-Use the bundled MCP runtime to inspect and dispatch eligible tracker stories into child Codex
+Use the plugin-provided MCP runtime to inspect and dispatch eligible tracker stories into child Codex
 sessions. Use the CLI fallback when MCP tools are unavailable or you are developing the
 agentic-workflow-kit repo itself.
 
@@ -64,7 +64,7 @@ Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-f
 
 ## CLI fallback
 
-Installed package usage when the bundled MCP runtime is not available:
+Installed package usage when the plugin-provided MCP runtime is not available:
 
 ```bash
 agentic-workflow-kit list-tracks

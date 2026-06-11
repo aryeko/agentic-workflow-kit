@@ -4,7 +4,8 @@ A guided walkthrough of the agentic-workflow-kit pipeline, using the worked **Li
 [`examples/`](../examples/). Linkly is a minimal URL shortener; the example takes it from PRD to a
 sequenced tracker so you can see the shape before running the tools on your own repo.
 
-> Install commands are live for v0.1.0 — see [Project status](../README.md#project-status).
+> Install commands track the current aligned plugin/package release — see
+> [Project status](../README.md#project-status).
 > The local checkout commands below remain useful for development and smoke validation.
 
 ## Prerequisites
@@ -14,7 +15,7 @@ pnpm install
 pnpm check        # Biome lint + typecheck + Vitest — should be green
 ```
 
-The plugin install includes a bundled MCP runtime for `workflow-autopilot`. The standalone
+The plugin install includes a package-backed MCP runtime for `workflow-autopilot`. The standalone
 orchestrator CLI is available locally as:
 
 ```bash
@@ -120,7 +121,7 @@ implement → review → verify → mark done → ship under your `pr:` policy.
 
 **Autonomous — fan out:**
 
-When installed as a Claude Code or Codex plugin, invoke `workflow-autopilot` and prefer the bundled
+When installed as a Claude Code or Codex plugin, invoke `workflow-autopilot` and prefer the plugin-provided
 MCP tools. Use the standalone CLI when developing this repo, running CI checks, or troubleshooting
 outside a plugin session:
 

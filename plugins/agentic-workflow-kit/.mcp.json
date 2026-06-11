@@ -1,9 +1,8 @@
 {
   "mcpServers": {
     "agentic-workflow-kit": {
-      "cwd": ".",
-      "command": "node",
-      "args": ["./mcp/server.mjs"]
+      "command": "npx",
+      "args": ["-y", "--package", "@agentic-workflow-kit/orchestrator@0.5.5", "agentic-workflow-kit-mcp"]
     }
   }
 }

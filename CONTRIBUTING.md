@@ -35,8 +35,7 @@ See [docs/architecture.md](docs/architecture.md#where-things-live). In short:
 - `references/` — the canonical contracts (config schema, tracker, PRD) and templates.
 - `presets/` — the three starter configs.
 - `examples/` — worked PRD and tracker.
-- `mcp/server.mjs` — generated MCP runtime bundled into plugin installs.
-- `packages/orchestrator/` — the TypeScript orchestrator source and standalone CLI, including the MCP server adapter, config schema (Zod), loader, and presets.
+- `packages/orchestrator/` — the TypeScript orchestrator source, standalone CLI, and package-backed MCP runtime, including the MCP server adapter, config schema (Zod), loader, and presets.
 - `docs/` — architecture, the docs hub, and the getting-started guide.
 
 ## Contracts and their mirrors (read before editing)
@@ -48,12 +47,12 @@ Several artifacts are deliberately kept in sync by tests; editing one means edit
   `references/config-schema.md` is the human mirror; keep its fields and defaults aligned.
 - **Materialized plugin copy.** `plugins/agentic-workflow-kit/` is a byte-for-byte copy of `references/`,
   `presets/`, `examples/`, `skills/`, and `.codex-plugin/` (the local Codex marketplace fixture). It
-  also carries a fixture `.mcp.json` and generated `mcp/server.mjs`. The root `.mcp.json` is the
-  Claude Code manifest and uses plugin-root variables; `.codex-plugin/.mcp.json` is the Codex plugin
-  manifest and uses Codex's `mcpServers` shape with the plugin-bundled server path. Codex MCP entries
-  intentionally omit `cwd` so the MCP process can operate on the active target repo instead of
-  pinning itself to the installed plugin cache. Tests assert the mirrored content and runtime
-  artifact stay aligned — re-sync the copy after editing any canonical source, or the gate fails.
+  also carries a fixture `.mcp.json`. The root `.mcp.json` is the Claude Code manifest and
+  `.codex-plugin/.mcp.json` is the Codex plugin manifest; both start the pinned
+  `@agentic-workflow-kit/orchestrator` package MCP executable with Codex's `mcpServers` shape.
+  Codex MCP entries intentionally omit `cwd` so the MCP process can operate on the active target
+  repo when Codex provides it. Tests assert the mirrored content stays aligned — re-sync the copy
+  after editing any canonical source, or the gate fails.
 - **Presets** must stay fully populated and schema-valid.
 - **Tracker completion** comes only from tracker state, never from a child session's prose.
 
@@ -104,7 +103,7 @@ There are no per-story documents in the tree.
 
 ## Project status note
 
-agentic-workflow-kit is published as v0.1.0. Local plugin fixtures and smoke tests remain the
-development validation path for changes to the Claude Code and Codex plugin surfaces. Public
-runtime changes should include a changeset; version bumps and changelog edits are produced by the
-release PR, not by ordinary feature PRs.
+agentic-workflow-kit plugin and package manifests are versioned together. Local plugin fixtures and
+smoke tests remain the development validation path for changes to the Claude Code and Codex plugin
+surfaces. Public runtime changes should include a changeset; version bumps and changelog edits are
+produced by the release PR, not by ordinary feature PRs.

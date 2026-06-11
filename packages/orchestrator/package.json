@@ -28,7 +28,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "agentic-workflow-kit": "./dist/cli.js"
+    "agentic-workflow-kit": "./dist/cli.js",
+    "agentic-workflow-kit-mcp": "./dist/mcp/server.js"
   },
   "exports": {
     ".": {

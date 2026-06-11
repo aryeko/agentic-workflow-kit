@@ -219,10 +219,10 @@ describe('skill authoring', () => {
     expect(body).toContain('append a final verification completion event before merge');
   });
 
-  it('workflow-autopilot prefers the bundled MCP runtime with CLI fallback', () => {
+  it('workflow-autopilot prefers the plugin-provided MCP runtime with CLI fallback', () => {
     const { body } = readSkill('workflow-autopilot');
 
-    expect(body).toContain('bundled MCP runtime');
+    expect(body).toContain('plugin-provided MCP runtime');
     expect(body).toContain('CLI fallback');
     expect(body).toContain('WK4 v1 supports only `orchestrator.driver: codex-mcp`');
     expect(body).toContain('If the `agentic-workflow-kit` MCP tools are not present');

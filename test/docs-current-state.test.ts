@@ -12,8 +12,8 @@ describe('current-state documentation', () => {
       'workflow-init`, `define-product`, `design-technical-solution`, `plan-delivery-track`, `implement-next`, and `workflow-autopilot',
     );
     expect(agents).not.toContain('packages/core');
-    expect(agents).toContain('bundled MCP runtime');
-    expect(agents).toContain('`mcp/server.mjs` is the generated plugin MCP runtime bundle');
+    expect(agents).toContain('package-backed MCP runtime');
+    expect(agents).not.toContain('`mcp/server.mjs` is the generated plugin MCP runtime bundle');
     expect(agents).toContain('technical solution contract');
   });
 
@@ -25,7 +25,8 @@ describe('current-state documentation', () => {
     expect(readme).toContain('codex plugin marketplace add .');
     expect(readme).toContain('codex plugin add agentic-workflow-kit@agentic-workflow-kit');
     expect(readme).toContain('./plugins/agentic-workflow-kit');
-    expect(readme).toContain('mcp/server.mjs');
+    expect(readme).toContain('agentic-workflow-kit-mcp');
+    expect(readme).not.toContain('mcp/server.mjs');
   });
 
   it('keeps getting started and contributor docs aligned with published status', () => {
@@ -33,7 +34,7 @@ describe('current-state documentation', () => {
     const contributing = readFileSync('CONTRIBUTING.md', 'utf8');
 
     expect(gettingStarted).not.toContain('Install commands are planned');
-    expect(gettingStarted).toContain('bundled MCP runtime');
+    expect(gettingStarted).toContain('package-backed MCP runtime');
     expect(contributing).not.toContain('not yet published');
     expect(contributing).toContain('changeset');
   });

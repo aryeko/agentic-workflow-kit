@@ -33,14 +33,15 @@ There is also an automated install + prompt-visibility check (not a runtime smok
 Keep `CODEX_HOME` exported for the whole Codex session, and run that session with **cwd = `$SMOKE`**
 (the throwaway repo) so the skills act there.
 
-Confirm the installed plugin cache contains `.codex-plugin/.mcp.json`, `.mcp.json`, and
-`mcp/server.mjs` (the automated smoke does this), and that `.codex-plugin/plugin.json` declares
-`mcpServers: "./.codex-plugin/.mcp.json"`. The Codex MCP manifest should use the plugin-bundled
-`mcpServers` shape. In the Codex session, prefer the bundled MCP runtime through
+Confirm the installed plugin cache contains `.codex-plugin/.mcp.json` and `.mcp.json` (the
+automated smoke does this), and that `.codex-plugin/plugin.json` declares
+`mcpServers: "./.codex-plugin/.mcp.json"`. The Codex MCP manifest should use the plugin-provided
+`mcpServers` shape. In the Codex session, prefer the plugin-provided MCP runtime through
 `workflow-autopilot`; use the standalone CLI only as a fallback or cross-check. The Codex MCP entry
-must set `cwd: "."` so the relative `./mcp/server.mjs` command resolves inside the installed plugin
-cache rather than the throwaway target repo. Because the MCP process may start from the plugin root,
-pass tool-level `cwd` explicitly for target-repo operations when needed.
+must run the exact-version package command
+`npx -y --package @agentic-workflow-kit/orchestrator@<version> agentic-workflow-kit-mcp` and omit
+`cwd` because it no longer references plugin-local files. Pass tool-level `cwd` explicitly for
+target-repo operations when needed.
 
 If Codex reports a generic MCP warning such as `connection closed: initialize response`, distinguish
 these states before changing consumer repos:
@@ -50,9 +51,9 @@ these states before changing consumer repos:
   `$CODEX_HOME/plugins/cache/agentic-workflow-kit/agentic-workflow-kit/<version>`.
 - **Active session version:** the plugin copy already loaded by the running Codex app/session.
 
-After MCP manifest or bundled-runtime changes, reinstall the plugin into the intended `CODEX_HOME`
-and relaunch Codex. A refreshed marketplace entry alone does not replace an already-installed cache
-or reload an active session.
+After MCP manifest or package-runtime changes, reinstall the plugin into the intended `CODEX_HOME`
+and relaunch Codex. A refreshed marketplace entry alone does not replace an already-installed cache,
+reload an active session, or change the package version pinned in the installed MCP config.
 
 ## Invocation (this surface)
 In the Codex session (fixture `CODEX_HOME`, cwd `$SMOKE`), trigger each skill via Codex's skill
@@ -77,6 +78,6 @@ to initialize tracker-driven delivery in this repo") or by selecting the skill b
 4. **Phase 3 (side-effectful)** — explicitly invoke `implement-next` on a trivial story; verify
    against common-phases.md → Phase 3 (must stop at "no remote", completion from the tracker row).
 5. **Phase 4 (live dispatch)** — explicitly invoke `workflow-autopilot` (Codex's headline
-   autonomous path) so it drives the bundled MCP runtime; optionally cross-check with the CLI path
+   autonomous path) so it drives the plugin-provided MCP runtime; optionally cross-check with the CLI path
    from common-phases.md. Confirm both reach the same tracker-derived completion/blocking outcome.
 6. **Evidence** — record per common-phases.md → Evidence; label the results "Codex plugin".

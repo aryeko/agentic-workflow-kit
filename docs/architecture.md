@@ -7,7 +7,7 @@
 agentic-workflow-kit turns any repo into a tracker-driven, spec-first delivery pipeline: a single
 **markdown tracker** plus a single **`.workflow/config.yaml`** form one contract that two
 interchangeable drivers read — an **interactive** skill that takes one story end-to-end, and an
-**autonomous** runtime that fans stories out to child sessions through a plugin-bundled MCP server
+**autonomous** runtime that fans stories out to child sessions through a plugin-provided MCP server
 or the standalone CLI.
 
 ## The shared contract (the spine)
@@ -50,7 +50,7 @@ flowchart TB
 
   subgraph Drivers["Two drivers over one contract"]
     IN["implement-next<br/>(interactive, 1 story/session)"]
-    AP["workflow-autopilot →<br/>bundled MCP runtime<br/>(autonomous, batch)"]
+    AP["workflow-autopilot →<br/>package MCP runtime<br/>(autonomous, batch)"]
   end
 
   subgraph Orch["@agentic-workflow-kit/orchestrator (the only TS package)"]
@@ -117,13 +117,13 @@ orchestrator for v1):
 These remain a clean internal module and are re-exported from the package's public API, so they can
 be split back out into a standalone library if an external consumer ever needs them.
 
-### Bundled MCP runtime and standalone CLI
+### Package MCP runtime and standalone CLI
 The autonomous driver ships two surfaces over the same command handlers:
 
-- plugin installs use the bundled `mcp/server.mjs` artifact and expose MCP tools to Claude Code and Codex;
-- the published `@agentic-workflow-kit/orchestrator` package provides the standalone CLI for local development, CI, and troubleshooting.
+- plugin installs use the pinned `@agentic-workflow-kit/orchestrator` package MCP executable and expose MCP tools to Claude Code and Codex;
+- the same published package provides the standalone CLI for local development, CI, and troubleshooting.
 
-The bundled MCP server exposes eight tools over the shared handlers:
+The package MCP server exposes eight tools over the shared handlers:
 
 | Tool | Purpose |
 | --- | --- |
@@ -146,17 +146,18 @@ instructions cover cross-tool workflow guidance: inspect tracks and eligibility 
 operate on the target repo cwd, require explicit user approval before non-dry-run launches, treat
 tracker state as authoritative, and inspect launched runs with `watch_run` / `analyze_run`.
 Tool-specific descriptions stay with the individual MCP tools. The Codex plugin uses
-`.codex-plugin/.mcp.json`; that `mcpServers` configuration sets `cwd: "."` so Codex starts
-`node ./mcp/server.mjs` from the installed plugin root instead of resolving the bundle path against
-the consumer repo. Target repository context is a tool-level concern: callers pass `cwd` explicitly
-when the MCP process is not already running from that repo.
+`.codex-plugin/.mcp.json`; that `mcpServers` configuration starts
+`npx -y --package @agentic-workflow-kit/orchestrator@<exact-version> agentic-workflow-kit-mcp`.
+Codex entries omit `cwd` because the command no longer references plugin-local files. Target
+repository context remains a tool-level concern: callers pass `cwd` explicitly when the MCP process
+is not already running from that repo.
 
 Both surfaces carry the config layer above. They wire concrete implementations into a `WorkflowRunner` that
 depends only on interfaces (`StoryRunner`, `StorySource`, `ArtifactStore`, `Logger`, `Clock`). The
 only shipped driver is `codex-mcp`; the driver boundary is reserved so new drivers can be added
 without touching the tracker/config contract. _Roadmap:_ a future
 `orchestrator.driver: claude-agent-sdk` can dispatch child sessions through the Claude Agent SDK over
-this same boundary; today's bundled autopilot still uses the `codex-mcp` child driver. Every run
+this same boundary; today's plugin-provided autopilot still uses the `codex-mcp` child driver. Every run
 Autonomous orchestrator runs write structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
 per-child JSON), and `analyze-run` reconstructs metrics from Codex session logs. Interactive
@@ -292,14 +293,11 @@ examples/                   worked PRD + tracker (Linkly)
 packages/orchestrator/      the only TS package: config (Zod schema, loadConfig, presets, schema gen),
                             shared handlers, MCP server adapter, CLI, tracker parser, scheduler,
                             WorkflowRunner, codex-mcp driver
-mcp/server.mjs              generated MCP runtime bundled into plugin installs; includes server
-                            instructions for cross-tool workflow guidance
-.mcp.json                   Claude Code plugin MCP wiring with plugin-root and target-project variables
+.mcp.json                   Claude Code plugin MCP wiring for the pinned package MCP executable
 .claude-plugin/             Claude Code plugin + marketplace manifests
 .codex-plugin/              Codex plugin manifest; points `mcpServers` at `./.codex-plugin/.mcp.json`
 plugins/agentic-workflow-kit/       materialized copy for the local Codex marketplace fixture, including
-                                    Codex-specific .codex-plugin/.mcp.json (`mcpServers`, `cwd: "."`)
-                                    and mcp/server.mjs
+                                    Codex-specific .codex-plugin/.mcp.json (`mcpServers`, pinned package)
 docs/                       this architecture and the docs hub
 ```
 
