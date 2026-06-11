@@ -13,6 +13,34 @@ The core idea: one **markdown tracker** (a status matrix + dependency graph) plu
 **`.workflow/config.yaml`** form a single contract that two interchangeable drivers read — an
 **interactive** "one story at a time" skill and an **autonomous** multi-session orchestrator.
 
+## Use it when
+
+- You want product, technical, and delivery planning to produce durable repo artifacts instead of
+  chat-only plans.
+- You want implementation state to live in a reviewable markdown tracker, not in a transient agent
+  transcript.
+- You want Claude Code and Codex to follow the same workflow contract.
+- You want PR, CI, review, and merge behavior to be per-repo config rather than copied prompt text.
+
+## Quick Start
+
+Install the plugin, then initialize a repo:
+
+```text
+/agentic-workflow-kit:workflow-init
+/agentic-workflow-kit:define-product
+/agentic-workflow-kit:plan-delivery-track
+/agentic-workflow-kit:implement-next
+```
+
+For autonomous dispatch, use `workflow-autopilot` from a plugin session. For terminal and CI use,
+install the package runtime:
+
+```bash
+pnpm add -D @agentic-workflow-kit/orchestrator
+pnpm exec agentic-workflow-kit list-eligible --cwd .
+```
+
 ## Architecture
 
 ```mermaid
@@ -132,9 +160,18 @@ the `agentic-workflow-kit` plugin (CLI equivalent: `codex plugin add agentic-wor
 
 ### Optional standalone CLI
 
-```text
+```bash
 pnpm add -D @agentic-workflow-kit/orchestrator
+pnpm exec agentic-workflow-kit --help
 ```
+
+The package also publishes the MCP executable used by plugin installs:
+
+```bash
+npx -y --package @agentic-workflow-kit/orchestrator@<exact-version> agentic-workflow-kit-mcp
+```
+
+See the [package README](packages/orchestrator/README.md) for CLI and MCP runtime details.
 
 ## Local development
 

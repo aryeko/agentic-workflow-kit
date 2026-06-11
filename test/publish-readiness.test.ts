@@ -97,6 +97,7 @@ describe.sequential('publish readiness smoke', () => {
     expect(orchestratorContents).toContain('package/dist/cli.js');
     expect(orchestratorContents).toContain('package/dist/mcp/server.js');
     expect(orchestratorContents).toContain('package/dist/index.d.ts');
+    expect(orchestratorContents).toContain('package/README.md');
     const packageJson = run('tar', ['-xOf', path.join(destination, orchestratorTarball), 'package/package.json']);
     expect(JSON.parse(packageJson).bin).toMatchObject({
       'agentic-workflow-kit': './dist/cli.js',

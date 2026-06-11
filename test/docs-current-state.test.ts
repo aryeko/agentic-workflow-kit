@@ -29,6 +29,16 @@ describe('current-state documentation', () => {
     expect(readme).not.toContain('mcp/server.mjs');
   });
 
+  it('keeps the orchestrator package README ready for npm consumers', () => {
+    const readme = readFileSync('packages/orchestrator/README.md', 'utf8');
+
+    expect(readme).toContain('# @agentic-workflow-kit/orchestrator');
+    expect(readme).toContain('agentic-workflow-kit-mcp');
+    expect(readme).toContain('npx -y --package @agentic-workflow-kit/orchestrator@<exact-version>');
+    expect(readme).toContain('Available MCP tools');
+    expect(readme).toContain('Tracker state is authoritative');
+  });
+
   it('keeps getting started and contributor docs aligned with published status', () => {
     const gettingStarted = readFileSync('docs/getting-started.md', 'utf8');
     const contributing = readFileSync('CONTRIBUTING.md', 'utf8');
