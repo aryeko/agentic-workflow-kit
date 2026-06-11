@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.7
+
+### Patch Changes
+
+- 9f492bc: Harden workflow-autopilot child supervision and diagnostics by adding split no-progress/wall-clock timeout config, early child lifecycle metadata persistence, completion authority reporting, recovery guard evidence, richer analyze-run child details, and updated child prompt/docs contracts for preflight, review, PR fix batches, and rendered verification fallback.
+
 ## 0.5.6
 
 ### Patch Changes
