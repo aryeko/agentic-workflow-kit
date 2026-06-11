@@ -31,10 +31,26 @@ interface AnalyzedChild {
   ok: boolean;
   sessionId: string | null;
   sessionLogPath: string | null;
+  linkageStatus: 'linked' | 'diagnostic_candidate_only' | 'unlinked';
+  diagnosticSessionCandidates: DiagnosticSessionCandidate[];
   metricsStatus: 'available' | 'session_linkage_unavailable' | 'session_log_missing';
   status: string;
   expectedBranch: string | null;
   expectedWorktreePath: string | null;
+  failedSpawnAgentAttempts: number;
+  recoveryEvents: ChildRecoveryEvent[];
+  completionAuthority: string | null;
+}
+
+interface DiagnosticSessionCandidate {
+  sessionId: string;
+  evidence: string;
+}
+
+interface ChildRecoveryEvent {
+  type: string;
+  decision: string | null;
+  evidence: string[];
 }
 
 interface ReviewSummary {
@@ -155,6 +171,13 @@ export async function analyzeWorkflowRun(
         : null;
     const sessionLogPath = explicitSessionLogPath ?? (sessionId ? (logsBySession.get(sessionId) ?? null) : null);
     const storyId = readString(child.storyId, 'child.storyId');
+    const diagnosticSessionCandidates = diagnosticCandidatesForStory(events, storyId);
+    const diagnosticSessionLogPath =
+      sessionLogPath ??
+      diagnosticSessionCandidates
+        .map((candidate) => logsBySession.get(candidate.sessionId) ?? null)
+        .find((candidatePath) => candidatePath !== null) ??
+      null;
     const expectedWorktreePath = typeof child.expectedWorktreePath === 'string' ? child.expectedWorktreePath : null;
     const status = deriveChildStatus(state, child, {
       sessionId,
@@ -172,15 +195,26 @@ export async function analyzeWorkflowRun(
       ok: child.ok === true,
       sessionId,
       sessionLogPath,
+      linkageStatus:
+        sessionId !== null || sessionLogPath !== null
+          ? 'linked'
+          : diagnosticSessionCandidates.length > 0
+            ? 'diagnostic_candidate_only'
+            : 'unlinked',
+      diagnosticSessionCandidates,
       metricsStatus: childMetricsStatus(sessionId, sessionLogPath),
       status,
       expectedBranch: typeof child.expectedBranch === 'string' ? child.expectedBranch : null,
       expectedWorktreePath,
+      failedSpawnAgentAttempts: 0,
+      recoveryEvents: recoveryEventsForStory(events, storyId),
+      completionAuthority: completionAuthorityForStory(events, storyId),
     });
 
-    if (!sessionLogPath) continue;
+    if (!diagnosticSessionLogPath) continue;
 
-    const sessionMetrics = await analyzeSessionLog(sessionLogPath);
+    const sessionMetrics = await analyzeSessionLog(diagnosticSessionLogPath);
+    analyzedChildren[analyzedChildren.length - 1].failedSpawnAgentAttempts = sessionMetrics.failedSpawnAgentAttempts;
     mergeCounts(commandCounts, sessionMetrics.commandCounts);
     mergeCounts(subagentCounts, sessionMetrics.subagentCounts);
     sessionReviewLoops.push(...sessionMetrics.reviewLoops);
@@ -209,6 +243,40 @@ export async function analyzeWorkflowRun(
     merge: eventSummary.merge,
     timeline: eventSummary.timeline,
   };
+}
+
+function diagnosticCandidatesForStory(events: NormalizedEvent[], storyId: string): DiagnosticSessionCandidate[] {
+  return events
+    .filter((event) => event.type === 'session_candidate' && readOptionalString(event.raw.storyId) === storyId)
+    .flatMap((event) => {
+      const sessionId = readOptionalString(event.raw.sessionId);
+      if (!sessionId) return [];
+      return [
+        {
+          sessionId,
+          evidence: readOptionalString(event.raw.evidence) ?? 'diagnostic session candidate',
+        },
+      ];
+    });
+}
+
+function recoveryEventsForStory(events: NormalizedEvent[], storyId: string): ChildRecoveryEvent[] {
+  return events
+    .filter((event) => event.type.startsWith('parent_takeover') && readOptionalString(event.raw.storyId) === storyId)
+    .map((event) => ({
+      type: event.type,
+      decision: readOptionalString(event.raw.decision),
+      evidence: readStringArray(event.raw.evidence),
+    }));
+}
+
+function completionAuthorityForStory(events: NormalizedEvent[], storyId: string): string | null {
+  for (const event of events) {
+    if (event.type !== 'completion_authority' || readOptionalString(event.raw.storyId) !== storyId) continue;
+    const authority = readOptionalString(event.raw.authority);
+    if (authority) return authority;
+  }
+  return null;
 }
 
 function summarizeEvents(
@@ -745,6 +813,7 @@ async function analyzeSessionLog(sessionLog: string): Promise<{
   subagentCounts: Record<string, number>;
   tokenTotals: TokenTotals | null;
   reviewLoops: SessionReviewLoop[];
+  failedSpawnAgentAttempts: number;
 }> {
   const commandCounts: Record<string, number> = {};
   const subagentCounts: Record<string, number> = {};
@@ -792,7 +861,13 @@ async function analyzeSessionLog(sessionLog: string): Promise<{
     }
   }
 
-  return { commandCounts, subagentCounts, tokenTotals, reviewLoops: reviewState.loops() };
+  return {
+    commandCounts,
+    subagentCounts,
+    tokenTotals,
+    reviewLoops: reviewState.loops(),
+    failedSpawnAgentAttempts: reviewState.failedSpawnAgentAttempts(),
+  };
 }
 
 class SessionReviewState {
@@ -800,6 +875,7 @@ class SessionReviewState {
   private readonly reviewAgents = new Set<string>();
   private readonly reviewLoops: SessionReviewLoop[] = [];
   private readonly seenResults = new Set<string>();
+  private failedSpawns = 0;
 
   recordCall(callId: string, name: string, rawArgs: string | null): void {
     this.calls.set(callId, { name, args: rawArgs ? parseJsonLine(rawArgs) : null });
@@ -813,6 +889,9 @@ class SessionReviewState {
       const prompt = readOptionalString(call.args?.prompt) ?? '';
       const output = parseLooseJsonObject(rawOutput);
       const agentId = readOptionalString(output?.agent_path) ?? readOptionalString(output?.target);
+      if (!agentId && /error|failed|invalid|provide either/i.test(rawOutput)) {
+        this.failedSpawns += 1;
+      }
       if (agentId && isReviewText(prompt)) this.reviewAgents.add(agentId);
       return;
     }
@@ -840,6 +919,10 @@ class SessionReviewState {
 
   loops(): SessionReviewLoop[] {
     return this.reviewLoops;
+  }
+
+  failedSpawnAgentAttempts(): number {
+    return this.failedSpawns;
   }
 }
 
@@ -1008,6 +1091,11 @@ function readNumber(value: unknown): number {
 
 function readOptionalString(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === 'string');
 }
 
 function readOptionalNumber(value: unknown): number | null {

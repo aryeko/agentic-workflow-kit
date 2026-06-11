@@ -32,8 +32,11 @@ export class CodexMcpStoryRunner implements StoryRunner {
   async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
     return await this.withClient(async (client) => {
       const invocation = buildCodexToolInput(this.config, request.story, request.prompt);
-      const requestTimeoutMs = this.options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS;
-      const totalTimeoutMs = Math.min(requestTimeoutMs, this.config.orchestrator.childTimeoutMs);
+      const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childNoProgressTimeoutMs;
+      const totalTimeoutMs = Math.min(
+        this.options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS,
+        this.config.orchestrator.childMaxRuntimeMs,
+      );
       const rawResult = await pTimeout(
         client.callTool(
           {
@@ -45,6 +48,13 @@ export class CodexMcpStoryRunner implements StoryRunner {
             timeout: requestTimeoutMs,
             resetTimeoutOnProgress: true,
             maxTotalTimeout: totalTimeoutMs,
+            onprogress: (progress: unknown) => {
+              void request.onLifecycle?.({
+                type: 'progress',
+                message: progressMessage(progress),
+                progressToken: progressToken(progress),
+              });
+            },
           },
         ),
         {
@@ -58,6 +68,7 @@ export class CodexMcpStoryRunner implements StoryRunner {
       }
 
       const output = validateCodexToolOutput(rawResult);
+      await request.onLifecycle?.({ type: 'session-linked', sessionId: output.threadId });
       return {
         storyId: request.story.id,
         sessionId: output.threadId,
@@ -170,6 +181,21 @@ function extractContent(value: unknown): string {
     .filter((block) => isRecord(block) && block.type === 'text' && typeof block.text === 'string')
     .map((block) => (block as { text: string }).text)
     .join('\n');
+}
+
+function progressMessage(value: unknown): string {
+  if (!isRecord(value)) return 'Codex MCP progress';
+  const message = value.message;
+  if (typeof message === 'string' && message.length > 0) return message;
+  const progress = value.progress;
+  if (typeof progress === 'string' && progress.length > 0) return progress;
+  return 'Codex MCP progress';
+}
+
+function progressToken(value: unknown): string | number | null {
+  if (!isRecord(value)) return null;
+  const token = value.progressToken ?? value.progress;
+  return typeof token === 'string' || typeof token === 'number' ? token : null;
 }
 
 function isTransientError(error: unknown): boolean {

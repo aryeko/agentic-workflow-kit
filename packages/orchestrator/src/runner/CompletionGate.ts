@@ -4,8 +4,29 @@ import type { ResolvedGitConfig, ResolvedWorkflowConfig, WorkflowStory } from '.
 import type { SettledStoryRun } from './RunJournal.js';
 
 export type ReturnEvaluation =
-  | { complete: true; returnedStory: WorkflowStory; commitEvidence?: StoryCommitEvidence }
-  | { complete: false; returnedStory: WorkflowStory | null; reason: string; commitEvidence?: StoryCommitEvidence };
+  | {
+      complete: true;
+      returnedStory: WorkflowStory;
+      authority: CompletionAuthority;
+      commitEvidence?: StoryCommitEvidence;
+    }
+  | {
+      complete: false;
+      returnedStory: WorkflowStory | null;
+      reason: string;
+      authority: CompletionAuthority;
+      commitEvidence?: StoryCommitEvidence;
+    };
+
+export type CompletionAuthority =
+  | 'story-missing'
+  | 'tracker-status-not-complete'
+  | 'inspect-failed'
+  | 'complete-but-uncommitted'
+  | 'forbidden-direct-base-commit'
+  | 'merged-pr-on-base'
+  | 'tracker-complete-story-branch'
+  | 'tracker-complete-base-allowed';
 
 export interface CompletionGateDeps {
   gitInspector: GitInspector;
@@ -25,6 +46,7 @@ export class CompletionGate {
         complete: false,
         returnedStory,
         reason: `${settled.storyId} returned but story source no longer contains it`,
+        authority: 'story-missing',
       };
     }
     if (!isCompleteStatus(returnedStory.status, this.deps.statuses.complete)) {
@@ -32,6 +54,7 @@ export class CompletionGate {
         complete: false,
         returnedStory,
         reason: `${settled.storyId} returned but status is ${returnedStory.status}`,
+        authority: 'tracker-status-not-complete',
       };
     }
     let commitEvidence: StoryCommitEvidence;
@@ -44,20 +67,38 @@ export class CompletionGate {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return { complete: false, returnedStory, reason: `inspect-failed: ${message}` };
+      return { complete: false, returnedStory, reason: `inspect-failed: ${message}`, authority: 'inspect-failed' };
     }
     const dirtyBlocks = this.deps.git.strategy !== 'worktree' && commitEvidence.uncommittedChanges;
     if (!commitEvidence.committed || dirtyBlocks) {
-      return { complete: false, returnedStory, reason: 'complete-but-uncommitted', commitEvidence };
+      return {
+        complete: false,
+        returnedStory,
+        reason: 'complete-but-uncommitted',
+        authority: 'complete-but-uncommitted',
+        commitEvidence,
+      };
     }
-    if (
-      this.deps.git.commitOnBase === 'forbid' &&
-      commitEvidence.isBaseBranch &&
-      !isAcceptedAutoMergeEvidence(this.deps.pr, commitEvidence)
-    ) {
-      return { complete: false, returnedStory, reason: 'complete-on-forbidden-base', commitEvidence };
+    const acceptedAutoMerge = isAcceptedAutoMergeEvidence(this.deps.pr, commitEvidence);
+    if (this.deps.git.commitOnBase === 'forbid' && commitEvidence.isBaseBranch && !acceptedAutoMerge) {
+      return {
+        complete: false,
+        returnedStory,
+        reason: 'complete-on-forbidden-base',
+        authority: 'forbidden-direct-base-commit',
+        commitEvidence,
+      };
     }
-    return { complete: true, returnedStory, commitEvidence };
+    return {
+      complete: true,
+      returnedStory,
+      authority: acceptedAutoMerge
+        ? 'merged-pr-on-base'
+        : commitEvidence.isBaseBranch
+          ? 'tracker-complete-base-allowed'
+          : 'tracker-complete-story-branch',
+      commitEvidence,
+    };
   }
 }
 

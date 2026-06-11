@@ -1,10 +1,15 @@
 import type { ChildMetricsSnapshot, WorkflowStory } from '../types.js';
 
+export type ChildLifecycleEvent =
+  | { type: 'session-linked'; sessionId: string; sessionLogPath?: string | null }
+  | { type: 'progress'; message: string; progressToken?: string | number | null };
+
 export interface StoryRunRequest {
   story: WorkflowStory;
   prompt: string;
   cwd: string;
   metadata: Record<string, unknown>;
+  onLifecycle?: (event: ChildLifecycleEvent) => Promise<void> | void;
 }
 
 export interface StoryRunResult {

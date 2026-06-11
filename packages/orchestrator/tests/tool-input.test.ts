@@ -46,7 +46,14 @@ const config: ResolvedWorkflowConfig = {
     },
     subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
   },
-  orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
+  orchestrator: {
+    driver: 'codex-mcp',
+    maxParallel: 2,
+    stopLaunchingOnBlocked: true,
+    childTimeoutMs: 1_800_000,
+    childNoProgressTimeoutMs: 1_800_000,
+    childMaxRuntimeMs: 7_200_000,
+  },
   codex: {
     childSession: {
       cwdAbs: '/repo',
@@ -131,6 +138,22 @@ describe('buildGenericPrompt', () => {
     expect(prompt).toContain('subagent cannot spawn a reviewer, fail closed');
     expect(prompt).toContain('- PR review fix batches: 1.');
     expect(prompt).toContain('- Re-request review after fixes: no.');
+  });
+
+  it('requires child preflight, review packet validation, and rendered verification fallback evidence', () => {
+    const prompt = buildGenericPrompt(story, config);
+
+    expect(prompt).toContain('Before editing, run a child preflight');
+    expect(prompt).toContain('git top-level');
+    expect(prompt).toContain('expected worktree path');
+    expect(prompt).toContain('configured base branch');
+    expect(prompt).toContain('Validate `spawn_agent` payloads before calling');
+    expect(prompt).toContain('product docs, architecture docs, story brief, spec, and plan');
+    expect(prompt).toContain('correctness, code quality, and spec compliance');
+    expect(prompt).toContain('If Browser rendered verification is unavailable');
+    expect(prompt).toContain('fall back to repo Playwright/e2e gates');
+    expect(prompt).toContain('record the rendered-verification downgrade reason and evidence');
+    expect(prompt).toContain('Do not re-request Codex review after fix batches when rerequestAfterFix is false');
   });
 });
 

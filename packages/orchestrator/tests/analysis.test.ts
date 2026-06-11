@@ -649,4 +649,108 @@ describe('analyzeWorkflowRun', () => {
       'merge timestamp is earlier than recorded final verification after PR review fixes',
     );
   });
+
+  it('reports per-child linkage, failed subagent spawn, recovery, and completion authority details', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-details-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    const sessionRoot = path.join(root, 'sessions');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await mkdir(sessionRoot, { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-1', status: 'blocked', blockedReason: 'manual recovery required' }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        orchestrator: { childNoProgressTimeoutMs: 1_800_000 },
+        pr: { review: { rerequestAfterFix: false } },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'PLD10.launch.json'),
+      JSON.stringify({
+        storyId: 'PLD10',
+        launchId: 'launch-pld10',
+        status: 'supervision_lost',
+        expectedBranch: 'personalized-learning-dashboard/pld10-recommendation-controls-ui',
+        expectedWorktreePath: path.join(root, '.worktrees/pld10-recommendation-controls-ui'),
+        sessionId: null,
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'events.ndjson'),
+      [
+        JSON.stringify({
+          type: 'session_candidate',
+          storyId: 'PLD10',
+          sessionId: '019eb471-c9ef-7600-9ef9-f6b726855553',
+          evidence: 'matched launch time, story id, and worktree',
+        }),
+        JSON.stringify({
+          type: 'parent_takeover_blocked',
+          storyId: 'PLD10',
+          decision: 'manual_recovery_required',
+          evidence: ['session 019eb471-c9ef-7600-9ef9-f6b726855553 has recent heartbeat', 'PR #91 is open'],
+        }),
+        JSON.stringify({
+          type: 'completion_authority',
+          storyId: 'PLD10',
+          authority: 'merged-pr-on-base',
+        }),
+        JSON.stringify({
+          type: 'pr_review_fix_batch',
+          storyId: 'PLD10',
+          batch: 1,
+          rerequestAfterFix: false,
+        }),
+      ].join('\n'),
+    );
+    await writeFile(
+      path.join(sessionRoot, 'pld10.jsonl'),
+      [
+        JSON.stringify({ type: 'session_meta', payload: { id: '019eb471-c9ef-7600-9ef9-f6b726855553' } }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'spawn_agent',
+            call_id: 'spawn-bad',
+            arguments: JSON.stringify({ message: 'bad', items: [] }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'spawn-bad',
+            output: 'tool error: provide either message or items, not both',
+          },
+        }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [sessionRoot] });
+
+    expect(analysis.children[0]).toMatchObject({
+      storyId: 'PLD10',
+      linkageStatus: 'diagnostic_candidate_only',
+      diagnosticSessionCandidates: [
+        {
+          sessionId: '019eb471-c9ef-7600-9ef9-f6b726855553',
+          evidence: 'matched launch time, story id, and worktree',
+        },
+      ],
+      failedSpawnAgentAttempts: 1,
+      completionAuthority: 'merged-pr-on-base',
+      recoveryEvents: [
+        {
+          type: 'parent_takeover_blocked',
+          decision: 'manual_recovery_required',
+          evidence: ['session 019eb471-c9ef-7600-9ef9-f6b726855553 has recent heartbeat', 'PR #91 is open'],
+        },
+      ],
+    });
+    expect(analysis.review.pr).toMatchObject({ fixBatchCount: 1, rerequestAfterFix: false });
+  });
 });

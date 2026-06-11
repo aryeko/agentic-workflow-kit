@@ -61,7 +61,14 @@ function config(): ResolvedWorkflowConfig {
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
-    orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
+    orchestrator: {
+      driver: 'codex-mcp',
+      maxParallel: 2,
+      stopLaunchingOnBlocked: true,
+      childTimeoutMs: 1_800_000,
+      childNoProgressTimeoutMs: 1_800_000,
+      childMaxRuntimeMs: 7_200_000,
+    },
     codex: { childSession: { cwdAbs: '/repo' } },
   };
 }
@@ -178,6 +185,43 @@ class DeferredRunner implements StoryRunner {
   }
 }
 
+class LifecycleRunner implements StoryRunner {
+  requests: StoryRunRequest[] = [];
+  private resolveChild: ((result: StoryRunResult) => void) | null = null;
+
+  async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
+    this.requests.push(request);
+    await request.onLifecycle?.({
+      type: 'session-linked',
+      sessionId: `thread-${request.story.id.toLowerCase()}`,
+      sessionLogPath: `/sessions/${request.story.id.toLowerCase()}.jsonl`,
+    });
+    return await new Promise<StoryRunResult>((resolve) => {
+      this.resolveChild = resolve;
+    });
+  }
+
+  async emitProgress(message: string): Promise<void> {
+    const request = this.requests[0];
+    if (!request) throw new Error('No request started');
+    await request.onLifecycle?.({ type: 'progress', message });
+  }
+
+  resolve(storyId: string): void {
+    this.resolveChild?.({
+      storyId,
+      sessionId: `thread-${storyId.toLowerCase()}`,
+      content: 'ok',
+      rawResult: {},
+      invocation: {},
+    });
+  }
+
+  async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
+    return { ok: true, tools: ['codex'] };
+  }
+}
+
 class FakeGitInspector implements GitInspector {
   calls: Array<{ storyId: string; cwdAbs: string }> = [];
 
@@ -207,16 +251,18 @@ class FakeGitInspector implements GitInspector {
 }
 
 class ManualChildTimer {
-  private timeoutCallback: (() => void) | null = null;
+  private timeoutCallbacks = new Map<unknown, () => void>();
   private intervalCallback: (() => void) | null = null;
+  private nextHandle = 1;
 
   setTimeout(callback: () => void): unknown {
-    this.timeoutCallback = callback;
-    return 'timeout';
+    const handle = `timeout-${this.nextHandle++}`;
+    this.timeoutCallbacks.set(handle, callback);
+    return handle;
   }
 
-  clearTimeout(): void {
-    this.timeoutCallback = null;
+  clearTimeout(handle: unknown): void {
+    this.timeoutCallbacks.delete(handle);
   }
 
   setInterval(callback: () => void): unknown {
@@ -228,8 +274,16 @@ class ManualChildTimer {
     this.intervalCallback = null;
   }
 
-  fireTimeout(): void {
-    this.timeoutCallback?.();
+  fireTimeout(handle: unknown): void {
+    this.timeoutCallbacks.get(handle)?.();
+  }
+
+  latestTimeoutHandle(): unknown {
+    return [...this.timeoutCallbacks.keys()].at(-1) ?? null;
+  }
+
+  timeoutHandleCount(): number {
+    return this.timeoutCallbacks.size;
   }
 
   fireInterval(): void {
@@ -312,6 +366,17 @@ describe('WorkflowRunner', () => {
 
     expect(state.status).toBe('complete');
     expect(state.completed[0]).toMatchObject({ storyId: 'A001', returnedStatus: 'done', returnedComplete: true });
+    expect(artifacts.json.get('children/A001.json')).toMatchObject({
+      storyId: 'A001',
+      completionAuthority: 'tracker-complete-story-branch',
+    });
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'completion_authority',
+        storyId: 'A001',
+        authority: 'tracker-complete-story-branch',
+      }),
+    );
     expect(artifacts.events.map((event) => event.type)).toContain('child-complete');
     expect(artifacts.json.has('metrics.live.json')).toBe(true);
   });
@@ -553,7 +618,7 @@ describe('WorkflowRunner', () => {
     expect(state.status).toBe('complete');
   });
 
-  it('marks supervision lost when a child exceeds childTimeoutMs', async () => {
+  it('marks supervision lost when a child exceeds the no-progress timeout', async () => {
     const artifacts = new MemoryArtifacts();
     const deferred = new DeferredRunner();
     const timer = new ManualChildTimer();
@@ -572,11 +637,11 @@ describe('WorkflowRunner', () => {
 
     const run = runner.runStory('A001');
     await waitFor(() => expect(deferred.requests).toHaveLength(1));
-    timer.fireTimeout();
+    timer.fireTimeout(timer.latestTimeoutHandle());
     const state = await run;
 
     expect(state.status).toBe('supervision_lost');
-    expect(state.blockedReason).toContain('child-timeout');
+    expect(state.blockedReason).toContain('child-no-progress-timeout');
     expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
       storyId: 'A001',
       status: 'supervision_lost',
@@ -584,10 +649,81 @@ describe('WorkflowRunner', () => {
     expect(artifacts.json.get('children/A001.json')).toMatchObject({
       storyId: 'A001',
       ok: false,
-      error: 'child-timeout',
+      error: 'child-no-progress-timeout',
     });
     expect(artifacts.events.map((event) => event.type)).toContain('child-supervision-lost');
     expect(artifacts.events.map((event) => event.type)).toContain('run-supervision-lost');
+  });
+
+  it('persists child session linkage as soon as the child runner reports it', async () => {
+    const artifacts = new MemoryArtifacts();
+    const lifecycle = new LifecycleRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() =>
+      expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+        storyId: 'A001',
+        sessionId: 'thread-a001',
+        sessionLogPath: '/sessions/a001.jsonl',
+      }),
+    );
+
+    lifecycle.resolve('A001');
+    const state = await run;
+
+    expect(state.status).toBe('complete');
+  });
+
+  it('resets the no-progress timeout on child progress while preserving a wall-clock timeout', async () => {
+    const artifacts = new MemoryArtifacts();
+    const lifecycle = new LifecycleRunner();
+    const timer = new ManualChildTimer();
+    const runnerConfig = {
+      ...config(),
+      orchestrator: {
+        ...config().orchestrator,
+        childTimeoutMs: 50,
+        childNoProgressTimeoutMs: 50,
+        childMaxRuntimeMs: 500,
+      },
+    };
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: runnerConfig,
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childTimer: timer,
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() => expect(lifecycle.requests).toHaveLength(1));
+    const firstNoProgressHandle = timer.latestTimeoutHandle();
+    await lifecycle.emitProgress('opened PR #91');
+    expect(timer.timeoutHandleCount()).toBe(2);
+    timer.fireTimeout(firstNoProgressHandle);
+    lifecycle.resolve('A001');
+    const state = await run;
+
+    expect(state.status).toBe('complete');
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({ type: 'child-progress', storyId: 'A001', message: 'opened PR #91' }),
+    );
   });
 
   it('emits child-heartbeat events while a child is in flight', async () => {

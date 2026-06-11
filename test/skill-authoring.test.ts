@@ -217,6 +217,16 @@ describe('skill authoring', () => {
     expect(body).toContain('percent vs count/unit formatting');
     expect(body).toContain('locale-backed Hebrew copy semantics');
     expect(body).toContain('append a final verification completion event before merge');
+    expect(body).toContain('Before editing, run a child preflight');
+    expect(body).toContain('git top-level');
+    expect(body).toContain('expected worktree path');
+    expect(body).toContain('configured base branch');
+    expect(body).toContain('Validate `spawn_agent` payloads before calling');
+    expect(body).toContain('correctness, code quality, and spec compliance');
+    expect(body).toContain('If Browser rendered verification is unavailable');
+    expect(body).toContain('fall back to repo Playwright/e2e gates');
+    expect(body).toContain('record the rendered-verification downgrade reason and evidence');
+    expect(body).toContain('Do not re-request Codex review after fix batches when rerequestAfterFix is false');
   });
 
   it('workflow-autopilot prefers the plugin-provided MCP runtime with CLI fallback', () => {

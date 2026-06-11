@@ -47,7 +47,14 @@ function config(): ResolvedWorkflowConfig {
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
-    orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
+    orchestrator: {
+      driver: 'codex-mcp',
+      maxParallel: 2,
+      stopLaunchingOnBlocked: true,
+      childTimeoutMs: 1_800_000,
+      childNoProgressTimeoutMs: 1_800_000,
+      childMaxRuntimeMs: 7_200_000,
+    },
     codex: { childSession: { cwdAbs: '/repo' } },
   };
 }
@@ -214,10 +221,10 @@ describe('CodexMcpStoryRunner', () => {
     expect(client.closed).toBe(true);
   });
 
-  it('caps total wait at childTimeoutMs when it is smaller than requestTimeoutMs', async () => {
+  it('caps total wait at childMaxRuntimeMs when it is smaller than requestTimeoutMs', async () => {
     const client = new FakeClient({ callTool: async () => await new Promise(() => undefined) });
-    // requestTimeoutMs = 60_000, childTimeoutMs = 5 → total cap should be 5ms
-    const cfg = { ...config(), orchestrator: { ...config().orchestrator, childTimeoutMs: 5 } };
+    // requestTimeoutMs = 60_000, childMaxRuntimeMs = 5 -> total cap should be 5ms.
+    const cfg = { ...config(), orchestrator: { ...config().orchestrator, childMaxRuntimeMs: 5 } };
     const runner = new CodexMcpStoryRunner(cfg, {
       retries: 0,
       requestTimeoutMs: 60_000,

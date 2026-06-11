@@ -77,10 +77,15 @@ describe('run analyzer', () => {
         ok: true,
         sessionId: '019e-run-session',
         sessionLogPath: path.join(sessionRoot, '2026/06/07/session.jsonl'),
+        linkageStatus: 'linked',
+        diagnosticSessionCandidates: [],
         metricsStatus: 'available',
         status: 'settled',
         expectedBranch: null,
         expectedWorktreePath: null,
+        failedSpawnAgentAttempts: 0,
+        recoveryEvents: [],
+        completionAuthority: null,
       },
     ]);
     expect(analysis.commandCounts).toEqual({ exec_command: 1, spawn_agent: 1 });

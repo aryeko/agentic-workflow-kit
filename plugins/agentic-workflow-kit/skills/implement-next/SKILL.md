@@ -226,6 +226,16 @@ Do not create worktrees outside the workspace root unless the repo config explic
 symlink `node_modules` from another checkout. Use the package manager/store normally, and stop for
 approval if dependencies require network or privileged setup.
 
+Before editing, run a child preflight in the checkout where the story work will happen. Verify:
+
+- cwd,
+- git top-level,
+- current branch,
+- expected worktree path,
+- configured base branch.
+
+If any value does not match the resolved git policy, stop and report the mismatch before editing.
+
 Before editing the tracker, re-read the row and confirm it is still eligible. Then update:
 
 - **Status** -> `statuses.inProgress`,
@@ -341,6 +351,13 @@ Use configured verification:
 Failures must be fixed before shipping unless the user explicitly accepts an unrelated or
 pre-existing failure.
 
+Rendered verification should use the most reliable repo-supported path. If Browser rendered
+verification is unavailable, the Browser connector is missing, or local browser env is unavailable,
+fall back to repo Playwright/e2e gates. Append a journal event and final-report note that record the
+rendered-verification downgrade reason and evidence. Avoid ad hoc browser scripts unless the story
+explicitly requires them.
+If Browser rendered verification is unavailable, fall back to repo Playwright/e2e gates and record the rendered-verification downgrade reason and evidence.
+
 ## Phase 7: Pre-PR review
 
 Run a code/spec compliance review before tracker completion and PR creation when
@@ -395,11 +412,13 @@ For subagent/auto-subagent review, build a review context packet containing:
 
 When spawning a review subagent in Codex, send exactly one accepted tool shape: a single `message`
 with the review context. Do not include `items: []` alongside `message`.
+Validate `spawn_agent` payloads before calling.
 
 Ask the reviewer to check correctness, implementation quality, spec/plan compliance,
 product/spec/UI semantic correctness, label and unit semantics, architecture/repo-instruction
 compliance, tests, and scope control. The reviewer output must include severity-ranked findings with
 file references where applicable and a clear `PASS` or `BLOCK` verdict.
+The core review question is correctness, code quality, and spec compliance.
 If review downgrades to inline, use the same checklist and context packet requirements, and record
 the downgrade in the final report.
 
@@ -489,6 +508,7 @@ Treat PR review as one external pass by default. After findings from the first e
 pass, fix locally, rerun configured verification, and reply/resolve findings as needed. Do not
 request or wait for a fresh Codex PR review after every fix unless `pr.review.rerequestAfterFix`
 is configured as `true`.
+Do not re-request Codex review after fix batches when rerequestAfterFix is false.
 
 Record the external review lifecycle with `pr_review_started`, `pr_review_findings`,
 `pr_review_fix_batch_started`, `pr_review_fix_batch_applied`, `pr_review_thread_resolved`, and

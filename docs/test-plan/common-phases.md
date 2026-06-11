@@ -104,15 +104,20 @@ Deepest smoke — launches a real Codex child session. Keep it bounded.
    Confirm that pre-PR review execution blockers are separate from review findings, local fix
    batches are counted against `implement.review.prePr.maxLoops`, PR review threads/fix batches are
    reconstructed, child-session review subagent loops are summarized when explicit pre-PR events are
-   missing, and the timeline preserves journal order while exposing recorded/action times.
+   missing, per-child linkage/recovery/completion-authority details are reported, and the timeline
+   preserves journal order while exposing recorded/action times.
 4. For recovery drills, prove a child is stale before clearing or retrying anything. `supervision_lost`
    requires no settled child result, no recent heartbeat, no session linkage or discoverable session
    log, and no recent launch/activity evidence. Recent heartbeat or session evidence must keep the
-   run in `running` / launched state.
+   run in `running` / launched state. A recovery takeover must check child heartbeat, branch/remote
+   state, PR state, tracker-on-base state, latest commit evidence, and worktree cleanliness. Ambiguous
+   evidence must produce manual recovery required rather than mutating a child branch or worktree.
 5. For auto-merge drills, verify that a completed tracker row plus merge commit on the configured
    base branch is accepted when `pr.merge.auto: true`, while direct base-branch commits remain
    blocked when `git.commitOnBase: forbid`.
-6. Confirm dirty-checks ignore `.codex/agentic-workflow-kit/runs/**` runtime artifacts but still
+6. Confirm child progress resets `orchestrator.childNoProgressTimeoutMs` while
+   `orchestrator.childMaxRuntimeMs` remains an absolute wall-clock cap.
+7. Confirm dirty-checks ignore `.codex/agentic-workflow-kit/runs/**` runtime artifacts but still
    block on unrelated uncommitted files in branch strategy.
 
 ## Evidence

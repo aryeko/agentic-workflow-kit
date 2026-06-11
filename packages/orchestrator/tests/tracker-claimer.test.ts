@@ -63,7 +63,14 @@ function config(root: string): ResolvedWorkflowConfig {
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
-    orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
+    orchestrator: {
+      driver: 'codex-mcp',
+      maxParallel: 2,
+      stopLaunchingOnBlocked: true,
+      childTimeoutMs: 1_800_000,
+      childNoProgressTimeoutMs: 1_800_000,
+      childMaxRuntimeMs: 7_200_000,
+    },
     codex: { childSession: { cwdAbs: root } },
   };
 }

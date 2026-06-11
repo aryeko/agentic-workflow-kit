@@ -2,7 +2,7 @@ import path from 'node:path';
 import pLimit from 'p-limit';
 
 import { buildGenericPrompt } from '../drivers/codex-mcp/toolInput.js';
-import type { StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
+import type { ChildLifecycleEvent, StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
 import type { GitInspector } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
@@ -393,20 +393,72 @@ export class WorkflowRunner {
   }
 
   private async executeChild(story: WorkflowStory, launch: PreparedChildLaunch): Promise<SettledStoryRun> {
-    const timeoutMs = this.dependencies.config.orchestrator.childTimeoutMs;
+    const noProgressTimeoutMs = this.dependencies.config.orchestrator.childNoProgressTimeoutMs;
+    const maxRuntimeMs = this.dependencies.config.orchestrator.childMaxRuntimeMs;
     const timer = this.dependencies.childTimer ?? defaultChildTimer;
     const startedAtMs = this.dependencies.clock.nowMs();
-    let timeoutHandle: unknown;
+    let noProgressTimeoutHandle: unknown;
+    let maxRuntimeTimeoutHandle: unknown;
     let heartbeatHandle: unknown;
+    let rejectNoProgressTimeout: ((error: Error) => void) | null = null;
+
+    const refreshNoProgressTimeout = (): void => {
+      if (noProgressTimeoutHandle !== undefined) timer.clearTimeout(noProgressTimeoutHandle);
+      noProgressTimeoutHandle = timer.setTimeout(() => {
+        rejectNoProgressTimeout?.(new Error('child-no-progress-timeout'));
+      }, noProgressTimeoutMs);
+    };
+
+    const handleLifecycle = async (event: ChildLifecycleEvent): Promise<void> => {
+      if (event.type === 'session-linked') {
+        launch.record = await this.journal.updateChildLaunch(launch.record, {
+          sessionId: event.sessionId,
+          sessionLogPath: event.sessionLogPath ?? null,
+        });
+        await this.journal.record('child-session-linked', {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          sessionId: event.sessionId,
+          sessionLogPath: event.sessionLogPath ?? null,
+        });
+        refreshNoProgressTimeout();
+        return;
+      }
+
+      const progressAt = this.dependencies.clock.now();
+      this.state = {
+        ...this.state,
+        activeChildren: this.state.activeChildren?.map((entry) =>
+          entry.storyId === story.id ? { ...entry, lastHeartbeatAt: progressAt } : entry,
+        ),
+      };
+      launch.record = await this.journal.updateChildLaunch(launch.record, { lastHeartbeatAt: progressAt });
+      await this.journal.record('child-progress', {
+        storyId: story.id,
+        launchId: launch.record.launchId,
+        message: event.message,
+        progressToken: event.progressToken ?? null,
+        elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
+      });
+      await this.writeState();
+      await this.writeLiveMetrics();
+      refreshNoProgressTimeout();
+    };
+
     try {
       const run = this.dependencies.storyRunner.runStory({
         story,
         prompt: launch.prompt,
         cwd: launch.record.childCwd,
         metadata: { runId: this.state.runId, launchId: launch.record.launchId },
+        onLifecycle: handleLifecycle,
       });
-      const timeout = new Promise<StoryRunResult>((_, reject) => {
-        timeoutHandle = timer.setTimeout(() => reject(new Error('child-timeout')), timeoutMs);
+      const maxRuntimeTimeout = new Promise<StoryRunResult>((_, reject) => {
+        maxRuntimeTimeoutHandle = timer.setTimeout(() => reject(new Error('child-max-runtime-timeout')), maxRuntimeMs);
+      });
+      const noProgressTimeout = new Promise<StoryRunResult>((_, reject) => {
+        rejectNoProgressTimeout = reject;
+        refreshNoProgressTimeout();
       });
       heartbeatHandle = timer.setInterval(() => {
         const heartbeatAt = this.dependencies.clock.now();
@@ -421,8 +473,8 @@ export class WorkflowRunner {
           launchId: launch.record.launchId,
           elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
         });
-      }, heartbeatIntervalMs(timeoutMs));
-      const result: StoryRunResult = await Promise.race([run, timeout]);
+      }, heartbeatIntervalMs(noProgressTimeoutMs));
+      const result: StoryRunResult = await Promise.race([run, noProgressTimeout, maxRuntimeTimeout]);
       const completedAt = this.metrics.complete(story.id);
       this.state = this.removeActiveChild(story.id);
       if (result.metrics) {
@@ -475,7 +527,8 @@ export class WorkflowRunner {
         baseShaAtLaunch: launch.record.baseShaAtLaunch,
       };
     } finally {
-      if (timeoutHandle !== undefined) timer.clearTimeout(timeoutHandle);
+      if (noProgressTimeoutHandle !== undefined) timer.clearTimeout(noProgressTimeoutHandle);
+      if (maxRuntimeTimeoutHandle !== undefined) timer.clearTimeout(maxRuntimeTimeoutHandle);
       if (heartbeatHandle !== undefined) timer.clearInterval(heartbeatHandle);
     }
   }
@@ -484,9 +537,16 @@ export class WorkflowRunner {
     const returnedStories = stories ?? (await this.dependencies.storySource.listStories());
     await this.journal.writeStorySnapshot(`after-${settled.storyId}`, returnedStories);
     const evaluation = await this.completionGate.evaluate(settled, returnedStories);
-    const settledWithEvidence = evaluation.commitEvidence
-      ? { ...settled, commitEvidence: evaluation.commitEvidence }
-      : settled;
+    const settledWithEvidence = {
+      ...settled,
+      ...(evaluation.commitEvidence ? { commitEvidence: evaluation.commitEvidence } : {}),
+      completionAuthority: evaluation.authority,
+    };
+    await this.journal.record('completion_authority', {
+      storyId: settled.storyId,
+      authority: evaluation.authority,
+      complete: evaluation.complete,
+    });
     await this.recordSettledChild(settledWithEvidence, evaluation.returnedStory, evaluation.complete);
     return evaluation;
   }
@@ -587,7 +647,7 @@ function heartbeatIntervalMs(timeoutMs: number): number {
 }
 
 function isSupervisionLostError(message: string): boolean {
-  return /child-timeout|Codex MCP request timed out/i.test(message);
+  return /child-(?:no-progress|max-runtime)-timeout|child-timeout|Codex MCP request timed out/i.test(message);
 }
 
 interface PreparedChildLaunch {
