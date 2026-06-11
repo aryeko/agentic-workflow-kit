@@ -1,5 +1,13 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.6
+
+### Patch Changes
+
+- 1ac6358: Remove the redundant Codex fixture root MCP config and keep MCP wiring on the explicit Claude and Codex plugin manifests.
+- eb96cd6: Move plugin MCP startup to the published orchestrator package executable and remove checked-in generated MCP bundles.
+- 1a97bfd: Harden autopilot recovery analysis, auto-merge completion evidence, runtime artifact dirty checks, and child-session review loop extraction.
+
 ## 0.5.5
 
 ### Patch Changes
