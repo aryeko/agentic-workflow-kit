@@ -1,12 +1,13 @@
 import { type ChildProcessWithoutNullStreams, execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import http, { type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const repoRoot = process.cwd();
 const pluginVersion = JSON.parse(readFileSync(path.join(repoRoot, '.codex-plugin/plugin.json'), 'utf8')).version;
-const MCP_TIMEOUT_MS = 10_000;
+const MCP_TIMEOUT_MS = 60_000;
 
 describe('codex local plugin smoke', () => {
   it('installs through the local marketplace and exposes implicit-safe skills', () => {
@@ -34,15 +35,15 @@ describe('codex local plugin smoke', () => {
     expect(existsSync(path.join(installedRoot, '.codex-plugin/plugin.json'))).toBe(true);
     expect(existsSync(path.join(installedRoot, '.codex-plugin/.mcp.json'))).toBe(true);
     expect(existsSync(path.join(installedRoot, '.mcp.json'))).toBe(true);
-    expect(existsSync(path.join(installedRoot, 'mcp/server.mjs'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, 'mcp/server.mjs'))).toBe(false);
     const installedManifest = JSON.parse(readFileSync(path.join(installedRoot, '.codex-plugin/plugin.json'), 'utf8'));
     const installedMcp = JSON.parse(readFileSync(path.join(installedRoot, installedManifest.mcpServers), 'utf8'));
     expect(installedManifest.mcpServers).toBe('./.codex-plugin/.mcp.json');
     expect(installedMcp.mcpServers?.['agentic-workflow-kit']).toEqual({
-      cwd: '.',
-      command: 'node',
-      args: ['./mcp/server.mjs'],
+      command: 'npx',
+      args: ['-y', '--package', `@agentic-workflow-kit/orchestrator@${pluginVersion}`, 'agentic-workflow-kit-mcp'],
     });
+    expect(installedMcp.mcpServers?.['agentic-workflow-kit'].args).not.toContain(expect.stringContaining('@latest'));
     expect(installedMcp.mcp_servers).toBeUndefined();
     expect(existsSync(path.join(installedRoot, 'skills/workflow-init/SKILL.md'))).toBe(true);
     expect(existsSync(path.join(installedRoot, 'skills/define-product/SKILL.md'))).toBe(true);
@@ -62,12 +63,17 @@ describe('codex local plugin smoke', () => {
     expect(promptInput).toContain('agentic-workflow-kit:define-product');
     expect(promptInput).toContain('agentic-workflow-kit:design-technical-solution');
     expect(promptInput).toContain('agentic-workflow-kit:plan-delivery-track');
-  }, 30_000);
+  }, 90_000);
 
-  it('starts the installed bundled MCP server from a non-plugin consumer cwd', async () => {
+  it('starts the installed package MCP server from a non-plugin consumer cwd', async () => {
     const codexHome = mkdtempSync(path.join(tmpdir(), 'agentic-workflow-kit-codex-home-'));
     const consumerCwd = mkdtempSync(path.join(tmpdir(), 'agentic-workflow-kit-consumer-'));
     mkdirSync(path.join(consumerCwd, '.git'));
+    const registry = await createScopedPackageRegistry();
+    const npmrc = [`@agentic-workflow-kit:registry=${registry.url}`, 'registry=https://registry.npmjs.org/', ''].join(
+      '\n',
+    );
+    writeFileSync(path.join(consumerCwd, '.npmrc'), npmrc);
     const env = { ...process.env, CODEX_HOME: codexHome };
 
     execFileSync('codex', ['plugin', 'marketplace', 'add', '.'], {
@@ -92,13 +98,13 @@ describe('codex local plugin smoke', () => {
     const mcpEntry = installedMcp.mcpServers?.['agentic-workflow-kit'];
 
     expect(mcpEntry).toEqual({
-      cwd: '.',
-      command: 'node',
-      args: ['./mcp/server.mjs'],
+      command: 'npx',
+      args: ['-y', '--package', `@agentic-workflow-kit/orchestrator@${pluginVersion}`, 'agentic-workflow-kit-mcp'],
     });
 
     const server = spawn(mcpEntry.command, mcpEntry.args, {
       cwd: mcpEntry.cwd === undefined ? consumerCwd : path.resolve(installedRoot, mcpEntry.cwd),
+      env: { ...process.env, npm_config_cache: mkdtempSync(path.join(tmpdir(), 'agentic-workflow-kit-npm-cache-')) },
       stdio: 'pipe',
     });
     const session = createMcpSession(server);
@@ -131,9 +137,76 @@ describe('codex local plugin smoke', () => {
       expect(toolNames).toContain('run_story');
     } finally {
       server.kill();
+      await registry.close();
     }
   }, 30_000);
 });
+
+async function createScopedPackageRegistry(): Promise<{ url: string; close: () => Promise<void> }> {
+  const packDir = mkdtempSync(path.join(tmpdir(), 'agentic-workflow-kit-pack-'));
+  execFileSync('pnpm', ['--filter', '@agentic-workflow-kit/orchestrator', 'pack', '--pack-destination', packDir], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+  const tarball = path.join(packDir, `agentic-workflow-kit-orchestrator-${pluginVersion}.tgz`);
+  const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'packages/orchestrator/package.json'), 'utf8'));
+
+  const server = http.createServer((request, response) => {
+    const url = request.url ?? '';
+    if (url.endsWith('.tgz')) {
+      response.writeHead(200, { 'content-type': 'application/octet-stream' });
+      createReadStream(tarball).pipe(response);
+      return;
+    }
+
+    if (url === '/@agentic-workflow-kit%2forchestrator' || url === '/@agentic-workflow-kit%2Forchestrator') {
+      const baseUrl = `http://127.0.0.1:${addressPort(server)}`;
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(
+        JSON.stringify({
+          name: '@agentic-workflow-kit/orchestrator',
+          'dist-tags': { latest: pluginVersion },
+          versions: {
+            [pluginVersion]: {
+              name: '@agentic-workflow-kit/orchestrator',
+              version: pluginVersion,
+              type: packageJson.type,
+              bin: packageJson.bin,
+              dependencies: packageJson.dependencies,
+              dist: {
+                tarball: `${baseUrl}/@agentic-workflow-kit/orchestrator/-/agentic-workflow-kit-orchestrator-${pluginVersion}.tgz`,
+              },
+            },
+          },
+        }),
+      );
+      return;
+    }
+
+    response.writeHead(404);
+    response.end('not found');
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  return {
+    url: `http://127.0.0.1:${addressPort(server)}`,
+    close: async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    },
+  };
+}
+
+function addressPort(server: Server): number {
+  const address = server.address();
+  if (address === null || typeof address === 'string') throw new Error('local npm registry did not bind a port');
+  return address.port;
+}
 
 function createMcpSession(server: ChildProcessWithoutNullStreams) {
   let stdout = Buffer.alloc(0);

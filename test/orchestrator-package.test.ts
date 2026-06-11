@@ -7,7 +7,7 @@ describe('orchestrator package wiring', () => {
     expect(workspace).toContain('packages/*');
   });
 
-  it('declares the single publishable orchestrator package and agentic-workflow-kit bin', () => {
+  it('declares the single publishable orchestrator package and package bins', () => {
     expect(existsSync('packages/orchestrator/package.json')).toBe(true);
     const pkg = JSON.parse(readFileSync('packages/orchestrator/package.json', 'utf8'));
     expect(pkg.name).toBe('@agentic-workflow-kit/orchestrator');
@@ -22,7 +22,10 @@ describe('orchestrator package wiring', () => {
       },
     });
     expect(pkg.files).toEqual(['dist']);
-    expect(pkg.bin).toMatchObject({ 'agentic-workflow-kit': './dist/cli.js' });
+    expect(pkg.bin).toMatchObject({
+      'agentic-workflow-kit': './dist/cli.js',
+      'agentic-workflow-kit-mcp': './dist/mcp/server.js',
+    });
     // config logic was folded in: no internal workspace dependency, zod is now direct
     expect(pkg.dependencies).not.toHaveProperty('@agentic-workflow-kit/core');
     expect(pkg.dependencies).toHaveProperty('zod');

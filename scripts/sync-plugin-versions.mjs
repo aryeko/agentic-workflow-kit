@@ -34,4 +34,22 @@ for (const relative of targets) {
     console.log(`synced ${relative} -> ${version}`);
   }
 }
+
+for (const relative of [
+  '.mcp.json',
+  '.codex-plugin/.mcp.json',
+  'plugins/agentic-workflow-kit/.codex-plugin/.mcp.json',
+  'plugins/agentic-workflow-kit/.mcp.json',
+]) {
+  const packageSpecifier = /@agentic-workflow-kit\/orchestrator@[^"]*/g;
+  const file = path.join(repoRoot, relative);
+  const source = await readFile(file, 'utf8');
+  if (!packageSpecifier.test(source)) throw new Error(`no orchestrator package specifier found in ${relative}`);
+  const next = source.replace(packageSpecifier, `@agentic-workflow-kit/orchestrator@${version}`);
+  if (next !== source) {
+    await writeFile(file, next);
+    changed += 1;
+    console.log(`synced ${relative} MCP package -> ${version}`);
+  }
+}
 console.log(`plugin version sync complete (${version}); ${changed} file(s) updated`);

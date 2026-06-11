@@ -10,7 +10,7 @@ Throughout, `WK=~/repos/agentic-workflow-kit` is the plugin source and `SMOKE` i
 
 ```bash
 WK=~/repos/agentic-workflow-kit
-( cd "$WK" && pnpm install && pnpm build )      # build dist and bundled MCP runtime once
+( cd "$WK" && pnpm install && pnpm build )      # build package dist and MCP runtime once
 
 SMOKE="$(mktemp -d)/wk-smoke"
 mkdir -p "$SMOKE/.github/workflows" && cd "$SMOKE"
@@ -30,7 +30,7 @@ alias wk='node "$WK"/packages/orchestrator/dist/cli.js'
 ## Phase 1 — Runtime plumbing (read-only)
 
 These have **no side effects**; run them first to prove the plumbing before spending interactive turns.
-Use the bundled MCP tools from plugin sessions when available; use the `wk` CLI alias as the
+Use the plugin-provided MCP tools from plugin sessions when available; use the `wk` CLI alias as the
 development fallback.
 
 1. **MCP reachability + schema:** `wk mcp check`

@@ -27,7 +27,7 @@ points you into `common-phases.md` for everything shared.
 - **Judge against the contract, not exact output.** These are agent-driven and non-deterministic.
   Pass = "did it honor the contract" (idempotent, completion-from-tracker, parses, blocks correctly),
   not "did it print exactly this."
-- **MCP first, CLI fallback.** Plugin sessions should use the bundled MCP runtime. The standalone CLI
+- **MCP first, CLI fallback.** Plugin sessions should use the plugin-provided MCP runtime. The standalone CLI
   is the fallback for development, CI, and troubleshooting.
 - **Capture evidence.** Save each transcript / command output (see common-phases.md → Evidence).
 

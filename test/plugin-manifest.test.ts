@@ -6,6 +6,14 @@ import YAML from 'yaml';
 const claudePluginRootVariable = '$' + '{CLAUDE_PLUGIN_ROOT}';
 const claudeProjectDirVariable = '$' + '{CLAUDE_PROJECT_DIR}';
 
+function expectedPackageMcpEntry(version: string, cwd?: string): Record<string, unknown> {
+  return {
+    ...(cwd === undefined ? {} : { cwd }),
+    command: 'npx',
+    args: ['-y', '--package', `@agentic-workflow-kit/orchestrator@${version}`, 'agentic-workflow-kit-mcp'],
+  };
+}
+
 function readSkillFrontmatter(skillName: string): Record<string, unknown> {
   const s = readFileSync(`skills/${skillName}/SKILL.md`, 'utf8');
   const match = s.match(/^---\n([\s\S]*?)\n---\n/);
@@ -60,12 +68,10 @@ describe('plugin manifests', () => {
   it('codex plugin manifest points at a Codex-readable MCP config', () => {
     const manifest = JSON.parse(readFileSync('.codex-plugin/plugin.json', 'utf8'));
     const mcp = JSON.parse(readFileSync(manifest.mcpServers, 'utf8'));
+    const pkg = JSON.parse(readFileSync('packages/orchestrator/package.json', 'utf8'));
 
-    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
-      cwd: '.',
-      command: 'node',
-      args: ['./mcp/server.mjs'],
-    });
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual(expectedPackageMcpEntry(pkg.version));
+    expect(mcp.mcpServers?.['agentic-workflow-kit'].args).not.toContain(expect.stringContaining('@latest'));
     expect(mcp.mcp_servers).toBeUndefined();
   });
 
@@ -81,14 +87,13 @@ describe('plugin manifests', () => {
 
   it('claude root plugin bundles the MCP runtime using plugin path variables', () => {
     expect(existsSync('.mcp.json')).toBe(true);
-    expect(existsSync('mcp/server.mjs')).toBe(true);
 
     const mcp = JSON.parse(readFileSync('.mcp.json', 'utf8'));
-    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
-      command: 'node',
-      args: [`${claudePluginRootVariable}/mcp/server.mjs`],
-      cwd: claudeProjectDirVariable,
-    });
+    const pkg = JSON.parse(readFileSync('packages/orchestrator/package.json', 'utf8'));
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual(
+      expectedPackageMcpEntry(pkg.version, claudeProjectDirVariable),
+    );
+    expect(JSON.stringify(mcp)).not.toContain(claudePluginRootVariable);
     expect(mcp.mcp_servers).toBeUndefined();
   });
 
@@ -109,7 +114,6 @@ describe('plugin manifests', () => {
       'plugins/agentic-workflow-kit/.codex-plugin/plugin.json',
       'plugins/agentic-workflow-kit/.codex-plugin/.mcp.json',
       'plugins/agentic-workflow-kit/.mcp.json',
-      'plugins/agentic-workflow-kit/mcp/server.mjs',
       'plugins/agentic-workflow-kit/skills',
       'plugins/agentic-workflow-kit/references',
       'plugins/agentic-workflow-kit/presets',
@@ -140,20 +144,16 @@ describe('plugin manifests', () => {
     }
   });
 
-  it('codex local marketplace fixture includes the bundled MCP runtime', () => {
+  it('codex local marketplace fixture uses the package MCP runtime', () => {
     const manifest = JSON.parse(readFileSync('plugins/agentic-workflow-kit/.codex-plugin/plugin.json', 'utf8'));
     const mcp = JSON.parse(readFileSync(path.join('plugins/agentic-workflow-kit', manifest.mcpServers), 'utf8'));
+    const pkg = JSON.parse(readFileSync('packages/orchestrator/package.json', 'utf8'));
 
     expect(manifest.mcpServers).toBe('./.codex-plugin/.mcp.json');
-    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual({
-      cwd: '.',
-      command: 'node',
-      args: ['./mcp/server.mjs'],
-    });
+    expect(mcp.mcpServers?.['agentic-workflow-kit']).toEqual(expectedPackageMcpEntry(pkg.version));
+    expect(mcp.mcpServers?.['agentic-workflow-kit'].args).not.toContain(expect.stringContaining('@latest'));
     expect(mcp.mcp_servers).toBeUndefined();
-    expect(readFileSync('plugins/agentic-workflow-kit/mcp/server.mjs', 'utf8')).toBe(
-      readFileSync('mcp/server.mjs', 'utf8'),
-    );
+    expect(existsSync('plugins/agentic-workflow-kit/mcp/server.mjs')).toBe(false);
   });
 
   it('ships the workflow-init skill with frontmatter', () => {
