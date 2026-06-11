@@ -67,7 +67,8 @@ function isAcceptedAutoMergeEvidence(pr: ResolvedWorkflowConfig['pr'], commitEvi
     commitEvidence.committed &&
     commitEvidence.headSha !== null &&
     commitEvidence.baseSha !== null &&
-    commitEvidence.headSha === commitEvidence.baseSha
+    commitEvidence.headSha === commitEvidence.baseSha &&
+    commitEvidence.mergedPullRequest?.mergeCommitSha === commitEvidence.headSha
   );
 }
 

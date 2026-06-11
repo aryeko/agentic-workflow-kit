@@ -799,6 +799,7 @@ class SessionReviewState {
   private readonly calls = new Map<string, { name: string; args: Record<string, unknown> | null }>();
   private readonly reviewAgents = new Set<string>();
   private readonly reviewLoops: SessionReviewLoop[] = [];
+  private readonly seenResults = new Set<string>();
 
   recordCall(callId: string, name: string, rawArgs: string | null): void {
     this.calls.set(callId, { name, args: rawArgs ? parseJsonLine(rawArgs) : null });
@@ -817,19 +818,24 @@ class SessionReviewState {
     }
 
     if (call.name !== 'wait_agent' && call.name !== 'close_agent') return;
-    const target = readOptionalString(call.args?.target);
-    const summary = extractCompletedText(parseLooseJsonObject(rawOutput)) ?? rawOutput;
-    if (!target || (!this.reviewAgents.has(target) && !isReviewText(summary))) return;
-    const findings = countFindingsFromText(summary);
-    if (findings === null) return;
-    const status = findings > 0 ? 'findings' : 'passed';
-    this.reviewLoops.push({
-      loop: this.reviewLoops.length + 1,
-      mode: 'subagent',
-      status,
-      findings,
-      agentId: target,
-    });
+    const output = parseLooseJsonObject(rawOutput);
+    for (const target of callTargets(call.args)) {
+      const summary = extractCompletedText(output, target) ?? rawOutput;
+      if (!target || (!this.reviewAgents.has(target) && !isReviewText(summary))) continue;
+      const findings = countFindingsFromText(summary);
+      if (findings === null) continue;
+      const status = findings > 0 ? 'findings' : 'passed';
+      const resultKey = `${target}:${status}:${findings}:${summary.trim()}`;
+      if (this.seenResults.has(resultKey)) continue;
+      this.seenResults.add(resultKey);
+      this.reviewLoops.push({
+        loop: this.reviewLoops.length + 1,
+        mode: 'subagent',
+        status,
+        findings,
+        agentId: target,
+      });
+    }
   }
 
   loops(): SessionReviewLoop[] {
@@ -901,9 +907,20 @@ function parseLooseJsonObject(value: string): Record<string, unknown> | null {
   return isRecord(parsed) ? parsed : null;
 }
 
-function extractCompletedText(value: Record<string, unknown> | null): string | null {
+function callTargets(args: Record<string, unknown> | null): string[] {
+  const target = readOptionalString(args?.target);
+  if (target) return [target];
+  return Array.isArray(args?.targets) ? args.targets.filter((entry): entry is string => typeof entry === 'string') : [];
+}
+
+function extractCompletedText(value: Record<string, unknown> | null, target?: string): string | null {
   const status = readRecord(value?.status) ?? readRecord(value?.previous_status);
-  return readOptionalString(status?.completed) ?? readOptionalString(value?.completed);
+  const targetStatus = target ? readRecord(status?.[target]) : null;
+  return (
+    readOptionalString(targetStatus?.completed) ??
+    readOptionalString(status?.completed) ??
+    readOptionalString(value?.completed)
+  );
 }
 
 function isReviewText(value: string): boolean {
@@ -913,8 +930,20 @@ function isReviewText(value: string): boolean {
 function countFindingsFromText(value: string): number | null {
   if (/no findings|no actionable findings/i.test(value)) return 0;
   if (!/findings/i.test(value)) return null;
-  const bulletCount = value.split('\n').filter((line) => /^\s*-\s+/.test(line) && !/verified|ran:/i.test(line)).length;
+  const bulletCount = findingsSection(value).filter((line) => /^\s*-\s+/.test(line)).length;
   return bulletCount > 0 ? bulletCount : null;
+}
+
+function findingsSection(value: string): string[] {
+  const lines = value.split('\n');
+  const headingIndex = lines.findIndex((line) => /findings/i.test(line));
+  if (headingIndex === -1) return lines;
+  const section: string[] = [];
+  for (const line of lines.slice(headingIndex + 1)) {
+    if (/^\s*\*{0,2}[A-Z][A-Za-z ]+\*{0,2}\s*$/.test(line) && !/^\s*-/.test(line)) break;
+    section.push(line);
+  }
+  return section;
 }
 
 function defaultSessionRoots(): string[] {

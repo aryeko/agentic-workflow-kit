@@ -27,6 +27,13 @@ function story(id = 'WK001'): WorkflowStory {
   };
 }
 
+function storyWithPr(pr: string): WorkflowStory {
+  return {
+    ...story(),
+    metadata: { ...story().metadata, pr },
+  };
+}
+
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 }
@@ -134,6 +141,54 @@ describe('RealGitInspector', () => {
       branch: 'main',
       isBaseBranch: true,
       uncommittedChanges: false,
+    });
+  });
+
+  it('detects merged PR evidence from the tracker PR link and base commit message', async () => {
+    const cwd = repo();
+    const baseShaAtLaunch = git(cwd, ['rev-parse', 'main']);
+    writeFileSync(path.join(cwd, 'merged.txt'), 'merged work\n');
+    git(cwd, ['add', 'merged.txt']);
+    git(cwd, ['commit', '-m', 'Close out workflow story (#88)']);
+
+    const evidence = await new RealGitInspector().inspectStory({
+      story: storyWithPr('[#88](https://github.com/aryeko/pathway/pull/88)'),
+      git: gitPolicy,
+      cwdAbs: cwd,
+      baseShaAtLaunch,
+    });
+
+    expect(evidence).toMatchObject({
+      committed: true,
+      branch: 'main',
+      isBaseBranch: true,
+      mergedPullRequest: {
+        number: 88,
+        url: 'https://github.com/aryeko/pathway/pull/88',
+        mergeCommitSha: evidence.headSha,
+      },
+    });
+  });
+
+  it('does not treat a direct base branch commit as merged PR evidence', async () => {
+    const cwd = repo();
+    const baseShaAtLaunch = git(cwd, ['rev-parse', 'main']);
+    writeFileSync(path.join(cwd, 'direct.txt'), 'direct work\n');
+    git(cwd, ['add', 'direct.txt']);
+    git(cwd, ['commit', '-m', 'Direct story commit']);
+
+    const evidence = await new RealGitInspector().inspectStory({
+      story: storyWithPr('[#88](https://github.com/aryeko/pathway/pull/88)'),
+      git: gitPolicy,
+      cwdAbs: cwd,
+      baseShaAtLaunch,
+    });
+
+    expect(evidence).toMatchObject({
+      committed: true,
+      branch: 'main',
+      isBaseBranch: true,
+      mergedPullRequest: null,
     });
   });
 

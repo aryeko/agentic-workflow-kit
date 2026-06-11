@@ -255,20 +255,22 @@ describe('analyzeWorkflowRun', () => {
           type: 'response_item',
           payload: {
             type: 'function_call',
-            name: 'close_agent',
-            call_id: 'close-1',
-            arguments: JSON.stringify({ target: 'agent-review-1' }),
+            name: 'wait_agent',
+            call_id: 'wait-1',
+            arguments: JSON.stringify({ targets: ['agent-review-1'] }),
           },
         }),
         JSON.stringify({
           type: 'response_item',
           payload: {
             type: 'function_call_output',
-            call_id: 'close-1',
+            call_id: 'wait-1',
             output: JSON.stringify({
-              previous_status: {
-                completed:
-                  '**Findings**\n\n- **Medium** tests/docs/traceability.test.ts: Missing durable verification evidence.\n- **Low** docs/closeout.md: Stale follow-up note.',
+              status: {
+                'agent-review-1': {
+                  completed:
+                    '**Findings**\n\n- **Medium** tests/docs/traceability.test.ts: Missing durable verification evidence.\n- **Medium** docs/closeout.md: Acceptance claim is not verified on a production path.\n- **Low** docs/closeout.md: Stale follow-up note.\n\n**Notes**\n\nI did not edit files.',
+                },
               },
             }),
           },
@@ -299,7 +301,7 @@ describe('analyzeWorkflowRun', () => {
             type: 'function_call',
             name: 'wait_agent',
             call_id: 'wait-2',
-            arguments: JSON.stringify({ target: 'agent-review-2' }),
+            arguments: JSON.stringify({ targets: ['agent-review-2'] }),
           },
         }),
         JSON.stringify({
@@ -307,7 +309,9 @@ describe('analyzeWorkflowRun', () => {
           payload: {
             type: 'function_call_output',
             call_id: 'wait-2',
-            output: JSON.stringify({ status: { completed: 'No findings.\n\nRan focused traceability tests.' } }),
+            output: JSON.stringify({
+              status: { 'agent-review-2': { completed: 'No findings.\n\nVerified focused traceability tests.' } },
+            }),
           },
         }),
       ].join('\n'),
@@ -322,7 +326,7 @@ describe('analyzeWorkflowRun', () => {
       fixBatchCount: 1,
       subagent: { agentId: 'agent-review-2', status: 'passed' },
       loops: [
-        { loop: 1, mode: 'subagent', status: 'findings', findings: 2 },
+        { loop: 1, mode: 'subagent', status: 'findings', findings: 3 },
         { loop: 2, mode: 'subagent', status: 'passed', findings: 0 },
       ],
     });

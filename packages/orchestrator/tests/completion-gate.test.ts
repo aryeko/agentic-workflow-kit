@@ -152,6 +152,7 @@ describe('CompletionGate', () => {
       isBaseBranch: true,
       headSha: 'merge-sha',
       baseSha: 'merge-sha',
+      mergedPullRequest: { number: 88, url: 'https://github.com/aryeko/pathway/pull/88', mergeCommitSha: 'merge-sha' },
     };
     const gate = new CompletionGate(
       makeDeps({
@@ -175,6 +176,42 @@ describe('CompletionGate', () => {
     const result = await gate.evaluate(settled(), [story('A001', 'done')]);
 
     expect(result.complete).toBe(true);
+  });
+
+  it('returns complete=false for direct base branch commits even when auto-merge is enabled', async () => {
+    const directBaseEvidence: StoryCommitEvidence = {
+      ...goodEvidence,
+      branch: 'main',
+      isBaseBranch: true,
+      headSha: 'direct-main-sha',
+      baseSha: 'direct-main-sha',
+      mergedPullRequest: null,
+    };
+    const gate = new CompletionGate(
+      makeDeps({
+        gitInspector: new FakeGitInspector(directBaseEvidence),
+        pr: {
+          create: true,
+          ci: { wait: false, command: null },
+          review: {
+            wait: 'bot',
+            bot: 'codex',
+            triageComments: true,
+            maxFixBatches: 1,
+            rerequestAfterFix: false,
+            waitTimeoutMinutes: 30,
+          },
+          merge: { auto: true, method: 'squash', deleteBranch: true },
+        },
+      }),
+    );
+
+    const result = await gate.evaluate(settled(), [story('A001', 'done')]);
+
+    expect(result.complete).toBe(false);
+    if (!result.complete) {
+      expect(result.reason).toBe('complete-on-forbidden-base');
+    }
   });
 
   it('returns complete=true when evidence shows committed on story branch', async () => {
