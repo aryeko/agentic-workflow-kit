@@ -1,6 +1,6 @@
 {
   "name": "@agentic-workflow-kit/orchestrator",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "Optional autonomous multi-session orchestrator CLI for agentic-workflow-kit.",
   "keywords": [
     "agentic-workflow-kit",
