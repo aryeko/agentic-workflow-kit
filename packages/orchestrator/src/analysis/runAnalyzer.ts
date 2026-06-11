@@ -7,6 +7,7 @@ import type { TokenTotals } from '../types.js';
 
 interface AnalyzeOptions {
   sessionRoots?: string[];
+  now?: string;
 }
 
 export interface WorkflowRunAnalysis {
@@ -63,6 +64,10 @@ interface PrePrReviewLoop {
   mode: string | null;
   status: string;
   findings: number | null;
+}
+
+interface SessionReviewLoop extends PrePrReviewLoop {
+  agentId: string | null;
 }
 
 interface PrReviewSummary {
@@ -125,12 +130,16 @@ export async function analyzeWorkflowRun(
   const children = await readChildren(path.join(runDirectory, 'children'), state);
   const sessionLogs = await findSessionLogs(options.sessionRoots ?? defaultSessionRoots());
   const logsBySession = await mapSessionLogsByThread(sessionLogs);
+  const latestHeartbeatByStory = latestHeartbeats(events);
+  const now = options.now ?? new Date().toISOString();
+  const staleThresholdMs = readChildTimeoutMs(config);
 
   const commandCounts: Record<string, number> = {};
   const subagentCounts: Record<string, number> = {};
   const issues: string[] = [];
   let tokenTotals: TokenTotals = emptyTokenTotals();
   let sawTokens = false;
+  const sessionReviewLoops: SessionReviewLoop[] = [];
 
   const analyzedChildren: AnalyzedChild[] = [];
   for (const child of children) {
@@ -146,7 +155,15 @@ export async function analyzeWorkflowRun(
         : null;
     const sessionLogPath = explicitSessionLogPath ?? (sessionId ? (logsBySession.get(sessionId) ?? null) : null);
     const storyId = readString(child.storyId, 'child.storyId');
-    const status = deriveChildStatus(state, child);
+    const expectedWorktreePath = typeof child.expectedWorktreePath === 'string' ? child.expectedWorktreePath : null;
+    const status = deriveChildStatus(state, child, {
+      sessionId,
+      sessionLogPath,
+      latestHeartbeatAt: latestHeartbeatByStory.get(storyId) ?? null,
+      worktreeActivityAt: expectedWorktreePath ? await pathMtime(expectedWorktreePath) : null,
+      now,
+      staleThresholdMs,
+    });
     if (child.launchOnly === true && status === 'supervision_lost') {
       issues.push(`${storyId} has launch metadata but no settled child result`);
     }
@@ -158,7 +175,7 @@ export async function analyzeWorkflowRun(
       metricsStatus: childMetricsStatus(sessionId, sessionLogPath),
       status,
       expectedBranch: typeof child.expectedBranch === 'string' ? child.expectedBranch : null,
-      expectedWorktreePath: typeof child.expectedWorktreePath === 'string' ? child.expectedWorktreePath : null,
+      expectedWorktreePath,
     });
 
     if (!sessionLogPath) continue;
@@ -166,6 +183,7 @@ export async function analyzeWorkflowRun(
     const sessionMetrics = await analyzeSessionLog(sessionLogPath);
     mergeCounts(commandCounts, sessionMetrics.commandCounts);
     mergeCounts(subagentCounts, sessionMetrics.subagentCounts);
+    sessionReviewLoops.push(...sessionMetrics.reviewLoops);
     if (sessionMetrics.tokenTotals) {
       sawTokens = true;
       tokenTotals = addTokenTotals(tokenTotals, sessionMetrics.tokenTotals);
@@ -174,6 +192,7 @@ export async function analyzeWorkflowRun(
 
   const status = readString(state.status, 'state.status');
   const eventSummary = summarizeEvents(events, config);
+  const review = mergeSessionReviewEvidence(eventSummary.review, sessionReviewLoops);
 
   return {
     runId: readString(state.runId, 'state.runId'),
@@ -185,7 +204,7 @@ export async function analyzeWorkflowRun(
     commandCounts,
     subagentCounts,
     tokenTotals: sawTokens ? tokenTotals : null,
-    review: eventSummary.review,
+    review,
     verification: eventSummary.verification,
     merge: eventSummary.merge,
     timeline: eventSummary.timeline,
@@ -480,8 +499,33 @@ function mergeChildren(
   );
 }
 
-function deriveChildStatus(state: Record<string, unknown>, child: Record<string, unknown>): string {
-  if (child.launchOnly === true && state.status === 'running') return 'supervision_lost';
+function deriveChildStatus(
+  state: Record<string, unknown>,
+  child: Record<string, unknown>,
+  evidence: {
+    sessionId: string | null;
+    sessionLogPath: string | null;
+    latestHeartbeatAt: string | null;
+    worktreeActivityAt: string | null;
+    now: string;
+    staleThresholdMs: number;
+  },
+): string {
+  if (child.launchOnly === true && state.status === 'running') {
+    if (child.status === 'supervision_lost') return 'supervision_lost';
+    if (evidence.sessionId !== null || evidence.sessionLogPath !== null) return 'launched';
+    const heartbeatAt = readOptionalString(child.lastHeartbeatAt) ?? evidence.latestHeartbeatAt;
+    if (heartbeatAt !== null && !isStale(heartbeatAt, evidence.now, evidence.staleThresholdMs)) return 'launched';
+    if (
+      evidence.worktreeActivityAt !== null &&
+      !isStale(evidence.worktreeActivityAt, evidence.now, evidence.staleThresholdMs)
+    ) {
+      return 'launched';
+    }
+    const startedAt = readOptionalString(child.startedAt);
+    if (startedAt !== null && !isStale(startedAt, evidence.now, evidence.staleThresholdMs)) return 'launched';
+    return 'supervision_lost';
+  }
   if (typeof child.status === 'string') return child.status;
   return 'settled';
 }
@@ -700,10 +744,12 @@ async function analyzeSessionLog(sessionLog: string): Promise<{
   commandCounts: Record<string, number>;
   subagentCounts: Record<string, number>;
   tokenTotals: TokenTotals | null;
+  reviewLoops: SessionReviewLoop[];
 }> {
   const commandCounts: Record<string, number> = {};
   const subagentCounts: Record<string, number> = {};
   let tokenTotals: TokenTotals | null = null;
+  const reviewState = new SessionReviewState();
 
   const content = await readFile(sessionLog, 'utf8');
   for (const line of content.split('\n')) {
@@ -724,6 +770,12 @@ async function analyzeSessionLog(sessionLog: string): Promise<{
           increment(subagentCounts, parsedArgs.agent_type);
         }
       }
+      if (payload.type === 'function_call' && typeof payload.name === 'string' && typeof payload.call_id === 'string') {
+        reviewState.recordCall(payload.call_id, payload.name, readOptionalString(payload.arguments));
+      }
+      if (payload.type === 'function_call_output' && typeof payload.call_id === 'string') {
+        reviewState.recordOutput(payload.call_id, readOptionalString(payload.output));
+      }
     }
 
     if (entry.type === 'event_msg' && entry.payload.type === 'token_count' && isRecord(entry.payload.info)) {
@@ -740,7 +792,158 @@ async function analyzeSessionLog(sessionLog: string): Promise<{
     }
   }
 
-  return { commandCounts, subagentCounts, tokenTotals };
+  return { commandCounts, subagentCounts, tokenTotals, reviewLoops: reviewState.loops() };
+}
+
+class SessionReviewState {
+  private readonly calls = new Map<string, { name: string; args: Record<string, unknown> | null }>();
+  private readonly reviewAgents = new Set<string>();
+  private readonly reviewLoops: SessionReviewLoop[] = [];
+  private readonly seenResults = new Set<string>();
+
+  recordCall(callId: string, name: string, rawArgs: string | null): void {
+    this.calls.set(callId, { name, args: rawArgs ? parseJsonLine(rawArgs) : null });
+  }
+
+  recordOutput(callId: string, rawOutput: string | null): void {
+    const call = this.calls.get(callId);
+    if (!call || rawOutput === null) return;
+
+    if (call.name === 'spawn_agent') {
+      const prompt = readOptionalString(call.args?.prompt) ?? '';
+      const output = parseLooseJsonObject(rawOutput);
+      const agentId = readOptionalString(output?.agent_path) ?? readOptionalString(output?.target);
+      if (agentId && isReviewText(prompt)) this.reviewAgents.add(agentId);
+      return;
+    }
+
+    if (call.name !== 'wait_agent' && call.name !== 'close_agent') return;
+    const output = parseLooseJsonObject(rawOutput);
+    for (const target of callTargets(call.args)) {
+      const summary = extractCompletedText(output, target) ?? rawOutput;
+      if (!target || (!this.reviewAgents.has(target) && !isReviewText(summary))) continue;
+      const findings = countFindingsFromText(summary);
+      if (findings === null) continue;
+      const status = findings > 0 ? 'findings' : 'passed';
+      const resultKey = `${target}:${status}:${findings}:${summary.trim()}`;
+      if (this.seenResults.has(resultKey)) continue;
+      this.seenResults.add(resultKey);
+      this.reviewLoops.push({
+        loop: this.reviewLoops.length + 1,
+        mode: 'subagent',
+        status,
+        findings,
+        agentId: target,
+      });
+    }
+  }
+
+  loops(): SessionReviewLoop[] {
+    return this.reviewLoops;
+  }
+}
+
+function mergeSessionReviewEvidence(review: ReviewSummary, sessionLoops: SessionReviewLoop[]): ReviewSummary {
+  if (sessionLoops.length === 0) return review;
+  const loops =
+    review.prePr.loops.length > 0 ? review.prePr.loops : sessionLoops.map(({ agentId: _agentId, ...loop }) => loop);
+  const latestLoop = sessionLoops[sessionLoops.length - 1];
+  const hasFindings = sessionLoops.some((loop) => loop.status === 'findings');
+  const lastPassed = latestLoop?.status === 'passed';
+  return {
+    ...review,
+    prePr: {
+      ...review.prePr,
+      actualMode: review.prePr.actualMode ?? 'subagent',
+      status:
+        review.prePr.status === 'not_started' || review.prePr.status === 'not_configured'
+          ? lastPassed
+            ? 'passed'
+            : hasFindings
+              ? 'findings'
+              : review.prePr.status
+          : review.prePr.status,
+      fixBatchCount: review.prePr.fixBatchCount > 0 ? review.prePr.fixBatchCount : countFindingLoops(sessionLoops),
+      loops,
+      subagent: {
+        agentId: review.prePr.subagent.agentId ?? latestLoop?.agentId ?? null,
+        status: review.prePr.subagent.status ?? (lastPassed ? 'passed' : hasFindings ? 'findings' : null),
+      },
+    },
+  };
+}
+
+function countFindingLoops(loops: SessionReviewLoop[]): number {
+  return loops.filter((loop) => loop.status === 'findings').length;
+}
+
+function latestHeartbeats(events: NormalizedEvent[]): Map<string, string> {
+  const latest = new Map<string, string>();
+  for (const event of events) {
+    if (event.type !== 'child-heartbeat') continue;
+    const storyId = readOptionalString(event.raw.storyId);
+    if (!storyId) continue;
+    const current = latest.get(storyId) ?? null;
+    const next = maxIso(current, event.eventAt);
+    if (next !== null) latest.set(storyId, next);
+  }
+  return latest;
+}
+
+function readChildTimeoutMs(config: Record<string, unknown> | null): number {
+  const orchestrator = readRecord(config?.orchestrator);
+  return readOptionalNumber(orchestrator?.childTimeoutMs) ?? 30 * 60 * 1000;
+}
+
+function isStale(eventAt: string, now: string, staleThresholdMs: number): boolean {
+  const eventMs = Date.parse(eventAt);
+  const nowMs = Date.parse(now);
+  if (!Number.isFinite(eventMs) || !Number.isFinite(nowMs)) return true;
+  return nowMs - eventMs > staleThresholdMs;
+}
+
+function parseLooseJsonObject(value: string): Record<string, unknown> | null {
+  const parsed = parseJsonLine(value);
+  return isRecord(parsed) ? parsed : null;
+}
+
+function callTargets(args: Record<string, unknown> | null): string[] {
+  const target = readOptionalString(args?.target);
+  if (target) return [target];
+  return Array.isArray(args?.targets) ? args.targets.filter((entry): entry is string => typeof entry === 'string') : [];
+}
+
+function extractCompletedText(value: Record<string, unknown> | null, target?: string): string | null {
+  const status = readRecord(value?.status) ?? readRecord(value?.previous_status);
+  const targetStatus = target ? readRecord(status?.[target]) : null;
+  return (
+    readOptionalString(targetStatus?.completed) ??
+    readOptionalString(status?.completed) ??
+    readOptionalString(value?.completed)
+  );
+}
+
+function isReviewText(value: string): boolean {
+  return /pre[-_ ]pr|pre[-_ ]pull|review|findings/i.test(value);
+}
+
+function countFindingsFromText(value: string): number | null {
+  if (/no findings|no actionable findings/i.test(value)) return 0;
+  if (!/findings/i.test(value)) return null;
+  const bulletCount = findingsSection(value).filter((line) => /^\s*-\s+/.test(line)).length;
+  return bulletCount > 0 ? bulletCount : null;
+}
+
+function findingsSection(value: string): string[] {
+  const lines = value.split('\n');
+  const headingIndex = lines.findIndex((line) => /findings/i.test(line));
+  if (headingIndex === -1) return lines;
+  const section: string[] = [];
+  for (const line of lines.slice(headingIndex + 1)) {
+    if (/^\s*\*{0,2}[A-Z][A-Za-z ]+\*{0,2}\s*$/.test(line) && !/^\s*-/.test(line)) break;
+    section.push(line);
+  }
+  return section;
 }
 
 function defaultSessionRoots(): string[] {
@@ -769,6 +972,14 @@ async function pathExists(filePath: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function pathMtime(filePath: string): Promise<string | null> {
+  try {
+    return (await stat(filePath)).mtime.toISOString();
+  } catch {
+    return null;
   }
 }
 

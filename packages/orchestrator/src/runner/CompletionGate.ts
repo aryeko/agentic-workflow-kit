@@ -11,6 +11,7 @@ export interface CompletionGateDeps {
   gitInspector: GitInspector;
   statuses: ResolvedWorkflowConfig['statuses'];
   git: ResolvedGitConfig;
+  pr: ResolvedWorkflowConfig['pr'];
   childCwdAbs: string;
 }
 
@@ -49,11 +50,26 @@ export class CompletionGate {
     if (!commitEvidence.committed || dirtyBlocks) {
       return { complete: false, returnedStory, reason: 'complete-but-uncommitted', commitEvidence };
     }
-    if (this.deps.git.commitOnBase === 'forbid' && commitEvidence.isBaseBranch) {
+    if (
+      this.deps.git.commitOnBase === 'forbid' &&
+      commitEvidence.isBaseBranch &&
+      !isAcceptedAutoMergeEvidence(this.deps.pr, commitEvidence)
+    ) {
       return { complete: false, returnedStory, reason: 'complete-on-forbidden-base', commitEvidence };
     }
     return { complete: true, returnedStory, commitEvidence };
   }
+}
+
+function isAcceptedAutoMergeEvidence(pr: ResolvedWorkflowConfig['pr'], commitEvidence: StoryCommitEvidence): boolean {
+  return (
+    pr.merge.auto &&
+    commitEvidence.committed &&
+    commitEvidence.headSha !== null &&
+    commitEvidence.baseSha !== null &&
+    commitEvidence.headSha === commitEvidence.baseSha &&
+    commitEvidence.mergedPullRequest?.mergeCommitSha === commitEvidence.headSha
+  );
 }
 
 function invocationCwd(settled: SettledStoryRun): string | null {

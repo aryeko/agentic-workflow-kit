@@ -367,6 +367,8 @@ Semantic checks are required when `implement.review.semanticChecks.enabled: true
 - product semantics and visible UI states, not only code shape,
 - label/value consistency,
 - percent vs count/unit formatting,
+- for closeout, acceptance, or "shipped" claims, proof that the claim is backed by a real production
+  path or durable artifact, not only types, services, tests, or prose,
 - route intent correctness,
 - dashboard visible states and empty/loading/error states when applicable,
 - locale-backed Hebrew copy semantics when applicable,

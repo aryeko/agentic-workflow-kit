@@ -11,6 +11,12 @@ export interface StoryCommitEvidence {
   headSha: string | null;
   baseSha: string | null;
   uncommittedChanges: boolean;
+  uncommittedPaths?: string[];
+  mergedPullRequest?: {
+    number: number;
+    url: string | null;
+    mergeCommitSha: string;
+  } | null;
 }
 
 export interface GitInspector {
@@ -45,7 +51,10 @@ export class RealGitInspector implements GitInspector {
     // inspected root checkout stays on the base branch while the child commits on a sibling worktree's
     // story branch, so the inspected checkout's own HEAD must not contaminate this judgement.
     const isBaseBranch = inspectedBranch === args.git.baseBranch;
-    const uncommittedChanges = (await gitOutput(args.cwdAbs, ['status', '--porcelain'])).length > 0;
+    const uncommittedPaths = dirtyPathsFromStatus(
+      await gitOutput(args.cwdAbs, ['status', '--porcelain', '--untracked-files=all']),
+    ).filter((dirtyPath) => !isWorkflowRuntimeArtifactPath(dirtyPath));
+    const uncommittedChanges = uncommittedPaths.length > 0;
     const comparisonBase = args.baseShaAtLaunch ?? baseSha;
     const commitCount =
       inspectedBranch && comparisonBase
@@ -53,6 +62,13 @@ export class RealGitInspector implements GitInspector {
             await maybeGitOutput(args.cwdAbs, ['rev-list', '--count', `${comparisonBase}..${inspectedBranch}`]),
           )
         : 0;
+    const mergedPullRequest = await detectMergedPullRequest({
+      cwdAbs: args.cwdAbs,
+      story: args.story,
+      headSha,
+      baseSha,
+      isBaseBranch,
+    });
 
     return {
       committed: commitCount > 0,
@@ -61,6 +77,8 @@ export class RealGitInspector implements GitInspector {
       headSha,
       baseSha,
       uncommittedChanges,
+      uncommittedPaths,
+      mergedPullRequest,
     };
   }
 }
@@ -96,6 +114,61 @@ function parseCommitCount(value: string | null): number {
   if (value === null) return 0;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function dirtyPathsFromStatus(status: string): string[] {
+  if (status.length === 0) return [];
+  return status
+    .split('\n')
+    .map((line) => line.slice(3).trim())
+    .filter(Boolean)
+    .flatMap((dirtyPath) => {
+      const renamed = dirtyPath.split(' -> ');
+      return renamed.length === 2 ? renamed : [dirtyPath];
+    });
+}
+
+function isWorkflowRuntimeArtifactPath(dirtyPath: string): boolean {
+  return dirtyPath.replaceAll('\\', '/').startsWith('.codex/agentic-workflow-kit/runs/');
+}
+
+async function detectMergedPullRequest(args: {
+  cwdAbs: string;
+  story: WorkflowStory;
+  headSha: string | null;
+  baseSha: string | null;
+  isBaseBranch: boolean;
+}): Promise<StoryCommitEvidence['mergedPullRequest']> {
+  if (!args.isBaseBranch || args.headSha === null || args.baseSha === null || args.headSha !== args.baseSha) {
+    return null;
+  }
+  const prNumber = pullRequestNumber(args.story.metadata.pr);
+  if (prNumber === null) return null;
+  const message = await maybeGitOutput(args.cwdAbs, ['log', '-1', '--format=%B', args.headSha]);
+  if (message === null || !messageMentionsPullRequest(message, prNumber)) return null;
+  return {
+    number: prNumber,
+    url: pullRequestUrl(args.story.metadata.pr),
+    mergeCommitSha: args.headSha,
+  };
+}
+
+function pullRequestNumber(value: string | undefined): number | null {
+  if (!value || value === '—') return null;
+  const match = value.match(/(?:pull\/|#|PR\s*#)(\d+)/i);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function pullRequestUrl(value: string | undefined): string | null {
+  if (!value) return null;
+  const match = value.match(/https:\/\/github\.com\/[^\s)\]]+\/pull\/\d+/);
+  return match?.[0] ?? null;
+}
+
+function messageMentionsPullRequest(message: string, prNumber: number): boolean {
+  return new RegExp(`(?:\\(#${prNumber}\\)|pull request #${prNumber}\\b|PR #${prNumber}\\b)`, 'i').test(message);
 }
 
 async function gitOutput(cwd: string, args: string[]): Promise<string> {

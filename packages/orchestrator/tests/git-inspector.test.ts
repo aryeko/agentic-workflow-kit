@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -24,6 +24,13 @@ function story(id = 'WK001'): WorkflowStory {
     eligible: true,
     blockedReason: null,
     metadata: { trackId: 'sample', trackTitle: 'Sample', trackerPath: 'docs/tracks/sample/README.md', order: 1 },
+  };
+}
+
+function storyWithPr(pr: string): WorkflowStory {
+  return {
+    ...story(),
+    metadata: { ...story().metadata, pr },
   };
 }
 
@@ -137,6 +144,54 @@ describe('RealGitInspector', () => {
     });
   });
 
+  it('detects merged PR evidence from the tracker PR link and base commit message', async () => {
+    const cwd = repo();
+    const baseShaAtLaunch = git(cwd, ['rev-parse', 'main']);
+    writeFileSync(path.join(cwd, 'merged.txt'), 'merged work\n');
+    git(cwd, ['add', 'merged.txt']);
+    git(cwd, ['commit', '-m', 'Close out workflow story (#88)']);
+
+    const evidence = await new RealGitInspector().inspectStory({
+      story: storyWithPr('[#88](https://github.com/aryeko/pathway/pull/88)'),
+      git: gitPolicy,
+      cwdAbs: cwd,
+      baseShaAtLaunch,
+    });
+
+    expect(evidence).toMatchObject({
+      committed: true,
+      branch: 'main',
+      isBaseBranch: true,
+      mergedPullRequest: {
+        number: 88,
+        url: 'https://github.com/aryeko/pathway/pull/88',
+        mergeCommitSha: evidence.headSha,
+      },
+    });
+  });
+
+  it('does not treat a direct base branch commit as merged PR evidence', async () => {
+    const cwd = repo();
+    const baseShaAtLaunch = git(cwd, ['rev-parse', 'main']);
+    writeFileSync(path.join(cwd, 'direct.txt'), 'direct work\n');
+    git(cwd, ['add', 'direct.txt']);
+    git(cwd, ['commit', '-m', 'Direct story commit']);
+
+    const evidence = await new RealGitInspector().inspectStory({
+      story: storyWithPr('[#88](https://github.com/aryeko/pathway/pull/88)'),
+      git: gitPolicy,
+      cwdAbs: cwd,
+      baseShaAtLaunch,
+    });
+
+    expect(evidence).toMatchObject({
+      committed: true,
+      branch: 'main',
+      isBaseBranch: true,
+      mergedPullRequest: null,
+    });
+  });
+
   it('detects dirty checkout state', async () => {
     const cwd = repo();
     writeFileSync(path.join(cwd, 'dirty.txt'), 'uncommitted\n');
@@ -145,6 +200,18 @@ describe('RealGitInspector', () => {
 
     expect(evidence.committed).toBe(false);
     expect(evidence.uncommittedChanges).toBe(true);
+  });
+
+  it('ignores workflow-kit run artifacts when checking dirty state', async () => {
+    const cwd = repo();
+    const runDir = path.join(cwd, '.codex/agentic-workflow-kit/runs/run-1');
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(path.join(runDir, 'state.json'), '{"status":"running"}\n');
+
+    const evidence = await new RealGitInspector().inspectStory({ story: story(), git: gitPolicy, cwdAbs: cwd });
+
+    expect(evidence.committed).toBe(false);
+    expect(evidence.uncommittedChanges).toBe(false);
   });
 
   it('picks the lexically-first branch when multiple branches match the story slug glob', async () => {

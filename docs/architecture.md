@@ -160,15 +160,36 @@ without touching the tracker/config contract. _Roadmap:_ a future
 this same boundary; today's plugin-provided autopilot still uses the `codex-mcp` child driver. Every run
 Autonomous orchestrator runs write structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
-per-child JSON), and `analyze-run` reconstructs metrics from Codex session logs. Interactive
-`implement-next` journals use the same run directory and can be analyzed when `state.json` contains
-`command: "implement-next"` plus an `interactive` child record. Event journals are also audit
-artifacts: `analyze-run` normalizes legacy `ts` events and newer `eventAt`/`recordedAt` events into
-a deterministic file-order timeline, then derives local pre-PR review mode, downgrades, execution
-blockers, review findings, local fix batches, PR review findings, resolved threads, final
-verification, merge, and cleanup status from the event stream. Local `pre_pr_review_blocked` is
-reserved for review execution failures in new journals; completed reviews that return blocking
-findings use `pre_pr_review_completed` with `verdict: "BLOCK"` or `pre_pr_review_findings`.
+per-child JSON). These runtime artifacts are ignored for completion dirty checks so a run cannot
+make its own completed story look uncommitted. `analyze-run` reconstructs metrics from Codex session
+logs. Interactive `implement-next` journals use the same run directory and can be analyzed when
+`state.json` contains `command: "implement-next"` plus an `interactive` child record.
+
+Child supervision is conservative. A launch-only child in a running parent is not considered
+`supervision_lost` while there is session linkage, a discoverable session log, a recent heartbeat,
+or a not-yet-stale launch timestamp. The parent must not clear state, relaunch, or take over the
+child worktree until staleness is proven; duplicate-launch blocking is the safe default when an
+active launch record remains. Operators should inspect with `watch_run` and `analyze_run` first,
+then either wait for a live child, let a settled child finish through tracker state, or stop and use
+a deliberate recovery procedure rather than editing `state.json`, launch metadata, or tracker rows
+by hand.
+
+Event journals are also audit artifacts: `analyze-run` normalizes legacy `ts` events and newer
+`eventAt`/`recordedAt` events into a deterministic file-order timeline, then derives local pre-PR
+review mode, downgrades, execution blockers, review findings, local fix batches, PR review
+findings, resolved threads, final verification, merge, and cleanup status from the event stream.
+When explicit pre-PR journal events are missing but child session logs are available, `analyze-run`
+also extracts review loops from `spawn_agent`, `wait_agent`, and `close_agent` calls and summarizes
+actual mode, loop status, finding counts, fix batches, and final subagent status. Local
+`pre_pr_review_blocked` is reserved for review execution failures in new journals; completed reviews
+that return blocking findings use `pre_pr_review_completed` with `verdict: "BLOCK"` or
+`pre_pr_review_findings`.
+
+Completion still comes from tracker state, but git evidence is policy-aware. Under
+`git.commitOnBase: forbid`, direct story work on the base branch remains blocked. For configured
+auto-merge flows, a completed tracker row plus commit evidence showing the merge commit already on
+the base branch is accepted as terminal success, because the child has finished the PR/merge policy
+and the story branch may already have been deleted.
 
 ## Story lifecycle
 

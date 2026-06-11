@@ -139,13 +139,31 @@ authority. Run artifacts land under `.codex/agentic-workflow-kit/runs/<runId>/`;
 pnpm agentic-workflow-kit -- analyze-run .codex/agentic-workflow-kit/runs/<runId>
 ```
 
+When a launch looks stuck, inspect before retrying:
+
+```bash
+pnpm agentic-workflow-kit -- watch-run .codex/agentic-workflow-kit/runs/<runId>
+pnpm agentic-workflow-kit -- analyze-run .codex/agentic-workflow-kit/runs/<runId>
+```
+
+Do not edit run artifacts or tracker rows by hand while a child may still be active. Recent
+heartbeats, session ids, session logs, worktree activity, or not-yet-stale launch timestamps mean
+the safe action is to wait or keep observing. If a duplicate active launch blocks a retry, use
+`watch-run` / `analyze-run` output to prove the previous child is stale before any recovery action.
+
 `analyze-run` also accepts compatible interactive `/implement-next` journals written to the same
 run directory shape. When `events.ndjson` is present, the analyzer also reconstructs review
 downgrades, pre-PR review execution blockers, review findings, local fix batches, PR review
 findings, resolved threads, final verification, merge/cleanup status, and the journal-order event
-timeline even if a session log is unavailable. A review that ran and returned `BLOCK` findings is
-reported as a review result; `pre_pr_review_blocked` is reserved for cases where the review step
-could not run.
+timeline even if a session log is unavailable. When session logs are available, the analyzer also
+summarizes pre-PR review subagent loops from `spawn_agent`, `wait_agent`, and `close_agent` calls.
+A review that ran and returned `BLOCK` findings is reported as a review result;
+`pre_pr_review_blocked` is reserved for cases where the review step could not run.
+
+For auto-merge workflows, a story can complete after the PR has already landed: tracker complete
+status plus a merge commit on the configured base branch is accepted as completion evidence even
+when `git.commitOnBase: forbid`. Runtime files under `.codex/agentic-workflow-kit/runs/` are ignored
+for dirty-check purposes.
 
 ## 6. Ship and repeat
 

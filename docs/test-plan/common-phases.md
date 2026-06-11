@@ -103,7 +103,17 @@ Deepest smoke — launches a real Codex child session. Keep it bounded.
    journals when `state.json` contains `command: "implement-next"` and an `interactive` child record.
    Confirm that pre-PR review execution blockers are separate from review findings, local fix
    batches are counted against `implement.review.prePr.maxLoops`, PR review threads/fix batches are
-   reconstructed, and the timeline preserves journal order while exposing recorded/action times.
+   reconstructed, child-session review subagent loops are summarized when explicit pre-PR events are
+   missing, and the timeline preserves journal order while exposing recorded/action times.
+4. For recovery drills, prove a child is stale before clearing or retrying anything. `supervision_lost`
+   requires no settled child result, no recent heartbeat, no session linkage or discoverable session
+   log, and no recent launch/activity evidence. Recent heartbeat or session evidence must keep the
+   run in `running` / launched state.
+5. For auto-merge drills, verify that a completed tracker row plus merge commit on the configured
+   base branch is accepted when `pr.merge.auto: true`, while direct base-branch commits remain
+   blocked when `git.commitOnBase: forbid`.
+6. Confirm dirty-checks ignore `.codex/agentic-workflow-kit/runs/**` runtime artifacts but still
+   block on unrelated uncommitted files in branch strategy.
 
 ## Evidence
 
