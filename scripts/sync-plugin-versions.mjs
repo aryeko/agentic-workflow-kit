@@ -39,7 +39,6 @@ for (const relative of [
   '.mcp.json',
   '.codex-plugin/.mcp.json',
   'plugins/agentic-workflow-kit/.codex-plugin/.mcp.json',
-  'plugins/agentic-workflow-kit/.mcp.json',
 ]) {
   const packageSpecifier = /@agentic-workflow-kit\/orchestrator@[^"]*/g;
   const file = path.join(repoRoot, relative);

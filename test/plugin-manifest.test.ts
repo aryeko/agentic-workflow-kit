@@ -113,7 +113,6 @@ describe('plugin manifests', () => {
     for (const requiredPath of [
       'plugins/agentic-workflow-kit/.codex-plugin/plugin.json',
       'plugins/agentic-workflow-kit/.codex-plugin/.mcp.json',
-      'plugins/agentic-workflow-kit/.mcp.json',
       'plugins/agentic-workflow-kit/skills',
       'plugins/agentic-workflow-kit/references',
       'plugins/agentic-workflow-kit/presets',
@@ -124,6 +123,7 @@ describe('plugin manifests', () => {
         false,
       );
     }
+    expect(existsSync('plugins/agentic-workflow-kit/.mcp.json')).toBe(false);
   });
 
   it('codex local marketplace fixture mirrors the shared plugin source files', () => {

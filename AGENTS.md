@@ -69,8 +69,8 @@ handoff. Report any skipped or failed verification with the exact reason.
   work justifies them.
 - Skill descriptions must be concise and trigger-specific so agents invoke the right skill.
 - Plugin metadata belongs in `.claude-plugin/` and `.codex-plugin/`; MCP plugin wiring belongs in
-  `.mcp.json` and `plugins/agentic-workflow-kit/.mcp.json`; reusable workflow instructions belong
-  in `skills/<name>/SKILL.md`; durable contracts belong in `references/`.
+  root `.mcp.json` for Claude and `.codex-plugin/.mcp.json` for Codex; reusable workflow
+  instructions belong in `skills/<name>/SKILL.md`; durable contracts belong in `references/`.
 - Side-effectful skills (`implement-next`, `workflow-autopilot`) are explicit-invocation-only on
   both the Claude and Codex surfaces.
 - `workflow-init` must remain idempotent: it may reconcile missing config keys and report drift, but

@@ -33,8 +33,8 @@ There is also an automated install + prompt-visibility check (not a runtime smok
 Keep `CODEX_HOME` exported for the whole Codex session, and run that session with **cwd = `$SMOKE`**
 (the throwaway repo) so the skills act there.
 
-Confirm the installed plugin cache contains `.codex-plugin/.mcp.json` and `.mcp.json` (the
-automated smoke does this), and that `.codex-plugin/plugin.json` declares
+Confirm the installed plugin cache contains `.codex-plugin/.mcp.json` (the automated smoke does
+this), and that `.codex-plugin/plugin.json` declares
 `mcpServers: "./.codex-plugin/.mcp.json"`. The Codex MCP manifest should use the plugin-provided
 `mcpServers` shape. In the Codex session, prefer the plugin-provided MCP runtime through
 `workflow-autopilot`; use the standalone CLI only as a fallback or cross-check. The Codex MCP entry
