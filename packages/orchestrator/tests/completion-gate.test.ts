@@ -86,6 +86,7 @@ describe('CompletionGate', () => {
     expect(result.complete).toBe(false);
     if (!result.complete) {
       expect(result.reason).toContain('story source no longer contains it');
+      expect(result.authority).toBe('story-missing');
     }
   });
 
@@ -95,6 +96,7 @@ describe('CompletionGate', () => {
     expect(result.complete).toBe(false);
     if (!result.complete) {
       expect(result.reason).toContain('status is specced');
+      expect(result.authority).toBe('tracker-status-not-complete');
     }
   });
 
@@ -133,6 +135,9 @@ describe('CompletionGate', () => {
     );
     const result = await gate.evaluate(settled(), [story('A001', 'done')]);
     expect(result.complete).toBe(true);
+    if (result.complete) {
+      expect(result.authority).toBe('tracker-complete-story-branch');
+    }
   });
 
   it('returns complete=false when committed on forbidden base branch', async () => {
@@ -142,6 +147,7 @@ describe('CompletionGate', () => {
     expect(result.complete).toBe(false);
     if (!result.complete) {
       expect(result.reason).toBe('complete-on-forbidden-base');
+      expect(result.authority).toBe('forbidden-direct-base-commit');
     }
   });
 
@@ -176,6 +182,9 @@ describe('CompletionGate', () => {
     const result = await gate.evaluate(settled(), [story('A001', 'done')]);
 
     expect(result.complete).toBe(true);
+    if (result.complete) {
+      expect(result.authority).toBe('merged-pr-on-base');
+    }
   });
 
   it('returns complete=false for direct base branch commits even when auto-merge is enabled', async () => {
@@ -211,6 +220,7 @@ describe('CompletionGate', () => {
     expect(result.complete).toBe(false);
     if (!result.complete) {
       expect(result.reason).toBe('complete-on-forbidden-base');
+      expect(result.authority).toBe('forbidden-direct-base-commit');
     }
   });
 
@@ -218,5 +228,8 @@ describe('CompletionGate', () => {
     const gate = new CompletionGate(makeDeps());
     const result = await gate.evaluate(settled(), [story('A001', 'done')]);
     expect(result.complete).toBe(true);
+    if (result.complete) {
+      expect(result.authority).toBe('tracker-complete-story-branch');
+    }
   });
 });

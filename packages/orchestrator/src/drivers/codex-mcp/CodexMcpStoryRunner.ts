@@ -11,7 +11,6 @@ import { buildCodexToolInput } from './toolInput.js';
 
 const VERSION = '0.1.0';
 const STARTUP_TIMEOUT_MS = 30_000;
-const REQUEST_TIMEOUT_MS = 60 * 60 * 1000;
 const RETRIES = 2;
 
 type CodexMcpClient = Pick<Client, 'connect' | 'callTool' | 'listTools' | 'close'>;
@@ -32,8 +31,17 @@ export class CodexMcpStoryRunner implements StoryRunner {
   async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
     return await this.withClient(async (client) => {
       const invocation = buildCodexToolInput(this.config, request.story, request.prompt);
-      const requestTimeoutMs = this.options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS;
-      const totalTimeoutMs = Math.min(requestTimeoutMs, this.config.orchestrator.childTimeoutMs);
+      const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childNoProgressTimeoutMs;
+      const totalTimeoutMs =
+        this.options.requestTimeoutMs === undefined
+          ? this.config.orchestrator.childMaxRuntimeMs
+          : Math.min(this.options.requestTimeoutMs, this.config.orchestrator.childMaxRuntimeMs);
+      const linkedSessionIds = new Set<string>();
+      const reportSessionLinked = async (sessionId: string): Promise<void> => {
+        if (linkedSessionIds.has(sessionId)) return;
+        linkedSessionIds.add(sessionId);
+        await request.onLifecycle?.({ type: 'session-linked', sessionId });
+      };
       const rawResult = await pTimeout(
         client.callTool(
           {
@@ -45,6 +53,15 @@ export class CodexMcpStoryRunner implements StoryRunner {
             timeout: requestTimeoutMs,
             resetTimeoutOnProgress: true,
             maxTotalTimeout: totalTimeoutMs,
+            onprogress: (progress: unknown) => {
+              const sessionId = progressSessionId(progress);
+              if (sessionId) void reportSessionLinked(sessionId);
+              void request.onLifecycle?.({
+                type: 'progress',
+                message: progressMessage(progress),
+                progressToken: progressToken(progress),
+              });
+            },
           },
         ),
         {
@@ -58,6 +75,7 @@ export class CodexMcpStoryRunner implements StoryRunner {
       }
 
       const output = validateCodexToolOutput(rawResult);
+      await reportSessionLinked(output.threadId);
       return {
         storyId: request.story.id,
         sessionId: output.threadId,
@@ -170,6 +188,36 @@ function extractContent(value: unknown): string {
     .filter((block) => isRecord(block) && block.type === 'text' && typeof block.text === 'string')
     .map((block) => (block as { text: string }).text)
     .join('\n');
+}
+
+function progressMessage(value: unknown): string {
+  if (!isRecord(value)) return 'Codex MCP progress';
+  const message = value.message;
+  if (typeof message === 'string' && message.length > 0) return message;
+  const progress = value.progress;
+  if (typeof progress === 'string' && progress.length > 0) return progress;
+  return 'Codex MCP progress';
+}
+
+function progressToken(value: unknown): string | number | null {
+  if (!isRecord(value)) return null;
+  const token = value.progressToken ?? value.progress;
+  return typeof token === 'string' || typeof token === 'number' ? token : null;
+}
+
+function progressSessionId(value: unknown): string | null {
+  if (!isRecord(value)) return null;
+  const direct = value.threadId ?? value.sessionId;
+  if (typeof direct === 'string' && direct.length > 0) return direct;
+  if (isRecord(value.structuredContent)) {
+    const nested = value.structuredContent.threadId ?? value.structuredContent.sessionId;
+    if (typeof nested === 'string' && nested.length > 0) return nested;
+  }
+  if (isRecord(value.metadata)) {
+    const nested = value.metadata.threadId ?? value.metadata.sessionId;
+    if (typeof nested === 'string' && nested.length > 0) return nested;
+  }
+  return null;
 }
 
 function isTransientError(error: unknown): boolean {

@@ -1,5 +1,6 @@
 import path from 'node:path';
 
+import { renderExpectedWorktreePath } from '../../runner/launchMetadata.js';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
 
 export interface CodexToolInput {
@@ -53,11 +54,12 @@ export function buildCodexToolInput(
 
 export function buildGenericPrompt(
   story: WorkflowStory,
-  policy: Pick<ResolvedWorkflowConfig, 'git' | 'implement' | 'pr'>,
+  policy: Pick<ResolvedWorkflowConfig, 'workspace' | 'git' | 'implement' | 'pr'>,
 ): string {
   const { git, implement, pr } = policy;
   const metadata = story.metadata;
   const branchPattern = renderBranchPattern(story, git.branchPattern);
+  const expectedWorktreePath = renderExpectedWorktreePath(policy.workspace.rootAbs, git, story);
   const commitOnBase =
     git.commitOnBase === 'forbid'
       ? `Committing directly on \`${git.baseBranch}\` is forbidden.`
@@ -83,6 +85,7 @@ export function buildGenericPrompt(
     `- Isolation strategy: ${git.strategy}`,
     `- Create/use branch: ${branchPattern} (base: ${git.baseBranch})`,
     git.strategy === 'worktree' ? `- Worktree directory: ${git.worktreeDir} under the workspace root.` : null,
+    expectedWorktreePath ? `- Expected worktree path: ${expectedWorktreePath}` : null,
     `- ${commitOnBase}`,
     '- You MUST create the isolated branch/worktree, commit your work there, and confirm the commit exists BEFORE reporting the story done. An uncommitted tracker edit is not acceptance.',
     '- Do not create story worktrees outside the workspace root unless the repo config explicitly says so.',
@@ -108,15 +111,22 @@ export function buildGenericPrompt(
     '- Workers require disjoint write scopes and explicit permission.',
     '- If pre-PR review mode auto downgrades to inline, record/report the downgrade and use the full review checklist.',
     '- If pre-PR review mode subagent cannot spawn a reviewer, fail closed and report the blocker.',
+    '- Validate `spawn_agent` payloads before calling; use exactly one accepted shape and do not mix message and items.',
+    '- Review context must include product docs, architecture docs, story brief, spec, and plan, and ask for correctness, code quality, and spec compliance.',
     '',
     'Instructions:',
     '1. Read repository instructions first, including AGENTS.md when present.',
     '2. Read the selected tracker row and any linked spec, plan, related docs, or acceptance notes.',
-    '3. Implement only this story. Do not bundle adjacent tracker rows or unrelated cleanup.',
-    '4. Follow the Git policy above and the repository documentation, review, and verification rules.',
-    '5. Update the tracker row through the repository workflow when the story is complete.',
-    '6. The tracker row status is the only completion authority; child prose is not enough.',
-    '7. Report changed files, verification evidence, and blockers.',
+    expectedWorktreePath
+      ? `3. Before editing, run a child preflight: verify cwd, git top-level, current branch, expected worktree path \`${expectedWorktreePath}\`, and configured base branch against the Git policy above.`
+      : '3. Before editing, run a child preflight: verify cwd, git top-level, current branch, expected branch, and configured base branch against the Git policy above.',
+    '4. Implement only this story. Do not bundle adjacent tracker rows or unrelated cleanup.',
+    '5. Follow the Git policy above and the repository documentation, review, and verification rules.',
+    '6. If Browser rendered verification is unavailable or local browser env is missing, fall back to repo Playwright/e2e gates, record the rendered-verification downgrade reason and evidence, and avoid ad hoc browser scripts unless explicitly required.',
+    '7. Do not re-request Codex review after fix batches when rerequestAfterFix is false; reply/resolve findings and continue when configured gates pass.',
+    '8. Update the tracker row through the repository workflow when the story is complete.',
+    '9. The tracker row status is the only completion authority; child prose is not enough.',
+    '10. Report changed files, verification evidence, and blockers.',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');

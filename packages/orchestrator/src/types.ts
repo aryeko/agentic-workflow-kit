@@ -103,7 +103,12 @@ export interface ResolvedWorkflowConfig {
     driver: OrchestratorDriver;
     maxParallel: number;
     stopLaunchingOnBlocked: boolean;
+    /**
+     * Compatibility alias for childNoProgressTimeoutMs.
+     */
     childTimeoutMs: number;
+    childNoProgressTimeoutMs: number;
+    childMaxRuntimeMs: number;
   };
   codex: {
     childSession: ResolvedChildSessionConfig;

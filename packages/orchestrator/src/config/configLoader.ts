@@ -4,6 +4,7 @@ import type { CliOverrides, OrchestratorDriver, ResolvedWorkflowConfig } from '.
 import { loadConfig } from './resolve.js';
 
 const SUPPORTED_DRIVERS = new Set<OrchestratorDriver>(['codex-mcp']);
+const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
 
 export async function loadResolvedConfig(
   overrides: CliOverrides = {},
@@ -18,7 +19,13 @@ export async function loadResolvedConfig(
   const tracksDir = overrides.tracksDir ?? config.paths.tracksDir;
   const archiveDir = config.paths.archiveDir;
   const maxParallel = overrides.maxParallel ?? config.orchestrator.maxParallel;
-  const childTimeoutMs = overrides.childTimeoutMs ?? config.orchestrator.childTimeoutMs;
+  const childNoProgressTimeoutMs =
+    overrides.childTimeoutMs ??
+    (config.orchestrator.childTimeoutMs !== DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS &&
+    config.orchestrator.childNoProgressTimeoutMs === DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS
+      ? config.orchestrator.childTimeoutMs
+      : config.orchestrator.childNoProgressTimeoutMs);
+  const childMaxRuntimeMs = config.orchestrator.childMaxRuntimeMs;
   const childSessionConfig: Record<string, unknown> = {};
   if (overrides.reasoning !== undefined) {
     childSessionConfig.model_reasoning_effort = overrides.reasoning;
@@ -52,7 +59,9 @@ export async function loadResolvedConfig(
       driver,
       maxParallel,
       stopLaunchingOnBlocked: config.orchestrator.stopLaunchingOnBlocked,
-      childTimeoutMs,
+      childTimeoutMs: childNoProgressTimeoutMs,
+      childNoProgressTimeoutMs,
+      childMaxRuntimeMs,
     },
     codex: {
       childSession: {
@@ -121,6 +130,8 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       maxParallel: 2,
       stopLaunchingOnBlocked: true,
       childTimeoutMs: 1_800_000,
+      childNoProgressTimeoutMs: 1_800_000,
+      childMaxRuntimeMs: 7_200_000,
     },
     codex: {
       childSession: { cwdAbs: workspaceRoot },

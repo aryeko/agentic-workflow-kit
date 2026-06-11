@@ -5,6 +5,8 @@ const nonEmpty = z.string().min(1);
 const repoRelativePath = nonEmpty.refine((value) => !path.isAbsolute(value) && !value.split(/[\\/]+/).includes('..'), {
   message: 'must be a repo-relative path that does not contain .. segments',
 });
+const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
+const DEFAULT_CHILD_MAX_RUNTIME_MS = 7_200_000;
 
 export const ConfigSchema = z
   .object({
@@ -113,7 +115,9 @@ export const ConfigSchema = z
         driver: nonEmpty.default('codex-mcp'),
         maxParallel: z.number().int().min(1).default(2),
         stopLaunchingOnBlocked: z.boolean().default(true),
-        childTimeoutMs: z.number().int().min(1).default(1_800_000),
+        childTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS),
+        childNoProgressTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS),
+        childMaxRuntimeMs: z.number().int().min(1).default(DEFAULT_CHILD_MAX_RUNTIME_MS),
       })
       .strict()
       .prefault({}),

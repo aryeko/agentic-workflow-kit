@@ -159,4 +159,12 @@ Consulted only when the orchestrator package is installed.
 | `driver` | string | `codex-mcp` | Child-session driver. WK4 v1 supports `codex-mcp` only; future drivers may extend this value without changing tracker semantics. |
 | `maxParallel` | integer | `2` | Max concurrent child sessions. |
 | `stopLaunchingOnBlocked` | boolean | `true` | Stop launching when a child returns incomplete. |
-| `childTimeoutMs` | integer | `1800000` | Per-child wall-clock timeout before the run is blocked with a failure record. |
+| `childTimeoutMs` | integer | `1800000` | Compatibility alias for `childNoProgressTimeoutMs`. Existing configs can keep using it. |
+| `childNoProgressTimeoutMs` | integer | `1800000` | Per-child no-progress timeout. Child session linkage, MCP progress, or child progress events reset this timer. |
+| `childMaxRuntimeMs` | integer | `7200000` | Per-child wall-clock maximum runtime. The wall-clock maximum still bounds total child runtime even when progress resets the no-progress timeout. |
+
+Use `childNoProgressTimeoutMs` to detect silent or supervision-lost children. Progress resets the
+no-progress timeout, but it never extends `childMaxRuntimeMs`. Full PR/review/merge stories commonly
+need a larger wall-clock maximum than the old 30 minute `childTimeoutMs` default because healthy
+progress can include implementation, verification, PR creation, review wait, fix batches, merge, and
+cleanup.

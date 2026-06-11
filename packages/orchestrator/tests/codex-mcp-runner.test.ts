@@ -47,7 +47,14 @@ function config(): ResolvedWorkflowConfig {
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
-    orchestrator: { driver: 'codex-mcp', maxParallel: 2, stopLaunchingOnBlocked: true, childTimeoutMs: 1_800_000 },
+    orchestrator: {
+      driver: 'codex-mcp',
+      maxParallel: 2,
+      stopLaunchingOnBlocked: true,
+      childTimeoutMs: 1_800_000,
+      childNoProgressTimeoutMs: 1_800_000,
+      childMaxRuntimeMs: 7_200_000,
+    },
     codex: { childSession: { cwdAbs: '/repo' } },
   };
 }
@@ -69,11 +76,12 @@ class FakeClient {
   closed = false;
   connectCalls = 0;
   callToolCalls = 0;
+  callToolOptions: unknown[] = [];
 
   constructor(
     private readonly behavior: {
       connect?: () => Promise<void>;
-      callTool?: () => Promise<unknown>;
+      callTool?: (options?: unknown) => Promise<unknown>;
       listTools?: () => Promise<unknown>;
     },
   ) {}
@@ -83,9 +91,10 @@ class FakeClient {
     await this.behavior.connect?.();
   }
 
-  async callTool(): Promise<unknown> {
+  async callTool(_request?: unknown, _resultSchema?: unknown, options?: unknown): Promise<unknown> {
     this.callToolCalls += 1;
-    return await this.behavior.callTool?.();
+    this.callToolOptions.push(options);
+    return await this.behavior.callTool?.(options);
   }
 
   async listTools(): Promise<unknown> {
@@ -214,10 +223,10 @@ describe('CodexMcpStoryRunner', () => {
     expect(client.closed).toBe(true);
   });
 
-  it('caps total wait at childTimeoutMs when it is smaller than requestTimeoutMs', async () => {
+  it('caps total wait at childMaxRuntimeMs when it is smaller than requestTimeoutMs', async () => {
     const client = new FakeClient({ callTool: async () => await new Promise(() => undefined) });
-    // requestTimeoutMs = 60_000, childTimeoutMs = 5 → total cap should be 5ms
-    const cfg = { ...config(), orchestrator: { ...config().orchestrator, childTimeoutMs: 5 } };
+    // requestTimeoutMs = 60_000, childMaxRuntimeMs = 5 -> total cap should be 5ms.
+    const cfg = { ...config(), orchestrator: { ...config().orchestrator, childMaxRuntimeMs: 5 } };
     const runner = new CodexMcpStoryRunner(cfg, {
       retries: 0,
       requestTimeoutMs: 60_000,
@@ -228,6 +237,52 @@ describe('CodexMcpStoryRunner', () => {
       'Codex MCP request timed out',
     );
     expect(client.closed).toBe(true);
+  });
+
+  it('allows the configured childMaxRuntimeMs to exceed the built-in request timeout', async () => {
+    const client = new FakeClient({ callTool: async () => validResult });
+    const runner = new CodexMcpStoryRunner(config(), {
+      retries: 0,
+      createClient: () => ({ client: client as never, transport: {} as never }),
+    });
+
+    await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} });
+
+    expect(client.callToolOptions[0]).toMatchObject({
+      timeout: 1_800_000,
+      maxTotalTimeout: 7_200_000,
+      resetTimeoutOnProgress: true,
+    });
+  });
+
+  it('persists session linkage from progress before the final tool result returns', async () => {
+    const client = new FakeClient({
+      callTool: async (options) => {
+        (options as { onprogress?: (value: unknown) => void }).onprogress?.({
+          threadId: 'thread-progress',
+          message: 'thread created',
+        });
+        return validResult;
+      },
+    });
+    const lifecycle: unknown[] = [];
+    const runner = new CodexMcpStoryRunner(config(), {
+      retries: 0,
+      createClient: () => ({ client: client as never, transport: {} as never }),
+    });
+
+    const result = await runner.runStory({
+      story: story(),
+      prompt: 'prompt',
+      cwd: '/repo',
+      metadata: {},
+      onLifecycle: async (event) => {
+        lifecycle.push(event);
+      },
+    });
+
+    expect(result.sessionId).toBe('thread-a001');
+    expect(lifecycle).toContainEqual({ type: 'session-linked', sessionId: 'thread-progress' });
   });
 
   it('does not retry a missing codex binary', async () => {

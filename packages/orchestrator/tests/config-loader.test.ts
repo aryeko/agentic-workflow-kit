@@ -70,6 +70,8 @@ orchestrator:
       maxParallel: 3,
       stopLaunchingOnBlocked: false,
       childTimeoutMs: 9000,
+      childNoProgressTimeoutMs: 9000,
+      childMaxRuntimeMs: 7_200_000,
     });
     expect(config.git).toEqual({
       strategy: 'worktree',
@@ -127,6 +129,8 @@ orchestrator:
       worktreeDir: '.worktrees',
     });
     expect(config.orchestrator.childTimeoutMs).toBe(84);
+    expect(config.orchestrator.childNoProgressTimeoutMs).toBe(84);
+    expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
   });
 
   it('resolves configured git.worktreeDir', async () => {
@@ -171,6 +175,8 @@ git:
     expect(config.orchestrator.maxParallel).toBe(2);
     expect(config.orchestrator.stopLaunchingOnBlocked).toBe(true);
     expect(config.orchestrator.childTimeoutMs).toBe(1_800_000);
+    expect(config.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
+    expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
     expect(config.git).toEqual({
       strategy: 'worktree',
       branchPattern: '{track}/{id-lc}-{slug}',
@@ -226,6 +232,43 @@ git:
     });
   });
 
+  it('resolves legacy childTimeoutMs as the no-progress timeout', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-legacy-timeout-'));
+    await writeWorkflowConfig(
+      root,
+      `
+version: 1
+orchestrator:
+  childTimeoutMs: 60000
+`,
+    );
+
+    const config = await loadResolvedConfig({}, root);
+
+    expect(config.orchestrator.childTimeoutMs).toBe(60_000);
+    expect(config.orchestrator.childNoProgressTimeoutMs).toBe(60_000);
+    expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
+  });
+
+  it('resolves explicit no-progress and wall-clock child timeouts', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-split-timeout-'));
+    await writeWorkflowConfig(
+      root,
+      `
+version: 1
+orchestrator:
+  childNoProgressTimeoutMs: 120000
+  childMaxRuntimeMs: 3600000
+`,
+    );
+
+    const config = await loadResolvedConfig({}, root);
+
+    expect(config.orchestrator.childTimeoutMs).toBe(120_000);
+    expect(config.orchestrator.childNoProgressTimeoutMs).toBe(120_000);
+    expect(config.orchestrator.childMaxRuntimeMs).toBe(3_600_000);
+  });
+
   it('rejects unsupported drivers early', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-driver-'));
     await writeWorkflowConfig(root, 'version: 1\norchestrator:\n  driver: claude-mcp\n');
@@ -243,6 +286,8 @@ git:
     expect(config.workspace.rootAbs).toBe(root);
     expect(config.codex.childSession.cwdAbs).toBe(root);
     expect(config.orchestrator.childTimeoutMs).toBe(1_800_000);
+    expect(config.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
+    expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
     expect(config.git).toEqual({
       strategy: 'worktree',
       branchPattern: '{track}/{id-lc}-{slug}',

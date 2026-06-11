@@ -345,6 +345,18 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
+        },
+        "childNoProgressTimeoutMs": {
+          "default": 1800000,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "childMaxRuntimeMs": {
+          "default": 7200000,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
         }
       },
       "additionalProperties": false

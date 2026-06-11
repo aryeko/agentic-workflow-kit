@@ -54,3 +54,5 @@ orchestrator:
   maxParallel: 2
   stopLaunchingOnBlocked: true
   childTimeoutMs: 1800000
+  childNoProgressTimeoutMs: 1800000
+  childMaxRuntimeMs: 7200000

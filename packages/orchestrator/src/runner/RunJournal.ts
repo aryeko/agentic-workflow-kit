@@ -25,6 +25,7 @@ export interface SettledStoryRun {
   metrics?: ChildMetricsSnapshot;
   commitEvidence?: StoryCommitEvidence;
   baseShaAtLaunch?: string | null;
+  completionAuthority?: string;
 }
 
 export interface RunJournalDependencies {
