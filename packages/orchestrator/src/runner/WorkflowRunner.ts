@@ -63,6 +63,7 @@ export class WorkflowRunner {
       gitInspector: dependencies.gitInspector,
       statuses: dependencies.config.statuses,
       git: dependencies.config.git,
+      pr: dependencies.config.pr,
       childCwdAbs: dependencies.config.codex.childSession.cwdAbs,
     });
     this.state = {

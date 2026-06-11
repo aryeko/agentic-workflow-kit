@@ -41,9 +41,7 @@ describe('launch metadata helpers', () => {
   });
 
   it('renders repo-local worktree paths for worktree strategy', () => {
-    expect(renderExpectedWorktreePath('/repo', git, story())).toBe(
-      '/repo/.worktrees/track-one/a001-add-launch-metadata',
-    );
+    expect(renderExpectedWorktreePath('/repo', git, story())).toBe('/repo/.worktrees/a001-add-launch-metadata');
   });
 
   it('does not render a worktree path for branch strategy', () => {

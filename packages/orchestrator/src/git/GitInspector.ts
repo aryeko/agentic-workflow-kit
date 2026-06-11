@@ -11,6 +11,7 @@ export interface StoryCommitEvidence {
   headSha: string | null;
   baseSha: string | null;
   uncommittedChanges: boolean;
+  uncommittedPaths?: string[];
 }
 
 export interface GitInspector {
@@ -45,7 +46,10 @@ export class RealGitInspector implements GitInspector {
     // inspected root checkout stays on the base branch while the child commits on a sibling worktree's
     // story branch, so the inspected checkout's own HEAD must not contaminate this judgement.
     const isBaseBranch = inspectedBranch === args.git.baseBranch;
-    const uncommittedChanges = (await gitOutput(args.cwdAbs, ['status', '--porcelain'])).length > 0;
+    const uncommittedPaths = dirtyPathsFromStatus(
+      await gitOutput(args.cwdAbs, ['status', '--porcelain', '--untracked-files=all']),
+    ).filter((dirtyPath) => !isWorkflowRuntimeArtifactPath(dirtyPath));
+    const uncommittedChanges = uncommittedPaths.length > 0;
     const comparisonBase = args.baseShaAtLaunch ?? baseSha;
     const commitCount =
       inspectedBranch && comparisonBase
@@ -61,6 +65,7 @@ export class RealGitInspector implements GitInspector {
       headSha,
       baseSha,
       uncommittedChanges,
+      uncommittedPaths,
     };
   }
 }
@@ -96,6 +101,22 @@ function parseCommitCount(value: string | null): number {
   if (value === null) return 0;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function dirtyPathsFromStatus(status: string): string[] {
+  if (status.length === 0) return [];
+  return status
+    .split('\n')
+    .map((line) => line.slice(3).trim())
+    .filter(Boolean)
+    .flatMap((dirtyPath) => {
+      const renamed = dirtyPath.split(' -> ');
+      return renamed.length === 2 ? renamed : [dirtyPath];
+    });
+}
+
+function isWorkflowRuntimeArtifactPath(dirtyPath: string): boolean {
+  return dirtyPath.replaceAll('\\', '/').startsWith('.codex/agentic-workflow-kit/runs/');
 }
 
 async function gitOutput(cwd: string, args: string[]): Promise<string> {

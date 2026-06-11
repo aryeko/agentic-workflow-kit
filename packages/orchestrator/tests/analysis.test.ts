@@ -118,6 +118,216 @@ describe('analyzeWorkflowRun', () => {
     expect(analysis.issues).toContain('A001 has launch metadata but no settled child result');
   });
 
+  it('does not classify a launch-only child with recent heartbeat as supervision_lost', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-active-launch-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-1', status: 'running', active: ['A001'] }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({ orchestrator: { childTimeoutMs: 1_800_000 } }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'A001.launch.json'),
+      JSON.stringify({
+        storyId: 'A001',
+        launchId: 'launch-a001',
+        status: 'launched',
+        expectedBranch: 't/a001-story',
+        expectedWorktreePath: '/repo/.worktrees/t/a001-story',
+        startedAt: '2026-06-11T00:00:00.000Z',
+        lastHeartbeatAt: '2026-06-11T00:20:00.000Z',
+        sessionId: null,
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'events.ndjson'),
+      JSON.stringify({
+        type: 'child-heartbeat',
+        storyId: 'A001',
+        launchId: 'launch-a001',
+        eventAt: '2026-06-11T00:20:00.000Z',
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, {
+      sessionRoots: [],
+      now: '2026-06-11T00:25:00.000Z',
+    });
+
+    expect(analysis.derivedStatus).toBe('running');
+    expect(analysis.children[0]).toMatchObject({
+      storyId: 'A001',
+      status: 'launched',
+      expectedBranch: 't/a001-story',
+    });
+    expect(analysis.issues).not.toContain('A001 has launch metadata but no settled child result');
+  });
+
+  it('does not classify a launch-only child with recent worktree activity as supervision_lost', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-active-worktree-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    const worktreePath = path.join(root, '.worktrees', 'a001-story');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await mkdir(worktreePath, { recursive: true });
+    await writeFile(path.join(worktreePath, 'notes.md'), 'recent child activity\n');
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-1', status: 'running', active: ['A001'] }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({ orchestrator: { childTimeoutMs: 1_800_000 } }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'A001.launch.json'),
+      JSON.stringify({
+        storyId: 'A001',
+        launchId: 'launch-a001',
+        status: 'launched',
+        expectedBranch: 't/a001-story',
+        expectedWorktreePath: worktreePath,
+        startedAt: '2026-06-11T00:00:00.000Z',
+        lastHeartbeatAt: null,
+        sessionId: null,
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, {
+      sessionRoots: [],
+      now: new Date().toISOString(),
+    });
+
+    expect(analysis.derivedStatus).toBe('running');
+    expect(analysis.children[0]).toMatchObject({ storyId: 'A001', status: 'launched' });
+  });
+
+  it('reconstructs pre-PR review loops from child session subagent tool calls', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-session-review-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    const sessionRoot = path.join(root, 'sessions');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await mkdir(sessionRoot, { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-1', status: 'blocked', blockedReason: null }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        implement: {
+          review: { prePr: { enabled: true, mode: 'subagent', maxLoops: 2, loopMode: 'incremental' } },
+        },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'A001.json'),
+      JSON.stringify({ storyId: 'A001', ok: true, sessionId: 'thread-a001' }),
+    );
+    await writeFile(
+      path.join(sessionRoot, 'a001.jsonl'),
+      [
+        JSON.stringify({ type: 'session_meta', payload: { id: 'thread-a001' } }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'spawn_agent',
+            call_id: 'spawn-1',
+            arguments: JSON.stringify({
+              agent_type: 'default',
+              prompt: 'Run the configured pre-PR review for A001.',
+            }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'spawn-1',
+            output: JSON.stringify({ agent_path: 'agent-review-1' }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'close_agent',
+            call_id: 'close-1',
+            arguments: JSON.stringify({ target: 'agent-review-1' }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'close-1',
+            output: JSON.stringify({
+              previous_status: {
+                completed:
+                  '**Findings**\n\n- **Medium** tests/docs/traceability.test.ts: Missing durable verification evidence.\n- **Low** docs/closeout.md: Stale follow-up note.',
+              },
+            }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'spawn_agent',
+            call_id: 'spawn-2',
+            arguments: JSON.stringify({
+              agent_type: 'default',
+              prompt: 'Run the incremental pre-PR review after fixes.',
+            }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'spawn-2',
+            output: JSON.stringify({ agent_path: 'agent-review-2' }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'wait_agent',
+            call_id: 'wait-2',
+            arguments: JSON.stringify({ target: 'agent-review-2' }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'wait-2',
+            output: JSON.stringify({ status: { completed: 'No findings.\n\nRan focused traceability tests.' } }),
+          },
+        }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [sessionRoot] });
+
+    expect(analysis.review.prePr).toMatchObject({
+      requestedMode: 'subagent',
+      actualMode: 'subagent',
+      status: 'passed',
+      fixBatchCount: 1,
+      subagent: { agentId: 'agent-review-2', status: 'passed' },
+      loops: [
+        { loop: 1, mode: 'subagent', status: 'findings', findings: 2 },
+        { loop: 2, mode: 'subagent', status: 'passed', findings: 0 },
+      ],
+    });
+  });
+
   it('reconstructs review and merge evidence from interactive events without session metadata', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-events-'));
     const runDir = path.join(root, 'runs', 'run-1');

@@ -13,12 +13,7 @@ export function renderExpectedWorktreePath(
   story: WorkflowStory,
 ): string | null {
   if (git.strategy !== 'worktree') return null;
-  return path.join(
-    workspaceRoot,
-    git.worktreeDir,
-    story.metadata.trackId,
-    `${story.id.toLowerCase()}-${slugify(story.title)}`,
-  );
+  return path.join(workspaceRoot, git.worktreeDir, `${story.id.toLowerCase()}-${slugify(story.title)}`);
 }
 
 export function buildLaunchId(storyId: string, startedAt: string): string {

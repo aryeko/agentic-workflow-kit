@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -145,6 +145,18 @@ describe('RealGitInspector', () => {
 
     expect(evidence.committed).toBe(false);
     expect(evidence.uncommittedChanges).toBe(true);
+  });
+
+  it('ignores workflow-kit run artifacts when checking dirty state', async () => {
+    const cwd = repo();
+    const runDir = path.join(cwd, '.codex/agentic-workflow-kit/runs/run-1');
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(path.join(runDir, 'state.json'), '{"status":"running"}\n');
+
+    const evidence = await new RealGitInspector().inspectStory({ story: story(), git: gitPolicy, cwdAbs: cwd });
+
+    expect(evidence.committed).toBe(false);
+    expect(evidence.uncommittedChanges).toBe(false);
   });
 
   it('picks the lexically-first branch when multiple branches match the story slug glob', async () => {

@@ -61,6 +61,19 @@ function makeDeps(overrides: Partial<CompletionGateDeps> = {}): CompletionGateDe
       commitOnBase: 'forbid',
       worktreeDir: '.worktrees',
     },
+    pr: {
+      create: true,
+      ci: { wait: false, command: null },
+      review: {
+        wait: 'none',
+        bot: 'none',
+        triageComments: false,
+        maxFixBatches: 1,
+        rerequestAfterFix: false,
+        waitTimeoutMinutes: 30,
+      },
+      merge: { auto: false, method: 'squash', deleteBranch: true },
+    },
     childCwdAbs: '/repo',
     ...overrides,
   };
@@ -130,6 +143,38 @@ describe('CompletionGate', () => {
     if (!result.complete) {
       expect(result.reason).toBe('complete-on-forbidden-base');
     }
+  });
+
+  it('returns complete=true when auto-merge evidence is already on the base branch', async () => {
+    const mergedEvidence: StoryCommitEvidence = {
+      ...goodEvidence,
+      branch: 'main',
+      isBaseBranch: true,
+      headSha: 'merge-sha',
+      baseSha: 'merge-sha',
+    };
+    const gate = new CompletionGate(
+      makeDeps({
+        gitInspector: new FakeGitInspector(mergedEvidence),
+        pr: {
+          create: true,
+          ci: { wait: false, command: null },
+          review: {
+            wait: 'bot',
+            bot: 'codex',
+            triageComments: true,
+            maxFixBatches: 1,
+            rerequestAfterFix: false,
+            waitTimeoutMinutes: 30,
+          },
+          merge: { auto: true, method: 'squash', deleteBranch: true },
+        },
+      }),
+    );
+
+    const result = await gate.evaluate(settled(), [story('A001', 'done')]);
+
+    expect(result.complete).toBe(true);
   });
 
   it('returns complete=true when evidence shows committed on story branch', async () => {
