@@ -193,7 +193,7 @@ The repository includes local-only plugin metadata for development testing:
 - Codex: `.agents/plugins/marketplace.json` is the marketplace manifest — the same one a public
   `codex plugin marketplace add aryeko/agentic-workflow-kit` reads. Locally you add it from the repo
   directory; it points at the materialized fixture at `./plugins/agentic-workflow-kit`, including
-  the fixture-specific MCP manifest. The Codex plugin manifest declares
+  the fixture-specific `.codex-plugin/.mcp.json` MCP manifest. The Codex plugin manifest declares
   `mcpServers: "./.codex-plugin/.mcp.json"`; that file uses Codex's `mcpServers` shape so Codex can
   launch the package MCP server without reusing Claude Code's root `.mcp.json`. Both plugin surfaces
   run `npx -y --package @agentic-workflow-kit/orchestrator@<exact-version> agentic-workflow-kit-mcp`.

@@ -34,7 +34,7 @@ describe('codex local plugin smoke', () => {
 
     expect(existsSync(path.join(installedRoot, '.codex-plugin/plugin.json'))).toBe(true);
     expect(existsSync(path.join(installedRoot, '.codex-plugin/.mcp.json'))).toBe(true);
-    expect(existsSync(path.join(installedRoot, '.mcp.json'))).toBe(true);
+    expect(existsSync(path.join(installedRoot, '.mcp.json'))).toBe(false);
     expect(existsSync(path.join(installedRoot, 'mcp/server.mjs'))).toBe(false);
     const installedManifest = JSON.parse(readFileSync(path.join(installedRoot, '.codex-plugin/plugin.json'), 'utf8'));
     const installedMcp = JSON.parse(readFileSync(path.join(installedRoot, installedManifest.mcpServers), 'utf8'));
