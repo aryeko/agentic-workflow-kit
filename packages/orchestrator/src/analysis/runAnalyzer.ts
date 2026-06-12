@@ -199,15 +199,16 @@ export async function analyzeWorkflowRun(
         : typeof child.threadId === 'string'
           ? child.threadId
           : null;
-    const explicitSessionLogPath =
-      typeof child.sessionLogPath === 'string' && (await pathExists(child.sessionLogPath))
-        ? child.sessionLogPath
-        : null;
-    const sessionLogPath = explicitSessionLogPath ?? (sessionId ? (logsBySession.get(sessionId) ?? null) : null);
+    const explicitSessionLogPath = typeof child.sessionLogPath === 'string' ? child.sessionLogPath : null;
+    const readableExplicitSessionLogPath =
+      explicitSessionLogPath !== null && (await pathExists(explicitSessionLogPath)) ? explicitSessionLogPath : null;
+    const discoveredSessionLogPath = sessionId ? (logsBySession.get(sessionId) ?? null) : null;
+    const sessionLogPath = explicitSessionLogPath ?? discoveredSessionLogPath;
     const storyId = readString(child.storyId, 'child.storyId');
     const diagnosticSessionCandidates = diagnosticCandidatesForStory(events, storyId);
     const diagnosticSessionLogPath =
-      sessionLogPath ??
+      readableExplicitSessionLogPath ??
+      discoveredSessionLogPath ??
       diagnosticSessionCandidates
         .map((candidate) => logsBySession.get(candidate.sessionId) ?? null)
         .find((candidatePath) => candidatePath !== null) ??
@@ -246,7 +247,7 @@ export async function analyzeWorkflowRun(
             ? 'diagnostic_candidate_only'
             : 'unlinked',
       diagnosticSessionCandidates,
-      metricsStatus: childMetricsStatus(sessionId, sessionLogPath),
+      metricsStatus: childMetricsStatus(sessionId, diagnosticSessionLogPath),
       status,
       expectedBranch: typeof child.expectedBranch === 'string' ? child.expectedBranch : null,
       expectedWorktreePath,
