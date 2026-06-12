@@ -16,10 +16,11 @@ export function buildCodexToolInput(
   config: ResolvedWorkflowConfig,
   story: WorkflowStory,
   prompt = buildGenericPrompt(story, config),
+  cwdAbs = config.codex.childSession.cwdAbs,
 ): CodexToolInput {
   const childSession = config.codex.childSession;
   const input: CodexToolInput = {
-    cwd: childSession.cwdAbs,
+    cwd: cwdAbs,
     prompt,
   };
 

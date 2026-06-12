@@ -176,6 +176,7 @@ class DeferredRunner implements StoryRunner {
       type: 'session-linked',
       sessionId: `thread-${request.story.id.toLowerCase()}`,
       sessionLogPath: `/sessions/${request.story.id.toLowerCase()}.jsonl`,
+      progressSource: 'session-linked',
     });
     return await pending;
   }
@@ -223,6 +224,7 @@ class ManualLifecycleRunner implements StoryRunner {
       type: 'session-linked',
       sessionId: `thread-${storyId.toLowerCase()}`,
       sessionLogPath: `/sessions/${storyId.toLowerCase()}.jsonl`,
+      progressSource: 'session-linked',
     });
   }
 
@@ -248,6 +250,7 @@ class LifecycleRunner implements StoryRunner {
       type: 'session-linked',
       sessionId: `thread-${request.story.id.toLowerCase()}`,
       sessionLogPath: `/sessions/${request.story.id.toLowerCase()}.jsonl`,
+      progressSource: 'session-linked',
     });
     return await new Promise<StoryRunResult>((resolve) => {
       this.resolveChild = resolve;
@@ -257,7 +260,7 @@ class LifecycleRunner implements StoryRunner {
   async emitProgress(message: string): Promise<void> {
     const request = this.requests[0];
     if (!request) throw new Error('No request started');
-    await request.onLifecycle?.({ type: 'progress', message });
+    await request.onLifecycle?.({ type: 'progress', message, progressSource: 'mcp-progress' });
   }
 
   resolve(storyId: string): void {
@@ -268,6 +271,37 @@ class LifecycleRunner implements StoryRunner {
       rawResult: {},
       invocation: {},
     });
+  }
+
+  async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
+    return { ok: true, tools: ['codex'] };
+  }
+}
+
+class CodexEventLifecycleRunner implements StoryRunner {
+  requests: StoryRunRequest[] = [];
+
+  async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
+    this.requests.push(request);
+    await request.onLifecycle?.({
+      type: 'session-linked',
+      sessionId: `thread-${request.story.id.toLowerCase()}`,
+      sessionLogPath: `/sessions/${request.story.id.toLowerCase()}.jsonl`,
+      progressSource: 'codex-event',
+    });
+    await request.onLifecycle?.({
+      type: 'progress',
+      message: 'codex event: exec_command_begin',
+      progressSource: 'codex-event',
+      eventType: 'exec_command_begin',
+    });
+    return {
+      storyId: request.story.id,
+      sessionId: `thread-${request.story.id.toLowerCase()}`,
+      content: 'ok',
+      rawResult: {},
+      invocation: {},
+    };
   }
 
   async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
@@ -470,6 +504,45 @@ describe('WorkflowRunner', () => {
     );
     expect(artifacts.events.map((event) => event.type)).toContain('child-complete');
     expect(artifacts.json.has('metrics.live.json')).toBe(true);
+  });
+
+  it('records codex-event progress source in launch records and journal events', async () => {
+    const artifacts = new MemoryArtifacts();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner: new CodexEventLifecycleRunner(),
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    await runner.runStory('A001');
+
+    expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+      status: 'settled',
+      sessionId: 'thread-a001',
+      sessionLogPath: '/sessions/a001.jsonl',
+      progressSource: 'codex-event',
+      lastObservedChildProgressAt: expect.any(String),
+      lastHeartbeatAt: expect.any(String),
+    });
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'child-session-linked',
+        progressSource: 'codex-event',
+      }),
+    );
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'child-progress',
+        progressSource: 'codex-event',
+        eventType: 'exec_command_begin',
+      }),
+    );
   });
 
   it('blocks when child returns but tracker row is not complete', async () => {

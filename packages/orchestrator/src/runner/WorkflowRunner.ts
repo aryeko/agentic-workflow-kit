@@ -2,7 +2,7 @@ import path from 'node:path';
 import pLimit from 'p-limit';
 
 import { buildGenericPrompt } from '../drivers/codex-mcp/toolInput.js';
-import type { ChildLifecycleEvent, StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
+import type { ChildLifecycleEvent, ChildProgressSource, StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
 import type { GitInspector } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
@@ -485,7 +485,12 @@ export class WorkflowRunner {
 
     const acknowledgeStartup = async (
       fields: Partial<ChildLaunchRecord>,
-      event: { type: 'session-linked'; sessionId: string; sessionLogPath: string | null } | null = null,
+      event: {
+        type: 'session-linked';
+        sessionId: string;
+        sessionLogPath: string | null;
+        progressSource: ChildProgressSource;
+      } | null = null,
     ): Promise<void> => {
       if (terminalStartupFailure || childAbortController.signal.aborted) return;
       const progressAt = this.dependencies.clock.now();
@@ -524,6 +529,7 @@ export class WorkflowRunner {
           launchId: launch.record.launchId,
           sessionId: event.sessionId,
           sessionLogPath: event.sessionLogPath,
+          progressSource: event.progressSource,
         });
       }
       if (!startupSettled) {
@@ -542,20 +548,26 @@ export class WorkflowRunner {
           {
             sessionId: event.sessionId,
             sessionLogPath: event.sessionLogPath ?? null,
-            progressSource: 'session-linked',
+            progressSource: event.progressSource,
           },
-          { type: 'session-linked', sessionId: event.sessionId, sessionLogPath: event.sessionLogPath ?? null },
+          {
+            type: 'session-linked',
+            sessionId: event.sessionId,
+            sessionLogPath: event.sessionLogPath ?? null,
+            progressSource: event.progressSource,
+          },
         );
         return;
       }
 
-      await acknowledgeStartup({ progressSource: 'mcp-progress' });
+      await acknowledgeStartup({ progressSource: event.progressSource });
       await this.journal.record('child-progress', {
         storyId: story.id,
         launchId: launch.record.launchId,
         message: event.message,
         progressToken: event.progressToken ?? null,
-        progressSource: 'mcp-progress',
+        progressSource: event.progressSource,
+        eventType: event.eventType ?? null,
         elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
       });
     };
@@ -601,7 +613,7 @@ export class WorkflowRunner {
       await this.journal.updateChildLaunch(launch.record, {
         status: 'settled',
         sessionId: result.sessionId,
-        sessionLogPath: result.metrics?.sessionLogPath ?? null,
+        sessionLogPath: result.metrics?.sessionLogPath ?? launch.record.sessionLogPath,
       });
       return {
         storyId: story.id,

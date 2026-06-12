@@ -5,7 +5,9 @@ import pTimeout from 'p-timeout';
 
 import { isRecord } from '../../internal/guards.js';
 import type { ChildResultEvidence, ResolvedWorkflowConfig, VerificationEvidence } from '../../types.js';
+import type { ChildProgressSource } from '../StoryRunner.js';
 import type { DriverToolStatus, StoryRunner, StoryRunRequest, StoryRunResult } from '../StoryRunner.js';
+import { codexProgressMessage, parseCodexEventNotification } from './codexEvents.js';
 import { type McpTool, validateCodexToolSchemas } from './schemaValidation.js';
 import { buildCodexToolInput } from './toolInput.js';
 
@@ -13,7 +15,7 @@ const VERSION = '0.1.0';
 const STARTUP_TIMEOUT_MS = 30_000;
 const RETRIES = 2;
 
-type CodexMcpClient = Pick<Client, 'connect' | 'callTool' | 'listTools' | 'close'>;
+type CodexMcpClient = Pick<Client, 'connect' | 'callTool' | 'listTools' | 'close' | 'fallbackNotificationHandler'>;
 
 export interface CodexMcpStoryRunnerOptions {
   startupTimeoutMs?: number;
@@ -31,18 +33,40 @@ export class CodexMcpStoryRunner implements StoryRunner {
   async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
     return await this.withClient(async (client) => {
       request.signal?.throwIfAborted();
-      const invocation = buildCodexToolInput(this.config, request.story, request.prompt);
+      const invocation = buildCodexToolInput(this.config, request.story, request.prompt, request.cwd);
       const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childNoProgressTimeoutMs;
       const totalTimeoutMs =
         this.options.requestTimeoutMs === undefined
           ? this.config.orchestrator.childMaxRuntimeMs
           : Math.min(this.options.requestTimeoutMs, this.config.orchestrator.childMaxRuntimeMs);
       const linkedSessionIds = new Set<string>();
-      const reportSessionLinked = async (sessionId: string): Promise<void> => {
+      const reportSessionLinked = async (
+        sessionId: string,
+        sessionLogPath: string | null,
+        progressSource: ChildProgressSource,
+      ): Promise<void> => {
         if (request.signal?.aborted) return;
         if (linkedSessionIds.has(sessionId)) return;
         linkedSessionIds.add(sessionId);
-        await request.onLifecycle?.({ type: 'session-linked', sessionId });
+        await request.onLifecycle?.({ type: 'session-linked', sessionId, sessionLogPath, progressSource });
+      };
+      const previousFallbackNotificationHandler = client.fallbackNotificationHandler;
+      client.fallbackNotificationHandler = async (notification) => {
+        await previousFallbackNotificationHandler?.(notification);
+        if (request.signal?.aborted) return;
+        const event = parseCodexEventNotification(notification);
+        if (event === null) return;
+        if (event.eventType === 'session_configured' && event.threadId !== null) {
+          await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
+        }
+        if (event.threadId !== null || event.eventType === 'warning') {
+          await request.onLifecycle?.({
+            type: 'progress',
+            message: codexProgressMessage(event),
+            progressSource: 'codex-event',
+            eventType: event.eventType,
+          });
+        }
       };
       const rawResult = await pTimeout(
         client.callTool(
@@ -59,11 +83,12 @@ export class CodexMcpStoryRunner implements StoryRunner {
             onprogress: (progress: unknown) => {
               if (request.signal?.aborted) return;
               const sessionId = progressSessionId(progress);
-              if (sessionId) void reportSessionLinked(sessionId);
+              if (sessionId) void reportSessionLinked(sessionId, null, 'mcp-progress');
               void request.onLifecycle?.({
                 type: 'progress',
                 message: progressMessage(progress),
                 progressToken: progressToken(progress),
+                progressSource: 'mcp-progress',
               });
             },
           },
@@ -80,7 +105,7 @@ export class CodexMcpStoryRunner implements StoryRunner {
       }
 
       const output = validateCodexToolOutput(rawResult);
-      await reportSessionLinked(output.threadId);
+      await reportSessionLinked(output.threadId, null, 'structured');
       return {
         storyId: request.story.id,
         sessionId: output.threadId,
