@@ -96,9 +96,11 @@ describe('buildGenericPrompt', () => {
 
     expect(prompt).toContain('Git policy');
     expect(prompt).toContain('- Isolation strategy: worktree');
-    expect(prompt).toContain('- Create/use branch: linkly/l002-{slug} (base: main)');
+    expect(prompt).toContain('- Create/use branch: linkly/l002-pilot (base: main)');
     expect(prompt).toContain('- Worktree directory: .worktrees under the workspace root.');
     expect(prompt).toContain('- Expected worktree path: /repo/.worktrees/l002-pilot');
+    expect(prompt).toContain('The parent orchestrator has already prepared the expected branch/worktree.');
+    expect(prompt).toContain('You are launched in the expected worktree cwd.');
     expect(prompt).toContain('Committing directly on `main` is forbidden.');
     expect(prompt).toContain('commit your work there, and confirm the commit exists BEFORE reporting the story done');
     expect(prompt).toContain('An uncommitted tracker edit is not acceptance.');
@@ -145,13 +147,15 @@ describe('buildGenericPrompt', () => {
   it('requires child preflight, review packet validation, and rendered verification fallback evidence', () => {
     const prompt = buildGenericPrompt(story, config);
 
-    expect(prompt).toContain('Before editing, run a child preflight');
-    expect(prompt).toContain('child preflight in two phases');
-    expect(prompt).toContain('missing expected worktree `/repo/.worktrees/l002-pilot` as needs-create/expected');
-    expect(prompt).toContain('not as a blocker');
-    expect(prompt).toContain('git top-level');
-    expect(prompt).toContain('expected worktree path `/repo/.worktrees/l002-pilot`');
+    expect(prompt).toContain('Before editing, verify the parent-prepared worktree');
+    expect(prompt).toContain('cwd must be `/repo/.worktrees/l002-pilot`');
+    expect(prompt).toContain('git top-level must be `/repo/.worktrees/l002-pilot`');
+    expect(prompt).toContain('current branch must be `linkly/l002-pilot`');
+    expect(prompt).toContain(
+      'If cwd, git top-level, branch, or worktree path verification fails, stop and report the blocker before editing.',
+    );
     expect(prompt).toContain('configured base branch');
+    expect(prompt).not.toContain('needs-create/expected');
     expect(prompt).toContain('Validate `spawn_agent` payloads before calling');
     expect(prompt).toContain('product docs, architecture docs, story brief, spec, and plan');
     expect(prompt).toContain('correctness, code quality, and spec compliance');
@@ -171,8 +175,8 @@ describe('buildCodexToolInput', () => {
   });
 
   it('uses the prompt passed through the story runner boundary', () => {
-    expect(buildCodexToolInput(config, story, 'custom prompt')).toMatchObject({
-      cwd: '/repo',
+    expect(buildCodexToolInput(config, story, 'custom prompt', '/repo/.worktrees/l002-pilot')).toMatchObject({
+      cwd: '/repo/.worktrees/l002-pilot',
       prompt: 'custom prompt',
     });
   });
@@ -246,10 +250,11 @@ describe('buildCodexToolInput', () => {
     );
   });
 
-  it('uses the workspace root from cwdAbs to compute writable root paths (D8)', () => {
+  it('uses the workspace root from config to compute writable root paths (D8)', () => {
     const result = buildCodexToolInput(
       {
         ...config,
+        workspace: { rootAbs: '/workspace/myproject' },
         codex: { childSession: { cwdAbs: '/workspace/myproject' } },
       },
       story,
@@ -259,6 +264,19 @@ describe('buildCodexToolInput', () => {
       expect.objectContaining({
         sandbox_workspace_write: {
           writable_roots: ['/workspace/myproject/.git', '/workspace/myproject/.worktrees'],
+        },
+      }),
+    );
+  });
+
+  it('keeps writable roots tied to the workspace root when launch cwd is a worktree', () => {
+    const result = buildCodexToolInput(config, story, 'p', '/repo/.worktrees/l002-pilot');
+
+    expect(result).toMatchObject({ cwd: '/repo/.worktrees/l002-pilot' });
+    expect(result.config).toEqual(
+      expect.objectContaining({
+        sandbox_workspace_write: {
+          writable_roots: ['/repo/.git', '/repo/.worktrees'],
         },
       }),
     );

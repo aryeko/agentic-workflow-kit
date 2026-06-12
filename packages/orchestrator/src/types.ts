@@ -26,7 +26,14 @@ export interface ActiveChildRun {
 }
 
 export type ChildLaunchStatus = 'requested' | 'launched' | 'startup_failed' | 'settled' | 'supervision_lost';
-export type ChildProgressSource = 'session-linked' | 'mcp-progress' | 'session-log' | 'git' | 'pr' | 'structured';
+export type ChildProgressSource =
+  | 'codex-event'
+  | 'session-linked'
+  | 'mcp-progress'
+  | 'session-log'
+  | 'git'
+  | 'pr'
+  | 'structured';
 
 export interface VerificationEvidence {
   command: string | null;

@@ -78,11 +78,12 @@ class FakeClient {
   connectCalls = 0;
   callToolCalls = 0;
   callToolOptions: unknown[] = [];
+  fallbackNotificationHandler?: (notification: unknown) => Promise<void> | void;
 
   constructor(
     private readonly behavior: {
       connect?: () => Promise<void>;
-      callTool?: (options?: unknown) => Promise<unknown>;
+      callTool?: (client: FakeClient, options?: unknown) => Promise<unknown>;
       listTools?: () => Promise<unknown>;
     },
   ) {}
@@ -95,7 +96,7 @@ class FakeClient {
   async callTool(_request?: unknown, _resultSchema?: unknown, options?: unknown): Promise<unknown> {
     this.callToolCalls += 1;
     this.callToolOptions.push(options);
-    return await this.behavior.callTool?.(options);
+    return await this.behavior.callTool?.(this, options);
   }
 
   async listTools(): Promise<unknown> {
@@ -240,7 +241,7 @@ describe('CodexMcpStoryRunner', () => {
     expect(client.closed).toBe(true);
   });
 
-  it('allows the configured childMaxRuntimeMs to exceed the built-in request timeout', async () => {
+  it('uses childMaxRuntimeMs for the default SDK request timeout', async () => {
     const client = new FakeClient({ callTool: async () => validResult });
     const runner = new CodexMcpStoryRunner(config(), {
       retries: 0,
@@ -250,7 +251,7 @@ describe('CodexMcpStoryRunner', () => {
     await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} });
 
     expect(client.callToolOptions[0]).toMatchObject({
-      timeout: 1_800_000,
+      timeout: 7_200_000,
       maxTotalTimeout: 7_200_000,
       resetTimeoutOnProgress: true,
     });
@@ -273,7 +274,7 @@ describe('CodexMcpStoryRunner', () => {
 
   it('persists session linkage from progress before the final tool result returns', async () => {
     const client = new FakeClient({
-      callTool: async (options) => {
+      callTool: async (_client, options) => {
         (options as { onprogress?: (value: unknown) => void }).onprogress?.({
           threadId: 'thread-progress',
           message: 'thread created',
@@ -298,7 +299,132 @@ describe('CodexMcpStoryRunner', () => {
     });
 
     expect(result.sessionId).toBe('thread-a001');
-    expect(lifecycle).toContainEqual({ type: 'session-linked', sessionId: 'thread-progress' });
+    expect(lifecycle).toContainEqual({
+      type: 'session-linked',
+      sessionId: 'thread-progress',
+      sessionLogPath: null,
+      progressSource: 'mcp-progress',
+    });
+  });
+
+  it('links and reports liveness from codex event notifications before final output', async () => {
+    const client = new FakeClient({
+      callTool: async (fake) => {
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: {
+            _meta: { requestId: 'req-foreign', threadId: 'thread-foreign' },
+            msg: { type: 'session_configured', rollout_path: '/sessions/thread-foreign.jsonl', cwd: '/other-repo' },
+          },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: {
+            _meta: { requestId: 'req-1', threadId: 'thread-event' },
+            msg: { type: 'session_configured', rollout_path: '/sessions/thread-event.jsonl', cwd: '/repo' },
+          },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: { _meta: { requestId: 'req-1', threadId: 'thread-event' }, msg: { type: 'exec_command_begin' } },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: { _meta: { requestId: 'req-1', threadId: 'thread-event' }, msg: { type: 'token_count' } },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: { _meta: { requestId: 'req-1', threadId: 'other-thread' }, msg: { type: 'exec_command_end' } },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: { _meta: { requestId: 'req-2', threadId: 'thread-event' }, msg: { type: 'exec_command_end' } },
+        });
+        return validResult;
+      },
+    });
+    const lifecycle: unknown[] = [];
+    const runner = new CodexMcpStoryRunner(config(), {
+      retries: 0,
+      createClient: () => ({ client: client as never, transport: {} as never }),
+    });
+
+    await runner.runStory({
+      story: story(),
+      prompt: 'prompt',
+      cwd: '/repo',
+      metadata: {},
+      onLifecycle: async (event) => {
+        lifecycle.push(event);
+      },
+    });
+
+    expect(lifecycle).toContainEqual({
+      type: 'session-linked',
+      sessionId: 'thread-event',
+      sessionLogPath: '/sessions/thread-event.jsonl',
+      progressSource: 'codex-event',
+    });
+    expect(lifecycle).not.toContainEqual(
+      expect.objectContaining({
+        type: 'session-linked',
+        sessionId: 'thread-foreign',
+      }),
+    );
+    expect(lifecycle).toContainEqual({
+      type: 'progress',
+      message: 'codex event: exec_command_begin',
+      progressSource: 'codex-event',
+      eventType: 'exec_command_begin',
+      journal: true,
+    });
+    expect(lifecycle).toContainEqual({
+      type: 'progress',
+      message: 'codex event: token_count',
+      progressSource: 'codex-event',
+      eventType: 'token_count',
+      journal: false,
+    });
+    expect(lifecycle).not.toContainEqual(
+      expect.objectContaining({
+        message: 'codex event: exec_command_end',
+        eventType: 'exec_command_end',
+      }),
+    );
+  });
+
+  it('keeps standard mcp progress as mcp-progress', async () => {
+    const client = new FakeClient({
+      callTool: async (_fake, options) => {
+        (options as { onprogress?: (value: unknown) => void }).onprogress?.({
+          progressToken: 'token-1',
+          message: 'standard progress',
+        });
+        return validResult;
+      },
+    });
+    const lifecycle: unknown[] = [];
+    const runner = new CodexMcpStoryRunner(config(), {
+      retries: 0,
+      createClient: () => ({ client: client as never, transport: {} as never }),
+    });
+
+    await runner.runStory({
+      story: story(),
+      prompt: 'prompt',
+      cwd: '/repo',
+      metadata: {},
+      onLifecycle: async (event) => {
+        lifecycle.push(event);
+      },
+    });
+
+    expect(lifecycle).toContainEqual({
+      type: 'progress',
+      message: 'standard progress',
+      progressToken: 'token-1',
+      progressSource: 'mcp-progress',
+    });
   });
 
   it('does not retry a missing codex binary', async () => {

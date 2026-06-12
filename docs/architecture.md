@@ -187,6 +187,10 @@ are guarded by evidence: child progress, branch and remote state, PR state, trac
 latest commit, and worktree cleanliness. Ambiguous evidence produces manual recovery required
 instead of mutating a child branch or worktree.
 
+For the Codex MCP driver, child liveness is observed through Codex custom `codex/event`
+notifications when available. Standard MCP `notifications/progress` remains supported, but normal
+Codex CLI session activity is not expected to arrive through the SDK `onprogress` path.
+
 Event journals are also audit artifacts: `analyze-run` normalizes legacy `ts` events and newer
 `eventAt`/`recordedAt` events into a deterministic file-order timeline, then derives local pre-PR
 review mode, downgrades, execution blockers, review findings, local fix batches, PR review
@@ -305,12 +309,14 @@ With `stopLaunchingOnBlocked: true` (default), an incomplete return halts new la
 in-flight children finish.
 
 The orchestrator dispatches children under `--sandbox workspace-write`, granting the repo's `.git`
-and `.worktrees` paths as writable roots so git isolation works. Network access is governed
-separately by the Codex sandbox/approval mode, which is off by default under `workspace-write`.
-Child sessions that run install-dependent verification therefore need either a network-permitting
-sandbox/approval mode or dependencies pre-installed before dispatch. If a child stalls in an
-offline install loop, `orchestrator.childTimeoutMs` converts the hang into a child failure record
-instead of leaving the run in `running` forever.
+and `.worktrees` paths as writable roots so git isolation works. Under worktree strategy, the parent
+prepares the story worktree before launch and passes that path as the Codex tool `cwd`, so file tools
+default to the isolated checkout. Network access is governed separately by the Codex
+sandbox/approval mode, which is off by default under `workspace-write`. Child sessions that run
+install-dependent verification therefore need either a network-permitting sandbox/approval mode or
+dependencies pre-installed before dispatch. If a child stalls in an offline install loop,
+`orchestrator.childNoProgressTimeoutMs` converts the hang into a child failure record instead of
+leaving the run in `running` forever.
 
 Completion reconciliation differs by git strategy. The orchestrator re-reads the tracker from the
 **local workspace root** and performs no pull or merge of its own. Under **branch strategy** the

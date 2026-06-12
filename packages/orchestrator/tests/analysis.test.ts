@@ -214,6 +214,57 @@ describe('analyzeWorkflowRun', () => {
     expect(analysis.issues).not.toContain('A001 has launch metadata but no settled child result');
   });
 
+  it('reports codex-event progress source as active child evidence', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-codex-event-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-1', status: 'running', active: ['A001'] }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({ orchestrator: { childNoProgressTimeoutMs: 1_800_000, childStartupTimeoutMs: 60_000 } }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'A001.launch.json'),
+      JSON.stringify({
+        storyId: 'A001',
+        launchId: 'launch-a001',
+        status: 'launched',
+        expectedBranch: 't/a001-story',
+        expectedWorktreePath: '/repo/.worktrees/a001-story',
+        startedAt: '2026-06-12T20:00:00.000Z',
+        sessionId: 'thread-a001',
+        sessionLogPath: '/sessions/a001.jsonl',
+        progressSource: 'codex-event',
+        lastObservedChildProgressAt: '2026-06-12T20:00:00.000Z',
+        lastHeartbeatAt: '2026-06-12T20:00:00.000Z',
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, {
+      sessionRoots: [],
+      now: '2026-06-12T20:05:00.000Z',
+    });
+
+    expect(analysis.derivedStatus).toBe('running');
+    expect(analysis.children[0]).toMatchObject({
+      storyId: 'A001',
+      status: 'launched',
+      sessionId: 'thread-a001',
+      sessionLogPath: '/sessions/a001.jsonl',
+      linkageStatus: 'linked',
+      progress: {
+        progressSource: 'codex-event',
+        lastObservedChildProgressAt: '2026-06-12T20:00:00.000Z',
+      },
+    });
+    expect(analysis.issues).not.toContain(
+      'A001 startup is stale: no session, progress, heartbeat, result, or worktree activity',
+    );
+  });
+
   it('does not classify a launch-only child with recent worktree activity as supervision_lost', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-active-worktree-'));
     const runDir = path.join(root, 'runs', 'run-1');

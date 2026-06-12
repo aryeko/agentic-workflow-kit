@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { renderExpectedWorktreePath } from '../../runner/launchMetadata.js';
+import { renderExpectedBranch, renderExpectedWorktreePath } from '../../runner/launchMetadata.js';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
 
 export interface CodexToolInput {
@@ -16,10 +16,11 @@ export function buildCodexToolInput(
   config: ResolvedWorkflowConfig,
   story: WorkflowStory,
   prompt = buildGenericPrompt(story, config),
+  cwdAbs = config.codex.childSession.cwdAbs,
 ): CodexToolInput {
   const childSession = config.codex.childSession;
   const input: CodexToolInput = {
-    cwd: childSession.cwdAbs,
+    cwd: cwdAbs,
     prompt,
   };
 
@@ -40,7 +41,7 @@ export function buildCodexToolInput(
   // same mechanism used for scalar keys like model_reasoning_effort, but one level deeper because
   // sandbox_workspace_write is a table, not a bare key. Verified empirically on 2026-06-03 via
   // `codex exec -c 'sandbox_workspace_write.writable_roots=[...]'` (see d8-dispatch-sandbox-plan.md).
-  const workspaceRoot = childSession.cwdAbs;
+  const workspaceRoot = config.workspace.rootAbs;
   const gitAbs = path.join(workspaceRoot, '.git');
   const worktreesAbs = path.join(workspaceRoot, config.git.worktreeDir);
   const writableRootsEntry: Record<string, unknown> = {
@@ -58,7 +59,7 @@ export function buildGenericPrompt(
 ): string {
   const { git, implement, pr } = policy;
   const metadata = story.metadata;
-  const branchPattern = renderBranchPattern(story, git.branchPattern);
+  const expectedBranch = renderExpectedBranch(story, git);
   const expectedWorktreePath = renderExpectedWorktreePath(policy.workspace.rootAbs, git, story);
   const commitOnBase =
     git.commitOnBase === 'forbid'
@@ -83,11 +84,15 @@ export function buildGenericPrompt(
     '',
     'Git policy (from .workflow/config.yaml - follow exactly):',
     `- Isolation strategy: ${git.strategy}`,
-    `- Create/use branch: ${branchPattern} (base: ${git.baseBranch})`,
+    `- Create/use branch: ${expectedBranch} (base: ${git.baseBranch})`,
     git.strategy === 'worktree' ? `- Worktree directory: ${git.worktreeDir} under the workspace root.` : null,
     expectedWorktreePath ? `- Expected worktree path: ${expectedWorktreePath}` : null,
+    expectedWorktreePath ? '- The parent orchestrator has already prepared the expected branch/worktree.' : null,
+    expectedWorktreePath ? '- You are launched in the expected worktree cwd.' : null,
     `- ${commitOnBase}`,
-    '- You MUST create the isolated branch/worktree, commit your work there, and confirm the commit exists BEFORE reporting the story done. An uncommitted tracker edit is not acceptance.',
+    expectedWorktreePath
+      ? '- You MUST use the parent-prepared branch/worktree, commit your work there, and confirm the commit exists BEFORE reporting the story done. An uncommitted tracker edit is not acceptance.'
+      : '- You MUST create or use the isolated branch, commit your work there, and confirm the commit exists BEFORE reporting the story done. An uncommitted tracker edit is not acceptance.',
     '- Do not create story worktrees outside the workspace root unless the repo config explicitly says so.',
     '- Do not symlink node_modules from another checkout. Use the package manager/store normally, and stop for approval if dependencies require network or privileged setup.',
     '',
@@ -118,7 +123,7 @@ export function buildGenericPrompt(
     '1. Read repository instructions first, including AGENTS.md when present.',
     '2. Read the selected tracker row and any linked spec, plan, related docs, or acceptance notes.',
     expectedWorktreePath
-      ? `3. Before editing, run a child preflight in two phases: before worktree creation, verify the expected branch/worktree path and treat a missing expected worktree \`${expectedWorktreePath}\` as needs-create/expected, not as a blocker; after creating or entering the work checkout, verify cwd, git top-level, current branch, expected worktree path \`${expectedWorktreePath}\`, and configured base branch against the Git policy above.`
+      ? `3. Before editing, verify the parent-prepared worktree: cwd must be \`${expectedWorktreePath}\`, git top-level must be \`${expectedWorktreePath}\`, current branch must be \`${expectedBranch}\`, and the configured base branch \`${git.baseBranch}\` must exist. If cwd, git top-level, branch, or worktree path verification fails, stop and report the blocker before editing.`
       : '3. Before editing, run a child preflight: verify cwd, git top-level, current branch, expected branch, and configured base branch against the Git policy above.',
     '4. Implement only this story. Do not bundle adjacent tracker rows or unrelated cleanup.',
     '5. Follow the Git policy above and the repository documentation, review, and verification rules.',
@@ -130,13 +135,6 @@ export function buildGenericPrompt(
   ]
     .filter((line): line is string => line !== null)
     .join('\n');
-}
-
-function renderBranchPattern(story: WorkflowStory, branchPattern: string): string {
-  return branchPattern
-    .replaceAll('{track}', story.metadata.trackId)
-    .replaceAll('{id}', story.id)
-    .replaceAll('{id-lc}', story.id.toLowerCase());
 }
 
 function reviewGateLine(review: ResolvedWorkflowConfig['pr']['review']): string {

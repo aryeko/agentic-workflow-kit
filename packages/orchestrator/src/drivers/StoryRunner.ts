@@ -1,8 +1,22 @@
-import type { ChildMetricsSnapshot, ChildResultEvidence, WorkflowStory } from '../types.js';
+import type { ChildMetricsSnapshot, ChildProgressSource, ChildResultEvidence, WorkflowStory } from '../types.js';
+
+export type { ChildProgressSource } from '../types.js';
 
 export type ChildLifecycleEvent =
-  | { type: 'session-linked'; sessionId: string; sessionLogPath?: string | null }
-  | { type: 'progress'; message: string; progressToken?: string | number | null };
+  | {
+      type: 'session-linked';
+      sessionId: string;
+      sessionLogPath?: string | null;
+      progressSource: ChildProgressSource;
+    }
+  | {
+      type: 'progress';
+      message: string;
+      progressSource: ChildProgressSource;
+      progressToken?: string | number | null;
+      eventType?: string | null;
+      journal?: boolean;
+    };
 
 export interface StoryRunRequest {
   story: WorkflowStory;

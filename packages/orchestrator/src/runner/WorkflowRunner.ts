@@ -2,7 +2,7 @@ import path from 'node:path';
 import pLimit from 'p-limit';
 
 import { buildGenericPrompt } from '../drivers/codex-mcp/toolInput.js';
-import type { ChildLifecycleEvent, StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
+import type { ChildLifecycleEvent, ChildProgressSource, StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
 import type { GitInspector } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
@@ -17,6 +17,11 @@ import type {
   StorySource,
   WorkflowStory,
 } from '../types.js';
+import {
+  type PrepareChildWorkspaceArgs,
+  type PreparedChildWorkspace,
+  prepareChildWorkspace,
+} from './ChildWorkspacePreparer.js';
 import { CompletionGate, type ReturnEvaluation } from './CompletionGate.js';
 import { findDuplicateLaunch } from './DuplicateLaunchGuard.js';
 import { buildLaunchId, hashPrompt, renderExpectedBranch, renderExpectedWorktreePath } from './launchMetadata.js';
@@ -35,6 +40,7 @@ export interface WorkflowRunnerDependencies {
   clock: Clock;
   runId: string;
   childTimer?: ChildTimer;
+  childWorkspacePreparer?: (args: PrepareChildWorkspaceArgs) => Promise<PreparedChildWorkspace>;
 }
 
 export interface ChildTimer {
@@ -378,9 +384,30 @@ export class WorkflowRunner {
 
   private async recordChildLaunch(claim: ClaimedWorkflowStory): Promise<PreparedChildLaunch | null> {
     const { story } = claim;
+    const workspacePreparer = this.dependencies.childWorkspacePreparer ?? prepareChildWorkspace;
+    let preparedWorkspace: PreparedChildWorkspace;
+    try {
+      preparedWorkspace = await workspacePreparer({
+        story,
+        workspaceRootAbs: this.dependencies.config.workspace.rootAbs,
+        fallbackCwdAbs: this.dependencies.config.codex.childSession.cwdAbs,
+        git: this.dependencies.config.git,
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.blockOnce(story.id, reason);
+      await this.journal.record('child-workspace-prepare-failed', {
+        storyId: story.id,
+        reason,
+      });
+      await this.releaseUnlaunchedClaim(claim, reason);
+      await this.writeState();
+      await this.writeLiveMetrics();
+      return null;
+    }
     this.metrics.start(story.id);
     const startedAt = this.dependencies.clock.now();
-    const childCwd = this.dependencies.config.codex.childSession.cwdAbs;
+    const childCwd = preparedWorkspace.childCwdAbs;
     const prompt = buildGenericPrompt(story, this.dependencies.config);
     const baseShaAtLaunch =
       (await this.dependencies.gitInspector.snapshotBaseSha?.({
@@ -390,12 +417,8 @@ export class WorkflowRunner {
     const activeChild = {
       storyId: story.id,
       launchId: buildLaunchId(story.id, startedAt),
-      expectedBranch: renderExpectedBranch(story, this.dependencies.config.git),
-      expectedWorktreePath: renderExpectedWorktreePath(
-        this.dependencies.config.workspace.rootAbs,
-        this.dependencies.config.git,
-        story,
-      ),
+      expectedBranch: preparedWorkspace.expectedBranch,
+      expectedWorktreePath: preparedWorkspace.expectedWorktreePath,
       startedAt,
       lastSupervisorPollAt: null,
       lastObservedChildProgressAt: null,
@@ -485,7 +508,12 @@ export class WorkflowRunner {
 
     const acknowledgeStartup = async (
       fields: Partial<ChildLaunchRecord>,
-      event: { type: 'session-linked'; sessionId: string; sessionLogPath: string | null } | null = null,
+      event: {
+        type: 'session-linked';
+        sessionId: string;
+        sessionLogPath: string | null;
+        progressSource: ChildProgressSource;
+      } | null = null,
     ): Promise<void> => {
       if (terminalStartupFailure || childAbortController.signal.aborted) return;
       const progressAt = this.dependencies.clock.now();
@@ -524,6 +552,7 @@ export class WorkflowRunner {
           launchId: launch.record.launchId,
           sessionId: event.sessionId,
           sessionLogPath: event.sessionLogPath,
+          progressSource: event.progressSource,
         });
       }
       if (!startupSettled) {
@@ -542,20 +571,27 @@ export class WorkflowRunner {
           {
             sessionId: event.sessionId,
             sessionLogPath: event.sessionLogPath ?? null,
-            progressSource: 'session-linked',
+            progressSource: event.progressSource,
           },
-          { type: 'session-linked', sessionId: event.sessionId, sessionLogPath: event.sessionLogPath ?? null },
+          {
+            type: 'session-linked',
+            sessionId: event.sessionId,
+            sessionLogPath: event.sessionLogPath ?? null,
+            progressSource: event.progressSource,
+          },
         );
         return;
       }
 
-      await acknowledgeStartup({ progressSource: 'mcp-progress' });
+      await acknowledgeStartup({ progressSource: event.progressSource });
+      if (event.journal === false) return;
       await this.journal.record('child-progress', {
         storyId: story.id,
         launchId: launch.record.launchId,
         message: event.message,
         progressToken: event.progressToken ?? null,
-        progressSource: 'mcp-progress',
+        progressSource: event.progressSource,
+        eventType: event.eventType ?? null,
         elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
       });
     };
@@ -601,7 +637,7 @@ export class WorkflowRunner {
       await this.journal.updateChildLaunch(launch.record, {
         status: 'settled',
         sessionId: result.sessionId,
-        sessionLogPath: result.metrics?.sessionLogPath ?? null,
+        sessionLogPath: result.metrics?.sessionLogPath ?? launch.record.sessionLogPath,
       });
       return {
         storyId: story.id,
@@ -787,6 +823,37 @@ export class WorkflowRunner {
       await this.journal.record('tracker-claim-release-skipped', {
         storyId: story.id,
         launchId: launch.record.launchId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private async releaseUnlaunchedClaim(claim: ClaimedWorkflowStory, reason: string): Promise<void> {
+    if (!claim.trackerClaimed) return;
+    try {
+      const result = await releaseTrackerClaim({
+        config: this.dependencies.config,
+        story: claim.story,
+        owner: claim.owner,
+        previousStatus: claim.previousStatus,
+      });
+      if (result.ok) {
+        await this.journal.record('tracker-claim-released', {
+          storyId: claim.story.id,
+          fromStatus: result.fromStatus,
+          toStatus: result.toStatus,
+          owner: claim.owner,
+          reason,
+        });
+      } else {
+        await this.journal.record('tracker-claim-release-skipped', {
+          storyId: claim.story.id,
+          reason: result.reason,
+        });
+      }
+    } catch (error) {
+      await this.journal.record('tracker-claim-release-skipped', {
+        storyId: claim.story.id,
         reason: error instanceof Error ? error.message : String(error),
       });
     }

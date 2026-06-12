@@ -100,8 +100,10 @@ Artifacts are under `.codex/agentic-workflow-kit/runs/<run-id>/`.
   story id, launch id, expected branch/worktree path, child cwd, base SHA, prompt hash, and known
   child session/log identifiers. Startup begins as `requested`, becomes `launched` only after a
   child session links or reports progress, and becomes `startup_failed` when the startup
-  acknowledgement timeout expires without child evidence. It distinguishes `lastSupervisorPollAt`
-  from `lastObservedChildProgressAt` and `progressSource`; parent polls are not child progress.
+  acknowledgement timeout expires without child evidence. For Codex MCP children, `codex/event`
+  notifications are first-class child evidence and standard MCP `notifications/progress` remains
+  supported. It distinguishes `lastSupervisorPollAt` from `lastObservedChildProgressAt` and
+  `progressSource`; parent polls are not child progress.
 - `children/<story-id>.raw.json` records raw driver output when available.
 - `children/<story-id>.metrics.json` records best-effort child tool, token, and subagent metrics
   when available.
@@ -119,4 +121,5 @@ where practical. They may omit orchestrator child files; in that case `analyze-r
 settled child result is startup-stale only after the startup acknowledgement timeout expires with no
 session, heartbeat, result, or worktree activity; after acknowledgement, it is supervision-lost only
 after real child progress evidence is stale. Parent supervisor polls alone do not prove the child is
-active.
+active. Under worktree strategy, the parent prepares the story worktree before launch and passes that
+path as the child cwd.

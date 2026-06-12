@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import pRetry, { AbortError } from 'p-retry';
@@ -5,7 +6,14 @@ import pTimeout from 'p-timeout';
 
 import { isRecord } from '../../internal/guards.js';
 import type { ChildResultEvidence, ResolvedWorkflowConfig, VerificationEvidence } from '../../types.js';
-import type { DriverToolStatus, StoryRunner, StoryRunRequest, StoryRunResult } from '../StoryRunner.js';
+import type {
+  ChildProgressSource,
+  DriverToolStatus,
+  StoryRunner,
+  StoryRunRequest,
+  StoryRunResult,
+} from '../StoryRunner.js';
+import { codexProgressMessage, parseCodexEventNotification } from './codexEvents.js';
 import { type McpTool, validateCodexToolSchemas } from './schemaValidation.js';
 import { buildCodexToolInput } from './toolInput.js';
 
@@ -13,7 +21,7 @@ const VERSION = '0.1.0';
 const STARTUP_TIMEOUT_MS = 30_000;
 const RETRIES = 2;
 
-type CodexMcpClient = Pick<Client, 'connect' | 'callTool' | 'listTools' | 'close'>;
+type CodexMcpClient = Pick<Client, 'connect' | 'callTool' | 'listTools' | 'close' | 'fallbackNotificationHandler'>;
 
 export interface CodexMcpStoryRunnerOptions {
   startupTimeoutMs?: number;
@@ -31,18 +39,55 @@ export class CodexMcpStoryRunner implements StoryRunner {
   async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
     return await this.withClient(async (client) => {
       request.signal?.throwIfAborted();
-      const invocation = buildCodexToolInput(this.config, request.story, request.prompt);
-      const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childNoProgressTimeoutMs;
+      const invocation = buildCodexToolInput(this.config, request.story, request.prompt, request.cwd);
+      const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childMaxRuntimeMs;
       const totalTimeoutMs =
         this.options.requestTimeoutMs === undefined
           ? this.config.orchestrator.childMaxRuntimeMs
           : Math.min(this.options.requestTimeoutMs, this.config.orchestrator.childMaxRuntimeMs);
       const linkedSessionIds = new Set<string>();
-      const reportSessionLinked = async (sessionId: string): Promise<void> => {
+      let codexEventRequestId: string | number | null = null;
+      const reportSessionLinked = async (
+        sessionId: string,
+        sessionLogPath: string | null,
+        progressSource: ChildProgressSource,
+      ): Promise<void> => {
         if (request.signal?.aborted) return;
         if (linkedSessionIds.has(sessionId)) return;
         linkedSessionIds.add(sessionId);
-        await request.onLifecycle?.({ type: 'session-linked', sessionId });
+        await request.onLifecycle?.({ type: 'session-linked', sessionId, sessionLogPath, progressSource });
+      };
+      const previousFallbackNotificationHandler = client.fallbackNotificationHandler;
+      client.fallbackNotificationHandler = async (notification) => {
+        await previousFallbackNotificationHandler?.(notification);
+        if (request.signal?.aborted) return;
+        const event = parseCodexEventNotification(notification);
+        if (event === null) return;
+        if (!matchesCodexEventRequest(event.requestId, codexEventRequestId)) return;
+        if (linkedSessionIds.size === 0) {
+          if (event.eventType === 'session_configured') {
+            if (event.threadId === null || event.cwd === null || !samePath(event.cwd, request.cwd)) return;
+            codexEventRequestId = event.requestId ?? codexEventRequestId;
+            await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
+          } else if (event.eventType !== 'warning') {
+            return;
+          }
+        } else {
+          if (event.threadId !== null && !linkedSessionIds.has(event.threadId)) return;
+          codexEventRequestId = event.requestId ?? codexEventRequestId;
+          if (event.eventType === 'session_configured' && event.threadId !== null) {
+            await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
+          }
+        }
+        if (event.threadId !== null || event.eventType === 'warning') {
+          await request.onLifecycle?.({
+            type: 'progress',
+            message: codexProgressMessage(event),
+            progressSource: 'codex-event',
+            eventType: event.eventType,
+            journal: shouldJournalCodexEvent(event.eventType),
+          });
+        }
       };
       const rawResult = await pTimeout(
         client.callTool(
@@ -59,11 +104,12 @@ export class CodexMcpStoryRunner implements StoryRunner {
             onprogress: (progress: unknown) => {
               if (request.signal?.aborted) return;
               const sessionId = progressSessionId(progress);
-              if (sessionId) void reportSessionLinked(sessionId);
+              if (sessionId) void reportSessionLinked(sessionId, null, 'mcp-progress');
               void request.onLifecycle?.({
                 type: 'progress',
                 message: progressMessage(progress),
                 progressToken: progressToken(progress),
+                progressSource: 'mcp-progress',
               });
             },
           },
@@ -80,7 +126,7 @@ export class CodexMcpStoryRunner implements StoryRunner {
       }
 
       const output = validateCodexToolOutput(rawResult);
-      await reportSessionLinked(output.threadId);
+      await reportSessionLinked(output.threadId, null, 'structured');
       return {
         storyId: request.story.id,
         sessionId: output.threadId,
@@ -152,6 +198,27 @@ export class CodexMcpStoryRunner implements StoryRunner {
     });
     return { client, transport };
   }
+}
+
+function matchesCodexEventRequest(
+  eventRequestId: string | number | null,
+  codexEventRequestId: string | number | null,
+): boolean {
+  return codexEventRequestId === null || eventRequestId === null || eventRequestId === codexEventRequestId;
+}
+
+function samePath(left: string, right: string): boolean {
+  return path.resolve(left) === path.resolve(right);
+}
+
+function shouldJournalCodexEvent(eventType: string): boolean {
+  return (
+    eventType === 'mcp_startup_complete' ||
+    eventType === 'exec_command_begin' ||
+    eventType === 'exec_command_end' ||
+    eventType === 'task_complete' ||
+    eventType === 'warning'
+  );
 }
 
 interface CodexToolOutput {
