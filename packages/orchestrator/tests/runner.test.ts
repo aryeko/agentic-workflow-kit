@@ -4,7 +4,8 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { StoryRunner, StoryRunRequest, StoryRunResult } from '../src/drivers/StoryRunner';
 import type { GitInspector, StoryCommitEvidence } from '../src/git/GitInspector';
-import { WorkflowRunner } from '../src/runner/WorkflowRunner';
+import { renderExpectedBranch, renderExpectedWorktreePath } from '../src/runner/launchMetadata';
+import { WorkflowRunner, type WorkflowRunnerDependencies } from '../src/runner/WorkflowRunner';
 import { discoverMarkdownTracks } from '../src/tracks/markdownTracker';
 import type {
   ArtifactStore,
@@ -437,6 +438,17 @@ class DelayedSupervisorPollArtifacts extends MemoryArtifacts {
 const logger: Logger = { info() {}, warn() {}, error() {} };
 let fakeMs = 1_000;
 const clock: Clock = { now: () => '2026-06-02T00:00:00.000Z', nowMs: () => fakeMs };
+const noopChildWorkspacePreparer: NonNullable<WorkflowRunnerDependencies['childWorkspacePreparer']> = async ({
+  story,
+  workspaceRootAbs,
+  fallbackCwdAbs,
+  git,
+}) => ({
+  childCwdAbs: fallbackCwdAbs,
+  expectedBranch: renderExpectedBranch(story, git),
+  expectedWorktreePath: renderExpectedWorktreePath(workspaceRootAbs, git, story),
+  prepared: false,
+});
 
 function trackerMarkdown(status: string): string {
   return `---
@@ -485,6 +497,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -518,6 +531,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     await runner.runStory('A001');
@@ -545,6 +559,31 @@ describe('WorkflowRunner', () => {
     );
   });
 
+  it('passes prepared worktree cwd to the child runner', async () => {
+    const storyRunner = new SyncRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: async () => ({
+        childCwdAbs: '/repo/.worktrees/a001-story',
+        expectedBranch: 't/a001-a001',
+        expectedWorktreePath: '/repo/.worktrees/a001-story',
+        prepared: true,
+      }),
+    });
+
+    await runner.runEligible();
+
+    expect(storyRunner.requests[0]?.cwd).toBe('/repo/.worktrees/a001-story');
+  });
+
   it('blocks when child returns but tracker row is not complete', async () => {
     const runner = new WorkflowRunner({
       command: 'run-story',
@@ -562,6 +601,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -581,6 +621,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -625,6 +666,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -665,6 +707,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -721,6 +764,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -752,6 +796,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
       childTimer: timer,
     });
 
@@ -785,6 +830,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runEligible();
@@ -812,6 +858,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.dryRunEligible();
@@ -839,6 +886,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.dryRunStory('A001');
@@ -865,6 +913,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const run = runner.runEligible();
@@ -898,6 +947,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const initialState = await runner.runEligible({ returnAfterInitialLaunch: true });
@@ -931,6 +981,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runEligible();
@@ -963,6 +1014,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
       childTimer: timer,
     });
 
@@ -1007,6 +1059,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const run = runner.runStory('A001');
@@ -1039,6 +1092,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
       childTimer: timer,
     });
 
@@ -1085,6 +1139,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
       childTimer: timer,
     });
 
@@ -1142,6 +1197,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
       childTimer: timer,
     });
 
@@ -1180,6 +1236,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const run = runner.runEligible();
@@ -1219,6 +1276,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
       childTimer: timer,
     });
 
@@ -1251,6 +1309,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
       childTimer: timer,
     });
 
@@ -1292,6 +1351,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
       childTimer: timer,
     });
 
@@ -1352,6 +1412,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('WK001');
@@ -1398,6 +1459,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -1424,6 +1486,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -1457,6 +1520,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -1493,6 +1557,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -1526,6 +1591,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -1558,6 +1624,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -1592,6 +1659,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -1624,6 +1692,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('A001');
@@ -1663,6 +1732,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runEligible();
@@ -1719,6 +1789,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('WK001');
@@ -1762,6 +1833,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('WK001', { force: true });
@@ -1804,6 +1876,7 @@ describe('WorkflowRunner', () => {
       logger,
       clock,
       runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
     });
 
     const state = await runner.runStory('WK001', { force: true });
