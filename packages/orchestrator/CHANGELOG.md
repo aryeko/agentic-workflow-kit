@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.10
+
+### Patch Changes
+
+- b817ea6: Add Codex plugin smoke coverage and runbook steps for reinstalling over stale plugin caches.
+
 ## 0.5.9
 
 ### Patch Changes
