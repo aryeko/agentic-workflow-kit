@@ -291,6 +291,10 @@ class ManualChildTimer {
     return this.timeoutCallbacks.size;
   }
 
+  hasInterval(): boolean {
+    return this.intervalCallback !== null;
+  }
+
   fireInterval(): void {
     this.intervalCallback?.();
   }
@@ -311,6 +315,35 @@ class MemoryArtifacts implements ArtifactStore {
   }
   async appendEvent(event: RunEvent): Promise<void> {
     this.events.push(event);
+  }
+}
+
+class DelayedSupervisorPollArtifacts extends MemoryArtifacts {
+  private releasePollWrite: (() => void) | null = null;
+  private resolvePollWriteStarted: () => void = () => undefined;
+  readonly pollWriteStarted = new Promise<void>((resolve) => {
+    this.resolvePollWriteStarted = resolve;
+  });
+
+  async writeJson(relativePath: string, value: unknown): Promise<void> {
+    if (
+      relativePath === 'children/A001.launch.json' &&
+      typeof value === 'object' &&
+      value !== null &&
+      (value as { status?: string; lastSupervisorPollAt?: string | null }).status === 'launched' &&
+      (value as { lastSupervisorPollAt?: string | null }).lastSupervisorPollAt !== null &&
+      this.releasePollWrite === null
+    ) {
+      this.resolvePollWriteStarted();
+      await new Promise<void>((resolve) => {
+        this.releasePollWrite = resolve;
+      });
+    }
+    await super.writeJson(relativePath, value);
+  }
+
+  release(): void {
+    this.releasePollWrite?.();
   }
 }
 
@@ -811,6 +844,40 @@ describe('WorkflowRunner', () => {
 
     const poll = artifacts.events.find((event) => event.type === 'child-supervisor-poll');
     expect(poll).toMatchObject({ storyId: 'A001', elapsedMs: 1_500 });
+  });
+
+  it('does not let a delayed supervisor poll overwrite a settled launch record', async () => {
+    const artifacts = new DelayedSupervisorPollArtifacts();
+    const deferred = new DeferredRunner();
+    const timer = new ManualChildTimer();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: { ...config(), orchestrator: { ...config().orchestrator, childTimeoutMs: 100 } },
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner: deferred,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childTimer: timer,
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() => expect(deferred.requests).toHaveLength(1));
+    await waitFor(() => expect(timer.hasInterval()).toBe(true));
+    timer.fireInterval();
+    await artifacts.pollWriteStarted;
+    deferred.resolve('A001');
+    artifacts.release();
+    const state = await run;
+
+    expect(state.status).toBe('complete');
+    expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+      storyId: 'A001',
+      status: 'settled',
+      lastSupervisorPollAt: '2026-06-02T00:00:00.000Z',
+    });
   });
 
   it('uses authoritative base tracker status after child merge evidence when local parent snapshot is stale', async () => {

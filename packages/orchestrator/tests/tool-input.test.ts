@@ -145,6 +145,9 @@ describe('buildGenericPrompt', () => {
     const prompt = buildGenericPrompt(story, config);
 
     expect(prompt).toContain('Before editing, run a child preflight');
+    expect(prompt).toContain('child preflight in two phases');
+    expect(prompt).toContain('missing expected worktree `/repo/.worktrees/l002-pilot` as needs-create/expected');
+    expect(prompt).toContain('not as a blocker');
     expect(prompt).toContain('git top-level');
     expect(prompt).toContain('expected worktree path `/repo/.worktrees/l002-pilot`');
     expect(prompt).toContain('configured base branch');

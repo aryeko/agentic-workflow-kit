@@ -420,6 +420,7 @@ export class WorkflowRunner {
     let maxRuntimeTimeoutHandle: unknown;
     let heartbeatHandle: unknown;
     let rejectNoProgressTimeout: ((error: Error) => void) | null = null;
+    let supervisorPollWrite: Promise<void> = Promise.resolve();
 
     const refreshNoProgressTimeout = (): void => {
       if (noProgressTimeoutHandle !== undefined) timer.clearTimeout(noProgressTimeoutHandle);
@@ -516,8 +517,9 @@ export class WorkflowRunner {
             entry.storyId === story.id ? { ...entry, lastSupervisorPollAt: pollAt } : entry,
           ),
         };
-        void this.journal.updateChildLaunch(launch.record, { lastSupervisorPollAt: pollAt }).then((updated) => {
-          launch.record = updated;
+        supervisorPollWrite = supervisorPollWrite.then(async () => {
+          const updated = await this.journal.updateChildLaunch(launch.record, { lastSupervisorPollAt: pollAt });
+          if (launch.record.status === 'launched') launch.record = updated;
         });
         void this.journal.record('child-supervisor-poll', {
           storyId: story.id,
@@ -526,6 +528,9 @@ export class WorkflowRunner {
         });
       }, heartbeatIntervalMs(noProgressTimeoutMs));
       const result: StoryRunResult = await Promise.race([run, noProgressTimeout, maxRuntimeTimeout]);
+      if (heartbeatHandle !== undefined) timer.clearInterval(heartbeatHandle);
+      heartbeatHandle = undefined;
+      await supervisorPollWrite;
       const completedAt = this.metrics.complete(story.id);
       this.state = this.removeActiveChild(story.id);
       if (result.metrics) {
@@ -553,6 +558,9 @@ export class WorkflowRunner {
       const completedAt = this.metrics.complete(story.id);
       const message = error instanceof Error ? error.message : String(error);
       const isSupervisionLost = isSupervisionLostError(message);
+      if (heartbeatHandle !== undefined) timer.clearInterval(heartbeatHandle);
+      heartbeatHandle = undefined;
+      await supervisorPollWrite;
       this.state = this.removeActiveChild(story.id);
       if (isSupervisionLost) {
         this.state = {

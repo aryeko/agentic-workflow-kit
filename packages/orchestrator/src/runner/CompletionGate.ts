@@ -135,6 +135,10 @@ export class CompletionGate {
     if (!shouldReadBaseTracker(this.deps.pr, settled)) return null;
     if (!this.deps.gitInspector.readFileFromRef) return null;
     const trackerPath = settled.evidence?.trackerPath ?? returnedStory.metadata.trackerPath;
+    await this.deps.gitInspector.refreshBaseBranch?.({
+      cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
+      git: this.deps.git,
+    });
     const content = await this.deps.gitInspector.readFileFromRef({
       cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
       ref: `origin/${this.deps.git.baseBranch}`,
