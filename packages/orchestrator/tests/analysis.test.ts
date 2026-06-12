@@ -87,13 +87,17 @@ describe('analyzeWorkflowRun', () => {
     expect(analysis.tokenTotals).toBeNull();
   });
 
-  it('derives supervision_lost from running launch-only artifacts', async () => {
+  it('derives startup_stale from old unacknowledged launch-only artifacts', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-lost-'));
     const runDir = path.join(root, 'runs', 'run-1');
     await mkdir(path.join(runDir, 'children'), { recursive: true });
     await writeFile(
       path.join(runDir, 'state.json'),
       JSON.stringify({ runId: 'run-1', status: 'running', active: ['A001'] }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({ orchestrator: { childNoProgressTimeoutMs: 1_800_000, childStartupTimeoutMs: 60_000 } }),
     );
     await writeFile(
       path.join(runDir, 'children', 'A001.launch.json'),
@@ -103,19 +107,62 @@ describe('analyzeWorkflowRun', () => {
         status: 'launched',
         expectedBranch: 't/a001-story',
         expectedWorktreePath: '/repo/.worktrees/t/a001-story',
+        startedAt: '2026-06-11T00:00:00.000Z',
         sessionId: null,
+        lastHeartbeatAt: null,
+        lastObservedChildProgressAt: null,
       }),
     );
 
-    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [], now: '2026-06-11T00:02:00.000Z' });
 
-    expect(analysis.derivedStatus).toBe('supervision_lost');
+    expect(analysis.derivedStatus).toBe('running');
     expect(analysis.children[0]).toMatchObject({
       storyId: 'A001',
-      status: 'supervision_lost',
+      status: 'startup_stale',
       expectedBranch: 't/a001-story',
     });
-    expect(analysis.issues).toContain('A001 has launch metadata but no settled child result');
+    expect(analysis.issues).toContain(
+      'A001 startup is stale: no session, progress, heartbeat, result, or worktree activity',
+    );
+  });
+
+  it('keeps recent unacknowledged launch-only artifacts startup_pending', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-startup-pending-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-1', status: 'running', active: ['A001'] }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({ orchestrator: { childNoProgressTimeoutMs: 1_800_000, childStartupTimeoutMs: 60_000 } }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'A001.launch.json'),
+      JSON.stringify({
+        storyId: 'A001',
+        launchId: 'launch-a001',
+        status: 'launched',
+        expectedBranch: 't/a001-story',
+        expectedWorktreePath: '/repo/.worktrees/t/a001-story',
+        startedAt: '2026-06-11T00:01:30.000Z',
+        sessionId: null,
+        lastHeartbeatAt: null,
+        lastObservedChildProgressAt: null,
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [], now: '2026-06-11T00:02:00.000Z' });
+
+    expect(analysis.derivedStatus).toBe('running');
+    expect(analysis.children[0]).toMatchObject({
+      storyId: 'A001',
+      status: 'startup_pending',
+      expectedBranch: 't/a001-story',
+    });
+    expect(analysis.issues).not.toContain('A001 has launch metadata but no settled child result');
   });
 
   it('does not classify a launch-only child with recent heartbeat as supervision_lost', async () => {

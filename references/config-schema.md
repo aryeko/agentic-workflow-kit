@@ -161,9 +161,12 @@ Consulted only when the orchestrator package is installed.
 | `stopLaunchingOnBlocked` | boolean | `true` | Stop launching when a child returns incomplete. |
 | `childTimeoutMs` | integer | `1800000` | Compatibility alias for `childNoProgressTimeoutMs`. Existing configs can keep using it. |
 | `childNoProgressTimeoutMs` | integer | `1800000` | Per-child no-progress timeout. Child session linkage, MCP progress, or observed child progress events reset this timer. Parent supervisor polls do not. |
+| `childStartupTimeoutMs` | integer | `60000` | Per-child startup acknowledgement timeout. A child must link a session or report progress within this window before it is treated as started. |
 | `childMaxRuntimeMs` | integer | `7200000` | Per-child wall-clock maximum runtime. The wall-clock maximum still bounds total child runtime even when progress resets the no-progress timeout. |
 
-Use `childNoProgressTimeoutMs` to detect silent or supervision-lost children. Observed child
+Use `childStartupTimeoutMs` to fail empty child startup shells quickly when no session id, session
+log, MCP progress, heartbeat, result, or worktree activity appears. After startup acknowledgement,
+use `childNoProgressTimeoutMs` to detect silent or supervision-lost children. Observed child
 progress resets the no-progress timeout, but parent `child-supervisor-poll` events only show parent
 loop liveness and never extend either timeout. Full PR/review/merge stories commonly need a larger
 wall-clock maximum than the old 30 minute `childTimeoutMs` default because healthy progress can

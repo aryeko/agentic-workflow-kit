@@ -53,6 +53,7 @@ function config(): ResolvedWorkflowConfig {
       stopLaunchingOnBlocked: true,
       childTimeoutMs: 1_800_000,
       childNoProgressTimeoutMs: 1_800_000,
+      childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     },
     codex: { childSession: { cwdAbs: '/repo' } },
@@ -252,6 +253,21 @@ describe('CodexMcpStoryRunner', () => {
       timeout: 1_800_000,
       maxTotalTimeout: 7_200_000,
       resetTimeoutOnProgress: true,
+    });
+  });
+
+  it('passes the child abort signal to the MCP tool request', async () => {
+    const controller = new AbortController();
+    const client = new FakeClient({ callTool: async () => validResult });
+    const runner = new CodexMcpStoryRunner(config(), {
+      retries: 0,
+      createClient: () => ({ client: client as never, transport: {} as never }),
+    });
+
+    await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {}, signal: controller.signal });
+
+    expect(client.callToolOptions[0]).toMatchObject({
+      signal: controller.signal,
     });
   });
 

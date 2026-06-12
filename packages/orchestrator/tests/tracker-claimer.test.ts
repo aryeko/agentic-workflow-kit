@@ -69,6 +69,7 @@ function config(root: string): ResolvedWorkflowConfig {
       stopLaunchingOnBlocked: true,
       childTimeoutMs: 1_800_000,
       childNoProgressTimeoutMs: 1_800_000,
+      childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     },
     codex: { childSession: { cwdAbs: root } },

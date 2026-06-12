@@ -52,6 +52,7 @@ const goodConfig = {
     stopLaunchingOnBlocked: true,
     childTimeoutMs: 1_800_000,
     childNoProgressTimeoutMs: 1_800_000,
+    childStartupTimeoutMs: 60_000,
     childMaxRuntimeMs: 7_200_000,
   },
 };
@@ -78,6 +79,7 @@ describe('config.schema.json', () => {
     expect(parsed.pr.review.rerequestAfterFix).toBe(false);
     expect(parsed.pr.review.waitTimeoutMinutes).toBe(30);
     expect(parsed.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
+    expect(parsed.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(parsed.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
   });
   it('keeps childTimeoutMs as a compatibility alias for no-progress timeout', () => {
@@ -88,6 +90,7 @@ describe('config.schema.json', () => {
 
     expect(parsed.orchestrator.childTimeoutMs).toBe(60_000);
     expect(parsed.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
+    expect(parsed.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(parsed.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
   });
   it('accepts partial nested config objects and relies on runtime defaults', () => {

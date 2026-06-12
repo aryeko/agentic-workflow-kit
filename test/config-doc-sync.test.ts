@@ -155,8 +155,10 @@ describe('config-schema.md stays in sync with config.schema.json', () => {
   });
 
   it('documents child no-progress and max wall-clock timeout semantics', () => {
+    expect(doc).toContain('`childStartupTimeoutMs`');
     expect(doc).toContain('`childNoProgressTimeoutMs`');
     expect(doc).toContain('`childMaxRuntimeMs`');
+    expect(doc).toContain('startup acknowledgement timeout');
     expect(doc).toContain('progress resets the no-progress timeout');
     expect(doc).toContain('wall-clock maximum still bounds total child runtime');
   });

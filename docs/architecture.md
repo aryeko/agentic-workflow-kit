@@ -167,21 +167,25 @@ logs. Interactive `implement-next` journals use the same run directory and can b
 
 Child supervision is conservative. A launch-only child in a running parent is not considered
 `supervision_lost` while there is session linkage, a discoverable session log, recent observed child
-progress, recent worktree activity, or a not-yet-stale launch timestamp. Parent timer ticks are
+progress, recent worktree activity, or a not-yet-stale startup timestamp. Parent timer ticks are
 recorded as `child-supervisor-poll` and update `lastSupervisorPollAt`; they do not update
-`lastObservedChildProgressAt`, do not set `progressSource`, and do not reset the no-progress timer.
-The parent must not clear state, relaunch, or take over the child worktree until staleness is
-proven; duplicate-launch blocking is the safe default when an active launch record remains.
-Operators should inspect with `watch_run` and `analyze_run` first, then either wait for a live
-child, let a settled child finish through tracker state, or stop and use a deliberate recovery
-procedure rather than editing `state.json`, launch metadata, or tracker rows by hand.
+`lastObservedChildProgressAt`, do not set `progressSource`, and do not reset startup or no-progress
+timeouts. The parent must not clear state, relaunch, or take over the child worktree until
+staleness is proven; duplicate-launch blocking is the safe default when an active launch record
+remains. Operators should inspect with `watch_run` and `analyze_run` first, then either wait for a
+live child, let a settled child finish through tracker state, retry a startup-stale orphan, or stop
+and use a deliberate recovery procedure rather than editing `state.json`, launch metadata, or
+tracker rows by hand.
 
-Supervision has separate no-progress and wall-clock limits. `childNoProgressTimeoutMs` detects
-silent children and is reset by real session linkage or observed child progress; `childMaxRuntimeMs`
-remains an absolute cap for runaway stories. Recovery decisions are guarded by evidence: child
-progress, branch and remote state, PR state, tracker-on-base state, latest commit, and worktree
-cleanliness. Ambiguous evidence produces manual recovery required instead of mutating a child branch
-or worktree.
+Supervision has separate startup, no-progress, and wall-clock limits. `childStartupTimeoutMs`
+detects child startup requests that never link a session or report progress; those become
+`startup_failed` at runtime or `startup_stale` in analysis and can be retried when there is no
+session, heartbeat, result, or worktree activity. After startup acknowledgement,
+`childNoProgressTimeoutMs` detects silent children and is reset by real session linkage or observed
+child progress; `childMaxRuntimeMs` remains an absolute cap for runaway stories. Recovery decisions
+are guarded by evidence: child progress, branch and remote state, PR state, tracker-on-base state,
+latest commit, and worktree cleanliness. Ambiguous evidence produces manual recovery required
+instead of mutating a child branch or worktree.
 
 Event journals are also audit artifacts: `analyze-run` normalizes legacy `ts` events and newer
 `eventAt`/`recordedAt` events into a deterministic file-order timeline, then derives local pre-PR

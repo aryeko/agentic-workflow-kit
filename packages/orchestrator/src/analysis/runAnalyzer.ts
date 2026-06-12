@@ -182,6 +182,7 @@ export async function analyzeWorkflowRun(
   const latestSupervisorPollByStory = latestSupervisorPolls(events);
   const now = options.now ?? new Date().toISOString();
   const staleThresholdMs = readChildTimeoutMs(config);
+  const startupThresholdMs = readChildStartupTimeoutMs(config);
 
   const commandCounts: Record<string, number> = {};
   const subagentCounts: Record<string, number> = {};
@@ -222,9 +223,16 @@ export async function analyzeWorkflowRun(
       worktreeActivityAt: expectedWorktreePath ? await pathMtime(expectedWorktreePath) : null,
       now,
       staleThresholdMs,
+      startupThresholdMs,
     });
     if (child.launchOnly === true && status === 'supervision_lost') {
       issues.push(`${storyId} has launch metadata but no settled child result`);
+    }
+    if (child.launchOnly === true && status === 'startup_stale') {
+      issues.push(`${storyId} startup is stale: no session, progress, heartbeat, result, or worktree activity`);
+    }
+    if (child.launchOnly === true && status === 'startup_failed') {
+      issues.push(`${storyId} startup failed before child session acknowledgement`);
     }
     analyzedChildren.push({
       storyId,
@@ -634,9 +642,11 @@ function deriveChildStatus(
     worktreeActivityAt: string | null;
     now: string;
     staleThresholdMs: number;
+    startupThresholdMs: number;
   },
 ): string {
   if (child.launchOnly === true && state.status === 'running') {
+    if (child.status === 'startup_failed') return 'startup_failed';
     if (child.status === 'supervision_lost') return 'supervision_lost';
     if (evidence.sessionId !== null || evidence.sessionLogPath !== null) return 'launched';
     const progressAt =
@@ -644,14 +654,16 @@ function deriveChildStatus(
       evidence.latestObservedChildProgressAt ??
       readOptionalString(child.lastHeartbeatAt);
     if (progressAt !== null && !isStale(progressAt, evidence.now, evidence.staleThresholdMs)) return 'launched';
+    if (progressAt !== null) return 'supervision_lost';
     if (
       evidence.worktreeActivityAt !== null &&
-      !isStale(evidence.worktreeActivityAt, evidence.now, evidence.staleThresholdMs)
+      !isStale(evidence.worktreeActivityAt, evidence.now, evidence.startupThresholdMs)
     ) {
       return 'launched';
     }
     const startedAt = readOptionalString(child.startedAt);
-    if (startedAt !== null && !isStale(startedAt, evidence.now, evidence.staleThresholdMs)) return 'launched';
+    if (startedAt !== null && !isStale(startedAt, evidence.now, evidence.startupThresholdMs)) return 'startup_pending';
+    if (startedAt !== null) return 'startup_stale';
     return 'supervision_lost';
   }
   if (typeof child.status === 'string') return child.status;
@@ -1120,7 +1132,16 @@ function latestSupervisorPolls(events: NormalizedEvent[]): Map<string, string> {
 
 function readChildTimeoutMs(config: Record<string, unknown> | null): number {
   const orchestrator = readRecord(config?.orchestrator);
-  return readOptionalNumber(orchestrator?.childTimeoutMs) ?? 30 * 60 * 1000;
+  return (
+    readOptionalNumber(orchestrator?.childNoProgressTimeoutMs) ??
+    readOptionalNumber(orchestrator?.childTimeoutMs) ??
+    30 * 60 * 1000
+  );
+}
+
+function readChildStartupTimeoutMs(config: Record<string, unknown> | null): number {
+  const orchestrator = readRecord(config?.orchestrator);
+  return readOptionalNumber(orchestrator?.childStartupTimeoutMs) ?? 60 * 1000;
 }
 
 function isStale(eventAt: string, now: string, staleThresholdMs: number): boolean {

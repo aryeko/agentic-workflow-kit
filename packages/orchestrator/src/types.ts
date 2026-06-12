@@ -25,7 +25,7 @@ export interface ActiveChildRun {
   lastHeartbeatAt: string | null;
 }
 
-export type ChildLaunchStatus = 'launched' | 'settled' | 'supervision_lost';
+export type ChildLaunchStatus = 'requested' | 'launched' | 'startup_failed' | 'settled' | 'supervision_lost';
 export type ChildProgressSource = 'session-linked' | 'mcp-progress' | 'session-log' | 'git' | 'pr' | 'structured';
 
 export interface VerificationEvidence {
@@ -139,6 +139,7 @@ export interface ResolvedWorkflowConfig {
      */
     childTimeoutMs: number;
     childNoProgressTimeoutMs: number;
+    childStartupTimeoutMs: number;
     childMaxRuntimeMs: number;
   };
   codex: {
