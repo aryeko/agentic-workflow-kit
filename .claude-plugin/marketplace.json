@@ -7,7 +7,7 @@
       "name": "agentic-workflow-kit",
       "source": "./",
       "description": "Tracker-driven, spec-first delivery workflow for any repo.",
-      "version": "0.5.10",
+      "version": "0.5.11",
       "category": "Productivity"
     }
   ]
