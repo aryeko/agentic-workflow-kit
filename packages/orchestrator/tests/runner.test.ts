@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -607,6 +607,89 @@ describe('WorkflowRunner', () => {
         reason: 'stale startup launch has no acknowledgement evidence',
       }),
     );
+  });
+
+  it('keeps stale startup launch records active when nested worktree files changed recently', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-stale-startup-worktree-'));
+    const runDir = path.join(workspaceRoot, '.codex/agentic-workflow-kit/runs/older-run/children');
+    const worktreePath = path.join(workspaceRoot, '.worktrees/a001-a001');
+    const nestedFile = path.join(worktreePath, 'src/existing.ts');
+    mkdirSync(runDir, { recursive: true });
+    mkdirSync(path.dirname(nestedFile), { recursive: true });
+    writeFileSync(nestedFile, 'recent edit\n');
+    const oldTime = new Date('2026-06-01T23:58:00.000Z');
+    const recentTime = new Date('2026-06-01T23:59:30.000Z');
+    utimesSync(worktreePath, oldTime, oldTime);
+    utimesSync(path.dirname(nestedFile), oldTime, oldTime);
+    utimesSync(nestedFile, recentTime, recentTime);
+    writeFileSync(
+      path.join(runDir, 'A001.launch.json'),
+      JSON.stringify({
+        storyId: 'A001',
+        launchId: 'stale-startup-with-worktree-activity',
+        status: 'launched',
+        expectedBranch: 't/a001-a001',
+        expectedWorktreePath: worktreePath,
+        startedAt: '2026-06-01T23:58:00.000Z',
+        sessionId: null,
+        lastHeartbeatAt: null,
+        lastObservedChildProgressAt: null,
+      }),
+    );
+    const artifacts = new MemoryArtifacts();
+    const sync = new SyncRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: configForWorkspace(workspaceRoot),
+      storySource: new MutableStorySource([[story('A001')]]),
+      storyRunner: sync,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const state = await runner.runStory('A001');
+
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toContain('duplicate active launch');
+    expect(sync.requests).toEqual([]);
+    expect(artifacts.events.map((event) => event.type)).not.toContain('child-launch-stale-ignored');
+  });
+
+  it('does not relaunch the same startup-failed story in one run when continuing after blocked children', async () => {
+    const artifacts = new MemoryArtifacts();
+    const unacknowledged = new UnacknowledgedRunner();
+    const timer = new ManualChildTimer();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: {
+        ...config(),
+        orchestrator: {
+          ...config().orchestrator,
+          stopLaunchingOnBlocked: false,
+          childStartupTimeoutMs: 25,
+        },
+      },
+      storySource: new MutableStorySource([[story('A001'), story('A002')]]),
+      storyRunner: unacknowledged,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childTimer: timer,
+    });
+
+    const run = runner.runEligible();
+    await waitFor(() => expect(unacknowledged.requests.map((request) => request.story.id)).toEqual(['A001']));
+    timer.fireTimeout(timer.latestTimeoutHandle());
+    await waitFor(() => expect(unacknowledged.requests.map((request) => request.story.id)).toEqual(['A001', 'A002']));
+    timer.fireTimeout(timer.latestTimeoutHandle());
+    await run;
+
+    expect(unacknowledged.requests.map((request) => request.story.id)).toEqual(['A001', 'A002']);
   });
 
   it('blocks duplicate expected branches already active in this run', async () => {

@@ -183,16 +183,18 @@ export class WorkflowRunner {
     let stories = await this.dependencies.storySource.listStories();
     await this.journal.writeStorySnapshot('initial', stories);
     const active = new Map<string, Promise<SettledStoryRun>>();
+    const attemptedStoryIds = new Set<string>();
     const limit = pLimit(this.dependencies.config.orchestrator.maxParallel);
     let stopLaunching = false;
 
     const launchAvailable = async (): Promise<void> => {
       if (stopLaunching) return;
 
-      const dispatchable = selectDispatchableStories(stories, {
-        maxParallel: this.dependencies.config.orchestrator.maxParallel,
-        activeIds: new Set(active.keys()),
-      });
+      const activeIds = new Set(active.keys());
+      const availableSlots = Math.max(0, this.dependencies.config.orchestrator.maxParallel - activeIds.size);
+      const dispatchable = stories
+        .filter((story) => story.eligible && !activeIds.has(story.id) && !attemptedStoryIds.has(story.id))
+        .slice(0, availableSlots);
       const batchConflict = this.findDispatchBatchConflict(dispatchable);
       if (batchConflict) {
         this.blockOnce(batchConflict.storyId, batchConflict.reason);
@@ -218,6 +220,7 @@ export class WorkflowRunner {
           stopLaunching = true;
           break;
         }
+        attemptedStoryIds.add(claimedStory.story.id);
         active.set(
           claimedStory.story.id,
           limit(() => this.executeChild(claimedStory.story, launch)),

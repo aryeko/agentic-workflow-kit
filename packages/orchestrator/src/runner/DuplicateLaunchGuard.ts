@@ -208,13 +208,29 @@ async function hasRecentWorktreeActivity(
   startupTimeoutMs: number,
 ): Promise<boolean> {
   try {
-    const info = await stat(worktreePath);
-    const ageMs = Date.parse(now) - info.mtimeMs;
-    return Number.isFinite(ageMs) && ageMs <= startupTimeoutMs;
+    return await hasRecentPathActivity(worktreePath, now, startupTimeoutMs);
   } catch (error) {
     if (isNodeError(error) && error.code === 'ENOENT') return false;
     throw error;
   }
+}
+
+async function hasRecentPathActivity(filePath: string, now: string, startupTimeoutMs: number): Promise<boolean> {
+  const info = await stat(filePath);
+  const ageMs = Date.parse(now) - info.mtimeMs;
+  if (Number.isFinite(ageMs) && ageMs <= startupTimeoutMs) return true;
+  if (!info.isDirectory()) return false;
+
+  const entries = await readdir(filePath, { withFileTypes: true });
+  for (const entry of entries) {
+    if (shouldSkipWorktreeActivityEntry(entry.name)) continue;
+    if (await hasRecentPathActivity(path.join(filePath, entry.name), now, startupTimeoutMs)) return true;
+  }
+  return false;
+}
+
+function shouldSkipWorktreeActivityEntry(name: string): boolean {
+  return name === '.git' || name === 'node_modules' || name === '.turbo' || name === '.next';
 }
 
 function readString(value: unknown): string | null {
