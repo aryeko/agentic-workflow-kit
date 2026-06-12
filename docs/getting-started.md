@@ -146,14 +146,15 @@ pnpm agentic-workflow-kit -- watch-run .codex/agentic-workflow-kit/runs/<runId>
 pnpm agentic-workflow-kit -- analyze-run .codex/agentic-workflow-kit/runs/<runId>
 ```
 
-Do not edit run artifacts or tracker rows by hand while a child may still be active. Recent
-heartbeats, session ids, session logs, worktree activity, or not-yet-stale launch timestamps mean
-the safe action is to wait or keep observing. If a duplicate active launch blocks a retry, use
-`watch-run` / `analyze-run` output to prove the previous child is stale before any recovery action.
-Recovery must be evidence-based: check child session heartbeat, branch and remote state, open or
-merged PR state, tracker status on the configured base branch, latest commit evidence, and worktree
-cleanliness before taking over. If any evidence is ambiguous, stop with "manual recovery required"
-instead of editing a child branch or worktree.
+Do not edit run artifacts or tracker rows by hand while a child may still be active. Session ids,
+session logs, observed child progress, worktree activity, or not-yet-stale launch timestamps mean
+the safe action is to wait or keep observing. Parent supervisor polls only prove the parent loop
+woke up; they are not child progress. If a duplicate active launch blocks a retry, use `watch-run` /
+`analyze-run` output to prove the previous child is stale before any recovery action. Recovery must
+be evidence-based: check child progress, branch and remote state, open or merged PR state, tracker
+status on the configured base branch, latest commit evidence, and worktree cleanliness before taking
+over. If any evidence is ambiguous, stop with "manual recovery required" instead of editing a child
+branch or worktree.
 
 Autopilot uses two timeout concepts. `orchestrator.childNoProgressTimeoutMs` detects silent children
 and is reset by child session linkage or progress; `orchestrator.childMaxRuntimeMs` is the absolute
@@ -170,13 +171,20 @@ summarizes pre-PR review subagent loops from `spawn_agent`, `wait_agent`, and `c
 A review that ran and returned `BLOCK` findings is reported as a review result;
 `pre_pr_review_blocked` is reserved for cases where the review step could not run.
 Per-story analyzer output includes primary linkage status, diagnostic session candidates, failed
-`spawn_agent` attempts, recovery/takeover events, PR review fix-batch policy, and the completion
-authority used by the gate.
+`spawn_agent` attempts, supervisor poll versus observed progress timestamps, recovery/takeover
+events, verification evidence, merge/cleanup evidence, PR review fix-batch policy, and the
+completion authority used by the gate. When child/base evidence says a story merged but the
+parent-local snapshot still says `implementing`, analyzer reports that stale parent snapshot
+explicitly.
 
 For auto-merge workflows, a story can complete after the PR has already landed: tracker complete
 status plus a merge commit on the configured base branch is accepted as completion evidence even
 when `git.commitOnBase: forbid`. Runtime files under `.codex/agentic-workflow-kit/runs/` are ignored
 for dirty-check purposes.
+
+For MCP dispatch, non-dry-run `run_eligible` returns as soon as the initial child sessions are
+launched and the run artifact directory exists. Treat that response as a launch receipt, then use
+`watch_run` for active state and `analyze_run` for the post-run explanation.
 
 For UI stories, rendered verification can fall back to repo Playwright/e2e gates when the Browser
 connector or local browser-safe env is unavailable. Record the downgrade reason and evidence in the

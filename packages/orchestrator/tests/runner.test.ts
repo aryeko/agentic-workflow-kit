@@ -224,6 +224,7 @@ class LifecycleRunner implements StoryRunner {
 
 class FakeGitInspector implements GitInspector {
   calls: Array<{ storyId: string; cwdAbs: string }> = [];
+  filesByRef = new Map<string, string>();
 
   constructor(
     private evidence: StoryCommitEvidence = {
@@ -247,6 +248,10 @@ class FakeGitInspector implements GitInspector {
   async inspectStory(args: Parameters<GitInspector['inspectStory']>[0]): Promise<StoryCommitEvidence> {
     this.calls.push({ storyId: args.story.id, cwdAbs: args.cwdAbs });
     return this.evidence;
+  }
+
+  async readFileFromRef(args: { ref: string; filePath: string }): Promise<string | null> {
+    return this.filesByRef.get(`${args.ref}:${args.filePath}`) ?? null;
   }
 }
 
@@ -583,6 +588,39 @@ describe('WorkflowRunner', () => {
     expect(state.completed.map((entry) => entry.storyId)).toEqual(['A001', 'A002', 'A003']);
   });
 
+  it('can return after initial eligible child launch while supervision continues', async () => {
+    const artifacts = new MemoryArtifacts();
+    const deferred = new DeferredRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: config(),
+      storySource: new MutableStorySource([
+        [story('A001'), story('A002')],
+        [story('A001', 'done', false), story('A002', 'done', false)],
+        [story('A001', 'done', false), story('A002', 'done', false)],
+      ]),
+      storyRunner: deferred,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const initialState = await runner.runEligible({ returnAfterInitialLaunch: true });
+
+    expect(initialState).toMatchObject({
+      status: 'running',
+      active: ['A001', 'A002'],
+      artifactDir: '/repo/.codex/agentic-workflow-kit/runs/run-1',
+    });
+    expect(deferred.requests.map((request) => request.story.id)).toEqual(['A001', 'A002']);
+
+    deferred.resolve('A001');
+    deferred.resolve('A002');
+    await waitFor(() => expect((artifacts.json.get('state.json') as { status?: string })?.status).toBe('complete'));
+  });
+
   it('records synchronous child launches in source order under the p-limit pool', async () => {
     const artifacts = new MemoryArtifacts();
     const sync = new SyncRunner();
@@ -734,7 +772,7 @@ describe('WorkflowRunner', () => {
     );
   });
 
-  it('emits child-heartbeat events while a child is in flight', async () => {
+  it('emits supervisor poll events without marking observed child progress', async () => {
     const artifacts = new MemoryArtifacts();
     const deferred = new DeferredRunner();
     const timer = new ManualChildTimer();
@@ -756,16 +794,84 @@ describe('WorkflowRunner', () => {
     await waitFor(() => expect(deferred.requests).toHaveLength(1));
     fakeMs = 2_500;
     timer.fireInterval();
-    await waitFor(() => expect(artifacts.events.map((event) => event.type)).toContain('child-heartbeat'));
-    expect(artifacts.events.find((event) => event.type === 'child-heartbeat')).toMatchObject({
+    await waitFor(() => expect(artifacts.events.map((event) => event.type)).toContain('child-supervisor-poll'));
+    expect(artifacts.events.map((event) => event.type)).not.toContain('child-heartbeat');
+    expect(artifacts.events.find((event) => event.type === 'child-supervisor-poll')).toMatchObject({
       storyId: 'A001',
       launchId: 'A001-2026-06-02T00-00-00-000Z',
+    });
+    expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+      storyId: 'A001',
+      lastSupervisorPollAt: '2026-06-02T00:00:00.000Z',
+      lastObservedChildProgressAt: null,
+      progressSource: null,
     });
     deferred.resolve('A001');
     await run;
 
-    const heartbeat = artifacts.events.find((event) => event.type === 'child-heartbeat');
-    expect(heartbeat).toMatchObject({ storyId: 'A001', elapsedMs: 1_500 });
+    const poll = artifacts.events.find((event) => event.type === 'child-supervisor-poll');
+    expect(poll).toMatchObject({ storyId: 'A001', elapsedMs: 1_500 });
+  });
+
+  it('uses authoritative base tracker status after child merge evidence when local parent snapshot is stale', async () => {
+    const gitInspector = new FakeGitInspector({
+      committed: true,
+      branch: 'main',
+      isBaseBranch: true,
+      headSha: 'merge-sha',
+      baseSha: 'merge-sha',
+      uncommittedChanges: false,
+      mergedPullRequest: { number: 100, url: 'https://github.com/acme/repo/pull/100', mergeCommitSha: 'merge-sha' },
+    });
+    gitInspector.filesByRef.set(
+      'origin/main:docs/tracks/t/README.md',
+      trackerMarkdown('done').replace('| — | — |', '| — | [PR #100](https://github.com/acme/repo/pull/100) |'),
+    );
+    const result = {
+      storyId: 'WK001',
+      sessionId: 'thread-wk001',
+      content: 'merged PR #100',
+      rawResult: {},
+      invocation: {},
+      evidence: {
+        finalStatus: 'done',
+        trackerPath: 'docs/tracks/t/README.md',
+        prNumber: 100,
+        prUrl: 'https://github.com/acme/repo/pull/100',
+        merged: true,
+        mergeCommit: 'merge-sha',
+      },
+    } as StoryRunResult;
+    const artifacts = new MemoryArtifacts();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: { ...config(), pr: { ...config().pr, merge: { ...config().pr.merge, auto: true } } },
+      storySource: new MutableStorySource([[story('WK001')], [story('WK001', 'implementing', false)]]),
+      storyRunner: new FakeRunner(result),
+      gitInspector,
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const state = await runner.runStory('WK001');
+
+    expect(state.status).toBe('complete');
+    expect(state.completed[0]).toMatchObject({ storyId: 'WK001', returnedStatus: 'done', returnedComplete: true });
+    expect(artifacts.json.get('children/WK001.json')).toMatchObject({
+      storyId: 'WK001',
+      completionAuthority: 'merged-pr-on-base',
+      completionAuthoritySource: 'base-tracker',
+    });
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'completion_authority',
+        storyId: 'WK001',
+        authority: 'merged-pr-on-base',
+        source: 'base-tracker',
+      }),
+    );
   });
 
   it('accepts complete only when a commit exists on a story branch', async () => {

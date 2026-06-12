@@ -21,6 +21,7 @@ export interface StoryCommitEvidence {
 
 export interface GitInspector {
   snapshotBaseSha?(args: { git: ResolvedGitConfig; cwdAbs: string }): Promise<string | null>;
+  readFileFromRef?(args: { cwdAbs: string; ref: string; filePath: string }): Promise<string | null>;
   inspectStory(args: {
     story: WorkflowStory;
     git: ResolvedGitConfig;
@@ -32,6 +33,10 @@ export interface GitInspector {
 export class RealGitInspector implements GitInspector {
   async snapshotBaseSha(args: { git: ResolvedGitConfig; cwdAbs: string }): Promise<string | null> {
     return await maybeGitOutput(args.cwdAbs, ['rev-parse', '--verify', args.git.baseBranch]);
+  }
+
+  async readFileFromRef(args: { cwdAbs: string; ref: string; filePath: string }): Promise<string | null> {
+    return await maybeGitOutput(args.cwdAbs, ['show', `${args.ref}:${args.filePath}`]);
   }
 
   async inspectStory(args: {

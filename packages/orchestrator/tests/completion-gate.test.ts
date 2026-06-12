@@ -74,6 +74,7 @@ function makeDeps(overrides: Partial<CompletionGateDeps> = {}): CompletionGateDe
       },
       merge: { auto: false, method: 'squash', deleteBranch: true },
     },
+    tracker: { idPattern: '^[A-Z]+[0-9]+$' },
     childCwdAbs: '/repo',
     ...overrides,
   };

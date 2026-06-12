@@ -6,6 +6,7 @@ import type {
   ArtifactStore,
   ChildLaunchRecord,
   ChildMetricsSnapshot,
+  ChildResultEvidence,
   Clock,
   ResolvedWorkflowConfig,
   RunState,
@@ -23,9 +24,11 @@ export interface SettledStoryRun {
   error?: string;
   completedAt: string;
   metrics?: ChildMetricsSnapshot;
+  evidence?: ChildResultEvidence;
   commitEvidence?: StoryCommitEvidence;
   baseShaAtLaunch?: string | null;
   completionAuthority?: string;
+  completionAuthoritySource?: string;
 }
 
 export interface RunJournalDependencies {

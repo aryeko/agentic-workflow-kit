@@ -59,6 +59,9 @@ Use tool results as operational evidence only. They do not replace tracker statu
 review policy, or merge policy. `analyze_run` also accepts compatible interactive
 `implement-next` journals when `state.json` contains `command: "implement-next"` and an
 `interactive` child record with `storyId` and `sessionId`.
+For non-dry-run MCP dispatch, treat the `run_eligible` response as a launch receipt once it returns
+`runId`/`artifactDir` and active children. Continue supervision with `watch_run`; use `analyze_run`
+after completion, blockage, or suspected stale state.
 Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-full-access` with
 `approvalPolicy: never` grants those children full local disk access without interactive approval.
 
@@ -95,16 +98,21 @@ Artifacts are under `.codex/agentic-workflow-kit/runs/<run-id>/`.
 - `children/<story-id>.json` records normalized child output.
 - `children/<story-id>.launch.json` records parent-owned launch metadata before child execution:
   story id, launch id, expected branch/worktree path, child cwd, base SHA, prompt hash, and known
-  child session/log identifiers.
+  child session/log identifiers. It distinguishes `lastSupervisorPollAt` from
+  `lastObservedChildProgressAt` and `progressSource`; parent polls are not child progress.
 - `children/<story-id>.raw.json` records raw driver output when available.
 - `children/<story-id>.metrics.json` records best-effort child tool, token, and subagent metrics
   when available.
 
 Child tool/token/subagent metrics are best-effort observability. They help with tracking cost,
 time, and behavior, but they never drive scheduling or completion.
+`children/<story-id>.json` may include structured child evidence such as final status, tracker path,
+PR URL/number, merge commit, branch deletion, verification commands, review loops, PR review
+findings, and downgrade notes. This helps analysis, but completion still comes from tracker/git
+authority.
 
 Interactive `implement-next` journals use the same run directory and state/config/event semantics
 where practical. They may omit orchestrator child files; in that case `analyze-run` treats
 `state.json` field `interactive` as the single analyzed child. A run with launch metadata but no
-settled child result is stale; `analyze-run` reports it as `supervision_lost` rather than
-authoritatively `running`.
+settled child result is stale only after real child progress evidence is stale; parent supervisor
+polls alone do not prove the child is active.

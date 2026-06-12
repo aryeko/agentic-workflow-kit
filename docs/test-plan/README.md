@@ -29,6 +29,9 @@ points you into `common-phases.md` for everything shared.
   not "did it print exactly this."
 - **MCP first, CLI fallback.** Plugin sessions should use the plugin-provided MCP runtime. The standalone CLI
   is the fallback for development, CI, and troubleshooting.
+- **Launch receipt, then supervise.** Non-dry-run MCP dispatch returns after initial child launch.
+  A smoke must follow that receipt with `watch_run` and `analyze_run`, and should confirm analyzer
+  separates parent supervisor polls from observed child progress.
 - **Capture evidence.** Save each transcript / command output (see common-phases.md → Evidence).
 
 ## Status

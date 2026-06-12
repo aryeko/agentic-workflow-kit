@@ -99,6 +99,9 @@ describe('RunJournal', () => {
       promptHash: 'hash',
       sessionId: null,
       sessionLogPath: null,
+      lastSupervisorPollAt: null,
+      lastObservedChildProgressAt: null,
+      progressSource: null,
       lastHeartbeatAt: null,
     });
 

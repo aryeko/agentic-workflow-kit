@@ -166,19 +166,22 @@ logs. Interactive `implement-next` journals use the same run directory and can b
 `state.json` contains `command: "implement-next"` plus an `interactive` child record.
 
 Child supervision is conservative. A launch-only child in a running parent is not considered
-`supervision_lost` while there is session linkage, a discoverable session log, a recent heartbeat,
-or a not-yet-stale launch timestamp. The parent must not clear state, relaunch, or take over the
-child worktree until staleness is proven; duplicate-launch blocking is the safe default when an
-active launch record remains. Operators should inspect with `watch_run` and `analyze_run` first,
-then either wait for a live child, let a settled child finish through tracker state, or stop and use
-a deliberate recovery procedure rather than editing `state.json`, launch metadata, or tracker rows
-by hand.
+`supervision_lost` while there is session linkage, a discoverable session log, recent observed child
+progress, recent worktree activity, or a not-yet-stale launch timestamp. Parent timer ticks are
+recorded as `child-supervisor-poll` and update `lastSupervisorPollAt`; they do not update
+`lastObservedChildProgressAt`, do not set `progressSource`, and do not reset the no-progress timer.
+The parent must not clear state, relaunch, or take over the child worktree until staleness is
+proven; duplicate-launch blocking is the safe default when an active launch record remains.
+Operators should inspect with `watch_run` and `analyze_run` first, then either wait for a live
+child, let a settled child finish through tracker state, or stop and use a deliberate recovery
+procedure rather than editing `state.json`, launch metadata, or tracker rows by hand.
 
 Supervision has separate no-progress and wall-clock limits. `childNoProgressTimeoutMs` detects
-silent children and is reset by real session linkage or child progress; `childMaxRuntimeMs` remains
-an absolute cap for runaway stories. Recovery decisions are guarded by evidence: child heartbeat,
-branch and remote state, PR state, tracker-on-base state, latest commit, and worktree cleanliness.
-Ambiguous evidence produces manual recovery required instead of mutating a child branch or worktree.
+silent children and is reset by real session linkage or observed child progress; `childMaxRuntimeMs`
+remains an absolute cap for runaway stories. Recovery decisions are guarded by evidence: child
+progress, branch and remote state, PR state, tracker-on-base state, latest commit, and worktree
+cleanliness. Ambiguous evidence produces manual recovery required instead of mutating a child branch
+or worktree.
 
 Event journals are also audit artifacts: `analyze-run` normalizes legacy `ts` events and newer
 `eventAt`/`recordedAt` events into a deterministic file-order timeline, then derives local pre-PR
@@ -190,16 +193,22 @@ actual mode, loop status, finding counts, fix batches, and final subagent status
 `pre_pr_review_blocked` is reserved for review execution failures in new journals; completed reviews
 that return blocking findings use `pre_pr_review_completed` with `verdict: "BLOCK"` or
 `pre_pr_review_findings`.
-Per-child analyzer details include linkage status, diagnostic session candidates, failed
-`spawn_agent` attempts, recovery/takeover events, PR fix-batch policy, and the completion authority
-used by the gate. Diagnostic candidates are evidence for investigation, not a replacement for the
-primary persisted session id/session log contract.
+Per-child analyzer details include linkage status, diagnostic session candidates, supervisor poll
+time, observed child progress time/source, failed `spawn_agent` attempts, recovery/takeover events,
+verification evidence, merge/cleanup evidence, review evidence, stale parent snapshot detection, and
+the completion authority used by the gate. Diagnostic candidates are evidence for investigation, not
+a replacement for the primary persisted session id/session log contract. If a parent snapshot still
+shows an in-progress claim while child/base evidence shows a merged complete story, analyzer reports
+that as stale parent state instead of hiding the successful child work.
 
-Completion still comes from tracker state, but git evidence is policy-aware. Under
-`git.commitOnBase: forbid`, direct story work on the base branch remains blocked. For configured
-auto-merge flows, a completed tracker row plus commit evidence showing the merge commit already on
-the base branch is accepted as terminal success, because the child has finished the PR/merge policy
-and the story branch may already have been deleted.
+Completion still comes from tracker state, but git evidence is policy-aware. Parent-local claim
+snapshots are not the same as tracker authority after a merge. When PR auto-merge is configured or a
+child returns structured merged-PR evidence, the completion gate checks `origin/<baseBranch>` for
+the tracker row before classifying `tracker-status-not-complete`. Under `git.commitOnBase: forbid`,
+direct story work on the base branch remains blocked. For configured auto-merge flows, a completed
+base tracker row plus commit evidence showing the merge commit already on the base branch is
+accepted as terminal success, because the child has finished the PR/merge policy and the story branch
+may already have been deleted.
 
 Rendered UI verification is a workflow contract rather than a specific connector requirement. When
 the Browser connector or local browser env is unavailable, children may downgrade to repo

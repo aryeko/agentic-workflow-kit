@@ -65,6 +65,7 @@ export class WorkflowRunner {
       statuses: dependencies.config.statuses,
       git: dependencies.config.git,
       pr: dependencies.config.pr,
+      tracker: dependencies.config.tracker,
       childCwdAbs: dependencies.config.codex.childSession.cwdAbs,
     });
     this.state = {
@@ -171,7 +172,7 @@ export class WorkflowRunner {
     return await this.finish();
   }
 
-  async runEligible(): Promise<RunState> {
+  async runEligible(options: { returnAfterInitialLaunch?: boolean } = {}): Promise<RunState> {
     await this.journal.writeRunMetadata(this.state);
     await this.journal.writeConfigSnapshot(this.dependencies.config);
     await this.journal.record('run-started', {
@@ -232,40 +233,54 @@ export class WorkflowRunner {
     await launchAvailable();
     if (active.size === 0) return await this.finish();
 
-    while (active.size > 0) {
-      const settled = await Promise.race(active.values());
-      active.delete(settled.storyId);
+    const supervise = async (): Promise<RunState> => {
+      while (active.size > 0) {
+        const settled = await Promise.race(active.values());
+        active.delete(settled.storyId);
 
-      if (!settled.ok) {
-        await this.recordSettledChild(settled);
-        await this.journal.record('child-error', { storyId: settled.storyId, error: settled.error });
-        this.blockOnce(settled.storyId, settled.error ?? 'child session failed');
-        stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
-        await this.writeState();
-        await this.writeLiveMetrics();
+        if (!settled.ok) {
+          await this.recordSettledChild(settled);
+          await this.journal.record('child-error', { storyId: settled.storyId, error: settled.error });
+          this.blockOnce(settled.storyId, settled.error ?? 'child session failed');
+          stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
+          await this.writeState();
+          await this.writeLiveMetrics();
+          await launchAvailable();
+          continue;
+        }
+
+        stories = await this.dependencies.storySource.listStories();
+        const evaluation = await this.processSettled(settled, stories);
+
+        if (!evaluation.complete) {
+          this.blockOnce(settled.storyId, evaluation.reason);
+          await this.journal.record('story-not-complete', {
+            storyId: settled.storyId,
+            status: evaluation.returnedStory?.status ?? null,
+          });
+          stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
+          await launchAvailable();
+          continue;
+        }
+
+        await this.journal.record('child-complete', { storyId: settled.storyId, sessionId: settled.sessionId });
         await launchAvailable();
-        continue;
       }
 
-      stories = await this.dependencies.storySource.listStories();
-      const evaluation = await this.processSettled(settled, stories);
+      return await this.finish();
+    };
 
-      if (!evaluation.complete) {
-        this.blockOnce(settled.storyId, evaluation.reason);
-        await this.journal.record('story-not-complete', {
-          storyId: settled.storyId,
-          status: evaluation.returnedStory?.status ?? null,
-        });
-        stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
-        await launchAvailable();
-        continue;
-      }
-
-      await this.journal.record('child-complete', { storyId: settled.storyId, sessionId: settled.sessionId });
-      await launchAvailable();
+    if (options.returnAfterInitialLaunch === true) {
+      void supervise().catch(async (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.blockOnce('run-eligible', message);
+        await this.journal.record('run-supervision-error', { error: message });
+        await this.finish();
+      });
+      return { ...this.state };
     }
 
-    return await this.finish();
+    return await supervise();
   }
 
   private async launchChild(story: WorkflowStory, options: { force?: boolean } = {}): Promise<SettledStoryRun> {
@@ -362,6 +377,9 @@ export class WorkflowRunner {
         story,
       ),
       startedAt,
+      lastSupervisorPollAt: null,
+      lastObservedChildProgressAt: null,
+      progressSource: null,
       lastHeartbeatAt: null,
     };
     const launchRecord: ChildLaunchRecord = {
@@ -412,9 +430,26 @@ export class WorkflowRunner {
 
     const handleLifecycle = async (event: ChildLifecycleEvent): Promise<void> => {
       if (event.type === 'session-linked') {
+        const progressAt = this.dependencies.clock.now();
+        this.state = {
+          ...this.state,
+          activeChildren: this.state.activeChildren?.map((entry) =>
+            entry.storyId === story.id
+              ? {
+                  ...entry,
+                  lastObservedChildProgressAt: progressAt,
+                  progressSource: 'session-linked',
+                  lastHeartbeatAt: progressAt,
+                }
+              : entry,
+          ),
+        };
         launch.record = await this.journal.updateChildLaunch(launch.record, {
           sessionId: event.sessionId,
           sessionLogPath: event.sessionLogPath ?? null,
+          lastObservedChildProgressAt: progressAt,
+          progressSource: 'session-linked',
+          lastHeartbeatAt: progressAt,
         });
         await this.journal.record('child-session-linked', {
           storyId: story.id,
@@ -430,15 +465,27 @@ export class WorkflowRunner {
       this.state = {
         ...this.state,
         activeChildren: this.state.activeChildren?.map((entry) =>
-          entry.storyId === story.id ? { ...entry, lastHeartbeatAt: progressAt } : entry,
+          entry.storyId === story.id
+            ? {
+                ...entry,
+                lastObservedChildProgressAt: progressAt,
+                progressSource: 'mcp-progress',
+                lastHeartbeatAt: progressAt,
+              }
+            : entry,
         ),
       };
-      launch.record = await this.journal.updateChildLaunch(launch.record, { lastHeartbeatAt: progressAt });
+      launch.record = await this.journal.updateChildLaunch(launch.record, {
+        lastObservedChildProgressAt: progressAt,
+        progressSource: 'mcp-progress',
+        lastHeartbeatAt: progressAt,
+      });
       await this.journal.record('child-progress', {
         storyId: story.id,
         launchId: launch.record.launchId,
         message: event.message,
         progressToken: event.progressToken ?? null,
+        progressSource: 'mcp-progress',
         elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
       });
       await this.writeState();
@@ -462,14 +509,17 @@ export class WorkflowRunner {
         refreshNoProgressTimeout();
       });
       heartbeatHandle = timer.setInterval(() => {
-        const heartbeatAt = this.dependencies.clock.now();
+        const pollAt = this.dependencies.clock.now();
         this.state = {
           ...this.state,
           activeChildren: this.state.activeChildren?.map((entry) =>
-            entry.storyId === story.id ? { ...entry, lastHeartbeatAt: heartbeatAt } : entry,
+            entry.storyId === story.id ? { ...entry, lastSupervisorPollAt: pollAt } : entry,
           ),
         };
-        void this.journal.record('child-heartbeat', {
+        void this.journal.updateChildLaunch(launch.record, { lastSupervisorPollAt: pollAt }).then((updated) => {
+          launch.record = updated;
+        });
+        void this.journal.record('child-supervisor-poll', {
           storyId: story.id,
           launchId: launch.record.launchId,
           elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
@@ -494,6 +544,7 @@ export class WorkflowRunner {
         content: result.content,
         rawResult: result.rawResult,
         invocation: result.invocation,
+        evidence: result.evidence,
         completedAt,
         metrics: result.metrics,
         baseShaAtLaunch: launch.record.baseShaAtLaunch,
@@ -543,10 +594,12 @@ export class WorkflowRunner {
       ...settled,
       ...(evaluation.commitEvidence ? { commitEvidence: evaluation.commitEvidence } : {}),
       completionAuthority: evaluation.authority,
+      completionAuthoritySource: evaluation.source,
     };
     await this.journal.record('completion_authority', {
       storyId: settled.storyId,
       authority: evaluation.authority,
+      source: evaluation.source,
       complete: evaluation.complete,
     });
     await this.recordSettledChild(settledWithEvidence, evaluation.returnedStory, evaluation.complete);
