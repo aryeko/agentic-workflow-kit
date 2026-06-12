@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.11
+
+### Patch Changes
+
+- ed8febf: Supervise Codex MCP child sessions through Codex `codex/event` notifications and launch worktree-strategy children from parent-prepared story worktrees.
+
 ## 0.5.10
 
 ### Patch Changes

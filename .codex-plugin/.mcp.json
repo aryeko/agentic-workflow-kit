@@ -2,7 +2,7 @@
   "mcpServers": {
     "agentic-workflow-kit": {
       "command": "npx",
-      "args": ["-y", "--package", "@agentic-workflow-kit/orchestrator@0.5.10", "agentic-workflow-kit-mcp"]
+      "args": ["-y", "--package", "@agentic-workflow-kit/orchestrator@0.5.11", "agentic-workflow-kit-mcp"]
     }
   }
 }
