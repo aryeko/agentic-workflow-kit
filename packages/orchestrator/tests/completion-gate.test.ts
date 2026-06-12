@@ -50,6 +50,46 @@ class FakeGitInspector implements GitInspector {
   }
 }
 
+class RefreshingBaseTrackerGitInspector implements GitInspector {
+  calls: string[] = [];
+  private refreshed = false;
+
+  async refreshBaseBranch(): Promise<void> {
+    this.calls.push('refreshBaseBranch');
+    this.refreshed = true;
+  }
+
+  async readFileFromRef(): Promise<string | null> {
+    this.calls.push('readFileFromRef');
+    return this.refreshed ? trackerMarkdown('done') : trackerMarkdown('implementing');
+  }
+
+  async isCommitReachableFromRef(): Promise<boolean> {
+    this.calls.push('isCommitReachableFromRef');
+    return this.refreshed;
+  }
+
+  async inspectStory(): Promise<StoryCommitEvidence> {
+    this.calls.push('inspectStory');
+    throw new Error('stale local checkout should not be inspected for refreshed base tracker authority');
+  }
+}
+
+function trackerMarkdown(status: string): string {
+  return `---
+title: T
+status: approved
+owner: —
+---
+
+## Status matrix
+
+| ID | Name | Depends on | Wave | Status | Spec | Plan | Owner | PR |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| A001 | Story | — | 1 | ${status} | [spec](../../specs/a001.md) | — | — | [PR #88](https://github.com/aryeko/pathway/pull/88) |
+`;
+}
+
 function makeDeps(overrides: Partial<CompletionGateDeps> = {}): CompletionGateDeps {
   return {
     gitInspector: new FakeGitInspector(),
@@ -74,6 +114,7 @@ function makeDeps(overrides: Partial<CompletionGateDeps> = {}): CompletionGateDe
       },
       merge: { auto: false, method: 'squash', deleteBranch: true },
     },
+    tracker: { idPattern: '^[A-Z]+[0-9]+$' },
     childCwdAbs: '/repo',
     ...overrides,
   };
@@ -185,6 +226,58 @@ describe('CompletionGate', () => {
     if (result.complete) {
       expect(result.authority).toBe('merged-pr-on-base');
     }
+  });
+
+  it('uses refreshed base ref merge evidence when local story branch is gone', async () => {
+    const gitInspector = new RefreshingBaseTrackerGitInspector();
+    const gate = new CompletionGate(
+      makeDeps({
+        gitInspector,
+        pr: {
+          create: true,
+          ci: { wait: false, command: null },
+          review: {
+            wait: 'bot',
+            bot: 'codex',
+            triageComments: true,
+            maxFixBatches: 1,
+            rerequestAfterFix: false,
+            waitTimeoutMinutes: 30,
+          },
+          merge: { auto: true, method: 'squash', deleteBranch: true },
+        },
+      }),
+    );
+
+    const result = await gate.evaluate(
+      settled({
+        evidence: {
+          trackerPath: 'docs/tracks/t/README.md',
+          merged: true,
+          mergeCommit: 'merge-sha',
+          prNumber: 88,
+          prUrl: 'https://github.com/aryeko/pathway/pull/88',
+        },
+      }),
+      [story('A001', 'implementing')],
+    );
+
+    expect(result.complete).toBe(true);
+    if (result.complete) {
+      expect(result.authority).toBe('merged-pr-on-base');
+      expect(result.source).toBe('base-tracker');
+      expect(result.commitEvidence).toMatchObject({
+        branch: 'origin/main',
+        headSha: 'merge-sha',
+        baseSha: 'merge-sha',
+        mergedPullRequest: {
+          number: 88,
+          url: 'https://github.com/aryeko/pathway/pull/88',
+          mergeCommitSha: 'merge-sha',
+        },
+      });
+    }
+    expect(gitInspector.calls).toEqual(['refreshBaseBranch', 'readFileFromRef', 'isCommitReachableFromRef']);
   });
 
   it('returns complete=false for direct base branch commits even when auto-merge is enabled', async () => {

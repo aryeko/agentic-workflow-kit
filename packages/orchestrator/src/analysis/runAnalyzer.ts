@@ -40,6 +40,12 @@ interface AnalyzedChild {
   failedSpawnAgentAttempts: number;
   recoveryEvents: ChildRecoveryEvent[];
   completionAuthority: string | null;
+  completionAuthoritySource: string | null;
+  staleParentSnapshot: boolean;
+  progress: ChildProgressSummary;
+  verification: ChildVerificationEvidence[];
+  merge: ChildMergeEvidence;
+  review: ChildReviewEvidence;
 }
 
 interface DiagnosticSessionCandidate {
@@ -51,6 +57,33 @@ interface ChildRecoveryEvent {
   type: string;
   decision: string | null;
   evidence: string[];
+}
+
+interface ChildProgressSummary {
+  lastSupervisorPollAt: string | null;
+  lastObservedChildProgressAt: string | null;
+  progressSource: string | null;
+}
+
+interface ChildVerificationEvidence {
+  command: string | null;
+  status: string;
+  phase?: string | null;
+  detail?: string | null;
+}
+
+interface ChildMergeEvidence {
+  merged: boolean;
+  prNumber: number | null;
+  prUrl: string | null;
+  mergeCommit: string | null;
+  mergedAt: string | null;
+  branchDeleted: boolean | null;
+}
+
+interface ChildReviewEvidence {
+  prePr: unknown;
+  pr: unknown;
 }
 
 interface ReviewSummary {
@@ -146,7 +179,7 @@ export async function analyzeWorkflowRun(
   const children = await readChildren(path.join(runDirectory, 'children'), state);
   const sessionLogs = await findSessionLogs(options.sessionRoots ?? defaultSessionRoots());
   const logsBySession = await mapSessionLogsByThread(sessionLogs);
-  const latestHeartbeatByStory = latestHeartbeats(events);
+  const latestSupervisorPollByStory = latestSupervisorPolls(events);
   const now = options.now ?? new Date().toISOString();
   const staleThresholdMs = readChildTimeoutMs(config);
 
@@ -179,10 +212,13 @@ export async function analyzeWorkflowRun(
         .find((candidatePath) => candidatePath !== null) ??
       null;
     const expectedWorktreePath = typeof child.expectedWorktreePath === 'string' ? child.expectedWorktreePath : null;
+    const evidence = readChildEvidence(child);
+    const progress = childProgressSummary(child, latestSupervisorPollByStory.get(storyId) ?? null);
+    const staleParentSnapshot = isStaleParentSnapshot(child, evidence, config);
     const status = deriveChildStatus(state, child, {
       sessionId,
       sessionLogPath,
-      latestHeartbeatAt: latestHeartbeatByStory.get(storyId) ?? null,
+      latestObservedChildProgressAt: progress.lastObservedChildProgressAt,
       worktreeActivityAt: expectedWorktreePath ? await pathMtime(expectedWorktreePath) : null,
       now,
       staleThresholdMs,
@@ -209,7 +245,19 @@ export async function analyzeWorkflowRun(
       failedSpawnAgentAttempts: 0,
       recoveryEvents: recoveryEventsForStory(events, storyId),
       completionAuthority: completionAuthorityForStory(events, storyId),
+      completionAuthoritySource: completionAuthoritySourceForStory(events, storyId),
+      staleParentSnapshot,
+      progress,
+      verification: childVerificationEvidence(evidence),
+      merge: childMergeEvidence(evidence),
+      review: {
+        prePr: evidence?.prePrReview ?? null,
+        pr: evidence?.prReview ?? null,
+      },
     });
+    if (staleParentSnapshot) {
+      issues.push(staleParentSnapshotMessage(storyId, child, evidence));
+    }
 
     if (!diagnosticSessionLogPath) continue;
 
@@ -275,6 +323,15 @@ function completionAuthorityForStory(events: NormalizedEvent[], storyId: string)
     if (event.type !== 'completion_authority' || readOptionalString(event.raw.storyId) !== storyId) continue;
     const authority = readOptionalString(event.raw.authority);
     if (authority) return authority;
+  }
+  return null;
+}
+
+function completionAuthoritySourceForStory(events: NormalizedEvent[], storyId: string): string | null {
+  for (const event of events) {
+    if (event.type !== 'completion_authority' || readOptionalString(event.raw.storyId) !== storyId) continue;
+    const source = readOptionalString(event.raw.source);
+    if (source) return source;
   }
   return null;
 }
@@ -573,7 +630,7 @@ function deriveChildStatus(
   evidence: {
     sessionId: string | null;
     sessionLogPath: string | null;
-    latestHeartbeatAt: string | null;
+    latestObservedChildProgressAt: string | null;
     worktreeActivityAt: string | null;
     now: string;
     staleThresholdMs: number;
@@ -582,8 +639,11 @@ function deriveChildStatus(
   if (child.launchOnly === true && state.status === 'running') {
     if (child.status === 'supervision_lost') return 'supervision_lost';
     if (evidence.sessionId !== null || evidence.sessionLogPath !== null) return 'launched';
-    const heartbeatAt = readOptionalString(child.lastHeartbeatAt) ?? evidence.latestHeartbeatAt;
-    if (heartbeatAt !== null && !isStale(heartbeatAt, evidence.now, evidence.staleThresholdMs)) return 'launched';
+    const progressAt =
+      readOptionalString(child.lastObservedChildProgressAt) ??
+      evidence.latestObservedChildProgressAt ??
+      readOptionalString(child.lastHeartbeatAt);
+    if (progressAt !== null && !isStale(progressAt, evidence.now, evidence.staleThresholdMs)) return 'launched';
     if (
       evidence.worktreeActivityAt !== null &&
       !isStale(evidence.worktreeActivityAt, evidence.now, evidence.staleThresholdMs)
@@ -606,6 +666,13 @@ function childMetricsStatus(sessionId: string | null, sessionLogPath: string | n
 function deriveRunStatus(status: string, children: AnalyzedChild[]): string {
   if (status === 'running' && children.some((child) => child.status === 'supervision_lost')) {
     return 'supervision_lost';
+  }
+  if (
+    status === 'blocked' &&
+    children.length > 0 &&
+    children.every((child) => child.ok && child.staleParentSnapshot && child.merge.merged)
+  ) {
+    return 'complete';
   }
   return status;
 }
@@ -960,10 +1027,88 @@ function countFindingLoops(loops: SessionReviewLoop[]): number {
   return loops.filter((loop) => loop.status === 'findings').length;
 }
 
-function latestHeartbeats(events: NormalizedEvent[]): Map<string, string> {
+function readChildEvidence(child: Record<string, unknown>): Record<string, unknown> | null {
+  return readRecord(child.evidence);
+}
+
+function childProgressSummary(
+  child: Record<string, unknown>,
+  latestSupervisorPollAt: string | null,
+): ChildProgressSummary {
+  return {
+    lastSupervisorPollAt: readOptionalString(child.lastSupervisorPollAt) ?? latestSupervisorPollAt,
+    lastObservedChildProgressAt:
+      readOptionalString(child.lastObservedChildProgressAt) ?? readOptionalString(child.lastHeartbeatAt),
+    progressSource: readOptionalString(child.progressSource),
+  };
+}
+
+function isStaleParentSnapshot(
+  child: Record<string, unknown>,
+  evidence: Record<string, unknown> | null,
+  config: Record<string, unknown> | null,
+): boolean {
+  if (!evidence) return false;
+  const returnedStatus = readOptionalString(child.returnedStatus);
+  const finalStatus = readOptionalString(evidence.finalStatus);
+  if (!returnedStatus || !finalStatus) return false;
+  if (!isEvidenceComplete(finalStatus, config) || isEvidenceComplete(returnedStatus, config)) return false;
+  return readOptionalBoolean(evidence.merged) === true || typeof evidence.mergeCommit === 'string';
+}
+
+function staleParentSnapshotMessage(
+  storyId: string,
+  child: Record<string, unknown>,
+  evidence: Record<string, unknown> | null,
+): string {
+  return `${storyId} parent tracker snapshot is stale: returned status ${
+    readOptionalString(child.returnedStatus) ?? 'unknown'
+  } but child evidence reports ${readOptionalBoolean(evidence?.merged) === true ? 'merged ' : ''}${
+    readOptionalString(evidence?.finalStatus) ?? 'complete'
+  }`;
+}
+
+function childVerificationEvidence(evidence: Record<string, unknown> | null): ChildVerificationEvidence[] {
+  const verification = evidence?.verification;
+  if (!Array.isArray(verification)) return [];
+  return verification.flatMap((entry): ChildVerificationEvidence[] => {
+    if (typeof entry === 'string') return [{ command: entry, status: 'passed' }];
+    if (!isRecord(entry)) return [];
+    const status = readOptionalString(entry.status) ?? 'passed';
+    return [
+      {
+        command: readOptionalString(entry.command),
+        status,
+        phase: readOptionalString(entry.phase),
+        detail: readOptionalString(entry.detail),
+      },
+    ];
+  });
+}
+
+function childMergeEvidence(evidence: Record<string, unknown> | null): ChildMergeEvidence {
+  return {
+    merged: readOptionalBoolean(evidence?.merged) === true,
+    prNumber: readOptionalNumber(evidence?.prNumber),
+    prUrl: readOptionalString(evidence?.prUrl),
+    mergeCommit: readOptionalString(evidence?.mergeCommit),
+    mergedAt: readOptionalString(evidence?.mergedAt),
+    branchDeleted: readOptionalBoolean(evidence?.branchDeleted),
+  };
+}
+
+function isEvidenceComplete(status: string, config: Record<string, unknown> | null): boolean {
+  const statuses = readRecord(config?.statuses);
+  const complete = Array.isArray(statuses?.complete)
+    ? statuses.complete.filter((entry): entry is string => typeof entry === 'string')
+    : ['done', 'verified'];
+  return complete.includes(status);
+}
+
+function latestSupervisorPolls(events: NormalizedEvent[]): Map<string, string> {
   const latest = new Map<string, string>();
   for (const event of events) {
-    if (event.type !== 'child-heartbeat') continue;
+    if (event.type !== 'child-supervisor-poll' && event.type !== 'child-heartbeat') continue;
     const storyId = readOptionalString(event.raw.storyId);
     if (!storyId) continue;
     const current = latest.get(storyId) ?? null;

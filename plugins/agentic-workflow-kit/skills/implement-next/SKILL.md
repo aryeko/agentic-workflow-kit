@@ -226,7 +226,11 @@ Do not create worktrees outside the workspace root unless the repo config explic
 symlink `node_modules` from another checkout. Use the package manager/store normally, and stop for
 approval if dependencies require network or privileged setup.
 
-Before editing, run a child preflight in the checkout where the story work will happen. Verify:
+Before editing, run a child preflight in two phases:
+
+1. Before creating a worktree, verify the expected branch/worktree path and classify a missing
+   expected worktree as `needs-create` / expected, not as a blocker.
+2. After creating or entering the work checkout, verify:
 
 - cwd,
 - git top-level,
@@ -234,7 +238,8 @@ Before editing, run a child preflight in the checkout where the story work will 
 - the exact expected worktree path rendered in the child prompt/launch metadata,
 - configured base branch.
 
-If any value does not match the resolved git policy, stop and report the mismatch before editing.
+If any post-creation value does not match the resolved git policy, stop and report the mismatch
+before editing.
 
 Before editing the tracker, re-read the row and confirm it is still eligible. Then update:
 

@@ -21,6 +21,9 @@ export interface StoryCommitEvidence {
 
 export interface GitInspector {
   snapshotBaseSha?(args: { git: ResolvedGitConfig; cwdAbs: string }): Promise<string | null>;
+  refreshBaseBranch?(args: { git: ResolvedGitConfig; cwdAbs: string }): Promise<void>;
+  readFileFromRef?(args: { cwdAbs: string; ref: string; filePath: string }): Promise<string | null>;
+  isCommitReachableFromRef?(args: { cwdAbs: string; commit: string; ref: string }): Promise<boolean>;
   inspectStory(args: {
     story: WorkflowStory;
     git: ResolvedGitConfig;
@@ -32,6 +35,27 @@ export interface GitInspector {
 export class RealGitInspector implements GitInspector {
   async snapshotBaseSha(args: { git: ResolvedGitConfig; cwdAbs: string }): Promise<string | null> {
     return await maybeGitOutput(args.cwdAbs, ['rev-parse', '--verify', args.git.baseBranch]);
+  }
+
+  async refreshBaseBranch(args: { git: ResolvedGitConfig; cwdAbs: string }): Promise<void> {
+    await gitOutput(args.cwdAbs, [
+      'fetch',
+      'origin',
+      `${args.git.baseBranch}:refs/remotes/origin/${args.git.baseBranch}`,
+    ]);
+  }
+
+  async readFileFromRef(args: { cwdAbs: string; ref: string; filePath: string }): Promise<string | null> {
+    return await maybeGitOutput(args.cwdAbs, ['show', `${args.ref}:${args.filePath}`]);
+  }
+
+  async isCommitReachableFromRef(args: { cwdAbs: string; commit: string; ref: string }): Promise<boolean> {
+    try {
+      await execFileAsync('git', ['merge-base', '--is-ancestor', args.commit, args.ref], { cwd: args.cwdAbs });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async inspectStory(args: {

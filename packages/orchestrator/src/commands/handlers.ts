@@ -131,7 +131,7 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
         : workflowRunner.runStory(command.storyId, { force: command.overrides.force })
       : command.overrides.dryRun
         ? workflowRunner.dryRunEligible()
-        : workflowRunner.runEligible();
+        : workflowRunner.runEligible({ returnAfterInitialLaunch: command.overrides.asyncLaunch === true });
   return command.overrides.watch ? await runWithEventWatch(run, runDirectory, command.overrides, stdout) : await run;
 }
 

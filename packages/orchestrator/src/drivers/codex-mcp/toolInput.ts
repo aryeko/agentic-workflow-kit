@@ -118,7 +118,7 @@ export function buildGenericPrompt(
     '1. Read repository instructions first, including AGENTS.md when present.',
     '2. Read the selected tracker row and any linked spec, plan, related docs, or acceptance notes.',
     expectedWorktreePath
-      ? `3. Before editing, run a child preflight: verify cwd, git top-level, current branch, expected worktree path \`${expectedWorktreePath}\`, and configured base branch against the Git policy above.`
+      ? `3. Before editing, run a child preflight in two phases: before worktree creation, verify the expected branch/worktree path and treat a missing expected worktree \`${expectedWorktreePath}\` as needs-create/expected, not as a blocker; after creating or entering the work checkout, verify cwd, git top-level, current branch, expected worktree path \`${expectedWorktreePath}\`, and configured base branch against the Git policy above.`
       : '3. Before editing, run a child preflight: verify cwd, git top-level, current branch, expected branch, and configured base branch against the Git policy above.',
     '4. Implement only this story. Do not bundle adjacent tracker rows or unrelated cleanup.',
     '5. Follow the Git policy above and the repository documentation, review, and verification rules.',

@@ -1,5 +1,6 @@
 import type { GitInspector, StoryCommitEvidence } from '../git/GitInspector.js';
 import { isCompleteStatus } from '../scheduler/scheduler.js';
+import { parseTrackerStories } from '../tracks/markdownTracker.js';
 import type { ResolvedGitConfig, ResolvedWorkflowConfig, WorkflowStory } from '../types.js';
 import type { SettledStoryRun } from './RunJournal.js';
 
@@ -8,6 +9,7 @@ export type ReturnEvaluation =
       complete: true;
       returnedStory: WorkflowStory;
       authority: CompletionAuthority;
+      source: CompletionAuthoritySource;
       commitEvidence?: StoryCommitEvidence;
     }
   | {
@@ -15,8 +17,11 @@ export type ReturnEvaluation =
       returnedStory: WorkflowStory | null;
       reason: string;
       authority: CompletionAuthority;
+      source: CompletionAuthoritySource;
       commitEvidence?: StoryCommitEvidence;
     };
+
+export type CompletionAuthoritySource = 'returned-tracker' | 'base-tracker';
 
 export type CompletionAuthority =
   | 'story-missing'
@@ -33,6 +38,7 @@ export interface CompletionGateDeps {
   statuses: ResolvedWorkflowConfig['statuses'];
   git: ResolvedGitConfig;
   pr: ResolvedWorkflowConfig['pr'];
+  tracker: ResolvedWorkflowConfig['tracker'];
   childCwdAbs: string;
 }
 
@@ -47,16 +53,37 @@ export class CompletionGate {
         returnedStory,
         reason: `${settled.storyId} returned but story source no longer contains it`,
         authority: 'story-missing',
+        source: 'returned-tracker',
       };
     }
     if (!isCompleteStatus(returnedStory.status, this.deps.statuses.complete)) {
+      const baseStory = await this.readCompleteBaseTrackerStory(settled, returnedStory);
+      if (baseStory) return await this.evaluateCompleteBaseStory(settled, baseStory);
       return {
         complete: false,
         returnedStory,
         reason: `${settled.storyId} returned but status is ${returnedStory.status}`,
         authority: 'tracker-status-not-complete',
+        source: 'returned-tracker',
       };
     }
+    return await this.evaluateCompleteStory(settled, returnedStory, 'returned-tracker');
+  }
+
+  private async evaluateCompleteBaseStory(
+    settled: SettledStoryRun,
+    returnedStory: WorkflowStory,
+  ): Promise<ReturnEvaluation> {
+    const commitEvidence = await this.mergedBaseRefCommitEvidence(settled);
+    if (commitEvidence) return this.evaluateCompleteCommitEvidence(returnedStory, 'base-tracker', commitEvidence);
+    return await this.evaluateCompleteStory(settled, returnedStory, 'base-tracker');
+  }
+
+  private async evaluateCompleteStory(
+    settled: SettledStoryRun,
+    returnedStory: WorkflowStory,
+    source: CompletionAuthoritySource,
+  ): Promise<ReturnEvaluation> {
     let commitEvidence: StoryCommitEvidence;
     try {
       commitEvidence = await this.deps.gitInspector.inspectStory({
@@ -67,8 +94,22 @@ export class CompletionGate {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return { complete: false, returnedStory, reason: `inspect-failed: ${message}`, authority: 'inspect-failed' };
+      return {
+        complete: false,
+        returnedStory,
+        reason: `inspect-failed: ${message}`,
+        authority: 'inspect-failed',
+        source,
+      };
     }
+    return this.evaluateCompleteCommitEvidence(returnedStory, source, commitEvidence);
+  }
+
+  private evaluateCompleteCommitEvidence(
+    returnedStory: WorkflowStory,
+    source: CompletionAuthoritySource,
+    commitEvidence: StoryCommitEvidence,
+  ): ReturnEvaluation {
     const dirtyBlocks = this.deps.git.strategy !== 'worktree' && commitEvidence.uncommittedChanges;
     if (!commitEvidence.committed || dirtyBlocks) {
       return {
@@ -76,6 +117,7 @@ export class CompletionGate {
         returnedStory,
         reason: 'complete-but-uncommitted',
         authority: 'complete-but-uncommitted',
+        source,
         commitEvidence,
       };
     }
@@ -86,6 +128,7 @@ export class CompletionGate {
         returnedStory,
         reason: 'complete-on-forbidden-base',
         authority: 'forbidden-direct-base-commit',
+        source,
         commitEvidence,
       };
     }
@@ -97,9 +140,71 @@ export class CompletionGate {
         : commitEvidence.isBaseBranch
           ? 'tracker-complete-base-allowed'
           : 'tracker-complete-story-branch',
+      source,
       commitEvidence,
     };
   }
+
+  private async mergedBaseRefCommitEvidence(settled: SettledStoryRun): Promise<StoryCommitEvidence | null> {
+    const mergeCommit = settled.evidence?.mergeCommit;
+    if (!mergeCommit || !this.deps.gitInspector.isCommitReachableFromRef) return null;
+    const baseRef = `origin/${this.deps.git.baseBranch}`;
+    const reachable = await this.deps.gitInspector.isCommitReachableFromRef({
+      cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
+      commit: mergeCommit,
+      ref: baseRef,
+    });
+    return {
+      committed: reachable,
+      branch: baseRef,
+      isBaseBranch: true,
+      headSha: mergeCommit,
+      baseSha: reachable ? mergeCommit : null,
+      uncommittedChanges: false,
+      mergedPullRequest:
+        reachable && typeof settled.evidence?.prNumber === 'number'
+          ? {
+              number: settled.evidence.prNumber,
+              url: settled.evidence.prUrl ?? null,
+              mergeCommitSha: mergeCommit,
+            }
+          : null,
+    };
+  }
+
+  private async readCompleteBaseTrackerStory(
+    settled: SettledStoryRun,
+    returnedStory: WorkflowStory,
+  ): Promise<WorkflowStory | null> {
+    if (!shouldReadBaseTracker(this.deps.pr, settled)) return null;
+    if (!this.deps.gitInspector.readFileFromRef) return null;
+    const trackerPath = settled.evidence?.trackerPath ?? returnedStory.metadata.trackerPath;
+    await this.deps.gitInspector.refreshBaseBranch?.({
+      cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
+      git: this.deps.git,
+    });
+    const content = await this.deps.gitInspector.readFileFromRef({
+      cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
+      ref: `origin/${this.deps.git.baseBranch}`,
+      filePath: trackerPath,
+    });
+    if (content === null) return null;
+    const baseStories = parseTrackerStories(content, {
+      completeStatuses: new Set(this.deps.statuses.complete),
+      eligibleStatuses: new Set(this.deps.statuses.eligible),
+      idPattern: new RegExp(this.deps.tracker.idPattern),
+      trackId: returnedStory.metadata.trackId,
+      trackTitle: returnedStory.metadata.trackTitle,
+      trackerPath,
+    });
+    const baseStory = baseStories.find((entry) => entry.id === settled.storyId) ?? null;
+    if (!baseStory || !isCompleteStatus(baseStory.status, this.deps.statuses.complete)) return null;
+    return baseStory;
+  }
+}
+
+function shouldReadBaseTracker(pr: ResolvedWorkflowConfig['pr'], settled: SettledStoryRun): boolean {
+  return pr.merge.auto || settled.evidence?.merged === true || typeof settled.evidence?.mergeCommit === 'string';
 }
 
 function isAcceptedAutoMergeEvidence(pr: ResolvedWorkflowConfig['pr'], commitEvidence: StoryCommitEvidence): boolean {

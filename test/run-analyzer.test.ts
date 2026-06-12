@@ -86,6 +86,26 @@ describe('run analyzer', () => {
         failedSpawnAgentAttempts: 0,
         recoveryEvents: [],
         completionAuthority: null,
+        completionAuthoritySource: null,
+        staleParentSnapshot: false,
+        progress: {
+          lastSupervisorPollAt: null,
+          lastObservedChildProgressAt: null,
+          progressSource: null,
+        },
+        verification: [],
+        merge: {
+          merged: false,
+          prNumber: null,
+          prUrl: null,
+          mergeCommit: null,
+          mergedAt: null,
+          branchDeleted: null,
+        },
+        review: {
+          prePr: null,
+          pr: null,
+        },
       },
     ]);
     expect(analysis.commandCounts).toEqual({ exec_command: 1, spawn_agent: 1 });

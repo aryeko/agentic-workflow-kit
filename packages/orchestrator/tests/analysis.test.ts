@@ -753,4 +753,148 @@ describe('analyzeWorkflowRun', () => {
     });
     expect(analysis.review.pr).toMatchObject({ fixBatchCount: 1, rerequestAfterFix: false });
   });
+
+  it('explains SSS-shaped stale parent snapshots with per-story merged evidence', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-sss-'));
+    const runDir = path.join(root, 'runs', '2026-06-11T19-47-30-255Z');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await mkdir(path.join(runDir, 'stories'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({
+        runId: '2026-06-11T19-47-30-255Z',
+        command: 'run-eligible',
+        status: 'blocked',
+        blockedReason: 'SSS02 returned but status is implementing',
+        completed: [
+          { storyId: 'SSS02', ok: true, sessionId: 'thread-sss02', returnedStatus: 'implementing' },
+          { storyId: 'SSS04', ok: true, sessionId: 'thread-sss04', returnedStatus: 'implementing' },
+        ],
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        statuses: { eligible: ['specced'], complete: ['done'] },
+        orchestrator: { childNoProgressTimeoutMs: 1_800_000 },
+        implement: { review: { prePr: { enabled: true, mode: 'subagent', maxLoops: 2, loopMode: 'incremental' } } },
+        pr: { review: { rerequestAfterFix: false } },
+      }),
+    );
+    for (const storyId of ['SSS02', 'SSS04']) {
+      await writeFile(
+        path.join(runDir, 'children', `${storyId}.launch.json`),
+        JSON.stringify({
+          storyId,
+          launchId: `${storyId}-launch`,
+          status: 'settled',
+          expectedBranch: `smart-session-summary/${storyId.toLowerCase()}`,
+          expectedWorktreePath: path.join(root, '.worktrees', storyId.toLowerCase()),
+          startedAt: '2026-06-11T19:47:30.000Z',
+          lastSupervisorPollAt: storyId === 'SSS04' ? '2026-06-11T20:10:00.000Z' : null,
+          lastObservedChildProgressAt: null,
+          progressSource: null,
+          sessionId: `thread-${storyId.toLowerCase()}`,
+        }),
+      );
+      await writeFile(
+        path.join(runDir, 'children', `${storyId}.json`),
+        JSON.stringify({
+          storyId,
+          ok: true,
+          sessionId: `thread-${storyId.toLowerCase()}`,
+          returnedStatus: 'implementing',
+          returnedComplete: false,
+          completionAuthority: 'tracker-status-not-complete',
+          evidence: {
+            finalStatus: 'done',
+            trackerPath: 'docs/tracks/smart-session-summary/README.md',
+            prNumber: storyId === 'SSS02' ? 100 : 101,
+            prUrl: `https://github.com/aryeko/pathway/pull/${storyId === 'SSS02' ? 100 : 101}`,
+            merged: true,
+            mergeCommit: storyId === 'SSS02' ? 'ece0fdb' : '6015a17',
+            branchDeleted: true,
+            verification: [{ command: 'pnpm run check', status: 'passed', phase: 'final' }],
+            prePrReview: { loops: storyId === 'SSS04' ? 2 : 1, status: 'passed' },
+            prReview: { findings: storyId === 'SSS04' ? 1 : 0, resolved: true },
+          },
+        }),
+      );
+    }
+    await writeFile(
+      path.join(runDir, 'stories', 'after-SSS04.json'),
+      JSON.stringify([
+        { id: 'SSS02', status: 'implementing' },
+        { id: 'SSS04', status: 'implementing' },
+        { id: 'SSS05', status: 'specced', blockedReason: 'dependencies are not complete: SSS02, SSS04' },
+      ]),
+    );
+    await writeFile(
+      path.join(runDir, 'events.ndjson'),
+      [
+        JSON.stringify({
+          type: 'child-supervisor-poll',
+          storyId: 'SSS04',
+          eventAt: '2026-06-11T20:10:00.000Z',
+        }),
+        JSON.stringify({
+          type: 'completion_authority',
+          storyId: 'SSS02',
+          authority: 'tracker-status-not-complete',
+          source: 'returned-tracker',
+        }),
+        JSON.stringify({
+          type: 'completion_authority',
+          storyId: 'SSS04',
+          authority: 'tracker-status-not-complete',
+          source: 'returned-tracker',
+        }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.status).toBe('blocked');
+    expect(analysis.derivedStatus).toBe('complete');
+    expect(analysis.issues).toContain(
+      'SSS02 parent tracker snapshot is stale: returned status implementing but child evidence reports merged done',
+    );
+    expect(analysis.children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          storyId: 'SSS02',
+          staleParentSnapshot: true,
+          completionAuthority: 'tracker-status-not-complete',
+          completionAuthoritySource: 'returned-tracker',
+          progress: {
+            lastSupervisorPollAt: null,
+            lastObservedChildProgressAt: null,
+            progressSource: null,
+          },
+          merge: {
+            merged: true,
+            prNumber: 100,
+            prUrl: 'https://github.com/aryeko/pathway/pull/100',
+            mergeCommit: 'ece0fdb',
+            mergedAt: null,
+            branchDeleted: true,
+          },
+          verification: [{ command: 'pnpm run check', status: 'passed', phase: 'final', detail: null }],
+        }),
+        expect.objectContaining({
+          storyId: 'SSS04',
+          staleParentSnapshot: true,
+          progress: {
+            lastSupervisorPollAt: '2026-06-11T20:10:00.000Z',
+            lastObservedChildProgressAt: null,
+            progressSource: null,
+          },
+          review: {
+            prePr: { loops: 2, status: 'passed' },
+            pr: { findings: 1, resolved: true },
+          },
+        }),
+      ]),
+    );
+  });
 });

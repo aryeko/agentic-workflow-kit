@@ -16,10 +16,41 @@ export interface ActiveChildRun {
   expectedBranch: string;
   expectedWorktreePath: string | null;
   startedAt: string;
+  lastSupervisorPollAt: string | null;
+  lastObservedChildProgressAt: string | null;
+  progressSource: ChildProgressSource | null;
+  /**
+   * Legacy field kept for compatibility with existing run artifacts.
+   */
   lastHeartbeatAt: string | null;
 }
 
 export type ChildLaunchStatus = 'launched' | 'settled' | 'supervision_lost';
+export type ChildProgressSource = 'session-linked' | 'mcp-progress' | 'session-log' | 'git' | 'pr' | 'structured';
+
+export interface VerificationEvidence {
+  command: string | null;
+  status: 'passed' | 'failed' | 'skipped';
+  phase?: string | null;
+  detail?: string | null;
+}
+
+export interface ChildResultEvidence {
+  storyId?: string;
+  finalStatus?: string;
+  trackerPath?: string;
+  trackerStatusEvidence?: string;
+  prNumber?: number;
+  prUrl?: string;
+  merged?: boolean;
+  mergedAt?: string;
+  mergeCommit?: string;
+  branchDeleted?: boolean;
+  verification?: VerificationEvidence[];
+  prePrReview?: unknown;
+  prReview?: unknown;
+  downgrades?: string[];
+}
 
 export interface ChildLaunchRecord extends ActiveChildRun {
   runId: string;
@@ -135,6 +166,7 @@ export interface CliOverrides {
   track?: string;
   tracksDir?: string;
   dryRun?: boolean;
+  asyncLaunch?: boolean;
   watch?: boolean;
   sessionRoot?: string;
   cwd?: string;

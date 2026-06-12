@@ -159,13 +159,13 @@ export function registerOrchestratorTools(server: McpServer): void {
     'run_eligible',
     {
       description:
-        'Dry-run or launch eligible stories for a single track. Defaults to dry-run unless dryRun is false. Non-dry-run with sandbox danger-full-access and approvalPolicy never runs unsupervised child sessions with full disk access.',
+        'Dry-run or launch eligible stories for a single track. Defaults to dry-run unless dryRun is false. Non-dry-run returns after initial child launch with runId/artifactDir; use watch_run and analyze_run for supervision. Non-dry-run with sandbox danger-full-access and approvalPolicy never runs unsupervised child sessions with full disk access.',
       inputSchema: runInputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async (input) => {
-      const overrides = toOverrides({ ...input, dryRun: input.dryRun !== false });
+      const overrides = toOverrides({ ...input, dryRun: input.dryRun !== false, asyncLaunch: input.dryRun === false });
       return handleTool(
         'run_eligible',
         input.responseFormat,
@@ -182,7 +182,7 @@ export function registerOrchestratorTools(server: McpServer): void {
     'run_story',
     {
       description:
-        'Dry-run or launch one tracker story. Defaults to dry-run unless dryRun is false. Non-dry-run with sandbox danger-full-access and approvalPolicy never runs an unsupervised child session with full disk access.',
+        'Dry-run or launch one tracker story. Defaults to dry-run unless dryRun is false. Non-dry-run may run a long child session; use watch_run and analyze_run for supervision.',
       inputSchema: runStoryInputSchema,
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
@@ -268,6 +268,7 @@ function toOverrides(input: {
   dryRun?: boolean;
   force?: boolean;
   watch?: boolean;
+  asyncLaunch?: boolean;
   childTimeoutMs?: number;
   model?: string;
   reasoning?: string;
@@ -284,6 +285,7 @@ function toOverrides(input: {
   if (input.maxParallel !== undefined) overrides.maxParallel = input.maxParallel;
   if (input.json === true) overrides.json = true;
   if (input.dryRun === true) overrides.dryRun = true;
+  if (input.asyncLaunch === true) overrides.asyncLaunch = true;
   if (input.force === true) overrides.force = true;
   if (input.watch === true) overrides.watch = true;
   if (input.childTimeoutMs !== undefined) overrides.childTimeoutMs = input.childTimeoutMs;
@@ -419,6 +421,7 @@ function boundValue(
 }
 
 function summarizeRun(result: RunState): string {
+  if (result.status === 'running') return `run ${result.runId} launched with status running`;
   return `run ${result.runId} finished with status ${result.status}`;
 }
 

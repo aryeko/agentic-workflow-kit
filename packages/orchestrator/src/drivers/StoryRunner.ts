@@ -1,4 +1,4 @@
-import type { ChildMetricsSnapshot, WorkflowStory } from '../types.js';
+import type { ChildMetricsSnapshot, ChildResultEvidence, WorkflowStory } from '../types.js';
 
 export type ChildLifecycleEvent =
   | { type: 'session-linked'; sessionId: string; sessionLogPath?: string | null }
@@ -18,6 +18,7 @@ export interface StoryRunResult {
   content: string;
   rawResult: unknown;
   invocation: Record<string, unknown>;
+  evidence?: ChildResultEvidence;
   metrics?: ChildMetricsSnapshot;
 }
 
