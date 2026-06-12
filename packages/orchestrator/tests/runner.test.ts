@@ -296,6 +296,13 @@ class CodexEventLifecycleRunner implements StoryRunner {
       progressSource: 'codex-event',
       eventType: 'exec_command_begin',
     });
+    await request.onLifecycle?.({
+      type: 'progress',
+      message: 'codex event: token_count',
+      progressSource: 'codex-event',
+      eventType: 'token_count',
+      journal: false,
+    });
     return {
       storyId: request.story.id,
       sessionId: `thread-${request.story.id.toLowerCase()}`,
@@ -555,6 +562,12 @@ describe('WorkflowRunner', () => {
         type: 'child-progress',
         progressSource: 'codex-event',
         eventType: 'exec_command_begin',
+      }),
+    );
+    expect(artifacts.events).not.toContainEqual(
+      expect.objectContaining({
+        type: 'child-progress',
+        eventType: 'token_count',
       }),
     );
   });

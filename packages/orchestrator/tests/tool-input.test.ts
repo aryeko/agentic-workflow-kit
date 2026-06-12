@@ -96,7 +96,7 @@ describe('buildGenericPrompt', () => {
 
     expect(prompt).toContain('Git policy');
     expect(prompt).toContain('- Isolation strategy: worktree');
-    expect(prompt).toContain('- Create/use branch: linkly/l002-{slug} (base: main)');
+    expect(prompt).toContain('- Create/use branch: linkly/l002-pilot (base: main)');
     expect(prompt).toContain('- Worktree directory: .worktrees under the workspace root.');
     expect(prompt).toContain('- Expected worktree path: /repo/.worktrees/l002-pilot');
     expect(prompt).toContain('The parent orchestrator has already prepared the expected branch/worktree.');
@@ -150,7 +150,7 @@ describe('buildGenericPrompt', () => {
     expect(prompt).toContain('Before editing, verify the parent-prepared worktree');
     expect(prompt).toContain('cwd must be `/repo/.worktrees/l002-pilot`');
     expect(prompt).toContain('git top-level must be `/repo/.worktrees/l002-pilot`');
-    expect(prompt).toContain('current branch must be `linkly/l002-{slug}`');
+    expect(prompt).toContain('current branch must be `linkly/l002-pilot`');
     expect(prompt).toContain(
       'If cwd, git top-level, branch, or worktree path verification fails, stop and report the blocker before editing.',
     );

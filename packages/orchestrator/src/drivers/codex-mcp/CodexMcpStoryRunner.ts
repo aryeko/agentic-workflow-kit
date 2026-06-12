@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import pRetry, { AbortError } from 'p-retry';
@@ -39,12 +40,13 @@ export class CodexMcpStoryRunner implements StoryRunner {
     return await this.withClient(async (client) => {
       request.signal?.throwIfAborted();
       const invocation = buildCodexToolInput(this.config, request.story, request.prompt, request.cwd);
-      const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childNoProgressTimeoutMs;
+      const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childMaxRuntimeMs;
       const totalTimeoutMs =
         this.options.requestTimeoutMs === undefined
           ? this.config.orchestrator.childMaxRuntimeMs
           : Math.min(this.options.requestTimeoutMs, this.config.orchestrator.childMaxRuntimeMs);
       const linkedSessionIds = new Set<string>();
+      let codexEventRequestId: string | number | null = null;
       const reportSessionLinked = async (
         sessionId: string,
         sessionLogPath: string | null,
@@ -61,8 +63,21 @@ export class CodexMcpStoryRunner implements StoryRunner {
         if (request.signal?.aborted) return;
         const event = parseCodexEventNotification(notification);
         if (event === null) return;
-        if (event.eventType === 'session_configured' && event.threadId !== null) {
-          await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
+        if (!matchesCodexEventRequest(event.requestId, codexEventRequestId)) return;
+        if (linkedSessionIds.size === 0) {
+          if (event.eventType === 'session_configured') {
+            if (event.threadId === null || event.cwd === null || !samePath(event.cwd, request.cwd)) return;
+            codexEventRequestId = event.requestId ?? codexEventRequestId;
+            await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
+          } else if (event.eventType !== 'warning') {
+            return;
+          }
+        } else {
+          if (event.threadId !== null && !linkedSessionIds.has(event.threadId)) return;
+          codexEventRequestId = event.requestId ?? codexEventRequestId;
+          if (event.eventType === 'session_configured' && event.threadId !== null) {
+            await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
+          }
         }
         if (event.threadId !== null || event.eventType === 'warning') {
           await request.onLifecycle?.({
@@ -70,6 +85,7 @@ export class CodexMcpStoryRunner implements StoryRunner {
             message: codexProgressMessage(event),
             progressSource: 'codex-event',
             eventType: event.eventType,
+            journal: shouldJournalCodexEvent(event.eventType),
           });
         }
       };
@@ -182,6 +198,27 @@ export class CodexMcpStoryRunner implements StoryRunner {
     });
     return { client, transport };
   }
+}
+
+function matchesCodexEventRequest(
+  eventRequestId: string | number | null,
+  codexEventRequestId: string | number | null,
+): boolean {
+  return codexEventRequestId === null || eventRequestId === null || eventRequestId === codexEventRequestId;
+}
+
+function samePath(left: string, right: string): boolean {
+  return path.resolve(left) === path.resolve(right);
+}
+
+function shouldJournalCodexEvent(eventType: string): boolean {
+  return (
+    eventType === 'mcp_startup_complete' ||
+    eventType === 'exec_command_begin' ||
+    eventType === 'exec_command_end' ||
+    eventType === 'task_complete' ||
+    eventType === 'warning'
+  );
 }
 
 interface CodexToolOutput {

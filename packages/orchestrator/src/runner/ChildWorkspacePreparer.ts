@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, stat } from 'node:fs/promises';
+import { lstat, mkdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import type { ResolvedGitConfig, WorkflowStory } from '../types.js';
@@ -28,9 +28,12 @@ export async function prepareChildWorkspace(args: PrepareChildWorkspaceArgs): Pr
     return { childCwdAbs: args.fallbackCwdAbs, expectedBranch, expectedWorktreePath: null, prepared: false };
   }
 
-  assertRepoLocalWorktreePath(args.workspaceRootAbs, args.git.worktreeDir, expectedWorktreePath);
+  await assertRepoLocalWorktreePath(args.workspaceRootAbs, args.git.worktreeDir, expectedWorktreePath);
 
   if (await isGitWorktree(expectedWorktreePath)) {
+    if (!(await belongsToSameRepository(args.workspaceRootAbs, expectedWorktreePath))) {
+      throw new Error('expected worktree path does not belong to the workspace repository');
+    }
     const branch = await gitOutput(expectedWorktreePath, ['rev-parse', '--abbrev-ref', 'HEAD']);
     if (branch !== expectedBranch) {
       throw new Error(`expected worktree path is on branch ${branch}, expected ${expectedBranch}`);
@@ -43,31 +46,50 @@ export async function prepareChildWorkspace(args: PrepareChildWorkspaceArgs): Pr
   }
 
   await mkdir(path.dirname(expectedWorktreePath), { recursive: true });
+  await assertRepoLocalWorktreePath(args.workspaceRootAbs, args.git.worktreeDir, expectedWorktreePath);
   if (await branchExists(args.workspaceRootAbs, expectedBranch)) {
-    await gitOutput(args.workspaceRootAbs, ['worktree', 'add', expectedWorktreePath, expectedBranch]);
-  } else {
-    await gitOutput(args.workspaceRootAbs, [
-      'worktree',
-      'add',
-      expectedWorktreePath,
-      '-b',
-      expectedBranch,
-      args.git.baseBranch,
-    ]);
+    throw new Error(
+      `expected branch ${expectedBranch} already exists without a verified worktree; manual recovery required`,
+    );
   }
+  await gitOutput(args.workspaceRootAbs, [
+    'worktree',
+    'add',
+    expectedWorktreePath,
+    '-b',
+    expectedBranch,
+    args.git.baseBranch,
+  ]);
 
   return { childCwdAbs: expectedWorktreePath, expectedBranch, expectedWorktreePath, prepared: true };
 }
 
-function assertRepoLocalWorktreePath(
+async function assertRepoLocalWorktreePath(
   workspaceRootAbs: string,
   worktreeDir: string,
   expectedWorktreePath: string,
-): void {
+): Promise<void> {
   const normalizedRoot = path.resolve(workspaceRootAbs);
   const normalizedWorktreeRoot = path.resolve(workspaceRootAbs, worktreeDir);
   const normalizedExpected = path.resolve(expectedWorktreePath);
   if (!isInside(normalizedExpected, normalizedRoot) || !isInside(normalizedExpected, normalizedWorktreeRoot)) {
+    throw new Error(`expected worktree path escapes configured workspace worktree directory: ${expectedWorktreePath}`);
+  }
+  if (await isSymlink(normalizedWorktreeRoot)) {
+    throw new Error(`configured worktree directory must not be a symlink: ${normalizedWorktreeRoot}`);
+  }
+  if (await isSymlink(normalizedExpected)) {
+    throw new Error(`expected worktree path must not be a symlink: ${normalizedExpected}`);
+  }
+  await assertNoSymlinkAncestors(normalizedRoot, normalizedWorktreeRoot, 'configured worktree directory');
+  await assertNoSymlinkAncestors(normalizedWorktreeRoot, normalizedExpected, 'expected worktree path');
+  const realRoot = await realpath(normalizedRoot);
+  const realWorktreeRoot = await realpathIfExists(normalizedWorktreeRoot);
+  if (realWorktreeRoot !== null && !isInside(realWorktreeRoot, realRoot)) {
+    throw new Error(`configured worktree directory escapes workspace root: ${normalizedWorktreeRoot}`);
+  }
+  const realExpected = await realpathIfExists(normalizedExpected);
+  if (realExpected !== null && realWorktreeRoot !== null && !isInside(realExpected, realWorktreeRoot)) {
     throw new Error(`expected worktree path escapes configured workspace worktree directory: ${expectedWorktreePath}`);
   }
 }
@@ -80,11 +102,23 @@ function isInside(child: string, parent: string): boolean {
 async function isGitWorktree(cwd: string): Promise<boolean> {
   if ((await maybeGitOutput(cwd, ['rev-parse', '--is-inside-work-tree'])) !== 'true') return false;
   const topLevel = await maybeGitOutput(cwd, ['rev-parse', '--show-toplevel']);
-  return topLevel !== null && path.resolve(topLevel) === path.resolve(cwd);
+  return topLevel !== null && (await realpath(topLevel)) === (await realpath(cwd));
 }
 
 async function branchExists(cwd: string, branch: string): Promise<boolean> {
   return (await maybeGitOutput(cwd, ['rev-parse', '--verify', branch])) !== null;
+}
+
+async function belongsToSameRepository(workspaceRootAbs: string, worktreePath: string): Promise<boolean> {
+  const rootCommonDir = await gitCommonDir(workspaceRootAbs);
+  const worktreeCommonDir = await gitCommonDir(worktreePath);
+  return rootCommonDir !== null && worktreeCommonDir !== null && rootCommonDir === worktreeCommonDir;
+}
+
+async function gitCommonDir(cwd: string): Promise<string | null> {
+  const commonDir = await maybeGitOutput(cwd, ['rev-parse', '--git-common-dir']);
+  if (commonDir === null) return null;
+  return await realpath(path.resolve(cwd, commonDir));
 }
 
 async function pathExists(target: string): Promise<boolean> {
@@ -93,6 +127,35 @@ async function pathExists(target: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function isSymlink(target: string): Promise<boolean> {
+  try {
+    return (await lstat(target)).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+async function assertNoSymlinkAncestors(parent: string, child: string, label: string): Promise<void> {
+  const relative = path.relative(parent, child);
+  if (relative.length === 0) return;
+  let current = parent;
+  for (const segment of relative.split(path.sep)) {
+    if (segment.length === 0) continue;
+    current = path.join(current, segment);
+    if (await isSymlink(current)) {
+      throw new Error(`${label} must not contain symlink ancestors: ${current}`);
+    }
+  }
+}
+
+async function realpathIfExists(target: string): Promise<string | null> {
+  try {
+    return await realpath(target);
+  } catch {
+    return null;
   }
 }
 

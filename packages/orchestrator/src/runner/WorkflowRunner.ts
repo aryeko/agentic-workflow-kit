@@ -584,6 +584,7 @@ export class WorkflowRunner {
       }
 
       await acknowledgeStartup({ progressSource: event.progressSource });
+      if (event.journal === false) return;
       await this.journal.record('child-progress', {
         storyId: story.id,
         launchId: launch.record.launchId,

@@ -15,6 +15,7 @@ export type ChildLifecycleEvent =
       progressSource: ChildProgressSource;
       progressToken?: string | number | null;
       eventType?: string | null;
+      journal?: boolean;
     };
 
 export interface StoryRunRequest {

@@ -241,7 +241,7 @@ describe('CodexMcpStoryRunner', () => {
     expect(client.closed).toBe(true);
   });
 
-  it('allows the configured childMaxRuntimeMs to exceed the built-in request timeout', async () => {
+  it('uses childMaxRuntimeMs for the default SDK request timeout', async () => {
     const client = new FakeClient({ callTool: async () => validResult });
     const runner = new CodexMcpStoryRunner(config(), {
       retries: 0,
@@ -251,7 +251,7 @@ describe('CodexMcpStoryRunner', () => {
     await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} });
 
     expect(client.callToolOptions[0]).toMatchObject({
-      timeout: 1_800_000,
+      timeout: 7_200_000,
       maxTotalTimeout: 7_200_000,
       resetTimeoutOnProgress: true,
     });
@@ -313,6 +313,13 @@ describe('CodexMcpStoryRunner', () => {
         await fake.fallbackNotificationHandler?.({
           method: 'codex/event',
           params: {
+            _meta: { requestId: 'req-foreign', threadId: 'thread-foreign' },
+            msg: { type: 'session_configured', rollout_path: '/sessions/thread-foreign.jsonl', cwd: '/other-repo' },
+          },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: {
             _meta: { requestId: 'req-1', threadId: 'thread-event' },
             msg: { type: 'session_configured', rollout_path: '/sessions/thread-event.jsonl', cwd: '/repo' },
           },
@@ -320,6 +327,18 @@ describe('CodexMcpStoryRunner', () => {
         await fake.fallbackNotificationHandler?.({
           method: 'codex/event',
           params: { _meta: { requestId: 'req-1', threadId: 'thread-event' }, msg: { type: 'exec_command_begin' } },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: { _meta: { requestId: 'req-1', threadId: 'thread-event' }, msg: { type: 'token_count' } },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: { _meta: { requestId: 'req-1', threadId: 'other-thread' }, msg: { type: 'exec_command_end' } },
+        });
+        await fake.fallbackNotificationHandler?.({
+          method: 'codex/event',
+          params: { _meta: { requestId: 'req-2', threadId: 'thread-event' }, msg: { type: 'exec_command_end' } },
         });
         return validResult;
       },
@@ -346,12 +365,32 @@ describe('CodexMcpStoryRunner', () => {
       sessionLogPath: '/sessions/thread-event.jsonl',
       progressSource: 'codex-event',
     });
+    expect(lifecycle).not.toContainEqual(
+      expect.objectContaining({
+        type: 'session-linked',
+        sessionId: 'thread-foreign',
+      }),
+    );
     expect(lifecycle).toContainEqual({
       type: 'progress',
       message: 'codex event: exec_command_begin',
       progressSource: 'codex-event',
       eventType: 'exec_command_begin',
+      journal: true,
     });
+    expect(lifecycle).toContainEqual({
+      type: 'progress',
+      message: 'codex event: token_count',
+      progressSource: 'codex-event',
+      eventType: 'token_count',
+      journal: false,
+    });
+    expect(lifecycle).not.toContainEqual(
+      expect.objectContaining({
+        message: 'codex event: exec_command_end',
+        eventType: 'exec_command_end',
+      }),
+    );
   });
 
   it('keeps standard mcp progress as mcp-progress', async () => {
