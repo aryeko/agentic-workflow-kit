@@ -30,6 +30,7 @@ export class CodexMcpStoryRunner implements StoryRunner {
 
   async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
     return await this.withClient(async (client) => {
+      request.signal?.throwIfAborted();
       const invocation = buildCodexToolInput(this.config, request.story, request.prompt);
       const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childNoProgressTimeoutMs;
       const totalTimeoutMs =
@@ -38,6 +39,7 @@ export class CodexMcpStoryRunner implements StoryRunner {
           : Math.min(this.options.requestTimeoutMs, this.config.orchestrator.childMaxRuntimeMs);
       const linkedSessionIds = new Set<string>();
       const reportSessionLinked = async (sessionId: string): Promise<void> => {
+        if (request.signal?.aborted) return;
         if (linkedSessionIds.has(sessionId)) return;
         linkedSessionIds.add(sessionId);
         await request.onLifecycle?.({ type: 'session-linked', sessionId });
@@ -53,7 +55,9 @@ export class CodexMcpStoryRunner implements StoryRunner {
             timeout: requestTimeoutMs,
             resetTimeoutOnProgress: true,
             maxTotalTimeout: totalTimeoutMs,
+            signal: request.signal,
             onprogress: (progress: unknown) => {
+              if (request.signal?.aborted) return;
               const sessionId = progressSessionId(progress);
               if (sessionId) void reportSessionLinked(sessionId);
               void request.onLifecycle?.({
@@ -69,6 +73,7 @@ export class CodexMcpStoryRunner implements StoryRunner {
           message: 'Codex MCP request timed out',
         },
       );
+      request.signal?.throwIfAborted();
 
       if (isToolError(rawResult)) {
         throw new AbortError(extractContent(rawResult) || 'Codex MCP returned a tool error');

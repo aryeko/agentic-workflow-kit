@@ -446,6 +446,13 @@ export class WorkflowRunner {
     let supervisorPollWrite: Promise<void> = Promise.resolve();
     let startupSettled = false;
     let childLaunchedRecorded = false;
+    let terminalStartupFailure = false;
+    const childAbortController = new AbortController();
+
+    const abortChildStartup = (message: string): void => {
+      terminalStartupFailure = true;
+      if (!childAbortController.signal.aborted) childAbortController.abort(new Error(message));
+    };
 
     const refreshNoProgressTimeout = (): void => {
       if (noProgressTimeoutHandle !== undefined) timer.clearTimeout(noProgressTimeoutHandle);
@@ -480,6 +487,7 @@ export class WorkflowRunner {
       fields: Partial<ChildLaunchRecord>,
       event: { type: 'session-linked'; sessionId: string; sessionLogPath: string | null } | null = null,
     ): Promise<void> => {
+      if (terminalStartupFailure || childAbortController.signal.aborted) return;
       const progressAt = this.dependencies.clock.now();
       if (startupTimeoutHandle !== undefined) timer.clearTimeout(startupTimeoutHandle);
       this.state = {
@@ -558,13 +566,17 @@ export class WorkflowRunner {
         prompt: launch.prompt,
         cwd: launch.record.childCwd,
         metadata: { runId: this.state.runId, launchId: launch.record.launchId },
+        signal: childAbortController.signal,
         onLifecycle: handleLifecycle,
       });
       const maxRuntimeTimeout = new Promise<StoryRunResult>((_, reject) => {
         maxRuntimeTimeoutHandle = timer.setTimeout(() => reject(new Error('child-max-runtime-timeout')), maxRuntimeMs);
       });
       const startupTimeout = new Promise<StoryRunResult>((_, reject) => {
-        startupTimeoutHandle = timer.setTimeout(() => reject(new Error('child-startup-timeout')), startupTimeoutMs);
+        startupTimeoutHandle = timer.setTimeout(() => {
+          abortChildStartup('child-startup-timeout');
+          reject(new Error('child-startup-timeout'));
+        }, startupTimeoutMs);
       });
       const noProgressTimeout = new Promise<StoryRunResult>((_, reject) => {
         rejectNoProgressTimeout = reject;
@@ -613,6 +625,7 @@ export class WorkflowRunner {
       await supervisorPollWrite;
       this.state = this.removeActiveChild(story.id);
       if (isStartupFailure) {
+        abortChildStartup(message);
         if (!startupSettled) {
           startupSettled = true;
           launch.resolveStartup('failed');

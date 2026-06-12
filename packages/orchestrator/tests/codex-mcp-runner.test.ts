@@ -256,6 +256,21 @@ describe('CodexMcpStoryRunner', () => {
     });
   });
 
+  it('passes the child abort signal to the MCP tool request', async () => {
+    const controller = new AbortController();
+    const client = new FakeClient({ callTool: async () => validResult });
+    const runner = new CodexMcpStoryRunner(config(), {
+      retries: 0,
+      createClient: () => ({ client: client as never, transport: {} as never }),
+    });
+
+    await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {}, signal: controller.signal });
+
+    expect(client.callToolOptions[0]).toMatchObject({
+      signal: controller.signal,
+    });
+  });
+
   it('persists session linkage from progress before the final tool result returns', async () => {
     const client = new FakeClient({
       callTool: async (options) => {

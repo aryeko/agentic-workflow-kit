@@ -9,6 +9,7 @@ export interface StoryRunRequest {
   prompt: string;
   cwd: string;
   metadata: Record<string, unknown>;
+  signal?: AbortSignal;
   onLifecycle?: (event: ChildLifecycleEvent) => Promise<void> | void;
 }
 

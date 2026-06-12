@@ -998,6 +998,42 @@ describe('WorkflowRunner', () => {
     );
   });
 
+  it('ignores late child lifecycle callbacks after startup timeout fails terminally', async () => {
+    const artifacts = new MemoryArtifacts();
+    const lifecycle = new ManualLifecycleRunner();
+    const timer = new ManualChildTimer();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: { ...config(), orchestrator: { ...config().orchestrator, childStartupTimeoutMs: 25 } },
+      storySource: new MutableStorySource([[story('A001')]]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childTimer: timer,
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() => expect(lifecycle.requests).toHaveLength(1));
+    timer.fireTimeout(timer.latestTimeoutHandle());
+    const state = await run;
+    await lifecycle.link('A001');
+
+    expect(state.status).toBe('blocked');
+    expect(lifecycle.requests[0]?.signal?.aborted).toBe(true);
+    expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+      storyId: 'A001',
+      status: 'startup_failed',
+      sessionId: null,
+      lastObservedChildProgressAt: null,
+      lastHeartbeatAt: null,
+    });
+    expect(artifacts.events.map((event) => event.type)).not.toContain('child-launched');
+    expect(artifacts.events.map((event) => event.type)).not.toContain('child-session-linked');
+  });
+
   it('releases its tracker claim when startup fails before any child acknowledgement', async () => {
     const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-startup-release-'));
     const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
