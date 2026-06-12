@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.9
+
+### Patch Changes
+
+- dcc3826: Harden workflow-autopilot child startup supervision with a short startup acknowledgement timeout, explicit requested/launched/startup-failed launch states, stale startup duplicate recovery, tracker claim release for unacknowledged startup failures, and analyzer reporting for startup-pending and startup-stale children.
+
 ## 0.5.8
 
 ### Patch Changes
