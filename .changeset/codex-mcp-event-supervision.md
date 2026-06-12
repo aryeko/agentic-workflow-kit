@@ -1,5 +1,4 @@
 ---
-"agentic-workflow-kit": patch
 "@agentic-workflow-kit/orchestrator": patch
 ---
 
