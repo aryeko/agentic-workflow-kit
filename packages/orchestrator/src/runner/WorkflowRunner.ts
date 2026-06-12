@@ -17,12 +17,12 @@ import type {
   StorySource,
   WorkflowStory,
 } from '../types.js';
-import { CompletionGate, type ReturnEvaluation } from './CompletionGate.js';
 import {
-  prepareChildWorkspace,
   type PrepareChildWorkspaceArgs,
   type PreparedChildWorkspace,
+  prepareChildWorkspace,
 } from './ChildWorkspacePreparer.js';
+import { CompletionGate, type ReturnEvaluation } from './CompletionGate.js';
 import { findDuplicateLaunch } from './DuplicateLaunchGuard.js';
 import { buildLaunchId, hashPrompt, renderExpectedBranch, renderExpectedWorktreePath } from './launchMetadata.js';
 import { MetricsCollector } from './MetricsCollector.js';

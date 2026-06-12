@@ -46,13 +46,24 @@ export async function prepareChildWorkspace(args: PrepareChildWorkspaceArgs): Pr
   if (await branchExists(args.workspaceRootAbs, expectedBranch)) {
     await gitOutput(args.workspaceRootAbs, ['worktree', 'add', expectedWorktreePath, expectedBranch]);
   } else {
-    await gitOutput(args.workspaceRootAbs, ['worktree', 'add', expectedWorktreePath, '-b', expectedBranch, args.git.baseBranch]);
+    await gitOutput(args.workspaceRootAbs, [
+      'worktree',
+      'add',
+      expectedWorktreePath,
+      '-b',
+      expectedBranch,
+      args.git.baseBranch,
+    ]);
   }
 
   return { childCwdAbs: expectedWorktreePath, expectedBranch, expectedWorktreePath, prepared: true };
 }
 
-function assertRepoLocalWorktreePath(workspaceRootAbs: string, worktreeDir: string, expectedWorktreePath: string): void {
+function assertRepoLocalWorktreePath(
+  workspaceRootAbs: string,
+  worktreeDir: string,
+  expectedWorktreePath: string,
+): void {
   const normalizedRoot = path.resolve(workspaceRootAbs);
   const normalizedWorktreeRoot = path.resolve(workspaceRootAbs, worktreeDir);
   const normalizedExpected = path.resolve(expectedWorktreePath);
