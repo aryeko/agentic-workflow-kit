@@ -1,5 +1,15 @@
 import { type ChildProcessWithoutNullStreams, execFileSync, spawn } from 'node:child_process';
-import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import http, { type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -8,6 +18,7 @@ import { describe, expect, it } from 'vitest';
 const repoRoot = process.cwd();
 const pluginVersion = JSON.parse(readFileSync(path.join(repoRoot, '.codex-plugin/plugin.json'), 'utf8')).version;
 const MCP_TIMEOUT_MS = 60_000;
+const PLUGIN_ID = 'agentic-workflow-kit@agentic-workflow-kit';
 
 describe('codex local plugin smoke', () => {
   it('installs through the local marketplace and exposes implicit-safe skills', () => {
@@ -63,6 +74,57 @@ describe('codex local plugin smoke', () => {
     expect(promptInput).toContain('agentic-workflow-kit:define-product');
     expect(promptInput).toContain('agentic-workflow-kit:design-technical-solution');
     expect(promptInput).toContain('agentic-workflow-kit:plan-delivery-track');
+  }, 90_000);
+
+  it('reinstalls the current marketplace version over an older cache', () => {
+    const codexHome = mkdtempSync(path.join(tmpdir(), 'agentic-workflow-kit-codex-home-'));
+    const oldMarketplace = mkdtempSync(path.join(tmpdir(), 'agentic-workflow-kit-marketplace-old-'));
+    const newMarketplace = mkdtempSync(path.join(tmpdir(), 'agentic-workflow-kit-marketplace-new-'));
+    const previousVersion = previousPatchVersion(pluginVersion);
+    const env = { ...process.env, CODEX_HOME: codexHome };
+
+    copyLocalMarketplaceFixture(oldMarketplace);
+    rewriteCodexFixtureVersion(oldMarketplace, previousVersion);
+    copyLocalMarketplaceFixture(newMarketplace);
+
+    execFileSync('codex', ['plugin', 'marketplace', 'add', oldMarketplace], {
+      cwd: repoRoot,
+      env,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
+    execFileSync('codex', ['plugin', 'add', PLUGIN_ID], {
+      cwd: repoRoot,
+      env,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
+
+    expect(readInstalledPlugin(env).version).toBe(previousVersion);
+    expect(existsSync(codexCacheRoot(codexHome, previousVersion))).toBe(true);
+
+    rmSync(oldMarketplace, { recursive: true, force: true });
+    renameSync(newMarketplace, oldMarketplace);
+
+    execFileSync('codex', ['plugin', 'add', PLUGIN_ID], {
+      cwd: repoRoot,
+      env,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    });
+
+    const installedPlugin = readInstalledPlugin(env);
+    const installedRoot = codexCacheRoot(codexHome, pluginVersion);
+    const installedManifest = JSON.parse(readFileSync(path.join(installedRoot, '.codex-plugin/plugin.json'), 'utf8'));
+    const installedMcp = JSON.parse(readFileSync(path.join(installedRoot, installedManifest.mcpServers), 'utf8'));
+
+    expect(installedPlugin.version).toBe(pluginVersion);
+    expect(existsSync(installedRoot)).toBe(true);
+    expect(existsSync(codexCacheRoot(codexHome, previousVersion))).toBe(false);
+    expect(installedManifest.version).toBe(pluginVersion);
+    expect(installedMcp.mcpServers?.['agentic-workflow-kit'].args).toContain(
+      `@agentic-workflow-kit/orchestrator@${pluginVersion}`,
+    );
   }, 90_000);
 
   it('starts the installed package MCP server from a non-plugin consumer cwd', async () => {
@@ -206,6 +268,61 @@ function addressPort(server: Server): number {
   const address = server.address();
   if (address === null || typeof address === 'string') throw new Error('local npm registry did not bind a port');
   return address.port;
+}
+
+function copyLocalMarketplaceFixture(marketplaceRoot: string): void {
+  mkdirSync(path.join(marketplaceRoot, '.agents/plugins'), { recursive: true });
+  mkdirSync(path.join(marketplaceRoot, 'plugins'), { recursive: true });
+  cpSync(
+    path.join(repoRoot, '.agents/plugins/marketplace.json'),
+    path.join(marketplaceRoot, '.agents/plugins/marketplace.json'),
+  );
+  cpSync(
+    path.join(repoRoot, 'plugins/agentic-workflow-kit'),
+    path.join(marketplaceRoot, 'plugins/agentic-workflow-kit'),
+    { recursive: true },
+  );
+}
+
+function rewriteCodexFixtureVersion(marketplaceRoot: string, version: string): void {
+  for (const relative of [
+    'plugins/agentic-workflow-kit/.codex-plugin/plugin.json',
+    'plugins/agentic-workflow-kit/.codex-plugin/.mcp.json',
+  ]) {
+    const file = path.join(marketplaceRoot, relative);
+    writeFileSync(file, readFileSync(file, 'utf8').replaceAll(pluginVersion, version));
+  }
+}
+
+function previousPatchVersion(version: string): string {
+  const match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return `${version}-previous`;
+
+  const [, major, minor, patch] = match;
+  const patchNumber = Number(patch);
+  if (patchNumber > 0) return `${major}.${minor}.${patchNumber - 1}`;
+
+  const minorNumber = Number(minor);
+  if (minorNumber > 0) return `${major}.${minorNumber - 1}.999`;
+
+  return `${major}.0.0-previous`;
+}
+
+function readInstalledPlugin(env: NodeJS.ProcessEnv): { version: string } {
+  const output = execFileSync('codex', ['plugin', 'list', '--json'], {
+    cwd: repoRoot,
+    env,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+  const plugins = JSON.parse(output).installed;
+  const plugin = plugins.find((candidate: { pluginId?: string }) => candidate.pluginId === PLUGIN_ID);
+  if (!plugin) throw new Error(`${PLUGIN_ID} was not listed as installed: ${output}`);
+  return plugin;
+}
+
+function codexCacheRoot(codexHome: string, version: string): string {
+  return path.join(codexHome, `plugins/cache/agentic-workflow-kit/agentic-workflow-kit/${version}`);
 }
 
 function createMcpSession(server: ChildProcessWithoutNullStreams) {

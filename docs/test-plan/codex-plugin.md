@@ -30,6 +30,11 @@ There is also an automated install + prompt-visibility check (not a runtime smok
 ( cd ~/repos/agentic-workflow-kit && pnpm smoke:codex-plugin )
 ```
 
+That smoke also covers the upgrade path that has caused stale-cache regressions: it installs a
+synthetic older local marketplace fixture, replaces it with the current fixture, reinstalls the
+plugin, and asserts the installed cache advances to the current version while the older cache copy is
+removed.
+
 Keep `CODEX_HOME` exported for the whole Codex session, and run that session with **cwd = `$SMOKE`**
 (the throwaway repo) so the skills act there.
 
@@ -54,6 +59,23 @@ these states before changing consumer repos:
 After MCP manifest or package-runtime changes, reinstall the plugin into the intended `CODEX_HOME`
 and relaunch Codex. A refreshed marketplace entry alone does not replace an already-installed cache,
 reload an active session, or change the package version pinned in the installed MCP config.
+
+For the real user-level Codex install, use this sequence and verify all three layers:
+
+```bash
+codex plugin marketplace upgrade agentic-workflow-kit --json
+codex plugin add agentic-workflow-kit@agentic-workflow-kit --json
+codex plugin list --json \
+  | jq '.installed[] | select(.pluginId=="agentic-workflow-kit@agentic-workflow-kit") | {version, source, marketplaceSource}'
+find ~/.codex/plugins/cache/agentic-workflow-kit/agentic-workflow-kit -maxdepth 1 -mindepth 1 -type d -print
+```
+
+After restarting Codex Desktop, run the same `codex plugin list --json` and cache inspection again.
+If the marketplace source still points at the newer revision but the installed version or only cache
+directory is older, treat that as a Desktop/cache rehydration failure, not an MCP runtime failure.
+Then inspect Codex logs for a loader warning such as `failed to parse plugin MCP server` before
+changing manifests; absence of that warning means the old MCP-schema downgrade path has not been
+reproduced.
 
 ## Invocation (this surface)
 In the Codex session (fixture `CODEX_HOME`, cwd `$SMOKE`), trigger each skill via Codex's skill
