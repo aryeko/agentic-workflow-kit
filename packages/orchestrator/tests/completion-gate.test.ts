@@ -64,16 +64,14 @@ class RefreshingBaseTrackerGitInspector implements GitInspector {
     return this.refreshed ? trackerMarkdown('done') : trackerMarkdown('implementing');
   }
 
+  async isCommitReachableFromRef(): Promise<boolean> {
+    this.calls.push('isCommitReachableFromRef');
+    return this.refreshed;
+  }
+
   async inspectStory(): Promise<StoryCommitEvidence> {
     this.calls.push('inspectStory');
-    return {
-      ...goodEvidence,
-      branch: 'main',
-      isBaseBranch: true,
-      headSha: 'merge-sha',
-      baseSha: 'merge-sha',
-      mergedPullRequest: { number: 88, url: 'https://github.com/aryeko/pathway/pull/88', mergeCommitSha: 'merge-sha' },
-    };
+    throw new Error('stale local checkout should not be inspected for refreshed base tracker authority');
   }
 }
 
@@ -230,7 +228,7 @@ describe('CompletionGate', () => {
     }
   });
 
-  it('refreshes origin base branch before reading base tracker authority', async () => {
+  it('uses refreshed base ref merge evidence when local story branch is gone', async () => {
     const gitInspector = new RefreshingBaseTrackerGitInspector();
     const gate = new CompletionGate(
       makeDeps({
@@ -258,6 +256,7 @@ describe('CompletionGate', () => {
           merged: true,
           mergeCommit: 'merge-sha',
           prNumber: 88,
+          prUrl: 'https://github.com/aryeko/pathway/pull/88',
         },
       }),
       [story('A001', 'implementing')],
@@ -267,8 +266,18 @@ describe('CompletionGate', () => {
     if (result.complete) {
       expect(result.authority).toBe('merged-pr-on-base');
       expect(result.source).toBe('base-tracker');
+      expect(result.commitEvidence).toMatchObject({
+        branch: 'origin/main',
+        headSha: 'merge-sha',
+        baseSha: 'merge-sha',
+        mergedPullRequest: {
+          number: 88,
+          url: 'https://github.com/aryeko/pathway/pull/88',
+          mergeCommitSha: 'merge-sha',
+        },
+      });
     }
-    expect(gitInspector.calls).toEqual(['refreshBaseBranch', 'readFileFromRef', 'inspectStory']);
+    expect(gitInspector.calls).toEqual(['refreshBaseBranch', 'readFileFromRef', 'isCommitReachableFromRef']);
   });
 
   it('returns complete=false for direct base branch commits even when auto-merge is enabled', async () => {

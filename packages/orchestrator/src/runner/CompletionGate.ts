@@ -58,7 +58,7 @@ export class CompletionGate {
     }
     if (!isCompleteStatus(returnedStory.status, this.deps.statuses.complete)) {
       const baseStory = await this.readCompleteBaseTrackerStory(settled, returnedStory);
-      if (baseStory) return await this.evaluateCompleteStory(settled, baseStory, 'base-tracker');
+      if (baseStory) return await this.evaluateCompleteBaseStory(settled, baseStory);
       return {
         complete: false,
         returnedStory,
@@ -68,6 +68,15 @@ export class CompletionGate {
       };
     }
     return await this.evaluateCompleteStory(settled, returnedStory, 'returned-tracker');
+  }
+
+  private async evaluateCompleteBaseStory(
+    settled: SettledStoryRun,
+    returnedStory: WorkflowStory,
+  ): Promise<ReturnEvaluation> {
+    const commitEvidence = await this.mergedBaseRefCommitEvidence(settled);
+    if (commitEvidence) return this.evaluateCompleteCommitEvidence(returnedStory, 'base-tracker', commitEvidence);
+    return await this.evaluateCompleteStory(settled, returnedStory, 'base-tracker');
   }
 
   private async evaluateCompleteStory(
@@ -93,6 +102,14 @@ export class CompletionGate {
         source,
       };
     }
+    return this.evaluateCompleteCommitEvidence(returnedStory, source, commitEvidence);
+  }
+
+  private evaluateCompleteCommitEvidence(
+    returnedStory: WorkflowStory,
+    source: CompletionAuthoritySource,
+    commitEvidence: StoryCommitEvidence,
+  ): ReturnEvaluation {
     const dirtyBlocks = this.deps.git.strategy !== 'worktree' && commitEvidence.uncommittedChanges;
     if (!commitEvidence.committed || dirtyBlocks) {
       return {
@@ -125,6 +142,33 @@ export class CompletionGate {
           : 'tracker-complete-story-branch',
       source,
       commitEvidence,
+    };
+  }
+
+  private async mergedBaseRefCommitEvidence(settled: SettledStoryRun): Promise<StoryCommitEvidence | null> {
+    const mergeCommit = settled.evidence?.mergeCommit;
+    if (!mergeCommit || !this.deps.gitInspector.isCommitReachableFromRef) return null;
+    const baseRef = `origin/${this.deps.git.baseBranch}`;
+    const reachable = await this.deps.gitInspector.isCommitReachableFromRef({
+      cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
+      commit: mergeCommit,
+      ref: baseRef,
+    });
+    return {
+      committed: reachable,
+      branch: baseRef,
+      isBaseBranch: true,
+      headSha: mergeCommit,
+      baseSha: reachable ? mergeCommit : null,
+      uncommittedChanges: false,
+      mergedPullRequest:
+        reachable && typeof settled.evidence?.prNumber === 'number'
+          ? {
+              number: settled.evidence.prNumber,
+              url: settled.evidence.prUrl ?? null,
+              mergeCommitSha: mergeCommit,
+            }
+          : null,
     };
   }
 
