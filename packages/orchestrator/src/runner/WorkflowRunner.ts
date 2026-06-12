@@ -6,7 +6,7 @@ import type { ChildLifecycleEvent, StoryRunner, StoryRunResult } from '../driver
 import type { GitInspector } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
-import { claimTrackerRow, trackerFileExists } from '../tracks/trackerClaimer.js';
+import { claimTrackerRow, releaseTrackerClaim, trackerFileExists } from '../tracks/trackerClaimer.js';
 import type {
   ArtifactStore,
   ChildLaunchRecord,
@@ -203,7 +203,6 @@ export class WorkflowRunner {
         return;
       }
 
-      const launched: Array<{ story: WorkflowStory; launch: PreparedChildLaunch }> = [];
       for (const story of dispatchable) {
         if (!(await this.preflightDuplicateLaunch(story))) {
           stopLaunching = true;
@@ -219,14 +218,15 @@ export class WorkflowRunner {
           stopLaunching = true;
           break;
         }
-        launched.push({ story: claimedStory, launch });
-      }
-
-      for (const { story, launch } of launched) {
         active.set(
-          story.id,
-          limit(() => this.executeChild(story, launch)),
+          claimedStory.story.id,
+          limit(() => this.executeChild(claimedStory.story, launch)),
         );
+        const startup = await launch.startup;
+        if (startup === 'failed') {
+          stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
+          break;
+        }
       }
     };
 
@@ -294,8 +294,8 @@ export class WorkflowRunner {
         baseShaAtLaunch: null,
       };
     }
-    const claimedStory = await this.claimBeforeLaunch(story, options);
-    if (!claimedStory) {
+    const claimed = await this.claimBeforeLaunch(story, options);
+    if (!claimed) {
       return {
         storyId: story.id,
         ok: false,
@@ -305,10 +305,10 @@ export class WorkflowRunner {
         baseShaAtLaunch: null,
       };
     }
-    const launch = await this.recordChildLaunch(claimedStory);
+    const launch = await this.recordChildLaunch(claimed);
     if (!launch) {
       return {
-        storyId: claimedStory.id,
+        storyId: claimed.story.id,
         ok: false,
         sessionId: null,
         error: this.state.blockedReason ?? 'duplicate active launch',
@@ -316,15 +316,17 @@ export class WorkflowRunner {
         baseShaAtLaunch: null,
       };
     }
-    return await this.executeChild(claimedStory, launch);
+    return await this.executeChild(claimed.story, launch);
   }
 
   private async claimBeforeLaunch(
     story: WorkflowStory,
     options: { force?: boolean } = {},
-  ): Promise<WorkflowStory | null> {
-    if (!(await trackerFileExists(this.dependencies.config, story))) return story;
+  ): Promise<ClaimedWorkflowStory | null> {
     const owner = `awk:${this.state.runId}:${story.id}`;
+    if (!(await trackerFileExists(this.dependencies.config, story))) {
+      return { story, owner, previousStatus: story.status, trackerClaimed: false };
+    }
     const claim = await claimTrackerRow({ config: this.dependencies.config, story, owner, force: options.force });
     if (!claim.ok) {
       this.blockOnce(story.id, claim.reason);
@@ -334,7 +336,7 @@ export class WorkflowRunner {
       return null;
     }
     await this.journal.record('tracker-claimed', { storyId: story.id, owner });
-    return claim.story;
+    return { story: claim.story, owner, previousStatus: story.status, trackerClaimed: true };
   }
 
   private async preflightDuplicateLaunch(story: WorkflowStory): Promise<boolean> {
@@ -342,22 +344,37 @@ export class WorkflowRunner {
       story,
       config: this.dependencies.config,
       activeChildren: this.state.activeChildren ?? [],
+      now: this.dependencies.clock.now(),
     });
-    if (!duplicate) return true;
-    this.blockOnce(story.id, duplicate.reason);
+    for (const ignored of duplicate.ignored) {
+      await this.journal.record('child-launch-stale-ignored', {
+        storyId: story.id,
+        duplicateStoryId: ignored.storyId,
+        duplicateLaunchId: ignored.launchId,
+        reason: ignored.reason,
+        expectedBranch: ignored.expectedBranch,
+        expectedWorktreePath: ignored.expectedWorktreePath,
+        startedAt: ignored.startedAt,
+        ageMs: ignored.ageMs,
+        startupTimeoutMs: ignored.startupTimeoutMs,
+      });
+    }
+    if (!duplicate.conflict) return true;
+    this.blockOnce(story.id, duplicate.conflict.reason);
     await this.journal.record('child-launch-blocked', {
       storyId: story.id,
-      reason: duplicate.reason,
-      duplicateStoryId: duplicate.storyId,
-      expectedBranch: duplicate.expectedBranch,
-      expectedWorktreePath: duplicate.expectedWorktreePath,
+      reason: duplicate.conflict.reason,
+      duplicateStoryId: duplicate.conflict.storyId,
+      expectedBranch: duplicate.conflict.expectedBranch,
+      expectedWorktreePath: duplicate.conflict.expectedWorktreePath,
     });
     await this.writeState();
     await this.writeLiveMetrics();
     return false;
   }
 
-  private async recordChildLaunch(story: WorkflowStory): Promise<PreparedChildLaunch | null> {
+  private async recordChildLaunch(claim: ClaimedWorkflowStory): Promise<PreparedChildLaunch | null> {
+    const { story } = claim;
     this.metrics.start(story.id);
     const startedAt = this.dependencies.clock.now();
     const childCwd = this.dependencies.config.codex.childSession.cwdAbs;
@@ -385,7 +402,7 @@ export class WorkflowRunner {
     const launchRecord: ChildLaunchRecord = {
       ...activeChild,
       runId: this.state.runId,
-      status: 'launched',
+      status: 'requested',
       updatedAt: startedAt,
       trackerPath: story.metadata.trackerPath,
       childCwd,
@@ -394,13 +411,14 @@ export class WorkflowRunner {
       sessionId: null,
       sessionLogPath: null,
     };
+    const startup = startupSignal();
     this.state = {
       ...this.state,
       active: [...this.state.active, story.id],
       activeChildren: [...(this.state.activeChildren ?? []), activeChild],
     };
     await this.journal.recordChildLaunch(launchRecord);
-    await this.journal.record('child-launched', {
+    await this.journal.record('child-launch-requested', {
       storyId: story.id,
       launchId: launchRecord.launchId,
       expectedBranch: launchRecord.expectedBranch,
@@ -408,19 +426,23 @@ export class WorkflowRunner {
     });
     await this.writeState();
     await this.writeLiveMetrics();
-    return { record: launchRecord, prompt };
+    return { record: launchRecord, prompt, claim, startup: startup.promise, resolveStartup: startup.resolve };
   }
 
   private async executeChild(story: WorkflowStory, launch: PreparedChildLaunch): Promise<SettledStoryRun> {
     const noProgressTimeoutMs = this.dependencies.config.orchestrator.childNoProgressTimeoutMs;
+    const startupTimeoutMs = this.dependencies.config.orchestrator.childStartupTimeoutMs;
     const maxRuntimeMs = this.dependencies.config.orchestrator.childMaxRuntimeMs;
     const timer = this.dependencies.childTimer ?? defaultChildTimer;
     const startedAtMs = this.dependencies.clock.nowMs();
+    let startupTimeoutHandle: unknown;
     let noProgressTimeoutHandle: unknown;
     let maxRuntimeTimeoutHandle: unknown;
     let heartbeatHandle: unknown;
     let rejectNoProgressTimeout: ((error: Error) => void) | null = null;
     let supervisorPollWrite: Promise<void> = Promise.resolve();
+    let startupSettled = false;
+    let childLaunchedRecorded = false;
 
     const refreshNoProgressTimeout = (): void => {
       if (noProgressTimeoutHandle !== undefined) timer.clearTimeout(noProgressTimeoutHandle);
@@ -429,40 +451,34 @@ export class WorkflowRunner {
       }, noProgressTimeoutMs);
     };
 
-    const handleLifecycle = async (event: ChildLifecycleEvent): Promise<void> => {
-      if (event.type === 'session-linked') {
-        const progressAt = this.dependencies.clock.now();
+    const startSupervisorPolling = (): void => {
+      if (heartbeatHandle !== undefined) return;
+      heartbeatHandle = timer.setInterval(() => {
+        const pollAt = this.dependencies.clock.now();
         this.state = {
           ...this.state,
           activeChildren: this.state.activeChildren?.map((entry) =>
-            entry.storyId === story.id
-              ? {
-                  ...entry,
-                  lastObservedChildProgressAt: progressAt,
-                  progressSource: 'session-linked',
-                  lastHeartbeatAt: progressAt,
-                }
-              : entry,
+            entry.storyId === story.id ? { ...entry, lastSupervisorPollAt: pollAt } : entry,
           ),
         };
-        launch.record = await this.journal.updateChildLaunch(launch.record, {
-          sessionId: event.sessionId,
-          sessionLogPath: event.sessionLogPath ?? null,
-          lastObservedChildProgressAt: progressAt,
-          progressSource: 'session-linked',
-          lastHeartbeatAt: progressAt,
+        supervisorPollWrite = supervisorPollWrite.then(async () => {
+          const updated = await this.journal.updateChildLaunch(launch.record, { lastSupervisorPollAt: pollAt });
+          if (launch.record.status === 'launched' || launch.record.status === 'requested') launch.record = updated;
         });
-        await this.journal.record('child-session-linked', {
+        void this.journal.record('child-supervisor-poll', {
           storyId: story.id,
           launchId: launch.record.launchId,
-          sessionId: event.sessionId,
-          sessionLogPath: event.sessionLogPath ?? null,
+          elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
         });
-        refreshNoProgressTimeout();
-        return;
-      }
+      }, heartbeatIntervalMs(noProgressTimeoutMs));
+    };
 
+    const acknowledgeStartup = async (
+      fields: Partial<ChildLaunchRecord>,
+      event: { type: 'session-linked'; sessionId: string; sessionLogPath: string | null } | null = null,
+    ): Promise<void> => {
       const progressAt = this.dependencies.clock.now();
+      if (startupTimeoutHandle !== undefined) timer.clearTimeout(startupTimeoutHandle);
       this.state = {
         ...this.state,
         activeChildren: this.state.activeChildren?.map((entry) =>
@@ -470,17 +486,59 @@ export class WorkflowRunner {
             ? {
                 ...entry,
                 lastObservedChildProgressAt: progressAt,
-                progressSource: 'mcp-progress',
+                progressSource: fields.progressSource ?? entry.progressSource,
                 lastHeartbeatAt: progressAt,
               }
             : entry,
         ),
       };
       launch.record = await this.journal.updateChildLaunch(launch.record, {
+        status: 'launched',
+        ...fields,
         lastObservedChildProgressAt: progressAt,
-        progressSource: 'mcp-progress',
         lastHeartbeatAt: progressAt,
       });
+      if (!childLaunchedRecorded) {
+        childLaunchedRecorded = true;
+        await this.journal.record('child-launched', {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          expectedBranch: launch.record.expectedBranch,
+          expectedWorktreePath: launch.record.expectedWorktreePath,
+        });
+      }
+      if (event) {
+        await this.journal.record('child-session-linked', {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          sessionId: event.sessionId,
+          sessionLogPath: event.sessionLogPath,
+        });
+      }
+      if (!startupSettled) {
+        startupSettled = true;
+        launch.resolveStartup('acknowledged');
+      }
+      refreshNoProgressTimeout();
+      startSupervisorPolling();
+      await this.writeState();
+      await this.writeLiveMetrics();
+    };
+
+    const handleLifecycle = async (event: ChildLifecycleEvent): Promise<void> => {
+      if (event.type === 'session-linked') {
+        await acknowledgeStartup(
+          {
+            sessionId: event.sessionId,
+            sessionLogPath: event.sessionLogPath ?? null,
+            progressSource: 'session-linked',
+          },
+          { type: 'session-linked', sessionId: event.sessionId, sessionLogPath: event.sessionLogPath ?? null },
+        );
+        return;
+      }
+
+      await acknowledgeStartup({ progressSource: 'mcp-progress' });
       await this.journal.record('child-progress', {
         storyId: story.id,
         launchId: launch.record.launchId,
@@ -489,9 +547,6 @@ export class WorkflowRunner {
         progressSource: 'mcp-progress',
         elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
       });
-      await this.writeState();
-      await this.writeLiveMetrics();
-      refreshNoProgressTimeout();
     };
 
     try {
@@ -505,33 +560,24 @@ export class WorkflowRunner {
       const maxRuntimeTimeout = new Promise<StoryRunResult>((_, reject) => {
         maxRuntimeTimeoutHandle = timer.setTimeout(() => reject(new Error('child-max-runtime-timeout')), maxRuntimeMs);
       });
+      const startupTimeout = new Promise<StoryRunResult>((_, reject) => {
+        startupTimeoutHandle = timer.setTimeout(() => reject(new Error('child-startup-timeout')), startupTimeoutMs);
+      });
       const noProgressTimeout = new Promise<StoryRunResult>((_, reject) => {
         rejectNoProgressTimeout = reject;
-        refreshNoProgressTimeout();
       });
-      heartbeatHandle = timer.setInterval(() => {
-        const pollAt = this.dependencies.clock.now();
-        this.state = {
-          ...this.state,
-          activeChildren: this.state.activeChildren?.map((entry) =>
-            entry.storyId === story.id ? { ...entry, lastSupervisorPollAt: pollAt } : entry,
-          ),
-        };
-        supervisorPollWrite = supervisorPollWrite.then(async () => {
-          const updated = await this.journal.updateChildLaunch(launch.record, { lastSupervisorPollAt: pollAt });
-          if (launch.record.status === 'launched') launch.record = updated;
-        });
-        void this.journal.record('child-supervisor-poll', {
-          storyId: story.id,
-          launchId: launch.record.launchId,
-          elapsedMs: this.dependencies.clock.nowMs() - startedAtMs,
-        });
-      }, heartbeatIntervalMs(noProgressTimeoutMs));
-      const result: StoryRunResult = await Promise.race([run, noProgressTimeout, maxRuntimeTimeout]);
+      const result: StoryRunResult = await Promise.race([run, startupTimeout, noProgressTimeout, maxRuntimeTimeout]);
       if (heartbeatHandle !== undefined) timer.clearInterval(heartbeatHandle);
       heartbeatHandle = undefined;
       await supervisorPollWrite;
       const completedAt = this.metrics.complete(story.id);
+      if (!startupSettled) {
+        await acknowledgeStartup({
+          sessionId: result.sessionId,
+          sessionLogPath: result.metrics?.sessionLogPath ?? null,
+          progressSource: result.sessionId ? 'session-linked' : 'structured',
+        });
+      }
       this.state = this.removeActiveChild(story.id);
       if (result.metrics) {
         this.metrics.updateChildMetric(story.id, result.metrics);
@@ -557,12 +603,25 @@ export class WorkflowRunner {
     } catch (error) {
       const completedAt = this.metrics.complete(story.id);
       const message = error instanceof Error ? error.message : String(error);
+      const isStartupFailure = !startupSettled || message === 'child-startup-timeout';
       const isSupervisionLost = isSupervisionLostError(message);
       if (heartbeatHandle !== undefined) timer.clearInterval(heartbeatHandle);
       heartbeatHandle = undefined;
       await supervisorPollWrite;
       this.state = this.removeActiveChild(story.id);
-      if (isSupervisionLost) {
+      if (isStartupFailure) {
+        if (!startupSettled) {
+          startupSettled = true;
+          launch.resolveStartup('failed');
+        }
+        launch.record = await this.journal.updateChildLaunch(launch.record, { status: 'startup_failed' });
+        await this.releaseStartupClaim(story, launch);
+        await this.journal.record('child-startup-failed', {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          error: message,
+        });
+      } else if (isSupervisionLost) {
         this.state = {
           ...this.state,
           status: 'supervision_lost',
@@ -588,6 +647,7 @@ export class WorkflowRunner {
         baseShaAtLaunch: launch.record.baseShaAtLaunch,
       };
     } finally {
+      if (startupTimeoutHandle !== undefined) timer.clearTimeout(startupTimeoutHandle);
       if (noProgressTimeoutHandle !== undefined) timer.clearTimeout(noProgressTimeoutHandle);
       if (maxRuntimeTimeoutHandle !== undefined) timer.clearTimeout(maxRuntimeTimeoutHandle);
       if (heartbeatHandle !== undefined) timer.clearInterval(heartbeatHandle);
@@ -667,6 +727,51 @@ export class WorkflowRunner {
         evidence: [
           `recovery guard could not inspect child evidence: ${error instanceof Error ? error.message : String(error)}`,
         ],
+      });
+    }
+  }
+
+  private async releaseStartupClaim(story: WorkflowStory, launch: PreparedChildLaunch): Promise<void> {
+    if (!launch.claim.trackerClaimed) return;
+    if (
+      launch.record.sessionId !== null ||
+      launch.record.lastObservedChildProgressAt !== null ||
+      launch.record.lastHeartbeatAt !== null
+    ) {
+      await this.journal.record('tracker-claim-release-skipped', {
+        storyId: story.id,
+        launchId: launch.record.launchId,
+        reason: 'child startup has acknowledgement evidence',
+      });
+      return;
+    }
+    try {
+      const result = await releaseTrackerClaim({
+        config: this.dependencies.config,
+        story,
+        owner: launch.claim.owner,
+        previousStatus: launch.claim.previousStatus,
+      });
+      if (result.ok) {
+        await this.journal.record('tracker-claim-released', {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          fromStatus: result.fromStatus,
+          toStatus: result.toStatus,
+          owner: launch.claim.owner,
+        });
+      } else {
+        await this.journal.record('tracker-claim-release-skipped', {
+          storyId: story.id,
+          launchId: launch.record.launchId,
+          reason: result.reason,
+        });
+      }
+    } catch (error) {
+      await this.journal.record('tracker-claim-release-skipped', {
+        storyId: story.id,
+        launchId: launch.record.launchId,
+        reason: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -783,4 +888,24 @@ function pullRequestNumber(value: string): number | null {
 interface PreparedChildLaunch {
   record: ChildLaunchRecord;
   prompt: string;
+  claim: ClaimedWorkflowStory;
+  startup: Promise<StartupOutcome>;
+  resolveStartup: (outcome: StartupOutcome) => void;
+}
+
+interface ClaimedWorkflowStory {
+  story: WorkflowStory;
+  owner: string;
+  previousStatus: string;
+  trackerClaimed: boolean;
+}
+
+type StartupOutcome = 'acknowledged' | 'failed';
+
+function startupSignal(): { promise: Promise<StartupOutcome>; resolve: (outcome: StartupOutcome) => void } {
+  let resolveStartup: (outcome: StartupOutcome) => void = () => undefined;
+  const promise = new Promise<StartupOutcome>((resolve) => {
+    resolveStartup = resolve;
+  });
+  return { promise, resolve: resolveStartup };
 }

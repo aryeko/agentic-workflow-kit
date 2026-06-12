@@ -55,4 +55,5 @@ orchestrator:
   stopLaunchingOnBlocked: true
   childTimeoutMs: 1800000
   childNoProgressTimeoutMs: 1800000
+  childStartupTimeoutMs: 60000
   childMaxRuntimeMs: 7200000

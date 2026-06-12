@@ -71,6 +71,7 @@ orchestrator:
       stopLaunchingOnBlocked: false,
       childTimeoutMs: 9000,
       childNoProgressTimeoutMs: 9000,
+      childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     });
     expect(config.git).toEqual({
@@ -130,6 +131,7 @@ orchestrator:
     });
     expect(config.orchestrator.childTimeoutMs).toBe(84);
     expect(config.orchestrator.childNoProgressTimeoutMs).toBe(84);
+    expect(config.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
   });
 
@@ -176,6 +178,7 @@ git:
     expect(config.orchestrator.stopLaunchingOnBlocked).toBe(true);
     expect(config.orchestrator.childTimeoutMs).toBe(1_800_000);
     expect(config.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
+    expect(config.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
     expect(config.git).toEqual({
       strategy: 'worktree',
@@ -247,6 +250,7 @@ orchestrator:
 
     expect(config.orchestrator.childTimeoutMs).toBe(60_000);
     expect(config.orchestrator.childNoProgressTimeoutMs).toBe(60_000);
+    expect(config.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
   });
 
@@ -258,6 +262,7 @@ orchestrator:
 version: 1
 orchestrator:
   childNoProgressTimeoutMs: 120000
+  childStartupTimeoutMs: 45000
   childMaxRuntimeMs: 3600000
 `,
     );
@@ -266,6 +271,7 @@ orchestrator:
 
     expect(config.orchestrator.childTimeoutMs).toBe(120_000);
     expect(config.orchestrator.childNoProgressTimeoutMs).toBe(120_000);
+    expect(config.orchestrator.childStartupTimeoutMs).toBe(45_000);
     expect(config.orchestrator.childMaxRuntimeMs).toBe(3_600_000);
   });
 
@@ -287,6 +293,7 @@ orchestrator:
     expect(config.codex.childSession.cwdAbs).toBe(root);
     expect(config.orchestrator.childTimeoutMs).toBe(1_800_000);
     expect(config.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
+    expect(config.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
     expect(config.git).toEqual({
       strategy: 'worktree',

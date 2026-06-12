@@ -156,11 +156,14 @@ status on the configured base branch, latest commit evidence, and worktree clean
 over. If any evidence is ambiguous, stop with "manual recovery required" instead of editing a child
 branch or worktree.
 
-Autopilot uses two timeout concepts. `orchestrator.childNoProgressTimeoutMs` detects silent children
-and is reset by child session linkage or progress; `orchestrator.childMaxRuntimeMs` is the absolute
-wall-clock cap. Full PR/review/merge stories often need a larger wall-clock cap than the old
-30-minute timeout because healthy progress can include implementation, checks, PR creation, review,
-fix batches, merge, and cleanup.
+Autopilot uses three timeout concepts. `orchestrator.childStartupTimeoutMs` bounds the startup
+handshake before a child links a session or reports progress; stale startup orphans with no session,
+heartbeat, result, or worktree activity are safe to retry after this window. After startup
+acknowledgement, `orchestrator.childNoProgressTimeoutMs` detects silent children and is reset by
+child session linkage or progress; `orchestrator.childMaxRuntimeMs` is the absolute wall-clock cap.
+Full PR/review/merge stories often need a larger wall-clock cap than the old 30-minute timeout
+because healthy progress can include implementation, checks, PR creation, review, fix batches,
+merge, and cleanup.
 
 `analyze-run` also accepts compatible interactive `/implement-next` journals written to the same
 run directory shape. When `events.ndjson` is present, the analyzer also reconstructs review

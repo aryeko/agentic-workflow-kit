@@ -67,6 +67,7 @@ function config(): ResolvedWorkflowConfig {
       stopLaunchingOnBlocked: true,
       childTimeoutMs: 1_800_000,
       childNoProgressTimeoutMs: 1_800_000,
+      childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     },
     codex: { childSession: { cwdAbs: '/repo' } },
@@ -168,8 +169,60 @@ class DeferredRunner implements StoryRunner {
 
   async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
     this.requests.push(request);
+    const pending = new Promise<StoryRunResult>((resolve) => {
+      this.pending.set(request.story.id, resolve);
+    });
+    await request.onLifecycle?.({
+      type: 'session-linked',
+      sessionId: `thread-${request.story.id.toLowerCase()}`,
+      sessionLogPath: `/sessions/${request.story.id.toLowerCase()}.jsonl`,
+    });
+    return await pending;
+  }
+
+  resolve(storyId: string): void {
+    const resolve = this.pending.get(storyId);
+    if (!resolve) throw new Error(`No pending story ${storyId}`);
+    this.pending.delete(storyId);
+    resolve({ storyId, sessionId: `thread-${storyId.toLowerCase()}`, content: 'ok', rawResult: {}, invocation: {} });
+  }
+
+  async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
+    return { ok: true, tools: ['codex'] };
+  }
+}
+
+class UnacknowledgedRunner implements StoryRunner {
+  requests: StoryRunRequest[] = [];
+
+  async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
+    this.requests.push(request);
+    return await new Promise<StoryRunResult>(() => undefined);
+  }
+
+  async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
+    return { ok: true, tools: ['codex'] };
+  }
+}
+
+class ManualLifecycleRunner implements StoryRunner {
+  requests: StoryRunRequest[] = [];
+  private readonly pending = new Map<string, (result: StoryRunResult) => void>();
+
+  async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
+    this.requests.push(request);
     return await new Promise<StoryRunResult>((resolve) => {
       this.pending.set(request.story.id, resolve);
+    });
+  }
+
+  async link(storyId: string): Promise<void> {
+    const request = this.requests.find((entry) => entry.story.id === storyId);
+    if (!request) throw new Error(`No request started for ${storyId}`);
+    await request.onLifecycle?.({
+      type: 'session-linked',
+      sessionId: `thread-${storyId.toLowerCase()}`,
+      sessionLogPath: `/sessions/${storyId.toLowerCase()}.jsonl`,
     });
   }
 
@@ -475,6 +528,10 @@ describe('WorkflowRunner', () => {
         status: 'launched',
         expectedBranch: 't/a001-story',
         expectedWorktreePath: path.join(workspaceRoot, '.worktrees/t/a001-story'),
+        startedAt: '2026-06-01T23:59:30.000Z',
+        sessionId: null,
+        lastHeartbeatAt: null,
+        lastObservedChildProgressAt: null,
       }),
     );
     const artifacts = new MemoryArtifacts();
@@ -503,6 +560,53 @@ describe('WorkflowRunner', () => {
     expect(state.blockedReason).toContain('duplicate active launch');
     expect(fake.requests).toEqual([]);
     expect(artifacts.json.has('children/A001.launch.json')).toBe(false);
+  });
+
+  it('ignores stale unacknowledged startup launch records before retrying a story', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-stale-startup-retry-'));
+    const runDir = path.join(workspaceRoot, '.codex/agentic-workflow-kit/runs/older-run/children');
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, 'A001.launch.json'),
+      JSON.stringify({
+        storyId: 'A001',
+        launchId: 'stale-startup',
+        status: 'launched',
+        expectedBranch: 't/a001-a001',
+        expectedWorktreePath: path.join(workspaceRoot, '.worktrees/a001-a001'),
+        startedAt: '2026-06-01T23:58:00.000Z',
+        sessionId: null,
+        lastHeartbeatAt: null,
+        lastObservedChildProgressAt: null,
+      }),
+    );
+    const artifacts = new MemoryArtifacts();
+    const sync = new SyncRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: configForWorkspace(workspaceRoot),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner: sync,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const state = await runner.runStory('A001');
+
+    expect(state.status).toBe('complete');
+    expect(sync.requests.map((request) => request.story.id)).toEqual(['A001']);
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'child-launch-stale-ignored',
+        storyId: 'A001',
+        duplicateStoryId: 'A001',
+        duplicateLaunchId: 'stale-startup',
+        reason: 'stale startup launch has no acknowledgement evidence',
+      }),
+    );
   });
 
   it('blocks duplicate expected branches already active in this run', async () => {
@@ -685,7 +789,7 @@ describe('WorkflowRunner', () => {
         .filter((write) => write.relativePath === 'state.json')
         .map((write) => (write.value as { active: string[] }).active)
         .filter((active) => active.length > 0),
-    ).toEqual([['A001'], ['A001', 'A002']]);
+    ).toEqual([['A001'], ['A001'], ['A002'], ['A002']]);
     expect(state.status).toBe('complete');
   });
 
@@ -729,7 +833,7 @@ describe('WorkflowRunner', () => {
         type: 'parent_takeover_blocked',
         storyId: 'A001',
         decision: 'manual_recovery_required',
-        evidence: expect.arrayContaining(['no linked child session']),
+        evidence: expect.arrayContaining(['session thread-a001 has recent heartbeat']),
       }),
     );
   });
@@ -753,6 +857,7 @@ describe('WorkflowRunner', () => {
     await waitFor(() =>
       expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
         storyId: 'A001',
+        status: 'launched',
         sessionId: 'thread-a001',
         sessionLogPath: '/sessions/a001.jsonl',
       }),
@@ -762,6 +867,141 @@ describe('WorkflowRunner', () => {
     const state = await run;
 
     expect(state.status).toBe('complete');
+  });
+
+  it('marks unacknowledged child startup failed after the startup timeout', async () => {
+    const artifacts = new MemoryArtifacts();
+    const unacknowledged = new UnacknowledgedRunner();
+    const timer = new ManualChildTimer();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: { ...config(), orchestrator: { ...config().orchestrator, childStartupTimeoutMs: 25 } },
+      storySource: new MutableStorySource([[story('A001')]]),
+      storyRunner: unacknowledged,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childTimer: timer,
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() => expect(unacknowledged.requests).toHaveLength(1));
+    expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+      storyId: 'A001',
+      status: 'requested',
+      sessionId: null,
+      lastHeartbeatAt: null,
+      lastObservedChildProgressAt: null,
+    });
+    timer.fireTimeout(timer.latestTimeoutHandle());
+    const state = await run;
+
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toContain('child-startup-timeout');
+    expect(state.active).toEqual([]);
+    expect(state.activeChildren).toEqual([]);
+    expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+      storyId: 'A001',
+      status: 'startup_failed',
+    });
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'child-startup-failed',
+        storyId: 'A001',
+        error: 'child-startup-timeout',
+      }),
+    );
+  });
+
+  it('releases its tracker claim when startup fails before any child acknowledgement', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-startup-release-'));
+    const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
+    mkdirSync(path.dirname(trackerPath), { recursive: true });
+    writeFileSync(trackerPath, trackerMarkdown('specced'));
+    const resolvedConfig = {
+      ...configForWorkspace(workspaceRoot),
+      orchestrator: { ...configForWorkspace(workspaceRoot).orchestrator, childStartupTimeoutMs: 25 },
+    };
+    const storySource: StorySource = {
+      async listStories() {
+        const tracks = await discoverMarkdownTracks({
+          workspaceRoot,
+          tracksDir: resolvedConfig.paths.tracksDir,
+          archiveDir: resolvedConfig.paths.archiveDir,
+          completeStatuses: resolvedConfig.statuses.complete,
+          eligibleStatuses: resolvedConfig.statuses.eligible,
+          idPattern: resolvedConfig.tracker.idPattern,
+        });
+        return tracks.flatMap((track) => track.stories);
+      },
+    };
+    const unacknowledged = new UnacknowledgedRunner();
+    const timer = new ManualChildTimer();
+    const artifacts = new MemoryArtifacts();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: resolvedConfig,
+      storySource,
+      storyRunner: unacknowledged,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childTimer: timer,
+    });
+
+    const run = runner.runStory('WK001');
+    await waitFor(() => expect(unacknowledged.requests).toHaveLength(1));
+    expect(readFileSync(trackerPath, 'utf8')).toContain('| WK001 | Wire parser to runner | — | 1 | implementing |');
+    timer.fireTimeout(timer.latestTimeoutHandle());
+    await run;
+
+    expect(readFileSync(trackerPath, 'utf8')).toContain(
+      '| WK001 | Wire parser to runner | — | 1 | specced | [spec](../../specs/WK001.md) | — | — | — |',
+    );
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'tracker-claim-released',
+        storyId: 'WK001',
+        fromStatus: 'implementing',
+        toStatus: 'specced',
+      }),
+    );
+  });
+
+  it('serializes child startup acknowledgement while preserving parallel execution after linkage', async () => {
+    const lifecycle = new ManualLifecycleRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: config(),
+      storySource: new MutableStorySource([
+        [story('A001'), story('A002')],
+        [story('A001', 'done', false), story('A002', 'done', false)],
+        [story('A001', 'done', false), story('A002', 'done', false)],
+      ]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock,
+      runId: 'run-1',
+    });
+
+    const run = runner.runEligible();
+    await waitFor(() => expect(lifecycle.requests.map((request) => request.story.id)).toEqual(['A001']));
+    await lifecycle.link('A001');
+    await waitFor(() => expect(lifecycle.requests.map((request) => request.story.id)).toEqual(['A001', 'A002']));
+    await lifecycle.link('A002');
+
+    lifecycle.resolve('A001');
+    lifecycle.resolve('A002');
+    const state = await run;
+
+    expect(state.status).toBe('complete');
+    expect(state.completed.map((entry) => entry.storyId)).toEqual(['A001', 'A002']);
   });
 
   it('resets the no-progress timeout on child progress while preserving a wall-clock timeout', async () => {
@@ -836,8 +1076,8 @@ describe('WorkflowRunner', () => {
     expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
       storyId: 'A001',
       lastSupervisorPollAt: '2026-06-02T00:00:00.000Z',
-      lastObservedChildProgressAt: null,
-      progressSource: null,
+      lastObservedChildProgressAt: '2026-06-02T00:00:00.000Z',
+      progressSource: 'session-linked',
     });
     deferred.resolve('A001');
     await run;

@@ -5,6 +5,7 @@ import { loadConfig } from './resolve.js';
 
 const SUPPORTED_DRIVERS = new Set<OrchestratorDriver>(['codex-mcp']);
 const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
+const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
 
 export async function loadResolvedConfig(
   overrides: CliOverrides = {},
@@ -26,6 +27,7 @@ export async function loadResolvedConfig(
       ? config.orchestrator.childTimeoutMs
       : config.orchestrator.childNoProgressTimeoutMs);
   const childMaxRuntimeMs = config.orchestrator.childMaxRuntimeMs;
+  const childStartupTimeoutMs = config.orchestrator.childStartupTimeoutMs;
   const childSessionConfig: Record<string, unknown> = {};
   if (overrides.reasoning !== undefined) {
     childSessionConfig.model_reasoning_effort = overrides.reasoning;
@@ -61,6 +63,7 @@ export async function loadResolvedConfig(
       stopLaunchingOnBlocked: config.orchestrator.stopLaunchingOnBlocked,
       childTimeoutMs: childNoProgressTimeoutMs,
       childNoProgressTimeoutMs,
+      childStartupTimeoutMs,
       childMaxRuntimeMs,
     },
     codex: {
@@ -131,6 +134,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       stopLaunchingOnBlocked: true,
       childTimeoutMs: 1_800_000,
       childNoProgressTimeoutMs: 1_800_000,
+      childStartupTimeoutMs: DEFAULT_CHILD_STARTUP_TIMEOUT_MS,
       childMaxRuntimeMs: 7_200_000,
     },
     codex: {

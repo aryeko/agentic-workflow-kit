@@ -96,10 +96,12 @@ Artifacts are under `.codex/agentic-workflow-kit/runs/<run-id>/`.
   blocked reason, and parent timing metrics.
 - `metrics.live.json` records live parent metrics and best-effort child metrics.
 - `children/<story-id>.json` records normalized child output.
-- `children/<story-id>.launch.json` records parent-owned launch metadata before child execution:
+- `children/<story-id>.launch.json` records parent-owned startup and launch metadata:
   story id, launch id, expected branch/worktree path, child cwd, base SHA, prompt hash, and known
-  child session/log identifiers. It distinguishes `lastSupervisorPollAt` from
-  `lastObservedChildProgressAt` and `progressSource`; parent polls are not child progress.
+  child session/log identifiers. Startup begins as `requested`, becomes `launched` only after a
+  child session links or reports progress, and becomes `startup_failed` when the startup
+  acknowledgement timeout expires without child evidence. It distinguishes `lastSupervisorPollAt`
+  from `lastObservedChildProgressAt` and `progressSource`; parent polls are not child progress.
 - `children/<story-id>.raw.json` records raw driver output when available.
 - `children/<story-id>.metrics.json` records best-effort child tool, token, and subagent metrics
   when available.
@@ -114,5 +116,7 @@ authority.
 Interactive `implement-next` journals use the same run directory and state/config/event semantics
 where practical. They may omit orchestrator child files; in that case `analyze-run` treats
 `state.json` field `interactive` as the single analyzed child. A run with launch metadata but no
-settled child result is stale only after real child progress evidence is stale; parent supervisor
-polls alone do not prove the child is active.
+settled child result is startup-stale only after the startup acknowledgement timeout expires with no
+session, heartbeat, result, or worktree activity; after acknowledgement, it is supervision-lost only
+after real child progress evidence is stale. Parent supervisor polls alone do not prove the child is
+active.
