@@ -57,6 +57,7 @@ export interface ChildResultEvidence {
   prePrReview?: unknown;
   prReview?: unknown;
   downgrades?: string[];
+  blockers?: string[];
 }
 
 export interface ChildLaunchRecord extends ActiveChildRun {
