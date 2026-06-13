@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.14
+
+### Patch Changes
+
+- de701da: Improve autopilot supervision observability with nonblocking watch cursors, live session-log metrics, Codex child reply/interrupt MCP controls, safer reply journaling, and worktree tracker ownership fixes.
+
 ## 0.5.13
 
 ### Patch Changes
