@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveCwdOnlyConfig } from '../src/config/configLoader';
 import { CodexMcpStoryRunner } from '../src/drivers/codex-mcp/CodexMcpStoryRunner';
+import type { StoryRunRequest } from '../src/drivers/StoryRunner';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../src/types';
 
 function config(): ResolvedWorkflowConfig {
@@ -118,6 +119,25 @@ const validResult = {
   },
 };
 
+function request(overrides: Partial<StoryRunRequest> = {}): StoryRunRequest {
+  const cfg = config();
+  const profile = cfg.agents.resolved.implementStory;
+  return {
+    story: story(),
+    prompt: 'prompt',
+    cwd: '/repo',
+    metadata: {},
+    profile,
+    promptMetadata: {
+      template: profile.prompt.template,
+      promptHash: 'hash-a001',
+      structuredOutputSchema: profile.structuredOutput.schema,
+      structuredOutputRequired: profile.structuredOutput.required,
+    },
+    ...overrides,
+  };
+}
+
 describe('CodexMcpStoryRunner', () => {
   it('retries transient connection errors and then succeeds', async () => {
     const clients = [
@@ -134,7 +154,7 @@ describe('CodexMcpStoryRunner', () => {
       createClient: () => ({ client: clients[index++] as never, transport: {} as never }),
     });
 
-    const result = await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} });
+    const result = await runner.runStory(request());
 
     expect(result.sessionId).toBe('thread-a001');
     expect(index).toBe(2);
@@ -156,7 +176,7 @@ describe('CodexMcpStoryRunner', () => {
       createClient: () => ({ client: clients[index++] as never, transport: {} as never }),
     });
 
-    const result = await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} });
+    const result = await runner.runStory(request());
 
     expect(result.sessionId).toBe('thread-a001');
     expect(index).toBe(2);
@@ -170,9 +190,7 @@ describe('CodexMcpStoryRunner', () => {
       createClient: () => ({ client: client as never, transport: {} as never }),
     });
 
-    await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      'Codex MCP result missing structuredContent',
-    );
+    await expect(runner.runStory(request())).rejects.toThrow('Codex MCP result missing structuredContent');
     expect(client.callToolCalls).toBe(1);
     expect(client.closed).toBe(true);
   });
@@ -188,9 +206,7 @@ describe('CodexMcpStoryRunner', () => {
       createClient: () => ({ client: client as never, transport: {} as never }),
     });
 
-    await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      'tool exploded',
-    );
+    await expect(runner.runStory(request())).rejects.toThrow('tool exploded');
     expect(client.closed).toBe(true);
   });
 
@@ -202,9 +218,7 @@ describe('CodexMcpStoryRunner', () => {
       createClient: () => ({ client: client as never, transport: {} as never }),
     });
 
-    await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      'Codex MCP request timed out',
-    );
+    await expect(runner.runStory(request())).rejects.toThrow('Codex MCP request timed out');
     expect(client.closed).toBe(true);
   });
 
@@ -220,9 +234,7 @@ describe('CodexMcpStoryRunner', () => {
       },
     });
 
-    await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      'Codex MCP request timed out',
-    );
+    await expect(runner.runStory(request())).rejects.toThrow('Codex MCP request timed out');
     expect(createClientCalls).toBe(1);
     expect(client.callToolCalls).toBe(1);
     expect(client.closed).toBe(true);
@@ -238,9 +250,7 @@ describe('CodexMcpStoryRunner', () => {
       createClient: () => ({ client: client as never, transport: {} as never }),
     });
 
-    await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      'Codex MCP request timed out',
-    );
+    await expect(runner.runStory(request())).rejects.toThrow('Codex MCP request timed out');
     expect(client.closed).toBe(true);
   });
 
@@ -251,12 +261,49 @@ describe('CodexMcpStoryRunner', () => {
       createClient: () => ({ client: client as never, transport: {} as never }),
     });
 
-    await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} });
+    await runner.runStory(request());
 
     expect(client.callToolOptions[0]).toMatchObject({
       timeout: 7_200_000,
       maxTotalTimeout: 7_200_000,
       resetTimeoutOnProgress: true,
+    });
+  });
+
+  it('passes resolved profile metadata to Codex and returns structured-output downgrade evidence', async () => {
+    const client = new FakeClient({ callTool: async () => validResult });
+    const runner = new CodexMcpStoryRunner(config(), {
+      retries: 0,
+      createClient: () => ({ client: client as never, transport: {} as never }),
+    });
+    const profile = config().agents.resolved.implementStory;
+    const result = await runner.runStory({
+      story: story(),
+      prompt: 'prompt',
+      cwd: '/repo',
+      metadata: {},
+      profile,
+      promptMetadata: {
+        template: profile.prompt.template,
+        promptHash: 'hash-a001',
+        structuredOutputSchema: profile.structuredOutput.schema,
+        structuredOutputRequired: profile.structuredOutput.required,
+      },
+    });
+
+    expect(result.invocation.config).not.toHaveProperty('workflowkit_profile');
+    expect(result.invocation.config).not.toHaveProperty('workflowkit_structured_output');
+    expect(result.evidence).toMatchObject({
+      profile: { name: 'storyImplementer', taskType: 'implementStory' },
+      prompt: { template: 'built-in/story-implementer', hash: 'hash-a001' },
+      structuredOutput: { schema: 'built-in/child-run-result', required: true, enforced: false },
+      capabilityDowngrades: [
+        {
+          capability: 'structured-output-enforcement',
+          source: 'driver',
+          severity: 'warning',
+        },
+      ],
     });
   });
 
@@ -268,7 +315,7 @@ describe('CodexMcpStoryRunner', () => {
       createClient: () => ({ client: client as never, transport: {} as never }),
     });
 
-    await runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {}, signal: controller.signal });
+    await runner.runStory(request({ signal: controller.signal }));
 
     expect(client.callToolOptions[0]).toMatchObject({
       signal: controller.signal,
@@ -292,10 +339,7 @@ describe('CodexMcpStoryRunner', () => {
     });
 
     const result = await runner.runStory({
-      story: story(),
-      prompt: 'prompt',
-      cwd: '/repo',
-      metadata: {},
+      ...request(),
       onLifecycle: async (event) => {
         lifecycle.push(event);
       },
@@ -353,10 +397,7 @@ describe('CodexMcpStoryRunner', () => {
     });
 
     await runner.runStory({
-      story: story(),
-      prompt: 'prompt',
-      cwd: '/repo',
-      metadata: {},
+      ...request(),
       onLifecycle: async (event) => {
         lifecycle.push(event);
       },
@@ -413,10 +454,7 @@ describe('CodexMcpStoryRunner', () => {
     });
 
     await runner.runStory({
-      story: story(),
-      prompt: 'prompt',
-      cwd: '/repo',
-      metadata: {},
+      ...request(),
       onLifecycle: async (event) => {
         lifecycle.push(event);
       },
@@ -447,9 +485,7 @@ describe('CodexMcpStoryRunner', () => {
       },
     });
 
-    await expect(runner.runStory({ story: story(), prompt: 'prompt', cwd: '/repo', metadata: {} })).rejects.toThrow(
-      /ENOENT/,
-    );
+    await expect(runner.runStory(request())).rejects.toThrow(/ENOENT/);
     expect(createClientCalls).toBe(1);
   });
 });

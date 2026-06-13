@@ -608,6 +608,65 @@ describe('WorkflowRunner', () => {
     expect(storyRunner.requests[0]?.cwd).toBe('/repo/.worktrees/a001-story');
   });
 
+  it('passes resolved implementStory profile and records prompt metadata before child launch', async () => {
+    const artifacts = new MemoryArtifacts();
+    const storyRunner = new SyncRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    await runner.runStory('A001');
+
+    expect(storyRunner.requests[0]).toMatchObject({
+      profile: {
+        name: 'storyImplementer',
+        taskType: 'implementStory',
+        structuredOutput: { schema: 'built-in/child-run-result', required: true },
+      },
+      promptMetadata: {
+        template: 'built-in/story-implementer',
+        promptHash: expect.any(String),
+        structuredOutputSchema: 'built-in/child-run-result',
+        structuredOutputRequired: true,
+      },
+    });
+    expect(artifacts.json.get('children/A001.launch.json')).toMatchObject({
+      profileName: 'storyImplementer',
+      profileTaskType: 'implementStory',
+      promptTemplate: 'built-in/story-implementer',
+      promptHash: expect.any(String),
+      structuredOutputSchema: 'built-in/child-run-result',
+      structuredOutputRequired: true,
+      capabilityDowngrades: [
+        {
+          capability: 'structured-output-enforcement',
+          source: 'driver',
+          severity: 'warning',
+        },
+      ],
+    });
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'child-launch-requested',
+        storyId: 'A001',
+        profileName: 'storyImplementer',
+        profileTaskType: 'implementStory',
+        promptTemplate: 'built-in/story-implementer',
+        structuredOutputSchema: 'built-in/child-run-result',
+        structuredOutputRequired: true,
+      }),
+    );
+  });
+
   it('blocks when child returns but tracker row is not complete', async () => {
     const runner = new WorkflowRunner({
       command: 'run-story',

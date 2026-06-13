@@ -2,13 +2,20 @@ import path from 'node:path';
 import pLimit from 'p-limit';
 
 import { buildGenericPrompt } from '../drivers/codex-mcp/toolInput.js';
-import type { ChildLifecycleEvent, ChildProgressSource, StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
+import type {
+  ChildLifecycleEvent,
+  ChildProgressSource,
+  StoryPromptMetadata,
+  StoryRunner,
+  StoryRunResult,
+} from '../drivers/StoryRunner.js';
 import type { GitInspector } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import { claimTrackerRow, releaseTrackerClaim, trackerFileExists } from '../tracks/trackerClaimer.js';
 import type {
   ArtifactStore,
+  CapabilityDowngrade,
   ChildLaunchRecord,
   Clock,
   Logger,
@@ -420,6 +427,15 @@ export class WorkflowRunner {
     const startedAt = this.dependencies.clock.now();
     const childCwd = preparedWorkspace.childCwdAbs;
     const prompt = buildGenericPrompt(story, this.dependencies.config);
+    const profile = this.dependencies.config.agents.resolved.implementStory;
+    const promptHash = hashPrompt(prompt);
+    const promptMetadata: StoryPromptMetadata = {
+      template: profile.prompt.template,
+      promptHash,
+      structuredOutputSchema: profile.structuredOutput.schema,
+      structuredOutputRequired: profile.structuredOutput.required,
+    };
+    const capabilityDowngrades = driverCapabilityDowngrades(promptMetadata);
     const baseShaAtLaunch =
       (await this.dependencies.gitInspector.snapshotBaseSha?.({
         git: this.dependencies.config.git,
@@ -444,7 +460,13 @@ export class WorkflowRunner {
       trackerPath: story.metadata.trackerPath,
       childCwd,
       baseShaAtLaunch,
-      promptHash: hashPrompt(prompt),
+      promptHash,
+      profileName: profile.name,
+      profileTaskType: profile.taskType,
+      promptTemplate: promptMetadata.template,
+      structuredOutputSchema: promptMetadata.structuredOutputSchema,
+      structuredOutputRequired: promptMetadata.structuredOutputRequired,
+      capabilityDowngrades,
       sessionId: null,
       sessionLogPath: null,
     };
@@ -460,10 +482,25 @@ export class WorkflowRunner {
       launchId: launchRecord.launchId,
       expectedBranch: launchRecord.expectedBranch,
       expectedWorktreePath: launchRecord.expectedWorktreePath,
+      profileName: launchRecord.profileName,
+      profileTaskType: launchRecord.profileTaskType,
+      promptTemplate: launchRecord.promptTemplate,
+      promptHash: launchRecord.promptHash,
+      structuredOutputSchema: launchRecord.structuredOutputSchema,
+      structuredOutputRequired: launchRecord.structuredOutputRequired,
+      capabilityDowngrades: launchRecord.capabilityDowngrades,
     });
     await this.writeState();
     await this.writeLiveMetrics();
-    return { record: launchRecord, prompt, claim, startup: startup.promise, resolveStartup: startup.resolve };
+    return {
+      record: launchRecord,
+      prompt,
+      profile,
+      promptMetadata,
+      claim,
+      startup: startup.promise,
+      resolveStartup: startup.resolve,
+    };
   }
 
   private async executeChild(story: WorkflowStory, launch: PreparedChildLaunch): Promise<SettledStoryRun> {
@@ -621,6 +658,8 @@ export class WorkflowRunner {
         prompt: launch.prompt,
         cwd: launch.record.childCwd,
         metadata: { runId: this.state.runId, launchId: launch.record.launchId },
+        profile: launch.profile,
+        promptMetadata: launch.promptMetadata,
         signal: childAbortController.signal,
         onLifecycle: handleLifecycle,
       });
@@ -1041,9 +1080,23 @@ function pullRequestNumber(value: string): number | null {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
+function driverCapabilityDowngrades(promptMetadata: StoryPromptMetadata): CapabilityDowngrade[] {
+  if (!promptMetadata.structuredOutputRequired) return [];
+  return [
+    {
+      capability: 'structured-output-enforcement',
+      reason: 'Codex MCP V1 records structured-output intent but does not expose a stable schema-enforcement knob.',
+      severity: 'warning',
+      source: 'driver',
+    },
+  ];
+}
+
 interface PreparedChildLaunch {
   record: ChildLaunchRecord;
   prompt: string;
+  profile: ResolvedWorkflowConfig['agents']['resolved']['implementStory'];
+  promptMetadata: StoryPromptMetadata;
   claim: ClaimedWorkflowStory;
   startup: Promise<StartupOutcome>;
   resolveStartup: (outcome: StartupOutcome) => void;

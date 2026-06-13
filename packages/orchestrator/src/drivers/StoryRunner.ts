@@ -1,4 +1,11 @@
-import type { ChildMetricsSnapshot, ChildProgressSource, ChildResultEvidence, WorkflowStory } from '../types.js';
+import type {
+  CapabilityDowngrade,
+  ChildMetricsSnapshot,
+  ChildProgressSource,
+  ChildResultEvidence,
+  ResolvedAgentProfile,
+  WorkflowStory,
+} from '../types.js';
 
 export type { ChildProgressSource } from '../types.js';
 
@@ -21,10 +28,19 @@ export type ChildLifecycleEvent =
 export interface StoryRunRequest {
   story: WorkflowStory;
   prompt: string;
+  profile: ResolvedAgentProfile;
+  promptMetadata: StoryPromptMetadata;
   cwd: string;
   metadata: Record<string, unknown>;
   signal?: AbortSignal;
   onLifecycle?: (event: ChildLifecycleEvent) => Promise<void> | void;
+}
+
+export interface StoryPromptMetadata {
+  template: string;
+  promptHash: string;
+  structuredOutputSchema: string;
+  structuredOutputRequired: boolean;
 }
 
 export interface StoryRunResult {
@@ -34,6 +50,7 @@ export interface StoryRunResult {
   rawResult: unknown;
   invocation: Record<string, unknown>;
   evidence?: ChildResultEvidence;
+  capabilityDowngrades?: CapabilityDowngrade[];
   metrics?: ChildMetricsSnapshot;
 }
 

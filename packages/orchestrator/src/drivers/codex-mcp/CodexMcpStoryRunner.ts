@@ -16,7 +16,7 @@ import type {
 import { codexProgressMessage, parseCodexEventNotification } from './codexEvents.js';
 import { childResultEvidence } from './evidenceParser.js';
 import { type McpTool, validateCodexToolSchemas } from './schemaValidation.js';
-import { buildCodexToolInput } from './toolInput.js';
+import { buildCodexToolInput, codexDriverCapabilityDowngrades } from './toolInput.js';
 
 const VERSION = '0.1.0';
 const STARTUP_TIMEOUT_MS = 30_000;
@@ -40,7 +40,15 @@ export class CodexMcpStoryRunner implements StoryRunner {
   async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
     return await this.withClient(async (client) => {
       request.signal?.throwIfAborted();
-      const invocation = buildCodexToolInput(this.config, request.story, request.prompt, request.cwd);
+      const invocation = buildCodexToolInput(
+        this.config,
+        request.story,
+        request.prompt,
+        request.cwd,
+        request.profile,
+        request.promptMetadata,
+      );
+      const capabilityDowngrades = codexDriverCapabilityDowngrades(request.promptMetadata);
       const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childMaxRuntimeMs;
       const totalTimeoutMs =
         this.options.requestTimeoutMs === undefined
@@ -128,11 +136,13 @@ export class CodexMcpStoryRunner implements StoryRunner {
 
       const output = validateCodexToolOutput(rawResult);
       await reportSessionLinked(output.threadId, null, 'structured');
+      const evidence = mergeDriverEvidence(output.evidence, request, capabilityDowngrades);
       return {
         storyId: request.story.id,
         sessionId: output.threadId,
         content: output.content,
-        evidence: output.evidence,
+        evidence,
+        capabilityDowngrades,
         rawResult,
         invocation: invocation as unknown as Record<string, unknown>,
       };
@@ -199,6 +209,31 @@ export class CodexMcpStoryRunner implements StoryRunner {
     });
     return { client, transport };
   }
+}
+
+function mergeDriverEvidence(
+  evidence: ChildResultEvidence | undefined,
+  request: StoryRunRequest,
+  capabilityDowngrades: ReturnType<typeof codexDriverCapabilityDowngrades>,
+): ChildResultEvidence | undefined {
+  if (!request.profile || !request.promptMetadata) return evidence;
+  return {
+    ...evidence,
+    profile: {
+      name: request.profile.name,
+      taskType: request.profile.taskType,
+    },
+    prompt: {
+      template: request.promptMetadata.template,
+      hash: request.promptMetadata.promptHash,
+    },
+    structuredOutput: {
+      schema: request.promptMetadata.structuredOutputSchema,
+      required: request.promptMetadata.structuredOutputRequired,
+      enforced: false,
+    },
+    capabilityDowngrades,
+  };
 }
 
 function matchesCodexEventRequest(

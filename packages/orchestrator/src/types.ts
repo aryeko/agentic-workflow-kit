@@ -66,7 +66,28 @@ export interface ChildResultEvidence {
   prePrReview?: unknown;
   prReview?: unknown;
   downgrades?: string[];
+  profile?: {
+    name: string;
+    taskType: AgentTaskType;
+  };
+  prompt?: {
+    template: string;
+    hash: string;
+  };
+  structuredOutput?: {
+    schema: string;
+    required: boolean;
+    enforced: boolean;
+  };
+  capabilityDowngrades?: CapabilityDowngrade[];
   blockers?: string[];
+}
+
+export interface CapabilityDowngrade {
+  capability: string;
+  reason: string;
+  severity: 'warning' | 'error';
+  source: 'driver' | 'profile';
 }
 
 export interface ChildLaunchRecord extends ActiveChildRun {
@@ -77,6 +98,12 @@ export interface ChildLaunchRecord extends ActiveChildRun {
   childCwd: string;
   baseShaAtLaunch: string | null;
   promptHash: string;
+  profileName?: string;
+  profileTaskType?: AgentTaskType;
+  promptTemplate?: string;
+  structuredOutputSchema?: string;
+  structuredOutputRequired?: boolean;
+  capabilityDowngrades?: CapabilityDowngrade[];
   sessionId: string | null;
   sessionLogPath: string | null;
 }

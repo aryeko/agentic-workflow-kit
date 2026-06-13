@@ -217,6 +217,54 @@ describe('buildCodexToolInput', () => {
     });
   });
 
+  it('prefers resolved implementStory profile launch policy without sending WorkflowKit metadata as Codex config', () => {
+    const profile = {
+      ...config.agents.resolved.implementStory,
+      effectiveModel: 'gpt-5.5',
+      effectiveReasoning: 'high',
+      approvalPolicy: 'never',
+      sandbox: 'workspace-write',
+    };
+    const promptMetadata = {
+      template: profile.prompt.template,
+      promptHash: 'hash-123',
+      structuredOutputSchema: profile.structuredOutput.schema,
+      structuredOutputRequired: profile.structuredOutput.required,
+    };
+    const result = buildCodexToolInput(
+      {
+        ...config,
+        codex: {
+          childSession: {
+            cwdAbs: '/repo',
+            model: 'legacy-model',
+            approvalPolicy: 'on-request',
+            sandbox: 'danger-full-access',
+            config: { model_reasoning_effort: 'legacy-low' },
+          },
+        },
+      },
+      story,
+      'custom prompt',
+      '/repo/.worktrees/l002-pilot',
+      profile,
+      promptMetadata,
+    );
+
+    expect(result).toMatchObject({
+      cwd: '/repo/.worktrees/l002-pilot',
+      prompt: 'custom prompt',
+      model: 'gpt-5.5',
+      'approval-policy': 'never',
+      sandbox: 'workspace-write',
+      config: expect.objectContaining({
+        model_reasoning_effort: 'legacy-low',
+      }),
+    });
+    expect(result.config).not.toHaveProperty('workflowkit_profile');
+    expect(result.config).not.toHaveProperty('workflowkit_structured_output');
+  });
+
   // D8: writable roots are always injected so the child can git commit / git worktree add under
   // --sandbox workspace-write. Harmless under danger-full-access or read-only.
   it('always injects sandbox_workspace_write.writable_roots into config (D8)', () => {
