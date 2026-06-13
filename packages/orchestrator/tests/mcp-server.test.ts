@@ -105,6 +105,15 @@ async function createAnalyzableRun(): Promise<{ runPath: string; sessionRoot: st
   return { runPath: runDir, sessionRoot };
 }
 
+async function createWatchRun(status: string): Promise<string> {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-watch-'));
+  const runDir = path.join(root, 'runs/run-1');
+  await mkdir(runDir, { recursive: true });
+  await writeFile(path.join(runDir, 'state.json'), JSON.stringify({ runId: 'run-1', status }));
+  await writeFile(path.join(runDir, 'metrics.live.json'), JSON.stringify({ runId: 'run-1', status }));
+  return runDir;
+}
+
 async function connectClient() {
   const server = createOrchestratorMcpServer();
   const client = new Client({ name: 'test-client', version: '1.0.0' });
@@ -295,6 +304,23 @@ describe('agentic-workflow-kit MCP server', () => {
         expect.objectContaining({ type: 'completion_authority' }),
         expect.objectContaining({ type: 'child-supervisor-poll' }),
       ],
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('waits in watch_run until timeout when a run stays running', async () => {
+    const runPath = await createWatchRun('running');
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'watch_run',
+      arguments: { runPath, wait: true, intervalMs: 1, timeoutMs: 1 },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      state: { runId: 'run-1', status: 'running' },
+      wait: { timedOut: true },
     });
     await client.close();
     await server.close();

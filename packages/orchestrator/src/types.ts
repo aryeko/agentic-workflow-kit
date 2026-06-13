@@ -177,6 +177,9 @@ export interface CliOverrides {
   dryRun?: boolean;
   asyncLaunch?: boolean;
   watch?: boolean;
+  wait?: boolean;
+  intervalMs?: number;
+  timeoutMs?: number;
   sessionRoot?: string;
   cwd?: string;
   model?: string;

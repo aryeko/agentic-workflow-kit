@@ -99,8 +99,11 @@ function withOptions(command: Command): Command {
     .option('--force')
     .option('--dry-run')
     .option('--watch')
+    .option('--wait')
     .addOption(new Option('--max-parallel <n>').argParser(parsePositiveInteger))
     .addOption(new Option('--child-timeout-ms <n>').argParser(parseChildTimeoutMs))
+    .addOption(new Option('--interval-ms <n>').argParser((value) => parsePositiveIntegerFlag(value, '--interval-ms')))
+    .addOption(new Option('--timeout-ms <n>').argParser((value) => parsePositiveIntegerFlag(value, '--timeout-ms')))
     .option('--track <id>')
     .option('--tracks-dir <path>')
     .option('--model <model>')
@@ -117,6 +120,9 @@ interface CommanderOptions {
   force?: boolean;
   dryRun?: boolean;
   watch?: boolean;
+  wait?: boolean;
+  intervalMs?: number;
+  timeoutMs?: number;
   maxParallel?: number;
   childTimeoutMs?: number;
   track?: string;
@@ -136,6 +142,9 @@ function toOverrides(options: CommanderOptions): CliOverrides {
   if (options.force) overrides.force = true;
   if (options.dryRun) overrides.dryRun = true;
   if (options.watch) overrides.watch = true;
+  if (options.wait) overrides.wait = true;
+  if (options.intervalMs !== undefined) overrides.intervalMs = options.intervalMs;
+  if (options.timeoutMs !== undefined) overrides.timeoutMs = options.timeoutMs;
   if (options.maxParallel !== undefined) overrides.maxParallel = options.maxParallel;
   if (options.childTimeoutMs !== undefined) overrides.childTimeoutMs = options.childTimeoutMs;
   if (options.track !== undefined) overrides.track = options.track;

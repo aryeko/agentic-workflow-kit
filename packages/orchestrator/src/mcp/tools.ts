@@ -86,6 +86,9 @@ const runPathInputSchema = z.object({
     .string()
     .describe('Absolute path to a run artifact directory, e.g. the artifactDir returned by run_story or run_eligible.'),
   sessionRoot: z.string().optional().describe('Override root for child session artifacts when analyzing a run.'),
+  wait: z.boolean().optional().describe('For watch_run, poll until the run leaves running or timeoutMs expires.'),
+  intervalMs: z.number().int().positive().optional().describe('For watch_run --wait, polling interval in milliseconds.'),
+  timeoutMs: z.number().int().positive().optional().describe('For watch_run --wait, maximum wait time in milliseconds.'),
   json: z.boolean().optional().describe('Prefer machine-readable CLI-compatible JSON formatting in text summaries.'),
   responseFormat: z
     .enum(['concise', 'detailed'])
@@ -276,6 +279,9 @@ function toOverrides(input: {
   dryRun?: boolean;
   force?: boolean;
   watch?: boolean;
+  wait?: boolean;
+  intervalMs?: number;
+  timeoutMs?: number;
   asyncLaunch?: boolean;
   childTimeoutMs?: number;
   model?: string;
@@ -296,6 +302,9 @@ function toOverrides(input: {
   if (input.asyncLaunch === true) overrides.asyncLaunch = true;
   if (input.force === true) overrides.force = true;
   if (input.watch === true) overrides.watch = true;
+  if (input.wait === true) overrides.wait = true;
+  if (input.intervalMs !== undefined) overrides.intervalMs = input.intervalMs;
+  if (input.timeoutMs !== undefined) overrides.timeoutMs = input.timeoutMs;
   if (input.childTimeoutMs !== undefined) overrides.childTimeoutMs = input.childTimeoutMs;
   if (input.model !== undefined) overrides.model = input.model;
   if (input.reasoning !== undefined) overrides.reasoning = input.reasoning;

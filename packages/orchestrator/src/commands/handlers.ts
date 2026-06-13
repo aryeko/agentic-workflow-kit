@@ -42,6 +42,11 @@ export interface StoriesResult {
 export interface WatchRunSnapshot {
   state: unknown | null;
   metrics: unknown | null;
+  wait?: {
+    timedOut: boolean;
+    elapsedMs: number;
+    polls: number;
+  };
 }
 
 type RunCommand = Extract<WorkflowCommand, { kind: 'run-story' | 'run-eligible' }>;
@@ -78,13 +83,41 @@ export async function analyzeRunHandler(runPath: string, overrides: CliOverrides
   });
 }
 
-export async function watchRunHandler(runPath: string, _overrides: CliOverrides = {}): Promise<WatchRunSnapshot> {
+export async function watchRunHandler(runPath: string, overrides: CliOverrides = {}): Promise<WatchRunSnapshot> {
   const runDirectory = path.resolve(runPath);
+  if (overrides.wait !== true) return await readRunSnapshot(runDirectory);
+  const startedAt = Date.now();
+  const timeoutMs = overrides.timeoutMs ?? 5 * 60 * 1000;
+  const intervalMs = overrides.intervalMs ?? 5 * 60 * 1000;
+  let polls = 0;
+  for (;;) {
+    polls += 1;
+    const snapshot = await readRunSnapshot(runDirectory);
+    if (!isRunningState(snapshot.state)) {
+      return { ...snapshot, wait: { timedOut: false, elapsedMs: Date.now() - startedAt, polls } };
+    }
+    if (Date.now() - startedAt >= timeoutMs) {
+      return { ...snapshot, wait: { timedOut: true, elapsedMs: Date.now() - startedAt, polls } };
+    }
+    await delay(Math.min(intervalMs, Math.max(0, timeoutMs - (Date.now() - startedAt))));
+  }
+}
+
+async function readRunSnapshot(runDirectory: string): Promise<WatchRunSnapshot> {
   const [state, metrics] = await Promise.all([
     readJsonIfExists(path.join(runDirectory, 'state.json')),
     readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
   ]);
   return { state, metrics };
+}
+
+function isRunningState(state: unknown): boolean {
+  return (
+    typeof state === 'object' &&
+    state !== null &&
+    !Array.isArray(state) &&
+    (state as { status?: unknown }).status === 'running'
+  );
 }
 
 export async function mcpCheckHandler(
