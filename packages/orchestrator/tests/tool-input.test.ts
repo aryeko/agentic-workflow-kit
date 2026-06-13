@@ -217,7 +217,7 @@ describe('buildCodexToolInput', () => {
     });
   });
 
-  it('prefers resolved implementStory profile launch policy and records structured-output metadata', () => {
+  it('prefers resolved implementStory profile launch policy without sending WorkflowKit metadata as Codex config', () => {
     const profile = {
       ...config.agents.resolved.implementStory,
       effectiveModel: 'gpt-5.5',
@@ -259,21 +259,10 @@ describe('buildCodexToolInput', () => {
       sandbox: 'workspace-write',
       config: expect.objectContaining({
         model_reasoning_effort: 'legacy-low',
-        workflowkit_profile: {
-          name: 'storyImplementer',
-          taskType: 'implementStory',
-          promptTemplate: 'built-in/story-implementer',
-          promptHash: 'hash-123',
-          structuredOutputSchema: 'built-in/child-run-result',
-          structuredOutputRequired: true,
-        },
-        workflowkit_structured_output: {
-          schema: 'built-in/child-run-result',
-          required: true,
-          enforced: false,
-        },
       }),
     });
+    expect(result.config).not.toHaveProperty('workflowkit_profile');
+    expect(result.config).not.toHaveProperty('workflowkit_structured_output');
   });
 
   // D8: writable roots are always injected so the child can git commit / git worktree add under

@@ -23,7 +23,7 @@ related:
 | Question | Decision | Rationale |
 | --- | --- | --- |
 | Which capability downgrades are driver-level versus analyzer-only warnings? | Driver-level downgrades are recorded when launch policy cannot be applied by the active driver, specifically structured output enforcement for Codex MCP V1. Existing profile `capabilityWarnings` remain config/resolution visibility for profile settings that are not consumed by a host. Analyzer-only warnings are derived later from artifacts and are out of scope for this story. | Launch-time downgrades must be visible before and after child execution. Keeping analyzer reconstruction separate avoids coupling AWK05 to AWK10 report behavior. |
-| Should structured output be enforced through Codex input or validated post-result first? | V1 passes structured-output intent to the Codex MCP tool input through `config.workflowkit_structured_output` and records whether it was enforced. Because current Codex MCP compatibility does not expose a stable schema-enforcement knob, enforcement is marked false with a capability downgrade and existing post-result validation remains the compatibility backstop. | This preserves 0.5.13-style Codex launches, makes the selected schema visible in child invocation evidence, and avoids claiming hard enforcement until the host contract supports it. |
+| Should structured output be enforced through Codex input or validated post-result first? | V1 records structured-output intent in WorkflowKit-owned launch artifacts and result evidence, not in Codex `config`. Because current Codex MCP compatibility does not expose a stable schema-enforcement knob, enforcement is marked false with a capability downgrade and existing post-result validation remains the compatibility backstop. | This preserves 0.5.13-style Codex launches, makes the selected schema visible in WorkflowKit evidence, and avoids sending unsupported Codex config keys or claiming hard enforcement before the host contract supports it. |
 
 ## Exact types/contracts
 
@@ -70,8 +70,7 @@ Codex MCP input behavior:
 - `approval-policy` comes from `request.profile.approvalPolicy` when present.
 - `sandbox` comes from `request.profile.sandbox` when present.
 - `config.model_reasoning_effort` comes from `request.profile.effectiveReasoning` unless existing legacy config already set it.
-- `config.workflowkit_profile` records profile name, task type, prompt template, structured-output schema, and whether structured output is required.
-- `config.workflowkit_structured_output` records schema, required, and `enforced: false` for Codex MCP V1.
+- WorkflowKit profile, prompt, structured-output, and capability downgrade metadata are not sent through Codex `config`; they are recorded in WorkflowKit launch artifacts and result evidence.
 - Existing `codex.childSession` model/approval/sandbox/config values remain compatibility fallback when a profile field is null.
 - Existing writable-root injection stays intact.
 
@@ -99,7 +98,7 @@ Run events/artifacts:
 
 ## Migration/deploy concerns
 
-No migrations or hosted deploys. Existing configs without custom `agents` fields continue to use AWK02 defaults. Existing child artifacts remain readable because new fields are additive. Existing Codex MCP launches remain compatible because profile-derived fields map to already-supported Codex tool input fields and structured-output intent is recorded in `config` rather than requiring a new Codex tool schema.
+No migrations or hosted deploys. Existing configs without custom `agents` fields continue to use AWK02 defaults. Existing child artifacts remain readable because new fields are additive. Existing Codex MCP launches remain compatible because profile-derived fields map to already-supported Codex tool input fields, while structured-output intent is recorded in WorkflowKit-owned evidence rather than unsupported Codex config keys.
 
 ## Blocking technical questions
 

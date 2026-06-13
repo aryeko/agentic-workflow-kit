@@ -19,7 +19,7 @@ export function buildCodexToolInput(
   prompt = buildGenericPrompt(story, config),
   cwdAbs = config.codex.childSession.cwdAbs,
   profile?: ResolvedAgentProfile,
-  promptMetadata?: StoryPromptMetadata,
+  _promptMetadata?: StoryPromptMetadata,
 ): CodexToolInput {
   const childSession = config.codex.childSession;
   const input: CodexToolInput = {
@@ -57,23 +57,6 @@ export function buildCodexToolInput(
 
   input.config = {
     ...childSession.config,
-    ...(profile && promptMetadata
-      ? {
-          workflowkit_profile: {
-            name: profile.name,
-            taskType: profile.taskType,
-            promptTemplate: promptMetadata.template,
-            promptHash: promptMetadata.promptHash,
-            structuredOutputSchema: promptMetadata.structuredOutputSchema,
-            structuredOutputRequired: promptMetadata.structuredOutputRequired,
-          },
-          workflowkit_structured_output: {
-            schema: promptMetadata.structuredOutputSchema,
-            required: promptMetadata.structuredOutputRequired,
-            enforced: false,
-          },
-        }
-      : {}),
     ...('model_reasoning_effort' in (childSession.config ?? {})
       ? {}
       : profile?.effectiveReasoning

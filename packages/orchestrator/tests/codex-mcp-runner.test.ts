@@ -291,23 +291,8 @@ describe('CodexMcpStoryRunner', () => {
       },
     });
 
-    expect(result.invocation).toMatchObject({
-      config: expect.objectContaining({
-        workflowkit_profile: {
-          name: 'storyImplementer',
-          taskType: 'implementStory',
-          promptTemplate: 'built-in/story-implementer',
-          promptHash: 'hash-a001',
-          structuredOutputSchema: 'built-in/child-run-result',
-          structuredOutputRequired: true,
-        },
-        workflowkit_structured_output: {
-          schema: 'built-in/child-run-result',
-          required: true,
-          enforced: false,
-        },
-      }),
-    });
+    expect(result.invocation.config).not.toHaveProperty('workflowkit_profile');
+    expect(result.invocation.config).not.toHaveProperty('workflowkit_structured_output');
     expect(result.evidence).toMatchObject({
       profile: { name: 'storyImplementer', taskType: 'implementStory' },
       prompt: { template: 'built-in/story-implementer', hash: 'hash-a001' },
