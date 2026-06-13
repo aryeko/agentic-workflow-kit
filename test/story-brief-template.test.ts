@@ -41,7 +41,9 @@ describe('story brief contract and template', () => {
     expect(contract).toContain('safe assumptions');
     expect(contract).toContain('blocking questions');
     expect(contract).toContain('Runtime artifacts');
+    expect(contract).toContain('context-derived outcome labels');
     expect(template).toContain('## Assumptions and blockers');
     expect(template).toContain('## Artifact boundaries');
+    expect(template).toContain('<PREFIX-n or context-derived outcome label>');
   });
 });

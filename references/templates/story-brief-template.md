@@ -16,7 +16,7 @@ not implementation-ready; create a detailed technical story spec before plan/cod
 
 | Criterion | Product outcome |
 | --- | --- |
-| <PREFIX-n> | <observable outcome this story contributes to> |
+| <PREFIX-n or context-derived outcome label> | <observable outcome this story contributes to, with source context when no PRD exists> |
 
 ## Technical solution sections
 

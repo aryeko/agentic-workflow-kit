@@ -35,9 +35,10 @@ Then proceed unless a blocking decision is needed.
 - Locate the PRD at `<prdsDir>/<slug>/` when a PRD slug or path is supplied, and verify it conforms
   to `prd-contract.md`.
 - If no conforming PRD exists but the user supplied explicit design docs, technical notes, or
-  session context with enough product scope and acceptance outcomes, continue and record the source
-  material as assumptions. If neither a PRD nor sufficient context exists, stop and point the user at
-  `/define-product`.
+  session context with enough product scope and acceptance outcomes, derive a short kebab-case
+  `<slug>` from the product/work name or ask the user to confirm one before writing. Continue only
+  after the slug is known, and record the source material as assumptions. If neither a PRD nor
+  sufficient context exists, stop and point the user at `/define-product`.
 - Write the technical solution at `<prdsDir>/<slug>/technical-solution.md`.
 - If that file already exists, switch to resume/extend mode. Never overwrite it without explicit
   confirmation.

@@ -143,6 +143,7 @@ describe('skill authoring', () => {
     expect(description).not.toContain('Use after a PRD exists');
     expect(body).toContain('technical solution gate');
     expect(body).toContain('PRD, existing design docs, technical notes, or session context');
+    expect(body).toContain('derive a short kebab-case');
     expect(body).toContain('references/technical-solution-contract.md');
     expect(body).toContain('references/templates/technical-solution-template.md');
     expect(body).toContain('ask only blocking questions');

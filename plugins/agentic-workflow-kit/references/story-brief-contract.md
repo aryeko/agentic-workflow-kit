@@ -21,7 +21,10 @@ not implementation-ready; create a detailed technical story spec before plan/cod
 
 ### PRD criteria
 
-List the PRD acceptance-criteria IDs this story contributes to and the expected product outcome.
+List the PRD acceptance-criteria IDs this story contributes to and the expected product outcome. If
+planning from a technical solution alone or explicit backlog/design context without a PRD, use stable
+context-derived outcome labels instead of inventing PRD IDs, and state the source document or
+context for each label.
 
 ### Technical solution sections
 
