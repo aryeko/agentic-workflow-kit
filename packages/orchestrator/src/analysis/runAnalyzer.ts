@@ -159,6 +159,9 @@ interface PrePrReviewLoop {
   mode: string | null;
   status: string;
   findings: number | null;
+  agentId: string | null;
+  previousAgentId: string | null;
+  continuityMode: string | null;
 }
 
 interface PrReviewSummary {
@@ -513,12 +516,14 @@ function summarizeEvents(
       const eventMode = readActualMode(event.raw);
       actualMode = eventMode ?? actualMode;
       if (prePrStatus !== 'blocked') prePrStatus = 'findings';
-      loops.push({
-        loop: readOptionalNumber(event.raw.loop) ?? nextReviewLoop(loops, prePrFixBatchCount),
-        mode: eventMode,
-        status: 'findings',
-        findings: countFindings(event.raw.findings),
-      });
+      loops.push(
+        prePrReviewLoopFromEvent(
+          event,
+          'findings',
+          countFindings(event.raw.findings),
+          readOptionalNumber(event.raw.loop) ?? nextReviewLoop(loops, prePrFixBatchCount),
+        ),
+      );
     }
 
     if (isPrePrExecutionBlockedEvent(event)) {
@@ -540,12 +545,9 @@ function summarizeEvents(
       const eventMode = readActualMode(event.raw);
       actualMode = eventMode ?? actualMode;
       if (prePrStatus !== 'downgraded' && prePrStatus !== 'blocked') prePrStatus = 'passed';
-      loops.push({
-        loop: readOptionalNumber(event.raw.loop) ?? lastReviewLoop(loops),
-        mode: eventMode,
-        status: 'passed',
-        findings: 0,
-      });
+      loops.push(
+        prePrReviewLoopFromEvent(event, 'passed', 0, readOptionalNumber(event.raw.loop) ?? lastReviewLoop(loops)),
+      );
       if (eventMode?.startsWith('subagent') || typeof event.raw.agentId === 'string') {
         subagentAgentId = readOptionalString(event.raw.agentId) ?? subagentAgentId;
         subagentStatus = 'passed';
@@ -944,6 +946,23 @@ function readActualMode(event: Record<string, unknown>): string | null {
   return readOptionalString(event.actualMode) ?? readOptionalString(event.to) ?? readOptionalString(event.mode);
 }
 
+function prePrReviewLoopFromEvent(
+  event: NormalizedEvent,
+  status: PrePrReviewLoop['status'],
+  findings: number | null,
+  loop: number | null,
+): PrePrReviewLoop {
+  return {
+    loop,
+    mode: readActualMode(event.raw),
+    status,
+    findings,
+    agentId: readOptionalString(event.raw.agentId),
+    previousAgentId: readOptionalString(event.raw.previousAgentId),
+    continuityMode: readOptionalString(event.raw.continuityMode),
+  };
+}
+
 function countFindings(value: unknown): number | null {
   if (Array.isArray(value)) return value.length;
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -986,8 +1005,7 @@ async function walkJsonl(directory: string, logs: string[]): Promise<void> {
 
 function mergeSessionReviewEvidence(review: ReviewSummary, sessionLoops: SessionReviewLoop[]): ReviewSummary {
   if (sessionLoops.length === 0) return review;
-  const loops =
-    review.prePr.loops.length > 0 ? review.prePr.loops : sessionLoops.map(({ agentId: _agentId, ...loop }) => loop);
+  const loops = review.prePr.loops.length > 0 ? review.prePr.loops : sessionLoops;
   const latestLoop = sessionLoops[sessionLoops.length - 1];
   const hasFindings = sessionLoops.some((loop) => loop.status === 'findings');
   const lastPassed = latestLoop?.status === 'passed';
@@ -1023,7 +1041,7 @@ function prePrReviewFromSessionLoops(sessionLoops: SessionReviewLoop[]): unknown
     actualMode: 'subagent',
     status: lastPassed ? 'passed' : hasFindings ? 'findings' : 'not_started',
     fixBatchCount: countFindingLoops(sessionLoops),
-    loops: sessionLoops.map(({ agentId: _agentId, ...loop }) => loop),
+    loops: sessionLoops,
     subagent: {
       agentId: latestLoop?.agentId ?? null,
       status: lastPassed ? 'passed' : hasFindings ? 'findings' : null,

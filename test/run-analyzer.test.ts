@@ -377,9 +377,33 @@ describe('run analyzer', () => {
     expect(prePr.fixBatchCount).toBe(2);
     expect(prePr.maxLoopsReached).toBe(false);
     expect(prePr.loops).toEqual([
-      { loop: 1, mode: 'subagent', status: 'findings', findings: 2 },
-      { loop: 2, mode: 'subagent', status: 'findings', findings: 1 },
-      { loop: 2, mode: 'subagent', status: 'passed', findings: 0 },
+      {
+        loop: 1,
+        mode: 'subagent',
+        status: 'findings',
+        findings: 2,
+        agentId: null,
+        previousAgentId: null,
+        continuityMode: null,
+      },
+      {
+        loop: 2,
+        mode: 'subagent',
+        status: 'findings',
+        findings: 1,
+        agentId: null,
+        previousAgentId: null,
+        continuityMode: null,
+      },
+      {
+        loop: 2,
+        mode: 'subagent',
+        status: 'passed',
+        findings: 0,
+        agentId: '019eb312-b931-7c30-ad5d-7cc2c2dc5bcf',
+        previousAgentId: null,
+        continuityMode: null,
+      },
     ]);
     expect(prePr.subagent).toEqual({ agentId: '019eb312-b931-7c30-ad5d-7cc2c2dc5bcf', status: 'passed' });
     expect(pr.fixBatchCount).toBe(1);
@@ -398,6 +422,130 @@ describe('run analyzer', () => {
       'codex_pr_review_thread_resolved',
       'pr_merged',
     ]);
+  });
+
+  it('preserves local pre-PR review continuity fields in analyzer loop output', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-review-continuity-'));
+    tempRoots.push(root);
+    const runDirectory = path.join(root, 'repo/.codex/agentic-workflow-kit/runs/review-continuity');
+    mkdirSync(runDirectory, { recursive: true });
+
+    writeFileSync(
+      path.join(runDirectory, 'state.json'),
+      JSON.stringify(
+        {
+          runId: 'review-continuity',
+          command: 'implement-next',
+          status: 'complete',
+          blockedReason: null,
+          interactive: {
+            storyId: 'AWK081',
+            ok: true,
+            sessionId: null,
+            sessionLogPath: null,
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'config.resolved.json'),
+      JSON.stringify(
+        {
+          implement: {
+            review: {
+              prePr: { enabled: true, mode: 'subagent', maxLoops: 2, loopMode: 'incremental' },
+            },
+          },
+          pr: { review: { rerequestAfterFix: false } },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'events.ndjson'),
+      [
+        JSON.stringify({
+          recordedAt: '2026-06-14T10:00:00Z',
+          eventAt: '2026-06-14T10:00:00Z',
+          type: 'pre_pr_review_completed',
+          loop: 1,
+          mode: 'subagent',
+          agentId: 'reviewer-1',
+          continuityMode: 'full-context',
+          verdict: 'BLOCK',
+          findings: ['Loop 1 finding'],
+        }),
+        JSON.stringify({
+          recordedAt: '2026-06-14T10:05:00Z',
+          eventAt: '2026-06-14T10:05:00Z',
+          type: 'pre_pr_review_fix_batch_applied',
+        }),
+        JSON.stringify({
+          recordedAt: '2026-06-14T10:10:00Z',
+          eventAt: '2026-06-14T10:10:00Z',
+          type: 'pre_pr_review_findings',
+          loop: 2,
+          mode: 'subagent',
+          agentId: 'reviewer-1',
+          previousAgentId: 'reviewer-1',
+          continuityMode: 'reused-agent',
+          findings: ['Loop 2 finding'],
+        }),
+        JSON.stringify({
+          recordedAt: '2026-06-14T10:15:00Z',
+          eventAt: '2026-06-14T10:15:00Z',
+          type: 'pre_pr_review_fix_batch_applied',
+        }),
+        JSON.stringify({
+          recordedAt: '2026-06-14T10:20:00Z',
+          eventAt: '2026-06-14T10:20:00Z',
+          type: 'pre_pr_review_completed',
+          loop: 3,
+          mode: 'subagent',
+          agentId: 'reviewer-2',
+          previousAgentId: 'reviewer-1',
+          continuityMode: 'new-agent-incremental-context',
+          verdict: 'PASS',
+          findings: [],
+        }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDirectory, { sessionRoots: [] });
+
+    expect(analysis.review.prePr.loops).toEqual([
+      {
+        loop: 1,
+        mode: 'subagent',
+        status: 'findings',
+        findings: 1,
+        agentId: 'reviewer-1',
+        previousAgentId: null,
+        continuityMode: 'full-context',
+      },
+      {
+        loop: 2,
+        mode: 'subagent',
+        status: 'findings',
+        findings: 1,
+        agentId: 'reviewer-1',
+        previousAgentId: 'reviewer-1',
+        continuityMode: 'reused-agent',
+      },
+      {
+        loop: 3,
+        mode: 'subagent',
+        status: 'passed',
+        findings: 0,
+        agentId: 'reviewer-2',
+        previousAgentId: 'reviewer-1',
+        continuityMode: 'new-agent-incremental-context',
+      },
+    ]);
+    expect(analysis.review.prePr.subagent).toEqual({ agentId: 'reviewer-2', status: 'passed' });
   });
 
   it('flags merges that happen before required final verification after review fixes', async () => {

@@ -75,4 +75,73 @@ describe('session log metrics', () => {
 
     expect(map.get('019e-child')).toBe(logPath);
   });
+
+  it('extracts review subagent loops with nullable continuity fields from session logs', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-session-review-metrics-'));
+    tempRoots.push(root);
+    const logPath = path.join(root, 'session.jsonl');
+    await writeFile(
+      logPath,
+      [
+        JSON.stringify({ type: 'session_meta', payload: { id: '019e-child' } }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'spawn_agent',
+            call_id: 'spawn-1',
+            arguments: JSON.stringify({
+              agent_type: 'reviewer',
+              message: 'Run the configured pre-PR review and return findings.',
+            }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'spawn-1',
+            output: JSON.stringify({ target: 'reviewer-1' }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'wait_agent',
+            call_id: 'wait-1',
+            arguments: JSON.stringify({ targets: ['reviewer-1'] }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'wait-1',
+            output: JSON.stringify({
+              status: {
+                'reviewer-1': {
+                  completed: 'PASS: no findings',
+                },
+              },
+            }),
+          },
+        }),
+      ].join('\n'),
+    );
+
+    const metrics = await analyzeSessionLogMetrics(logPath);
+
+    expect(metrics.reviewLoops).toEqual([
+      {
+        loop: 1,
+        mode: 'subagent',
+        status: 'passed',
+        findings: 0,
+        agentId: 'reviewer-1',
+        previousAgentId: null,
+        continuityMode: null,
+      },
+    ]);
+  });
 });
