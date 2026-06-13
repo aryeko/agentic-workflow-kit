@@ -127,6 +127,18 @@ describe('RunJournal', () => {
       evaluations: expect.arrayContaining([
         expect.objectContaining({
           profileName: 'storyImplementer',
+          dimension: 'toolCalls',
+          status: 'unavailable',
+          unavailableReason: 'session log metrics are unavailable',
+        }),
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'failedToolCalls',
+          status: 'unavailable',
+          unavailableReason: 'failed tool-call telemetry is unavailable',
+        }),
+        expect.objectContaining({
+          profileName: 'storyImplementer',
           dimension: 'tokens',
           status: 'unavailable',
           unavailableReason: 'session log token telemetry is unavailable',

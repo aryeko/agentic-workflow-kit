@@ -92,7 +92,7 @@ export class RunJournal {
     metrics: LiveMetricsSnapshot,
   ): Promise<BudgetArtifact> {
     const rows = buildRows(state, metrics);
-    const budgets = buildBudgetArtifact(state.runId, config, state, metrics);
+    const budgets = buildBudgetArtifact(state.runId, config, metrics);
     await this.dependencies.artifactStore.writeJson('summary.json', buildSummary(state, metrics));
     await this.dependencies.artifactStore.writeJson('rows.json', { schemaVersion: 1, rows });
     await this.dependencies.artifactStore.writeJson('budgets.json', budgets);

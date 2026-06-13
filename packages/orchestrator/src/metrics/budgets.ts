@@ -5,7 +5,6 @@ import type {
   LiveMetricsSnapshot,
   ResolvedAgentProfile,
   ResolvedWorkflowConfig,
-  RunState,
 } from '../types.js';
 import { UNAVAILABLE_REASONS } from './availability.js';
 
@@ -14,7 +13,6 @@ type BudgetDimension = keyof AgentBudgetPolicy;
 export function buildBudgetArtifact(
   runId: string,
   config: ResolvedWorkflowConfig,
-  state: RunState,
   metrics: LiveMetricsSnapshot,
 ): BudgetArtifact {
   const profiles = Object.fromEntries(
@@ -32,20 +30,14 @@ export function buildBudgetArtifact(
     schemaVersion: 1,
     runId,
     profiles,
-    evaluations: Object.values(config.agents.resolved).flatMap((profile) =>
-      evaluateProfileBudget(profile, state, metrics),
-    ),
+    evaluations: Object.values(config.agents.resolved).flatMap((profile) => evaluateProfileBudget(profile, metrics)),
   };
 }
 
-function evaluateProfileBudget(
-  profile: ResolvedAgentProfile,
-  state: RunState,
-  metrics: LiveMetricsSnapshot,
-): BudgetEvaluation[] {
+function evaluateProfileBudget(profile: ResolvedAgentProfile, metrics: LiveMetricsSnapshot): BudgetEvaluation[] {
   return (Object.keys(profile.budget) as BudgetDimension[]).map((dimension) => {
     const policy = profile.budget[dimension];
-    const observed = observedBudgetValue(dimension, state, metrics);
+    const observed = observedBudgetValue(dimension, metrics);
     const unavailableReason = observed.unavailableReason ?? profile.budgetSupport[dimension].unavailableReason;
     const status = budgetStatus(policy.limit, policy.warnAtPercent, observed.value, unavailableReason);
     return {
@@ -65,16 +57,15 @@ function evaluateProfileBudget(
 
 function observedBudgetValue(
   dimension: BudgetDimension,
-  state: RunState,
   metrics: LiveMetricsSnapshot,
 ): { value: number | null; unavailableReason: string | null } {
   switch (dimension) {
     case 'wallMs':
       return { value: metrics.elapsedMs, unavailableReason: null };
     case 'toolCalls':
-      return { value: sumCounts(metrics.aggregate.toolCounts), unavailableReason: null };
+      return countBudgetMetric(metrics.aggregate.toolCounts, UNAVAILABLE_REASONS.sessionLogMetrics);
     case 'failedToolCalls':
-      return { value: state.metrics?.blockedCount ?? 0, unavailableReason: null };
+      return { value: null, unavailableReason: UNAVAILABLE_REASONS.failedToolCalls };
     case 'tokens':
       return metrics.aggregate.tokenTotals
         ? { value: metrics.aggregate.tokenTotals.totalTokens, unavailableReason: null }
@@ -107,6 +98,11 @@ function budgetEventType(
   return action === 'warn' ? 'budget-warning' : 'budget-stop';
 }
 
-function sumCounts(counts: Record<string, number>): number {
-  return Object.values(counts).reduce((sum, count) => sum + count, 0);
+function countBudgetMetric(
+  counts: Record<string, number>,
+  unavailableReason: string,
+): { value: number | null; unavailableReason: string | null } {
+  const values = Object.values(counts);
+  if (values.length === 0) return { value: null, unavailableReason };
+  return { value: values.reduce((sum, count) => sum + count, 0), unavailableReason: null };
 }

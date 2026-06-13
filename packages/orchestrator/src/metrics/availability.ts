@@ -3,6 +3,7 @@ import type { ChildMetricAvailability, ChildMetricsSnapshot, MetricAvailability 
 export const UNAVAILABLE_REASONS = {
   sessionLog: 'child session log path is unavailable',
   sessionLogMetrics: 'session log metrics are unavailable',
+  failedToolCalls: 'failed tool-call telemetry is unavailable',
   tokenTelemetry: 'session log token telemetry is unavailable',
   costTelemetry: 'cost telemetry is not exposed by the current host',
 } as const;

@@ -12,6 +12,115 @@ afterEach(async () => {
 });
 
 describe('run analyzer', () => {
+  it('exposes normalized artifact evidence when summary, rows, budgets, and transcripts exist', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-artifacts-'));
+    tempRoots.push(root);
+    const runDirectory = path.join(root, 'repo/.codex/agentic-workflow-kit/runs/run-1');
+    mkdirSync(runDirectory, { recursive: true });
+
+    writeFileSync(
+      path.join(runDirectory, 'state.json'),
+      JSON.stringify(
+        {
+          runId: 'run-1',
+          command: 'run-story',
+          status: 'complete',
+          blockedReason: null,
+          completed: [],
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(path.join(runDirectory, 'events.ndjson'), '');
+    writeFileSync(
+      path.join(runDirectory, 'summary.json'),
+      JSON.stringify(
+        {
+          schemaVersion: 1,
+          artifactPaths: { summary: 'summary.json', rows: 'rows.json', budgets: 'budgets.json' },
+          unavailable: { 'aggregate.tokenTotals': 'session log token telemetry is unavailable' },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'rows.json'),
+      JSON.stringify({ schemaVersion: 1, rows: [{ storyId: 'A001' }, { storyId: 'A002' }] }, null, 2),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'budgets.json'),
+      JSON.stringify(
+        {
+          schemaVersion: 1,
+          evaluations: [
+            {
+              profileName: 'storyImplementer',
+              taskType: 'implementStory',
+              dimension: 'toolCalls',
+              status: 'unavailable',
+              eventType: null,
+              unavailableReason: 'session log metrics are unavailable',
+            },
+            {
+              profileName: 'storyImplementer',
+              taskType: 'implementStory',
+              dimension: 'wallMs',
+              status: 'limit-reached',
+              eventType: 'budget-stop',
+              unavailableReason: null,
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'transcripts.json'),
+      JSON.stringify(
+        {
+          schemaVersion: 1,
+          transcripts: [
+            { storyId: 'A001', status: 'linked' },
+            { storyId: 'A002', status: 'missing' },
+            { storyId: 'A003', status: 'unlinked' },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDirectory, { sessionRoots: [] });
+
+    expect(analysis.artifacts).toMatchObject({
+      summary: {
+        present: true,
+        schemaVersion: 1,
+        artifactPaths: ['summary.json', 'rows.json', 'budgets.json'],
+        unavailable: { 'aggregate.tokenTotals': 'session log token telemetry is unavailable' },
+      },
+      rows: { present: true, schemaVersion: 1, count: 2, storyIds: ['A001', 'A002'] },
+      budgets: {
+        present: true,
+        schemaVersion: 1,
+        evaluationCount: 2,
+        unavailable: [
+          {
+            profileName: 'storyImplementer',
+            dimension: 'toolCalls',
+            status: 'unavailable',
+            unavailableReason: 'session log metrics are unavailable',
+          },
+        ],
+        stops: [{ profileName: 'storyImplementer', dimension: 'wallMs', eventType: 'budget-stop' }],
+      },
+      transcripts: { present: true, schemaVersion: 1, count: 3, linked: 1, missing: 1, unlinked: 1 },
+    });
+  });
+
   it('analyzes interactive implement-next journals without child output files', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-'));
     tempRoots.push(root);
