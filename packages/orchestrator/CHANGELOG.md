@@ -1,5 +1,11 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.5.13
+
+### Patch Changes
+
+- e1fa010: Avoid attaching compatibility merge evidence from an unrelated story when the current story and PR identity come from structured child evidence.
+
 ## 0.5.12
 
 ### Patch Changes
