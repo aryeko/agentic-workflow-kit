@@ -1084,11 +1084,91 @@ describe('WorkflowRunner', () => {
         sessionLogPath: '/sessions/a001.jsonl',
       }),
     );
+    await waitFor(() =>
+      expect(artifacts.json.get('metrics.live.json')).toMatchObject({
+        children: {
+          A001: {
+            storyId: 'A001',
+            sessionLogPath: '/sessions/a001.jsonl',
+            latestProgress: 'session linked',
+          },
+        },
+      }),
+    );
 
     lifecycle.resolve('A001');
     const state = await run;
 
     expect(state.status).toBe('complete');
+  });
+
+  it('releases a settled parent tracker claim after child-worktree tracker completion is recorded', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-settled-release-'));
+    const childRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-settled-release-child-'));
+    const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
+    const childTrackerPath = path.join(childRoot, 'docs/tracks/sample/README.md');
+    mkdirSync(path.dirname(trackerPath), { recursive: true });
+    mkdirSync(path.dirname(childTrackerPath), { recursive: true });
+    writeFileSync(trackerPath, trackerMarkdown('specced'));
+    writeFileSync(childTrackerPath, trackerMarkdown('done'));
+    const resolvedConfig = configForWorkspace(workspaceRoot);
+    const storySource: StorySource = {
+      async listStories() {
+        const tracks = await discoverMarkdownTracks({
+          workspaceRoot,
+          tracksDir: resolvedConfig.paths.tracksDir,
+          archiveDir: resolvedConfig.paths.archiveDir,
+          completeStatuses: resolvedConfig.statuses.complete,
+          eligibleStatuses: resolvedConfig.statuses.eligible,
+          idPattern: resolvedConfig.tracker.idPattern,
+        });
+        return tracks.flatMap((track) => track.stories);
+      },
+    };
+    const artifacts = new MemoryArtifacts();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: resolvedConfig,
+      storySource,
+      storyRunner: new FakeRunner({
+        storyId: 'WK001',
+        sessionId: 'thread-wk001',
+        content: 'ok',
+        rawResult: {},
+        invocation: { cwd: childRoot },
+        evidence: { trackerPath: 'docs/tracks/sample/README.md', finalStatus: 'done' },
+      }),
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: async ({ story: preparedStory, git }) => ({
+        childCwdAbs: childRoot,
+        expectedBranch: renderExpectedBranch(preparedStory, git),
+        expectedWorktreePath: path.join(workspaceRoot, '.worktrees/wk001'),
+        prepared: true,
+      }),
+    });
+
+    const state = await runner.runStory('WK001');
+
+    expect(state.status).toBe('complete');
+    expect(artifacts.json.get('children/WK001.json')).toMatchObject({
+      completionAuthoritySource: 'child-worktree-tracker',
+    });
+    expect(readFileSync(trackerPath, 'utf8')).toContain(
+      '| WK001 | Wire parser to runner | — | 1 | specced | [spec](../../specs/WK001.md) | — | — | — |',
+    );
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'tracker-claim-released',
+        storyId: 'WK001',
+        fromStatus: 'implementing',
+        toStatus: 'specced',
+        reason: 'child-settled',
+      }),
+    );
   });
 
   it('marks unacknowledged child startup failed after the startup timeout', async () => {
