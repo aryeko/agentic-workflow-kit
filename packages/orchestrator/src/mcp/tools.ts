@@ -17,6 +17,7 @@ import {
   watchRunHandler,
 } from '../commands/handlers.js';
 import type { CliOverrides, Logger, RunState } from '../types.js';
+import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 
 export const ORCHESTRATOR_MCP_TOOLS = [
   'list_tracks',
@@ -28,6 +29,8 @@ export const ORCHESTRATOR_MCP_TOOLS = [
   'watch_run_start',
   'watch_run_poll',
   'watch_run_stop',
+  'codex_reply',
+  'codex_interrupt',
   'analyze_run',
   'check_codex_mcp',
 ] as const;
@@ -122,6 +125,28 @@ const watchRunPollInputSchema = runPathInputSchema.extend({
 
 const watchRunStopInputSchema = z.object({
   watchId: z.string().describe('Watch id returned by watch_run_start.'),
+  responseFormat: z
+    .enum(['concise', 'detailed'])
+    .optional()
+    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
+});
+
+const codexReplyInputSchema = z.object({
+  sessionId: z.string().optional().describe('Direct Codex session/thread id to reply to.'),
+  runPath: z.string().optional().describe('Run artifact directory used with storyId to resolve a child session.'),
+  storyId: z.string().optional().describe('Story id used with runPath to resolve children/<story>.launch.json.'),
+  message: z.string().min(1).describe('Reply message to send to the live Codex child session.'),
+  responseFormat: z
+    .enum(['concise', 'detailed'])
+    .optional()
+    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
+});
+
+const codexInterruptInputSchema = z.object({
+  sessionId: z.string().optional().describe('Direct Codex session/thread id to interrupt.'),
+  runPath: z.string().optional().describe('Run artifact directory used with storyId to resolve a child session.'),
+  storyId: z.string().optional().describe('Story id used with runPath to resolve children/<story>.launch.json.'),
+  reason: z.string().optional().describe('Optional operator-facing reason for interrupting the child session.'),
   responseFormat: z
     .enum(['concise', 'detailed'])
     .optional()
@@ -291,6 +316,30 @@ export function registerOrchestratorTools(server: McpServer): void {
     },
     async (input) =>
       handleTool('watch_run_stop', input.responseFormat, () => stopWatchRunHandler(input.watchId)),
+  );
+
+  server.registerTool(
+    'codex_reply',
+    {
+      description:
+        'Send an operator reply to a live Codex child session. Target either sessionId directly or runPath plus storyId; run-targeted replies are journaled with a redacted preview and hash.',
+      inputSchema: codexReplyInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    async (input) => handleTool('codex_reply', input.responseFormat, () => sendCodexReply(input)),
+  );
+
+  server.registerTool(
+    'codex_interrupt',
+    {
+      description:
+        'Interrupt a live Codex child session. Target either sessionId directly or runPath plus storyId; run-targeted interrupts are journaled.',
+      inputSchema: codexInterruptInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    async (input) => handleTool('codex_interrupt', input.responseFormat, () => sendCodexInterrupt(input)),
   );
 
   server.registerTool(
