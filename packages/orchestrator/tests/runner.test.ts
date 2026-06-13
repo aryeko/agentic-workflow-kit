@@ -1015,12 +1015,12 @@ describe('WorkflowRunner', () => {
       'A001',
       'A002',
     ]);
-    expect(
-      artifacts.jsonWrites
-        .filter((write) => write.relativePath === 'state.json')
-        .map((write) => (write.value as { active: string[] }).active)
-        .filter((active) => active.length > 0),
-    ).toEqual([['A001'], ['A001'], ['A002'], ['A002']]);
+    const activeSnapshots = artifacts.jsonWrites
+      .filter((write) => write.relativePath === 'state.json')
+      .map((write) => (write.value as { active: string[] }).active)
+      .filter((active) => active.length > 0);
+    expect(activeSnapshots.slice(0, 4)).toEqual([['A001'], ['A001'], ['A002'], ['A002']]);
+    expect(activeSnapshots.at(-1)).toEqual(['A002']);
     expect(state.status).toBe('complete');
   });
 

@@ -63,6 +63,7 @@ export class WorkflowRunner {
   private readonly journal: RunJournal;
   private readonly completionGate: CompletionGate;
   private readonly trackerClaims = new Map<string, ClaimedWorkflowStory>();
+  private readonly emittedBudgetEvents = new Set<string>();
 
   constructor(private readonly dependencies: WorkflowRunnerDependencies) {
     this.metrics = new MetricsCollector(dependencies.clock);
@@ -964,7 +965,20 @@ export class WorkflowRunner {
   }
 
   private async writeLiveMetrics(): Promise<void> {
-    await this.journal.writeLiveMetrics(this.state, this.metrics.observedChildMetrics());
+    const liveMetrics = await this.journal.writeLiveMetrics(this.state, this.metrics.observedChildMetrics());
+    const budgets = await this.journal.writeRuntimeArtifacts(this.state, this.dependencies.config, liveMetrics);
+    for (const evaluation of budgets.evaluations) {
+      if (!evaluation.eventType) continue;
+      const key = `${evaluation.taskType}:${evaluation.profileName}:${evaluation.dimension}:${evaluation.status}`;
+      if (this.emittedBudgetEvents.has(key)) continue;
+      this.emittedBudgetEvents.add(key);
+      await this.journal.record(evaluation.eventType, {
+        topic: 'budget',
+        level: evaluation.eventType === 'budget-warning' ? 'warning' : 'error',
+        message: `${evaluation.dimension} budget ${evaluation.status}`,
+        data: evaluation,
+      });
+    }
   }
 
   private removeActiveChild(storyId: string): RunState {

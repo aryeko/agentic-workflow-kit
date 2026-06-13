@@ -45,4 +45,34 @@ describe('MetricsCollector', () => {
       ],
     });
   });
+
+  it('preserves metric availability while merging child observations', () => {
+    const collector = new MetricsCollector(new SequenceClock(['2026-06-02T00:00:00.000Z']));
+
+    collector.observeChildProgress('A001', { latestProgress: 'session linked', sessionLogPath: null });
+    collector.updateChildMetric('A001', {
+      storyId: 'A001',
+      toolCounts: { exec_command: 1 },
+      subagentCounts: {},
+      tokenTotals: null,
+      latestProgress: null,
+      sessionLogPath: '/sessions/a001.jsonl',
+      availability: {
+        toolCounts: { status: 'available', unavailableReason: null },
+        subagentCounts: { status: 'unavailable', unavailableReason: 'session log metrics are unavailable' },
+        tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
+        sessionLog: { status: 'available', unavailableReason: null },
+      },
+    });
+
+    expect(collector.observedChildMetrics().A001).toMatchObject({
+      toolCounts: { exec_command: 1 },
+      sessionLogPath: '/sessions/a001.jsonl',
+      availability: {
+        toolCounts: { status: 'available', unavailableReason: null },
+        tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
+        sessionLog: { status: 'available', unavailableReason: null },
+      },
+    });
+  });
 });

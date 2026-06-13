@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { resolveCwdOnlyConfig } from '../src/config/configLoader';
 import { MetricsCollector } from '../src/runner/MetricsCollector';
 import { RunJournal, type SettledStoryRun } from '../src/runner/RunJournal';
 import type { ArtifactStore, Clock, RunEvent, RunState } from '../src/types';
@@ -77,6 +78,118 @@ describe('RunJournal', () => {
       eventAt: '2026-06-02T00:00:01.000Z',
       type: 'child-complete',
       storyId: 'A001',
+    });
+  });
+
+  it('writes normalized summary, rows, budget, and transcript artifacts', async () => {
+    const artifacts = new MemoryArtifacts();
+    const runState = {
+      ...state(),
+      active: ['A001'],
+    };
+    const metrics = new MetricsCollector(clock);
+    metrics.observeChildProgress('A001', {
+      latestProgress: 'running tests',
+      sessionLogPath: '/sessions/a001.jsonl',
+    });
+    const journal = new RunJournal({ artifactStore: artifacts, clock });
+
+    const live = await journal.writeLiveMetrics(runState, metrics.observedChildMetrics());
+    await journal.writeRuntimeArtifacts(runState, resolveCwdOnlyConfig('/repo'), live);
+
+    expect(artifacts.json.get('summary.json')).toMatchObject({
+      schemaVersion: 1,
+      runId: 'run-1',
+      artifactPaths: {
+        summary: 'summary.json',
+        rows: 'rows.json',
+        budgets: 'budgets.json',
+        transcripts: 'transcripts.json',
+      },
+    });
+    expect(artifacts.json.get('rows.json')).toMatchObject({
+      schemaVersion: 1,
+      rows: [
+        {
+          storyId: 'A001',
+          status: 'active',
+          sessionLogPath: '/sessions/a001.jsonl',
+          tokens: {
+            value: null,
+            unavailableReason: 'session log token telemetry is unavailable',
+          },
+        },
+      ],
+    });
+    expect(artifacts.json.get('budgets.json')).toMatchObject({
+      schemaVersion: 1,
+      runId: 'run-1',
+      evaluations: expect.arrayContaining([
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'toolCalls',
+          status: 'unavailable',
+          unavailableReason: 'session log metrics are unavailable',
+        }),
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'failedToolCalls',
+          status: 'unavailable',
+          unavailableReason: 'failed tool-call telemetry is unavailable',
+        }),
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'tokens',
+          status: 'unavailable',
+          unavailableReason: 'session log token telemetry is unavailable',
+        }),
+      ]),
+    });
+    expect(artifacts.json.get('transcripts.json')).toMatchObject({
+      schemaVersion: 1,
+      transcripts: [
+        {
+          storyId: 'A001',
+          sessionLogPath: '/sessions/a001.jsonl',
+          status: 'linked',
+        },
+      ],
+    });
+  });
+
+  it('distinguishes observed zero tool calls from unavailable tool-call telemetry', async () => {
+    const artifacts = new MemoryArtifacts();
+    const runState = { ...state(), active: ['A001'] };
+    const journal = new RunJournal({ artifactStore: artifacts, clock });
+
+    const live = await journal.writeLiveMetrics(runState, {
+      A001: {
+        storyId: 'A001',
+        toolCounts: {},
+        subagentCounts: {},
+        tokenTotals: null,
+        latestProgress: 'no tools needed',
+        sessionLogPath: '/sessions/a001.jsonl',
+        availability: {
+          toolCounts: { status: 'available', unavailableReason: null },
+          subagentCounts: { status: 'available', unavailableReason: null },
+          tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
+          sessionLog: { status: 'available', unavailableReason: null },
+        },
+      },
+    });
+    await journal.writeRuntimeArtifacts(runState, resolveCwdOnlyConfig('/repo'), live);
+
+    expect(artifacts.json.get('budgets.json')).toMatchObject({
+      evaluations: expect.arrayContaining([
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'toolCalls',
+          observed: 0,
+          status: 'not-configured',
+          unavailableReason: null,
+        }),
+      ]),
     });
   });
 

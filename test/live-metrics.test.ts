@@ -72,6 +72,12 @@ describe('live metrics enrichment', () => {
     expect(enriched.children.DLD07.toolCounts).toEqual({ exec_command: 1, spawn_agent: 1 });
     expect(enriched.children.DLD07.subagentCounts).toEqual({ reviewer: 1 });
     expect(enriched.children.DLD07.tokenTotals?.totalTokens).toBe(15);
+    expect(enriched.children.DLD07.availability).toMatchObject({
+      toolCounts: { status: 'available', unavailableReason: null },
+      subagentCounts: { status: 'available', unavailableReason: null },
+      tokenTotals: { status: 'available', unavailableReason: null },
+      sessionLog: { status: 'available', unavailableReason: null },
+    });
     expect(enriched.aggregate.toolCounts).toEqual({ exec_command: 1, spawn_agent: 1 });
   });
 });

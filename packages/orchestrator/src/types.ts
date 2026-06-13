@@ -320,6 +320,18 @@ export interface ChildRunMetric {
   durationMs: number;
 }
 
+export type MetricAvailabilityStatus = 'available' | 'unavailable';
+
+export interface MetricAvailability {
+  status: MetricAvailabilityStatus;
+  unavailableReason: string | null;
+}
+
+export interface NullableMetric<T> {
+  value: T | null;
+  unavailableReason: string | null;
+}
+
 export interface TokenTotals {
   inputTokens: number;
   cachedInputTokens: number;
@@ -335,6 +347,14 @@ export interface ChildMetricsSnapshot {
   tokenTotals: TokenTotals | null;
   latestProgress: string | null;
   sessionLogPath: string | null;
+  availability?: ChildMetricAvailability;
+}
+
+export interface ChildMetricAvailability {
+  toolCounts: MetricAvailability;
+  subagentCounts: MetricAvailability;
+  tokenTotals: MetricAvailability;
+  sessionLog: MetricAvailability;
 }
 
 export interface LiveMetricsSnapshot {
@@ -388,6 +408,12 @@ export interface RunState {
   blockedReason: string | null;
   dryRunDispatch?: string[];
   metrics?: RunMetrics;
+  interactive?: {
+    storyId: string;
+    ok: boolean;
+    sessionId: string | null;
+    sessionLogPath: string | null;
+  };
 }
 
 export interface RunEvent {
@@ -395,6 +421,85 @@ export interface RunEvent {
   eventAt: string;
   type: string;
   [key: string]: unknown;
+}
+
+export interface RunSummaryArtifact {
+  schemaVersion: 1;
+  runId: string;
+  command: string;
+  status: RunStatus;
+  derivedStatus: string;
+  startedAt: string;
+  completedAt: string | null;
+  elapsedMs: number | null;
+  blockedStoryId: string | null;
+  blockedReason: string | null;
+  activeStoryIds: string[];
+  completedStoryIds: string[];
+  artifactPaths: Record<string, string>;
+  aggregate: LiveMetricsSnapshot['aggregate'];
+  unavailable: Record<string, string>;
+}
+
+export interface RunRowsArtifact {
+  schemaVersion: 1;
+  rows: RunRowArtifact[];
+}
+
+export interface RunRowArtifact {
+  runId: string;
+  storyId: string;
+  status: string;
+  ok: boolean | null;
+  sessionId: string | null;
+  sessionLogPath: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  durationMs: number | null;
+  latestProgress: string | null;
+  toolCalls: NullableMetric<number>;
+  failedToolCalls: NullableMetric<number>;
+  subagents: NullableMetric<number>;
+  tokens: NullableMetric<TokenTotals>;
+}
+
+export interface BudgetProfileSnapshot {
+  taskType: AgentTaskType;
+  profileName: string;
+  budget: AgentBudgetPolicy;
+  support: Record<keyof AgentBudgetPolicy, AgentBudgetSupport>;
+}
+
+export interface BudgetArtifact {
+  schemaVersion: 1;
+  runId: string;
+  profiles: Record<string, BudgetProfileSnapshot>;
+  evaluations: BudgetEvaluation[];
+}
+
+export interface BudgetEvaluation {
+  profileName: string;
+  taskType: AgentTaskType;
+  dimension: keyof AgentBudgetPolicy;
+  limit: number | null;
+  observed: number | null;
+  warnAtPercent: number | null;
+  action: AgentBudgetAction;
+  status: 'not-configured' | 'within-limit' | 'warning' | 'limit-reached' | 'unavailable';
+  unavailableReason: string | null;
+  eventType: 'budget-warning' | 'budget-stop' | null;
+}
+
+export interface TranscriptIndexArtifact {
+  schemaVersion: 1;
+  runId: string;
+  transcripts: Array<{
+    storyId: string;
+    sessionId: string | null;
+    sessionLogPath: string | null;
+    status: 'linked' | 'unlinked' | 'missing';
+    unavailableReason: string | null;
+  }>;
 }
 
 export interface ArtifactStore {

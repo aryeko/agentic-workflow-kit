@@ -37,6 +37,16 @@ describe('planning artifact model', () => {
     expect(contract).toContain('For new trackers, Spec links to the story brief');
     expect(contract).toContain('Existing trackers that link a detailed spec directly remain valid');
   });
+
+  it('AWK06 defines additive V1 runtime artifact filenames and compatibility', () => {
+    const contract = readFileSync('references/runtime-artifact-contract.md', 'utf8');
+
+    expect(contract).toContain('summary.json');
+    expect(contract).toContain('rows.json');
+    expect(contract).toContain('budgets.json');
+    expect(contract).toContain('transcripts.json');
+    expect(contract).toContain('Existing run artifacts without these files');
+  });
 });
 
 function readSkillBody(skillName: string): { body: string } {

@@ -29,6 +29,47 @@ export interface WorkflowRunAnalysis {
   verification: VerificationSummary;
   merge: MergeSummary;
   timeline: TimelineEvent[];
+  artifacts: ArtifactEvidenceSummary;
+}
+
+interface ArtifactEvidenceSummary {
+  summary: {
+    present: boolean;
+    schemaVersion: number | null;
+    artifactPaths: string[];
+    unavailable: Record<string, string>;
+  };
+  rows: {
+    present: boolean;
+    schemaVersion: number | null;
+    count: number;
+    storyIds: string[];
+  };
+  budgets: {
+    present: boolean;
+    schemaVersion: number | null;
+    evaluationCount: number;
+    unavailable: BudgetEvaluationSummary[];
+    warnings: BudgetEvaluationSummary[];
+    stops: BudgetEvaluationSummary[];
+  };
+  transcripts: {
+    present: boolean;
+    schemaVersion: number | null;
+    count: number;
+    linked: number;
+    missing: number;
+    unlinked: number;
+  };
+}
+
+interface BudgetEvaluationSummary {
+  profileName: string | null;
+  taskType: string | null;
+  dimension: string | null;
+  status: string | null;
+  eventType: string | null;
+  unavailableReason: string | null;
 }
 
 interface AnalyzedChild {
@@ -177,6 +218,7 @@ export async function analyzeWorkflowRun(
     readJsonObjectIfExists(path.join(runDirectory, 'config.resolved.json')),
     readEvents(path.join(runDirectory, 'events.ndjson')),
   ]);
+  const artifactEvidence = await readArtifactEvidence(runDirectory);
   const children = await readChildren(path.join(runDirectory, 'children'), state);
   const sessionLogs = await findSessionLogs(options.sessionRoots ?? defaultSessionRoots());
   const logsBySession = await mapSessionLogsByThread(sessionLogs);
@@ -309,6 +351,66 @@ export async function analyzeWorkflowRun(
     verification: eventSummary.verification,
     merge: eventSummary.merge,
     timeline: eventSummary.timeline,
+    artifacts: artifactEvidence,
+  };
+}
+
+async function readArtifactEvidence(runDirectory: string): Promise<ArtifactEvidenceSummary> {
+  const [summary, rows, budgets, transcripts] = await Promise.all([
+    readJsonObjectIfExists(path.join(runDirectory, 'summary.json')),
+    readJsonObjectIfExists(path.join(runDirectory, 'rows.json')),
+    readJsonObjectIfExists(path.join(runDirectory, 'budgets.json')),
+    readJsonObjectIfExists(path.join(runDirectory, 'transcripts.json')),
+  ]);
+  const rowEntries = readRecordArray(rows?.rows);
+  const budgetEvaluations = readRecordArray(budgets?.evaluations);
+  const transcriptEntries = readRecordArray(transcripts?.transcripts);
+  const budgetSummaries = budgetEvaluations.map(readBudgetEvaluationSummary);
+  return {
+    summary: {
+      present: summary !== null,
+      schemaVersion: readOptionalNumber(summary?.schemaVersion),
+      artifactPaths: Object.values(readRecord(summary?.artifactPaths) ?? {}).filter(
+        (entry): entry is string => typeof entry === 'string',
+      ),
+      unavailable: readStringRecord(summary?.unavailable),
+    },
+    rows: {
+      present: rows !== null,
+      schemaVersion: readOptionalNumber(rows?.schemaVersion),
+      count: rowEntries.length,
+      storyIds: rowEntries.flatMap((row) => {
+        const storyId = readOptionalString(row.storyId);
+        return storyId ? [storyId] : [];
+      }),
+    },
+    budgets: {
+      present: budgets !== null,
+      schemaVersion: readOptionalNumber(budgets?.schemaVersion),
+      evaluationCount: budgetEvaluations.length,
+      unavailable: budgetSummaries.filter((entry) => entry.status === 'unavailable'),
+      warnings: budgetSummaries.filter((entry) => entry.eventType === 'budget-warning'),
+      stops: budgetSummaries.filter((entry) => entry.eventType === 'budget-stop'),
+    },
+    transcripts: {
+      present: transcripts !== null,
+      schemaVersion: readOptionalNumber(transcripts?.schemaVersion),
+      count: transcriptEntries.length,
+      linked: transcriptEntries.filter((entry) => entry.status === 'linked').length,
+      missing: transcriptEntries.filter((entry) => entry.status === 'missing').length,
+      unlinked: transcriptEntries.filter((entry) => entry.status === 'unlinked').length,
+    },
+  };
+}
+
+function readBudgetEvaluationSummary(value: Record<string, unknown>): BudgetEvaluationSummary {
+  return {
+    profileName: readOptionalString(value.profileName),
+    taskType: readOptionalString(value.taskType),
+    dimension: readOptionalString(value.dimension),
+    status: readOptionalString(value.status),
+    eventType: readOptionalString(value.eventType),
+    unavailableReason: readOptionalString(value.unavailableReason),
   };
 }
 
@@ -1183,6 +1285,19 @@ function readOptionalString(value: unknown): string | null {
 function readStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((entry): entry is string => typeof entry === 'string');
+}
+
+function readRecordArray(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is Record<string, unknown> => isRecord(entry));
+}
+
+function readStringRecord(value: unknown): Record<string, string> {
+  const record = readRecord(value);
+  if (!record) return {};
+  return Object.fromEntries(
+    Object.entries(record).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+  );
 }
 
 function readOptionalNumber(value: unknown): number | null {
