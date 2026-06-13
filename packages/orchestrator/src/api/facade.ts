@@ -393,7 +393,7 @@ function capabilitiesFromConfig(config: ResolvedWorkflowConfig): WorkflowApiCapa
     runStory: true,
     runTrack: true,
     streaming: false,
-    abort: false,
+    abort: true,
     tokenTelemetryLive: false,
     structuredOutputEnforced: false,
     github: config.pr.create,

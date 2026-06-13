@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { projectInspectFacade, runPreviewFacade, trackerMigrateFacade, trackerValidateFacade } from './api/facade.js';
 import { getHelpText, parseCommand } from './cli/args.js';
 import {
+  abortRunHandler,
   analyzeRunHandler,
   listEligibleHandler,
   listStoriesHandler,
@@ -42,6 +43,17 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
 
   if (command.kind === 'watch-run') {
     await printRunSnapshot(command.runPath, command.overrides, stdout);
+    return;
+  }
+
+  if (command.kind === 'abort-run') {
+    const result = await abortRunHandler({
+      runPath: command.runPath,
+      storyId: command.overrides.storyId,
+      reason: command.overrides.reason,
+      requestedBy: 'cli',
+    });
+    stdout(JSON.stringify(result, null, 2));
     return;
   }
 

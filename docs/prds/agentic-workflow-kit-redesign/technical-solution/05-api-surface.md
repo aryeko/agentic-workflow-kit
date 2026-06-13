@@ -391,7 +391,7 @@ Output distinguishes:
 - `requested`: control request appended, application pending
 - `applied`: parent loop and supported children acknowledged control
 - `unsupported`: driver or host cannot apply part of the control
-- `alreadyTerminal`: run had already completed/blocked/aborted
+- `already-terminal`: run had already completed/blocked/aborted
 
 ## CLI/MCP parity rules
 

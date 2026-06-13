@@ -129,6 +129,16 @@ agentic-workflow-kit analyze-run .workflow/runs/<run-id> --json
 override those defaults for one invocation. Use `--no-wait` or MCP `wait: false` to disable a
 configured wait default for a single watch call.
 
+Abort a running workflow:
+
+```bash
+agentic-workflow-kit abort-run .workflow/runs/<run-id> --reason "Wrong target branch" --json
+```
+
+Abort requests are appended to `controls.ndjson`, reflected in `events.ndjson`, and return
+`applied`, `requested`, `unsupported`, or `already-terminal` depending on current run and child
+session state.
+
 ## Troubleshooting
 
 - If the MCP server cannot start from a plugin install, check package resolution first: exact version,

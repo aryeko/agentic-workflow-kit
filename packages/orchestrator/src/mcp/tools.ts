@@ -5,6 +5,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { projectInspectFacade, runPreviewFacade, trackerMigrateFacade, trackerValidateFacade } from '../api/facade.js';
 import {
+  abortRunHandler,
   analyzeRunHandler,
   listEligibleHandler,
   listStoriesHandler,
@@ -22,6 +23,7 @@ import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_project_inspect',
   'workflow_run_preview',
+  'workflow_run_control',
   'workflow_tracker_validate',
   'workflow_tracker_migrate',
   'list_tracks',
@@ -73,6 +75,13 @@ const workflowRunPreviewInputSchema = productBaseInputSchema.extend({
       }),
     ])
     .describe('Product target for the run preview.'),
+});
+
+const workflowRunControlInputSchema = productBaseInputSchema.extend({
+  runPath: z.string().describe('Absolute path to the run artifact directory to control.'),
+  action: z.literal('abort').describe('Run control action to apply.'),
+  storyId: z.string().optional().describe('Optional active story id to target within the run.'),
+  reason: z.string().optional().describe('Operator-facing reason for the control request.'),
 });
 
 const workflowTrackerValidateInputSchema = baseProductTrackerInputSchema();
@@ -240,6 +249,25 @@ export function registerOrchestratorTools(server: McpServer): void {
       handleTool('workflow_run_preview', input.responseFormat, () => {
         return runPreviewFacade({ ...toOverrides(input), target: input.target });
       }),
+  );
+
+  server.registerTool(
+    'workflow_run_control',
+    {
+      description: 'Append a durable run control request and apply supported run-level controls. V1 supports abort.',
+      inputSchema: workflowRunControlInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    async (input) =>
+      handleTool('workflow_run_control', input.responseFormat, () =>
+        abortRunHandler({
+          runPath: input.runPath,
+          storyId: input.storyId,
+          reason: input.reason,
+          requestedBy: 'mcp',
+        }),
+      ),
   );
 
   server.registerTool(

@@ -13,6 +13,7 @@ import type {
   Clock,
   LiveMetricsSnapshot,
   ResolvedWorkflowConfig,
+  RunControlRequest,
   RunRowArtifact,
   RunState,
   RunSummaryArtifact,
@@ -108,6 +109,25 @@ export class RunJournal {
     }
   }
 
+  async appendControl(request: RunControlRequest): Promise<void> {
+    const line = `${JSON.stringify(request)}\n`;
+    if (this.dependencies.artifactStore.appendText) {
+      await this.dependencies.artifactStore.appendText('controls.ndjson', line);
+      return;
+    }
+    const existing = (await this.dependencies.artifactStore.readText?.('controls.ndjson')) ?? '';
+    await this.dependencies.artifactStore.writeText('controls.ndjson', `${existing}${line}`);
+  }
+
+  async readControls(): Promise<RunControlRequest[]> {
+    const content = (await this.dependencies.artifactStore.readText?.('controls.ndjson')) ?? '';
+    return content
+      .trimEnd()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as RunControlRequest);
+  }
+
   async recordSettledChild(
     metrics: MetricsCollector,
     settled: SettledStoryRun,
@@ -196,6 +216,7 @@ function buildSummary(state: RunState, metrics: LiveMetricsSnapshot): RunSummary
       state: 'state.json',
       metrics: 'metrics.live.json',
       events: 'events.ndjson',
+      controls: 'controls.ndjson',
       summary: 'summary.json',
       rows: 'rows.json',
       budgets: 'budgets.json',

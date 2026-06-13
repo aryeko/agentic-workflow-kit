@@ -474,6 +474,12 @@ class MemoryArtifacts implements ArtifactStore {
   async writeText(relativePath: string, value: string): Promise<void> {
     this.text.set(relativePath, value);
   }
+  async readText(relativePath: string): Promise<string | null> {
+    return this.text.get(relativePath) ?? null;
+  }
+  async appendText(relativePath: string, value: string): Promise<void> {
+    this.text.set(relativePath, `${this.text.get(relativePath) ?? ''}${value}`);
+  }
   async appendEvent(event: RunEvent): Promise<void> {
     this.events.push(event);
   }
@@ -599,6 +605,56 @@ async function waitFor(assertion: () => void): Promise<void> {
 }
 
 describe('WorkflowRunner', () => {
+  it('applies queued abort controls before launching more work', async () => {
+    const artifacts = new MemoryArtifacts();
+    await artifacts.appendText(
+      'controls.ndjson',
+      `${JSON.stringify({
+        id: 'ctrl-1',
+        runId: 'run-1',
+        action: 'abort',
+        storyId: null,
+        reason: 'operator stop',
+        requestedAt: '2026-06-02T00:00:00.000Z',
+        requestedBy: 'test',
+      })}\n`,
+    );
+    const storyRunner = new FakeRunner({
+      storyId: 'A001',
+      sessionId: 'thread-a001',
+      content: 'ok',
+      rawResult: {},
+      invocation: {},
+    });
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001'), story('A002')]]),
+      storyRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const state = await runner.runEligible();
+
+    expect(state.status).toBe('aborted');
+    expect(state.active).toEqual([]);
+    expect(storyRunner.requests).toHaveLength(0);
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'control-applied',
+        controlId: 'ctrl-1',
+        outcome: 'applied',
+        phase: 'before-launch',
+      }),
+    );
+    expect(artifacts.events.map((event) => event.type)).toContain('run-aborted');
+  });
+
   it('runs one story and completes only after tracker reread shows complete status', async () => {
     const artifacts = new MemoryArtifacts();
     const runner = new WorkflowRunner({

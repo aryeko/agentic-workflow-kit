@@ -129,7 +129,7 @@ Preserve existing artifact compatibility:
 Add or formalize:
 
 ```text
-  controls.ndjson              requested abort/pause/resume/recovery controls
+  controls.ndjson              requested abort controls; pause/resume/recovery are future-compatible
   summary.json                 normalized run-level summary
   rows.json                    row-level child/session metrics
   report.md                    human-readable report
@@ -212,6 +212,41 @@ interface StoryRunner {
   capabilities(): StoryRunnerCapabilities;
   launchStory(request: StoryRunRequest): AsyncIterable<RunEvent>;
   abort?(runId: string, childId: string, reason: string): Promise<AbortResult>;
+}
+
+type RunControlOutcome = "requested" | "applied" | "unsupported" | "already-terminal";
+
+interface RunControlRequest {
+  id: string;
+  runId: string;
+  action: "abort";
+  storyId: string | null;
+  reason: string | null;
+  requestedAt: string;
+  requestedBy: string;
+}
+
+interface RunControlResult {
+  ok: true;
+  runId: string;
+  action: "abort";
+  outcome: RunControlOutcome;
+  reason: string | null;
+  requestedAt: string;
+  appliedAt: string | null;
+  runPath: string;
+  activeStoryIds: string[];
+  childOutcomes: Array<{
+    storyId: string;
+    sessionId: string | null;
+    outcome: RunControlOutcome;
+    detail: string | null;
+  }>;
+  artifacts: {
+    controls: "controls.ndjson";
+    events: "events.ndjson";
+    state: "state.json";
+  };
 }
 
 interface RunEvent {

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -358,6 +358,39 @@ describe('agentic-workflow-kit MCP server', () => {
       status: 'dry-run',
       dryRunDispatch: ['LK02'],
     });
+    await client.close();
+    await server.close();
+  });
+
+  it('exposes workflow_run_control and appends abort artifacts', async () => {
+    const runPath = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-control-'));
+    await writeFile(
+      path.join(runPath, 'state.json'),
+      JSON.stringify({
+        runId: 'run-1',
+        status: 'running',
+        active: [],
+        completed: [],
+        blockedStoryId: null,
+        blockedReason: null,
+      }),
+    );
+    const { client, server } = await connectClient();
+
+    const tools = await client.listTools();
+    expect(tools.tools.map((tool) => tool.name)).toContain('workflow_run_control');
+    const result = await client.callTool({
+      name: 'workflow_run_control',
+      arguments: { runPath, action: 'abort', reason: 'operator stop' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      ok: true,
+      outcome: 'applied',
+      artifacts: { controls: 'controls.ndjson', events: 'events.ndjson', state: 'state.json' },
+    });
+    expect(await readFile(path.join(runPath, 'controls.ndjson'), 'utf8')).toContain('"action":"abort"');
+    expect(await readFile(path.join(runPath, 'events.ndjson'), 'utf8')).toContain('"type":"run-aborted"');
     await client.close();
     await server.close();
   });

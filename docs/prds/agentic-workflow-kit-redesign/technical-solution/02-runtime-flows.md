@@ -124,11 +124,11 @@ sequenceDiagram
   Journal-->>Stream: "Fan out event row"
   Stream-->>Tool: "Filtered event"
   Tool-->>Client: "notifications/progress or custom notification"
-  Client->>Tool: "abort_run(runId, reason)"
+  Client->>Tool: "workflow_run_control(runPath, abort, reason)"
   Tool->>Control: "Append control request"
   Control->>Journal: "control-requested"
-  Control->>Runner: "Apply stop-new-work and driver abort"
-  Runner->>Driver: "abort child when supported"
+  Control->>Runner: "Apply stop-new-work and request child interrupt"
+  Runner->>Driver: "AbortSignal / interrupt when supported"
   Runner->>Journal: "control-applied / run-aborted"
   Journal-->>Stream: "Terminal event"
   Tool-->>Client: "Abort outcome and artifact paths"
@@ -173,7 +173,7 @@ stateDiagram-v2
 | `WaitingGate` | Driver returned; parent is evaluating verification, PR, tracker, and policy evidence. | completion-gate events, GitHub evidence |
 | `Recovering` | Failure is classified as recoverable and retry/repair policy is being applied. | recovery decision events |
 | `BudgetStopping` | Budget policy is stopping new launches or stopping at the next checkpoint. | `budget-warning`, `budget-stop` |
-| `Aborting` | User/system requested abort; parent loop must stop new work and signal live children where supported. | `controls.ndjson`, `control-requested`, `control-applied` |
+| `Aborting` | User/system requested abort; parent loop must stop new work and signal live children where supported. | `controls.ndjson`, `control-requested`, `control-applied`, `state.json` |
 | `Settled` | A story attempt has a terminal classification; track loop may continue if allowed. | child result, state refresh |
 | `Complete` | Completion comes from tracker/GitHub evidence, not child prose. | `run-complete`, tracker state, PR/merge evidence |
 | `Blocked` | No configured recovery or eligible work remains. | `run-blocked`, blocker diagnostics |
@@ -182,7 +182,8 @@ stateDiagram-v2
 Control actions:
 
 - `abort`: durable request in `controls.ndjson`; immediately stop new story launches; ask each
-  active driver to cancel; classify still-running child state conservatively if cancellation cannot
+  active driver or linked child session to stop through supported host mechanisms; classify
+  still-running child state conservatively as `requested` or `unsupported` when cancellation cannot
   be confirmed.
 - `stop-new-launches`: budget/policy control that lets active children reach a checkpoint but
   prevents new eligible stories from starting.

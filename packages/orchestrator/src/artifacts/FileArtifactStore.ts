@@ -1,4 +1,4 @@
-import { appendFile, mkdir, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { ArtifactStore, RunEvent } from '../types.js';
@@ -14,6 +14,21 @@ export class FileArtifactStore implements ArtifactStore {
     const filePath = path.join(this.root, relativePath);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, value);
+  }
+
+  async readText(relativePath: string): Promise<string | null> {
+    try {
+      return await readFile(path.join(this.root, relativePath), 'utf8');
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  async appendText(relativePath: string, value: string): Promise<void> {
+    const filePath = path.join(this.root, relativePath);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await appendFile(filePath, value);
   }
 
   async appendEvent(event: RunEvent): Promise<void> {
