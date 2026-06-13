@@ -208,7 +208,7 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
       : command.overrides.dryRun
         ? workflowRunner.dryRunEligible()
         : workflowRunner.runEligible({ returnAfterInitialLaunch: command.overrides.asyncLaunch === true });
-  return command.overrides.watch === true || config.orchestrator.watch.enabled
+  return (command.overrides.watch ?? config.orchestrator.watch.enabled)
     ? await runWithEventWatch(run, runDirectory, command.overrides, stdout)
     : await run;
 }

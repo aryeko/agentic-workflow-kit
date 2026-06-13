@@ -105,12 +105,30 @@ async function createAnalyzableRun(): Promise<{ runPath: string; sessionRoot: st
   return { runPath: runDir, sessionRoot };
 }
 
-async function createWatchRun(status: string): Promise<string> {
+async function createWatchRun(
+  status: string,
+  watch?: { wait?: boolean; intervalMs?: number; timeoutMs?: number },
+): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-watch-'));
   const runDir = path.join(root, 'runs/run-1');
   await mkdir(runDir, { recursive: true });
   await writeFile(path.join(runDir, 'state.json'), JSON.stringify({ runId: 'run-1', status }));
   await writeFile(path.join(runDir, 'metrics.live.json'), JSON.stringify({ runId: 'run-1', status }));
+  if (watch) {
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        orchestrator: {
+          watch: {
+            enabled: false,
+            wait: watch.wait ?? false,
+            intervalMs: watch.intervalMs ?? 300_000,
+            timeoutMs: watch.timeoutMs ?? 300_000,
+          },
+        },
+      }),
+    );
+  }
   return runDir;
 }
 
@@ -322,6 +340,23 @@ describe('agentic-workflow-kit MCP server', () => {
       state: { runId: 'run-1', status: 'running' },
       wait: { timedOut: true },
     });
+    await client.close();
+    await server.close();
+  });
+
+  it('lets explicit MCP wait false override a run config wait default', async () => {
+    const runPath = await createWatchRun('running', { wait: true, intervalMs: 1, timeoutMs: 1 });
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'watch_run',
+      arguments: { runPath, wait: false, intervalMs: 1, timeoutMs: 1 },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      state: { runId: 'run-1', status: 'running' },
+    });
+    expect((result.structuredContent as { wait?: unknown }).wait).toBeUndefined();
     await client.close();
     await server.close();
   });

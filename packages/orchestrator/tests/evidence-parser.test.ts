@@ -20,7 +20,7 @@ describe('childResultEvidence', () => {
 
   it('does not attach an unrelated merge commit to the captured PR', () => {
     const evidence = childResultEvidence(
-      {},
+      { childResult: { storyId: 'DLD05' } },
       [
         'Opened https://github.com/aryeko/pathway/pull/108 for DLD05.',
         'DLD04 was merged with squash commit abc1234.',
@@ -30,6 +30,20 @@ describe('childResultEvidence', () => {
     expect(evidence.prNumber).toBe(108);
     expect(evidence.merged).toBeUndefined();
     expect(evidence.mergeCommit).toBeUndefined();
+  });
+
+  it('keeps merge commits that name the current story', () => {
+    const evidence = childResultEvidence(
+      { childResult: { storyId: 'DLD05' } },
+      [
+        'Opened https://github.com/aryeko/pathway/pull/108 for DLD05.',
+        'DLD05 was merged with squash commit abc1234.',
+      ].join('\n'),
+    );
+
+    expect(evidence.prNumber).toBe(108);
+    expect(evidence.merged).toBe(true);
+    expect(evidence.mergeCommit).toBe('abc1234');
   });
 
   it('does not treat negated same-PR merge wording as merge evidence', () => {
@@ -78,6 +92,22 @@ describe('childResultEvidence', () => {
     );
   });
 
+  it('treats negated failure words in passed verification as success', () => {
+    const evidence = childResultEvidence(
+      {},
+      ['Verification:', '- `pnpm check` passed with no failed checks and no errors.'].join('\n'),
+    );
+
+    expect(evidence.verification).toEqual([
+      {
+        command: 'pnpm check',
+        status: 'passed',
+        phase: 'verification',
+        detail: '- `pnpm check` passed with no failed checks and no errors.',
+      },
+    ]);
+  });
+
   it('lets structured child evidence override compatibility text', () => {
     const evidence = childResultEvidence(
       {
@@ -122,6 +152,33 @@ describe('childResultEvidence', () => {
         status: 'failed',
         phase: 'verification',
         detail: 'Blocker: PR checks are not green. Post-deploy smoke fails on the protected preview.',
+      },
+    ]);
+  });
+
+  it('keeps structured passed verification when failure words are negated', () => {
+    const evidence = childResultEvidence(
+      {
+        childResult: {
+          verification: [
+            {
+              command: 'pnpm check',
+              status: 'passed',
+              phase: 'verification',
+              detail: 'pnpm check passed with no failed checks and no errors.',
+            },
+          ],
+        },
+      },
+      '',
+    );
+
+    expect(evidence.verification).toEqual([
+      {
+        command: 'pnpm check',
+        status: 'passed',
+        phase: 'verification',
+        detail: 'pnpm check passed with no failed checks and no errors.',
       },
     ]);
   });

@@ -159,8 +159,8 @@ Consulted only when the orchestrator package is installed.
 | `driver` | string | `codex-mcp` | Child-session driver. WK4 v1 supports `codex-mcp` only; future drivers may extend this value without changing tracker semantics. |
 | `maxParallel` | integer | `2` | Max concurrent child sessions. |
 | `stopLaunchingOnBlocked` | boolean | `true` | Stop launching when a child returns incomplete. |
-| `watch.enabled` | boolean | `false` | Default for `run-story` and `run-eligible` event streaming, equivalent to passing `--watch`. |
-| `watch.wait` | boolean | `false` | Default for `watch-run` polling, equivalent to passing `--wait`. |
+| `watch.enabled` | boolean | `false` | Default for `run-story` and `run-eligible` event streaming, equivalent to passing `--watch`. Use `--no-watch` to disable this configured default for one CLI invocation. |
+| `watch.wait` | boolean | `false` | Default for `watch-run` polling, equivalent to passing `--wait`. Use `--no-wait` or MCP `wait: false` to disable this configured default for one invocation. |
 | `watch.intervalMs` | integer | `300000` | Poll interval for `watch-run` when wait mode is enabled. CLI/MCP `intervalMs` overrides this. |
 | `watch.timeoutMs` | integer | `300000` | Maximum wait time for `watch-run` when wait mode is enabled. CLI/MCP `timeoutMs` overrides this. |
 | `childTimeoutMs` | integer | `1800000` | Compatibility alias for `childNoProgressTimeoutMs`. Existing configs can keep using it. |

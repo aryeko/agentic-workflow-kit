@@ -112,7 +112,8 @@ agentic-workflow-kit analyze-run .workflow/runs/<run-id> --json
 ```
 
 `watch-run` reads `orchestrator.watch` defaults from the run's `config.resolved.json`; CLI flags
-override those defaults for one invocation.
+override those defaults for one invocation. Use `--no-wait` or MCP `wait: false` to disable a
+configured wait default for a single watch call.
 
 ## Troubleshooting
 

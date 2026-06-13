@@ -99,7 +99,9 @@ function withOptions(command: Command): Command {
     .option('--force')
     .option('--dry-run')
     .option('--watch')
+    .option('--no-watch')
     .option('--wait')
+    .option('--no-wait')
     .addOption(new Option('--max-parallel <n>').argParser(parsePositiveInteger))
     .addOption(new Option('--child-timeout-ms <n>').argParser(parseChildTimeoutMs))
     .addOption(new Option('--interval-ms <n>').argParser((value) => parsePositiveIntegerFlag(value, '--interval-ms')))
@@ -141,8 +143,8 @@ function toOverrides(options: CommanderOptions): CliOverrides {
   if (options.json) overrides.json = true;
   if (options.force) overrides.force = true;
   if (options.dryRun) overrides.dryRun = true;
-  if (options.watch) overrides.watch = true;
-  if (options.wait) overrides.wait = true;
+  if (options.watch !== undefined) overrides.watch = options.watch;
+  if (options.wait !== undefined) overrides.wait = options.wait;
   if (options.intervalMs !== undefined) overrides.intervalMs = options.intervalMs;
   if (options.timeoutMs !== undefined) overrides.timeoutMs = options.timeoutMs;
   if (options.maxParallel !== undefined) overrides.maxParallel = options.maxParallel;

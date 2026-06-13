@@ -311,8 +311,8 @@ function toOverrides(input: {
   if (input.dryRun === true) overrides.dryRun = true;
   if (input.asyncLaunch === true) overrides.asyncLaunch = true;
   if (input.force === true) overrides.force = true;
-  if (input.watch === true) overrides.watch = true;
-  if (input.wait === true) overrides.wait = true;
+  if (input.watch !== undefined) overrides.watch = input.watch;
+  if (input.wait !== undefined) overrides.wait = input.wait;
   if (input.intervalMs !== undefined) overrides.intervalMs = input.intervalMs;
   if (input.timeoutMs !== undefined) overrides.timeoutMs = input.timeoutMs;
   if (input.childTimeoutMs !== undefined) overrides.childTimeoutMs = input.childTimeoutMs;

@@ -7,7 +7,7 @@ export function childResultEvidence(structuredContent: Record<string, unknown>, 
     readEvidenceObject(structuredContent.result) ??
     readEvidenceObject(structuredContent.evidence) ??
     readEvidenceObject(structuredContent);
-  return mergeEvidence(compatibilityEvidence(content), structured);
+  return mergeEvidence(compatibilityEvidence(content, structured?.storyId), structured);
 }
 
 function readEvidenceObject(value: unknown): ChildResultEvidence | null {
@@ -44,14 +44,14 @@ function readEvidenceObject(value: unknown): ChildResultEvidence | null {
   return Object.keys(evidence).length > 0 ? evidence : null;
 }
 
-function compatibilityEvidence(content: string): ChildResultEvidence {
+function compatibilityEvidence(content: string, currentStoryId: string | undefined): ChildResultEvidence {
   const evidence: ChildResultEvidence = {};
   const prUrl = content.match(/https:\/\/github\.com\/[^\s)]+\/pull\/(\d+)/);
   if (prUrl) {
     evidence.prUrl = prUrl[0];
     evidence.prNumber = Number(prUrl[1]);
   }
-  const mergeCommit = mergeCommitEvidence(content, evidence.prNumber);
+  const mergeCommit = mergeCommitEvidence(content, evidence.prNumber, currentStoryId);
   if (mergeCommit !== null) {
     evidence.merged = true;
     evidence.mergeCommit = mergeCommit;
@@ -83,7 +83,7 @@ function compatibilityEvidence(content: string): ChildResultEvidence {
   const blockers = content
     .split('\n')
     .map((line) => line.trim())
-    .filter((line) => /blocker|blocked|not green|fails?|failed/i.test(line));
+    .filter((line) => hasFailureSignal(line));
   if (blockers.length > 0) evidence.blockers = blockers;
   return evidence;
 }
@@ -115,20 +115,34 @@ function verificationFromContent(content: string): VerificationEvidence[] {
 }
 
 function verificationStatus(line: string): VerificationEvidence['status'] | null {
-  const failure = /\b(blocker|blocked|fail(?:ed|ing|s)?|not green|error)\b/i.test(line);
-  if (failure) return 'failed';
+  if (hasFailureSignal(line)) return 'failed';
   if (/\bskipped?\b/i.test(line)) return 'skipped';
   if (/\bpassed?\b/i.test(line)) return 'passed';
   return null;
 }
 
-function mergeCommitEvidence(content: string, prNumber: number | undefined): string | null {
+function hasFailureSignal(text: string): boolean {
+  return /\b(blocker|blocked|fail(?:ed|ing|s)?|not green|error)\b/i.test(stripNegatedFailurePhrases(text));
+}
+
+function stripNegatedFailurePhrases(text: string): string {
+  return text
+    .replace(/\b(?:no|without)\s+(?:failed|failing|failures?|errors?|blockers?|blocked)\b/gi, '')
+    .replace(/\bnot\s+(?:failed|failing|blocked)\b/gi, '')
+    .replace(/\b0\s+(?:failed|failing|failures?|errors?|blockers?)\b/gi, '');
+}
+
+function mergeCommitEvidence(
+  content: string,
+  prNumber: number | undefined,
+  currentStoryId: string | undefined,
+): string | null {
   for (const rawLine of content.split('\n')) {
     const line = rawLine.trim();
     if (line.length === 0 || hasNegatedMergeEvidence(line)) continue;
     const mergeCommit = line.match(/\b(?:Merged|merge commit|squash commit)[^`0-9a-f]*`?([0-9a-f]{7,40})`?/i);
     if (!mergeCommit) continue;
-    if (prNumber !== undefined && lineMentionsDifferentPrOrStory(line, prNumber)) continue;
+    if (prNumber !== undefined && lineMentionsDifferentPrOrStory(line, prNumber, currentStoryId)) continue;
     return mergeCommit[1];
   }
   return null;
@@ -152,13 +166,16 @@ function hasNegatedMergeEvidence(line: string): boolean {
   return /\b(?:not|never|no)\s+(?:been\s+)?merged\b|\bmerged\s+(?:not|never)\b/i.test(line);
 }
 
-function lineMentionsDifferentPrOrStory(line: string, prNumber: number): boolean {
+function lineMentionsDifferentPrOrStory(line: string, prNumber: number, currentStoryId: string | undefined): boolean {
   const prMentions = [...line.matchAll(/\b(?:PR|pull request)\s*#?(\d+)\b|\/pull\/(\d+)\b/gi)].map((match) =>
     Number(match[1] ?? match[2]),
   );
   if (prMentions.some((number) => number !== prNumber)) return true;
   if (prMentions.some((number) => number === prNumber)) return false;
-  return /\b[A-Z]{2,}\d+\b/.test(line);
+  const storyMentions = [...line.matchAll(/\b[A-Z]{2,}\d+\b/g)].map((match) => match[0]);
+  if (storyMentions.length === 0) return false;
+  if (!currentStoryId) return true;
+  return storyMentions.some((storyId) => storyId !== currentStoryId);
 }
 
 function mergeEvidence(left: ChildResultEvidence, right: ChildResultEvidence | null): ChildResultEvidence {
