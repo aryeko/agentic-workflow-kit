@@ -1,6 +1,6 @@
 {
   "name": "agentic-workflow-kit",
-  "version": "0.5.11",
+  "version": "0.5.12",
   "description": "Tracker-driven, spec-first delivery pipeline as a Claude Code / Codex plugin.",
   "keywords": [
     "agentic-workflow-kit",
