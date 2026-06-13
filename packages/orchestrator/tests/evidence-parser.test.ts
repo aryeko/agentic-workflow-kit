@@ -18,6 +18,33 @@ describe('childResultEvidence', () => {
     expect(evidence.mergeCommit).toBeUndefined();
   });
 
+  it('does not attach an unrelated merge commit to the captured PR', () => {
+    const evidence = childResultEvidence(
+      {},
+      [
+        'Opened https://github.com/aryeko/pathway/pull/108 for DLD05.',
+        'DLD04 was merged with squash commit abc1234.',
+      ].join('\n'),
+    );
+
+    expect(evidence.prNumber).toBe(108);
+    expect(evidence.merged).toBeUndefined();
+    expect(evidence.mergeCommit).toBeUndefined();
+  });
+
+  it('does not treat negated same-PR merge wording as merge evidence', () => {
+    const evidence = childResultEvidence(
+      {},
+      [
+        'Opened https://github.com/aryeko/pathway/pull/108 for DLD05.',
+        'PR #108 has not been merged yet because checks are not green.',
+      ].join('\n'),
+    );
+
+    expect(evidence.prNumber).toBe(108);
+    expect(evidence.merged).toBeUndefined();
+  });
+
   it('normalizes tracker row done phrasing from compatibility text', () => {
     const evidence = childResultEvidence(
       {},
@@ -70,5 +97,32 @@ describe('childResultEvidence', () => {
     expect(evidence.merged).toBe(false);
     expect(evidence.mergeCommit).toBe('abc1234');
     expect(evidence.verification).toEqual([{ command: 'pnpm check', status: 'passed', phase: 'final', detail: null }]);
+  });
+
+  it('downgrades structured passed verification when detail contains blocker language', () => {
+    const evidence = childResultEvidence(
+      {
+        childResult: {
+          verification: [
+            {
+              command: 'Post-deploy smoke',
+              status: 'passed',
+              phase: 'verification',
+              detail: 'Blocker: PR checks are not green. Post-deploy smoke fails on the protected preview.',
+            },
+          ],
+        },
+      },
+      '',
+    );
+
+    expect(evidence.verification).toEqual([
+      {
+        command: 'Post-deploy smoke',
+        status: 'failed',
+        phase: 'verification',
+        detail: 'Blocker: PR checks are not green. Post-deploy smoke fails on the protected preview.',
+      },
+    ]);
   });
 });

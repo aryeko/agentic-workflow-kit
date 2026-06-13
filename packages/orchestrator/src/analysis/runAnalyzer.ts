@@ -1140,6 +1140,12 @@ function childEvidenceIssues(
     }
   }
 
+  for (const blocker of readStringArray(evidence.blockers)) {
+    if (!issues.some((issue) => issue.includes(blocker))) {
+      issues.push(`${storyId} child blocker evidence: ${blocker}`);
+    }
+  }
+
   if (merged && prNumber !== null && !mergeCommit && !mergedAt && !branchDeleted) {
     issues.push(
       `${storyId} merge evidence needs review: PR #${prNumber} is marked merged without merge commit, merge timestamp, or branch deletion evidence`,

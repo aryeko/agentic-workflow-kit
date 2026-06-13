@@ -1072,4 +1072,44 @@ describe('analyzeWorkflowRun', () => {
       ]),
     );
   });
+
+  it('reports child blocker evidence even without verification command evidence', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-blocker-only-'));
+    const runDir = path.join(root, 'runs', 'run-blocker-only');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({
+        runId: 'run-blocker-only',
+        command: 'run-eligible',
+        status: 'blocked',
+        blockedReason: 'DLD05 returned but status is implementing',
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        statuses: { eligible: ['specced'], complete: ['done'] },
+        pr: { merge: { auto: true }, review: { rerequestAfterFix: false } },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'DLD05.json'),
+      JSON.stringify({
+        storyId: 'DLD05',
+        ok: true,
+        sessionId: 'thread-dld05',
+        returnedStatus: 'implementing',
+        evidence: {
+          finalStatus: 'done',
+          prNumber: 108,
+          blockers: ['Blocker: PR checks are not green.'],
+        },
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.issues).toContain('DLD05 child blocker evidence: Blocker: PR checks are not green.');
+  });
 });

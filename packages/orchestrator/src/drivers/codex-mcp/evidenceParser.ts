@@ -51,10 +51,10 @@ function compatibilityEvidence(content: string): ChildResultEvidence {
     evidence.prUrl = prUrl[0];
     evidence.prNumber = Number(prUrl[1]);
   }
-  const mergeCommit = content.match(/\b(?:Merged|merge commit|squash commit)[^`0-9a-f]*`?([0-9a-f]{7,40})`?/i);
-  if (mergeCommit) {
+  const mergeCommit = mergeCommitEvidence(content, evidence.prNumber);
+  if (mergeCommit !== null) {
     evidence.merged = true;
-    evidence.mergeCommit = mergeCommit[1];
+    evidence.mergeCommit = mergeCommit;
   } else if (evidence.prNumber !== undefined && hasSamePrMergeEvidence(content, evidence.prNumber)) {
     evidence.merged = true;
   }
@@ -122,6 +122,18 @@ function verificationStatus(line: string): VerificationEvidence['status'] | null
   return null;
 }
 
+function mergeCommitEvidence(content: string, prNumber: number | undefined): string | null {
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim();
+    if (line.length === 0 || hasNegatedMergeEvidence(line)) continue;
+    const mergeCommit = line.match(/\b(?:Merged|merge commit|squash commit)[^`0-9a-f]*`?([0-9a-f]{7,40})`?/i);
+    if (!mergeCommit) continue;
+    if (prNumber !== undefined && lineMentionsDifferentPrOrStory(line, prNumber)) continue;
+    return mergeCommit[1];
+  }
+  return null;
+}
+
 function hasSamePrMergeEvidence(content: string, prNumber: number): boolean {
   const samePrPatterns = [
     new RegExp(`\\b(?:PR|pull request)\\s*#?${prNumber}\\b[^\\n.]*\\bmerged\\b`, 'i'),
@@ -129,7 +141,24 @@ function hasSamePrMergeEvidence(content: string, prNumber: number): boolean {
     new RegExp(`/pull/${prNumber}\\b[^\\n.]*\\bmerged\\b`, 'i'),
     new RegExp(`\\bmerged\\b[^\\n.]*\\/pull/${prNumber}\\b`, 'i'),
   ];
-  return samePrPatterns.some((pattern) => pattern.test(content));
+  return content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !hasNegatedMergeEvidence(line))
+    .some((line) => samePrPatterns.some((pattern) => pattern.test(line)));
+}
+
+function hasNegatedMergeEvidence(line: string): boolean {
+  return /\b(?:not|never|no)\s+(?:been\s+)?merged\b|\bmerged\s+(?:not|never)\b/i.test(line);
+}
+
+function lineMentionsDifferentPrOrStory(line: string, prNumber: number): boolean {
+  const prMentions = [...line.matchAll(/\b(?:PR|pull request)\s*#?(\d+)\b|\/pull\/(\d+)\b/gi)].map((match) =>
+    Number(match[1] ?? match[2]),
+  );
+  if (prMentions.some((number) => number !== prNumber)) return true;
+  if (prMentions.some((number) => number === prNumber)) return false;
+  return /\b[A-Z]{2,}\d+\b/.test(line);
 }
 
 function mergeEvidence(left: ChildResultEvidence, right: ChildResultEvidence | null): ChildResultEvidence {
@@ -157,14 +186,16 @@ function readVerification(value: unknown): VerificationEvidence[] {
   return value.flatMap((entry): VerificationEvidence[] => {
     if (typeof entry === 'string') return [{ command: entry, status: 'passed' }];
     if (!isRecord(entry)) return [];
-    const status = readString(entry.status);
-    if (status !== 'passed' && status !== 'failed' && status !== 'skipped') return [];
+    const rawStatus = readString(entry.status);
+    if (rawStatus !== 'passed' && rawStatus !== 'failed' && rawStatus !== 'skipped') return [];
+    const detail = readString(entry.detail);
+    const status = rawStatus === 'passed' && detail && verificationStatus(detail) === 'failed' ? 'failed' : rawStatus;
     return [
       {
         command: readString(entry.command),
         status,
         phase: readString(entry.phase),
-        detail: readString(entry.detail),
+        detail,
       },
     ];
   });
