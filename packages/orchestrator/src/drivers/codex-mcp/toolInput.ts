@@ -64,6 +64,8 @@ export function buildCodexToolInput(
             taskType: profile.taskType,
             promptTemplate: promptMetadata.template,
             promptHash: promptMetadata.promptHash,
+            structuredOutputSchema: promptMetadata.structuredOutputSchema,
+            structuredOutputRequired: promptMetadata.structuredOutputRequired,
           },
           workflowkit_structured_output: {
             schema: promptMetadata.structuredOutputSchema,

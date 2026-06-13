@@ -28,8 +28,8 @@ export type ChildLifecycleEvent =
 export interface StoryRunRequest {
   story: WorkflowStory;
   prompt: string;
-  profile?: ResolvedAgentProfile;
-  promptMetadata?: StoryPromptMetadata;
+  profile: ResolvedAgentProfile;
+  promptMetadata: StoryPromptMetadata;
   cwd: string;
   metadata: Record<string, unknown>;
   signal?: AbortSignal;

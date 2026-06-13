@@ -264,6 +264,8 @@ describe('buildCodexToolInput', () => {
           taskType: 'implementStory',
           promptTemplate: 'built-in/story-implementer',
           promptHash: 'hash-123',
+          structuredOutputSchema: 'built-in/child-run-result',
+          structuredOutputRequired: true,
         },
         workflowkit_structured_output: {
           schema: 'built-in/child-run-result',
