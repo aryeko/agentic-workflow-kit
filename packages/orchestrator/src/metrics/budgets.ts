@@ -63,7 +63,7 @@ function observedBudgetValue(
     case 'wallMs':
       return { value: metrics.elapsedMs, unavailableReason: null };
     case 'toolCalls':
-      return countBudgetMetric(metrics.aggregate.toolCounts, UNAVAILABLE_REASONS.sessionLogMetrics);
+      return countBudgetMetric(metrics, 'toolCounts', UNAVAILABLE_REASONS.sessionLogMetrics);
     case 'failedToolCalls':
       return { value: null, unavailableReason: UNAVAILABLE_REASONS.failedToolCalls };
     case 'tokens':
@@ -99,10 +99,16 @@ function budgetEventType(
 }
 
 function countBudgetMetric(
-  counts: Record<string, number>,
+  metrics: LiveMetricsSnapshot,
+  dimension: 'toolCounts' | 'subagentCounts',
   unavailableReason: string,
 ): { value: number | null; unavailableReason: string | null } {
+  const counts = metrics.aggregate[dimension];
   const values = Object.values(counts);
+  const hasObservedChild = Object.values(metrics.children).some(
+    (child) => child.availability?.[dimension]?.status === 'available',
+  );
+  if (values.length === 0 && hasObservedChild) return { value: 0, unavailableReason: null };
   if (values.length === 0) return { value: null, unavailableReason };
   return { value: values.reduce((sum, count) => sum + count, 0), unavailableReason: null };
 }

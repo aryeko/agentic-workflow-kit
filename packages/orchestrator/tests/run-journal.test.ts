@@ -157,6 +157,42 @@ describe('RunJournal', () => {
     });
   });
 
+  it('distinguishes observed zero tool calls from unavailable tool-call telemetry', async () => {
+    const artifacts = new MemoryArtifacts();
+    const runState = { ...state(), active: ['A001'] };
+    const journal = new RunJournal({ artifactStore: artifacts, clock });
+
+    const live = await journal.writeLiveMetrics(runState, {
+      A001: {
+        storyId: 'A001',
+        toolCounts: {},
+        subagentCounts: {},
+        tokenTotals: null,
+        latestProgress: 'no tools needed',
+        sessionLogPath: '/sessions/a001.jsonl',
+        availability: {
+          toolCounts: { status: 'available', unavailableReason: null },
+          subagentCounts: { status: 'available', unavailableReason: null },
+          tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
+          sessionLog: { status: 'available', unavailableReason: null },
+        },
+      },
+    });
+    await journal.writeRuntimeArtifacts(runState, resolveCwdOnlyConfig('/repo'), live);
+
+    expect(artifacts.json.get('budgets.json')).toMatchObject({
+      evaluations: expect.arrayContaining([
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'toolCalls',
+          observed: 0,
+          status: 'not-configured',
+          unavailableReason: null,
+        }),
+      ]),
+    });
+  });
+
   it('writes launch records before settled child results', async () => {
     const artifacts = new MemoryArtifacts();
     const journal = new RunJournal({ artifactStore: artifacts, clock });

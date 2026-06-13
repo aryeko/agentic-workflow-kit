@@ -39,16 +39,13 @@ describe('planning artifact model', () => {
   });
 
   it('AWK06 defines additive V1 runtime artifact filenames and compatibility', () => {
-    const spec = readFileSync(
-      'docs/superpowers/specs/2026-06-14-awk06-runtime-event-and-artifact-model-design.md',
-      'utf8',
-    );
+    const contract = readFileSync('references/runtime-artifact-contract.md', 'utf8');
 
-    expect(spec).toContain('summary.json');
-    expect(spec).toContain('rows.json');
-    expect(spec).toContain('budgets.json');
-    expect(spec).toContain('transcripts.json');
-    expect(spec).toContain('Existing run artifacts without `summary.json`');
+    expect(contract).toContain('summary.json');
+    expect(contract).toContain('rows.json');
+    expect(contract).toContain('budgets.json');
+    expect(contract).toContain('transcripts.json');
+    expect(contract).toContain('Existing run artifacts without these files');
   });
 });
 
