@@ -90,7 +90,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK01 | API facade foundation | — | W1 | done | [brief](./stories/AWK01.md) | — | codex | [#56](https://github.com/aryeko/agentic-workflow-kit/pull/56) |
 | AWK02 | Agent profiles and budgets | AWK01 | W2 | done | [brief](./stories/AWK02.md) + [spec](../../superpowers/specs/2026-06-13-awk02-agent-profiles-and-budgets-design.md) | [plan](../../superpowers/plans/2026-06-13-awk02-agent-profiles-and-budgets.md) | codex | [#58](https://github.com/aryeko/agentic-workflow-kit/pull/58) |
 | AWK03 | Tracker validation and migration | AWK01 | W2 | done | [brief](./stories/AWK03.md) | — | codex | [#57](https://github.com/aryeko/agentic-workflow-kit/pull/57) |
-| AWK04 | Workflow authoring independence | AWK01 | W2 | specced | [brief](./stories/AWK04.md) | — | — | — |
+| AWK04 | Workflow authoring independence | AWK01 | W2 | implementing | [brief](./stories/AWK04.md) | — | codex | — |
 | AWK05 | Driver contract and Codex profile launch | AWK02 | W3 | specced | [brief](./stories/AWK05.md) | — | — | — |
 | AWK06 | Runtime event and artifact model | AWK02 | W3 | specced | [brief](./stories/AWK06.md) | — | — | — |
 | AWK07 | Run control and abort | AWK06 | W4 | specced | [brief](./stories/AWK07.md) | — | — | — |
