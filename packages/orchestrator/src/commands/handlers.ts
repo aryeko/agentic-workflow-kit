@@ -42,9 +42,22 @@ export interface StoriesResult {
 export interface WatchRunSnapshot {
   state: unknown | null;
   metrics: unknown | null;
+  wait?: {
+    timedOut: boolean;
+    elapsedMs: number;
+    polls: number;
+  };
 }
 
 type RunCommand = Extract<WorkflowCommand, { kind: 'run-story' | 'run-eligible' }>;
+type WatchOptions = ResolvedWorkflowConfig['orchestrator']['watch'];
+
+const DEFAULT_WATCH_OPTIONS: WatchOptions = {
+  enabled: false,
+  wait: false,
+  intervalMs: 5 * 60 * 1000,
+  timeoutMs: 5 * 60 * 1000,
+};
 
 export async function listTracksHandler(
   overrides: CliOverrides = {},
@@ -78,13 +91,76 @@ export async function analyzeRunHandler(runPath: string, overrides: CliOverrides
   });
 }
 
-export async function watchRunHandler(runPath: string, _overrides: CliOverrides = {}): Promise<WatchRunSnapshot> {
+export async function watchRunHandler(runPath: string, overrides: CliOverrides = {}): Promise<WatchRunSnapshot> {
   const runDirectory = path.resolve(runPath);
+  const watch = await resolveWatchOptions(runDirectory, overrides);
+  if (!watch.wait) return await readRunSnapshot(runDirectory);
+  const startedAt = Date.now();
+  let polls = 0;
+  for (;;) {
+    polls += 1;
+    const snapshot = await readRunSnapshot(runDirectory);
+    if (!isRunningState(snapshot.state)) {
+      return { ...snapshot, wait: { timedOut: false, elapsedMs: Date.now() - startedAt, polls } };
+    }
+    if (Date.now() - startedAt >= watch.timeoutMs) {
+      return { ...snapshot, wait: { timedOut: true, elapsedMs: Date.now() - startedAt, polls } };
+    }
+    await delay(Math.min(watch.intervalMs, Math.max(0, watch.timeoutMs - (Date.now() - startedAt))));
+  }
+}
+
+async function resolveWatchOptions(runDirectory: string, overrides: CliOverrides): Promise<WatchOptions> {
+  const configured = watchOptionsFromRunConfig(await readJsonIfExists(path.join(runDirectory, 'config.resolved.json')));
+  return {
+    enabled: configured.enabled,
+    wait: overrides.wait ?? configured.wait,
+    intervalMs: overrides.intervalMs ?? configured.intervalMs,
+    timeoutMs: overrides.timeoutMs ?? configured.timeoutMs,
+  };
+}
+
+function watchOptionsFromRunConfig(config: unknown): WatchOptions {
+  if (!isObject(config)) return DEFAULT_WATCH_OPTIONS;
+  const orchestrator = config.orchestrator;
+  if (!isObject(orchestrator)) return DEFAULT_WATCH_OPTIONS;
+  const watch = orchestrator.watch;
+  if (!isObject(watch)) return DEFAULT_WATCH_OPTIONS;
+  return {
+    enabled: booleanOrDefault(watch.enabled, DEFAULT_WATCH_OPTIONS.enabled),
+    wait: booleanOrDefault(watch.wait, DEFAULT_WATCH_OPTIONS.wait),
+    intervalMs: positiveIntegerOrDefault(watch.intervalMs, DEFAULT_WATCH_OPTIONS.intervalMs),
+    timeoutMs: positiveIntegerOrDefault(watch.timeoutMs, DEFAULT_WATCH_OPTIONS.timeoutMs),
+  };
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function booleanOrDefault(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function positiveIntegerOrDefault(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+async function readRunSnapshot(runDirectory: string): Promise<WatchRunSnapshot> {
   const [state, metrics] = await Promise.all([
     readJsonIfExists(path.join(runDirectory, 'state.json')),
     readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
   ]);
   return { state, metrics };
+}
+
+function isRunningState(state: unknown): boolean {
+  return (
+    typeof state === 'object' &&
+    state !== null &&
+    !Array.isArray(state) &&
+    (state as { status?: unknown }).status === 'running'
+  );
 }
 
 export async function mcpCheckHandler(
@@ -132,7 +208,9 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
       : command.overrides.dryRun
         ? workflowRunner.dryRunEligible()
         : workflowRunner.runEligible({ returnAfterInitialLaunch: command.overrides.asyncLaunch === true });
-  return command.overrides.watch ? await runWithEventWatch(run, runDirectory, command.overrides, stdout) : await run;
+  return (command.overrides.watch ?? config.orchestrator.watch.enabled)
+    ? await runWithEventWatch(run, runDirectory, command.overrides, stdout)
+    : await run;
 }
 
 export function printableStories(stories: WorkflowStory[], overrides: CliOverrides): WorkflowStory[] {

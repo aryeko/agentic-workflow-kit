@@ -62,8 +62,23 @@ review policy, or merge policy. `analyze_run` also accepts compatible interactiv
 For non-dry-run MCP dispatch, treat the `run_eligible` response as a launch receipt once it returns
 `runId`/`artifactDir` and active children. Continue supervision with `watch_run`; use `analyze_run`
 after completion, blockage, or suspected stale state.
+For sparse supervision, prefer `watch_run` with `wait: true`, `intervalMs`, and `timeoutMs` rather
+than frequent manual polling.
 Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-full-access` with
 `approvalPolicy: never` grants those children full local disk access without interactive approval.
+
+## Supervision discipline
+
+- Keep human updates sparse and meaningful: report launch, blockage, recovery, merge, and final
+  verification changes rather than every poll.
+- Before editing branches, tracker rows, or application code for a blocked run, inspect the run with
+  `watch_run` and `analyze_run`, then verify the relevant child artifact, PR check log, or served
+  deployment response.
+- Treat CI and deploy-smoke failures as evidence to classify first. If a protected preview,
+  missing bypass secret, or external service condition explains the failure, record that as recovery
+  context instead of changing app code.
+- Do not diagnose git author metadata, app regressions, or deploy regressions from parent prose
+  alone. Use child session logs, PR metadata, check logs, tracker snapshots, and run artifacts.
 
 ## CLI fallback
 
@@ -77,6 +92,7 @@ agentic-workflow-kit run-eligible --dry-run --track <track-id>
 agentic-workflow-kit run-eligible --track <track-id> --max-parallel=2 --watch
 agentic-workflow-kit run-story <story-id> --track <track-id>
 agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id>
+agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id> --wait --interval-ms 300000 --timeout-ms 1800000
 agentic-workflow-kit analyze-run .codex/agentic-workflow-kit/runs/<run-id>
 agentic-workflow-kit mcp check
 ```

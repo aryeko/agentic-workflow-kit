@@ -50,6 +50,7 @@ const config: ResolvedWorkflowConfig = {
     driver: 'codex-mcp',
     maxParallel: 2,
     stopLaunchingOnBlocked: true,
+    watch: { enabled: false, wait: false, intervalMs: 300_000, timeoutMs: 300_000 },
     childTimeoutMs: 1_800_000,
     childNoProgressTimeoutMs: 1_800_000,
     childStartupTimeoutMs: 60_000,

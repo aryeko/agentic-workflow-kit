@@ -203,7 +203,7 @@ export async function analyzeWorkflowRun(
     const readableExplicitSessionLogPath =
       explicitSessionLogPath !== null && (await pathExists(explicitSessionLogPath)) ? explicitSessionLogPath : null;
     const discoveredSessionLogPath = sessionId ? (logsBySession.get(sessionId) ?? null) : null;
-    const sessionLogPath = explicitSessionLogPath ?? discoveredSessionLogPath;
+    const sessionLogPath = readableExplicitSessionLogPath ?? discoveredSessionLogPath ?? explicitSessionLogPath;
     const storyId = readString(child.storyId, 'child.storyId');
     const diagnosticSessionCandidates = diagnosticCandidatesForStory(events, storyId);
     const diagnosticSessionLogPath =
@@ -217,6 +217,10 @@ export async function analyzeWorkflowRun(
     const evidence = readChildEvidence(child);
     const progress = childProgressSummary(child, latestSupervisorPollByStory.get(storyId) ?? null);
     const staleParentSnapshot = isStaleParentSnapshot(child, evidence, config);
+    const completionAuthority =
+      completionAuthorityForStory(events, storyId) ?? readOptionalString(child.completionAuthority);
+    const completionAuthoritySource =
+      completionAuthoritySourceForStory(events, storyId) ?? readOptionalString(child.completionAuthoritySource);
     const status = deriveChildStatus(state, child, {
       sessionId,
       sessionLogPath,
@@ -253,8 +257,8 @@ export async function analyzeWorkflowRun(
       expectedWorktreePath,
       failedSpawnAgentAttempts: 0,
       recoveryEvents: recoveryEventsForStory(events, storyId),
-      completionAuthority: completionAuthorityForStory(events, storyId),
-      completionAuthoritySource: completionAuthoritySourceForStory(events, storyId),
+      completionAuthority,
+      completionAuthoritySource,
       staleParentSnapshot,
       progress,
       verification: childVerificationEvidence(evidence),
@@ -267,11 +271,16 @@ export async function analyzeWorkflowRun(
     if (staleParentSnapshot) {
       issues.push(staleParentSnapshotMessage(storyId, child, evidence));
     }
+    issues.push(...childEvidenceIssues(storyId, child, evidence, config, completionAuthority));
 
     if (!diagnosticSessionLogPath) continue;
 
     const sessionMetrics = await analyzeSessionLog(diagnosticSessionLogPath);
     analyzedChildren[analyzedChildren.length - 1].failedSpawnAgentAttempts = sessionMetrics.failedSpawnAgentAttempts;
+    const sessionPrePrReview = prePrReviewFromSessionLoops(sessionMetrics.reviewLoops);
+    if (sessionPrePrReview && analyzedChildren[analyzedChildren.length - 1].review.prePr === null) {
+      analyzedChildren[analyzedChildren.length - 1].review.prePr = sessionPrePrReview;
+    }
     mergeCounts(commandCounts, sessionMetrics.commandCounts);
     mergeCounts(subagentCounts, sessionMetrics.subagentCounts);
     sessionReviewLoops.push(...sessionMetrics.reviewLoops);
@@ -1036,6 +1045,23 @@ function mergeSessionReviewEvidence(review: ReviewSummary, sessionLoops: Session
   };
 }
 
+function prePrReviewFromSessionLoops(sessionLoops: SessionReviewLoop[]): unknown {
+  if (sessionLoops.length === 0) return null;
+  const latestLoop = sessionLoops[sessionLoops.length - 1];
+  const hasFindings = sessionLoops.some((loop) => loop.status === 'findings');
+  const lastPassed = latestLoop?.status === 'passed';
+  return {
+    actualMode: 'subagent',
+    status: lastPassed ? 'passed' : hasFindings ? 'findings' : 'not_started',
+    fixBatchCount: countFindingLoops(sessionLoops),
+    loops: sessionLoops.map(({ agentId: _agentId, ...loop }) => loop),
+    subagent: {
+      agentId: latestLoop?.agentId ?? null,
+      status: lastPassed ? 'passed' : hasFindings ? 'findings' : null,
+    },
+  };
+}
+
 function countFindingLoops(loops: SessionReviewLoop[]): number {
   return loops.filter((loop) => loop.status === 'findings').length;
 }
@@ -1079,6 +1105,85 @@ function staleParentSnapshotMessage(
   } but child evidence reports ${readOptionalBoolean(evidence?.merged) === true ? 'merged ' : ''}${
     readOptionalString(evidence?.finalStatus) ?? 'complete'
   }`;
+}
+
+function childEvidenceIssues(
+  storyId: string,
+  child: Record<string, unknown>,
+  evidence: Record<string, unknown> | null,
+  config: Record<string, unknown> | null,
+  completionAuthority: string | null,
+): string[] {
+  const issues: string[] = [];
+  if (!evidence) return issues;
+
+  const returnedStatus = readOptionalString(child.returnedStatus);
+  const finalStatus = readOptionalString(evidence.finalStatus);
+  if (
+    returnedStatus &&
+    finalStatus &&
+    isEvidenceComplete(finalStatus, config) &&
+    !isEvidenceComplete(returnedStatus, config)
+  ) {
+    issues.push(
+      `${storyId} child tracker evidence conflicts with parent snapshot: returned status ${returnedStatus} but child evidence reports ${finalStatus}`,
+    );
+  }
+
+  const prNumber = readOptionalNumber(evidence.prNumber);
+  const merged = readOptionalBoolean(evidence.merged) === true;
+  const mergeCommit = readOptionalString(evidence.mergeCommit);
+  const mergedAt = readOptionalString(evidence.mergedAt);
+  const branchDeleted = readOptionalBoolean(evidence.branchDeleted) === true;
+  if (completionAuthority === 'pr-policy-incomplete') {
+    issues.push(`${storyId} PR policy incomplete: auto-merge policy has not produced merged evidence`);
+  } else if (prMergeAuto(config) && prNumber !== null && finalStatus && isEvidenceComplete(finalStatus, config)) {
+    if (merged && !mergeCommit && !mergedAt) {
+      issues.push(
+        `${storyId} PR policy incomplete: PR #${prNumber} is marked merged without merge commit or merge timestamp`,
+      );
+    } else if (!merged && !mergeCommit && !mergedAt) {
+      issues.push(`${storyId} PR policy incomplete: PR #${prNumber} has no merged base evidence`);
+    }
+  }
+
+  for (const verification of childVerificationEvidence(evidence)) {
+    const detail = verification.detail ?? '';
+    if (verification.status === 'passed' && hasFailureLanguage(detail)) {
+      issues.push(
+        `${storyId} verification evidence contradiction for ${verification.command ?? 'unknown command'}: passed status includes blocker or failure detail`,
+      );
+    }
+    if (verification.status === 'failed' && /\bpassed?\b/i.test(detail)) {
+      issues.push(
+        `${storyId} verification evidence contradiction for ${verification.command ?? 'unknown command'}: failed status includes passed wording`,
+      );
+    }
+  }
+
+  for (const blocker of readStringArray(evidence.blockers)) {
+    if (!issues.some((issue) => issue.includes(blocker))) {
+      issues.push(`${storyId} child blocker evidence: ${blocker}`);
+    }
+  }
+
+  if (merged && prNumber !== null && !mergeCommit && !mergedAt && !branchDeleted) {
+    issues.push(
+      `${storyId} merge evidence needs review: PR #${prNumber} is marked merged without merge commit, merge timestamp, or branch deletion evidence`,
+    );
+  }
+
+  return issues;
+}
+
+function prMergeAuto(config: Record<string, unknown> | null): boolean {
+  const pr = readRecord(config?.pr);
+  const merge = readRecord(pr?.merge);
+  return readOptionalBoolean(merge?.auto) === true;
+}
+
+function hasFailureLanguage(value: string): boolean {
+  return /\b(blocker|blocked|fail(?:ed|ing|s)?|not green|error)\b/i.test(value);
 }
 
 function childVerificationEvidence(evidence: Record<string, unknown> | null): ChildVerificationEvidence[] {

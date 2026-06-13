@@ -43,6 +43,21 @@ export class MetricsCollector {
     this.observedMetrics[storyId] = metrics;
   }
 
+  observeChildProgress(
+    storyId: string,
+    fields: { latestProgress?: string | null; sessionLogPath?: string | null },
+  ): void {
+    const existing = this.observedMetrics[storyId];
+    this.observedMetrics[storyId] = {
+      storyId,
+      toolCounts: existing?.toolCounts ?? {},
+      subagentCounts: existing?.subagentCounts ?? {},
+      tokenTotals: existing?.tokenTotals ?? null,
+      latestProgress: fields.latestProgress ?? existing?.latestProgress ?? null,
+      sessionLogPath: fields.sessionLogPath ?? existing?.sessionLogPath ?? null,
+    };
+  }
+
   childTiming(storyId: string): ChildTiming | undefined {
     return this.childMetrics.get(storyId);
   }

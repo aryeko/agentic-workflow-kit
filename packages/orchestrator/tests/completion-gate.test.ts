@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { GitInspector, StoryCommitEvidence } from '../src/git/GitInspector.js';
 import type { CompletionGateDeps } from '../src/runner/CompletionGate.js';
@@ -88,6 +91,14 @@ owner: —
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A001 | Story | — | 1 | ${status} | [spec](../../specs/a001.md) | — | — | [PR #88](https://github.com/aryeko/pathway/pull/88) |
 `;
+}
+
+async function writeChildTracker(status: string): Promise<string> {
+  const cwd = await mkdtemp(path.join(os.tmpdir(), 'awk-child-tracker-'));
+  const trackerPath = path.join(cwd, 'docs/tracks/t/README.md');
+  await mkdir(path.dirname(trackerPath), { recursive: true });
+  await writeFile(trackerPath, trackerMarkdown(status));
+  return cwd;
 }
 
 function makeDeps(overrides: Partial<CompletionGateDeps> = {}): CompletionGateDeps {
@@ -278,6 +289,84 @@ describe('CompletionGate', () => {
       });
     }
     expect(gitInspector.calls).toEqual(['refreshBaseBranch', 'readFileFromRef', 'isCommitReachableFromRef']);
+  });
+
+  it('uses child worktree tracker completion but blocks when auto-merge policy evidence is incomplete', async () => {
+    const childCwd = await writeChildTracker('done');
+    const gate = new CompletionGate(
+      makeDeps({
+        childCwdAbs: childCwd,
+        pr: {
+          create: true,
+          ci: { wait: false, command: null },
+          review: {
+            wait: 'bot',
+            bot: 'codex',
+            triageComments: true,
+            maxFixBatches: 1,
+            rerequestAfterFix: false,
+            waitTimeoutMinutes: 30,
+          },
+          merge: { auto: true, method: 'squash', deleteBranch: true },
+        },
+      }),
+    );
+
+    const result = await gate.evaluate(
+      settled({
+        invocation: { cwd: childCwd },
+        evidence: { trackerPath: 'docs/tracks/t/README.md', prNumber: 88 },
+      }),
+      [story('A001', 'implementing')],
+    );
+
+    expect(result.complete).toBe(false);
+    if (!result.complete) {
+      expect(result.authority).toBe('pr-policy-incomplete');
+      expect(result.source).toBe('child-worktree-tracker');
+      expect(result.reason).toBe('pr-policy-incomplete: auto-merge enabled but merged base evidence is incomplete');
+    }
+  });
+
+  it('can complete from child worktree tracker when PR auto-merge is not required', async () => {
+    const childCwd = await writeChildTracker('done');
+    const gate = new CompletionGate(makeDeps({ childCwdAbs: childCwd }));
+
+    const result = await gate.evaluate(
+      settled({
+        invocation: { cwd: childCwd },
+        evidence: { trackerPath: 'docs/tracks/t/README.md', prNumber: 88 },
+      }),
+      [story('A001', 'implementing')],
+    );
+
+    expect(result.complete).toBe(true);
+    if (result.complete) {
+      expect(result.authority).toBe('tracker-complete-story-branch');
+      expect(result.source).toBe('child-worktree-tracker');
+    }
+  });
+
+  it('does not let child evidence redirect child-worktree tracker authority away from the canonical path', async () => {
+    const childCwd = await writeChildTracker('implementing');
+    const alternateTrackerPath = path.join(childCwd, 'docs/tracks/other/README.md');
+    await mkdir(path.dirname(alternateTrackerPath), { recursive: true });
+    await writeFile(alternateTrackerPath, trackerMarkdown('done'));
+    const gate = new CompletionGate(makeDeps({ childCwdAbs: childCwd }));
+
+    const result = await gate.evaluate(
+      settled({
+        invocation: { cwd: childCwd },
+        evidence: { trackerPath: 'docs/tracks/other/README.md', finalStatus: 'done' },
+      }),
+      [story('A001', 'implementing')],
+    );
+
+    expect(result.complete).toBe(false);
+    if (!result.complete) {
+      expect(result.authority).toBe('tracker-status-not-complete');
+      expect(result.source).toBe('returned-tracker');
+    }
   });
 
   it('returns complete=false for direct base branch commits even when auto-merge is enabled', async () => {

@@ -1,4 +1,7 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { GitInspector, StoryCommitEvidence } from '../git/GitInspector.js';
+import { isNodeError } from '../internal/guards.js';
 import { isCompleteStatus } from '../scheduler/scheduler.js';
 import { parseTrackerStories } from '../tracks/markdownTracker.js';
 import type { ResolvedGitConfig, ResolvedWorkflowConfig, WorkflowStory } from '../types.js';
@@ -21,7 +24,7 @@ export type ReturnEvaluation =
       commitEvidence?: StoryCommitEvidence;
     };
 
-export type CompletionAuthoritySource = 'returned-tracker' | 'base-tracker';
+export type CompletionAuthoritySource = 'returned-tracker' | 'base-tracker' | 'child-worktree-tracker';
 
 export type CompletionAuthority =
   | 'story-missing'
@@ -29,6 +32,7 @@ export type CompletionAuthority =
   | 'inspect-failed'
   | 'complete-but-uncommitted'
   | 'forbidden-direct-base-commit'
+  | 'pr-policy-incomplete'
   | 'merged-pr-on-base'
   | 'tracker-complete-story-branch'
   | 'tracker-complete-base-allowed';
@@ -59,6 +63,8 @@ export class CompletionGate {
     if (!isCompleteStatus(returnedStory.status, this.deps.statuses.complete)) {
       const baseStory = await this.readCompleteBaseTrackerStory(settled, returnedStory);
       if (baseStory) return await this.evaluateCompleteBaseStory(settled, baseStory);
+      const childStory = await this.readCompleteChildTrackerStory(settled, returnedStory);
+      if (childStory) return await this.evaluateCompleteStory(settled, childStory, 'child-worktree-tracker');
       return {
         complete: false,
         returnedStory,
@@ -132,6 +138,16 @@ export class CompletionGate {
         commitEvidence,
       };
     }
+    if (this.deps.pr.merge.auto && !acceptedAutoMerge) {
+      return {
+        complete: false,
+        returnedStory,
+        reason: 'pr-policy-incomplete: auto-merge enabled but merged base evidence is incomplete',
+        authority: 'pr-policy-incomplete',
+        source,
+        commitEvidence,
+      };
+    }
     return {
       complete: true,
       returnedStory,
@@ -178,7 +194,7 @@ export class CompletionGate {
   ): Promise<WorkflowStory | null> {
     if (!shouldReadBaseTracker(this.deps.pr, settled)) return null;
     if (!this.deps.gitInspector.readFileFromRef) return null;
-    const trackerPath = settled.evidence?.trackerPath ?? returnedStory.metadata.trackerPath;
+    const trackerPath = returnedStory.metadata.trackerPath;
     await this.deps.gitInspector.refreshBaseBranch?.({
       cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
       git: this.deps.git,
@@ -200,6 +216,32 @@ export class CompletionGate {
     const baseStory = baseStories.find((entry) => entry.id === settled.storyId) ?? null;
     if (!baseStory || !isCompleteStatus(baseStory.status, this.deps.statuses.complete)) return null;
     return baseStory;
+  }
+
+  private async readCompleteChildTrackerStory(
+    settled: SettledStoryRun,
+    returnedStory: WorkflowStory,
+  ): Promise<WorkflowStory | null> {
+    const trackerPath = returnedStory.metadata.trackerPath;
+    const cwd = invocationCwd(settled) ?? this.deps.childCwdAbs;
+    let content: string;
+    try {
+      content = await readFile(path.resolve(cwd, trackerPath), 'utf8');
+    } catch (error) {
+      if (isNodeError(error) && error.code === 'ENOENT') return null;
+      throw error;
+    }
+    const childStories = parseTrackerStories(content, {
+      completeStatuses: new Set(this.deps.statuses.complete),
+      eligibleStatuses: new Set(this.deps.statuses.eligible),
+      idPattern: new RegExp(this.deps.tracker.idPattern),
+      trackId: returnedStory.metadata.trackId,
+      trackTitle: returnedStory.metadata.trackTitle,
+      trackerPath,
+    });
+    const childStory = childStories.find((entry) => entry.id === settled.storyId) ?? null;
+    if (!childStory || !isCompleteStatus(childStory.status, this.deps.statuses.complete)) return null;
+    return childStory;
   }
 }
 

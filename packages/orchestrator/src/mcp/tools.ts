@@ -86,6 +86,19 @@ const runPathInputSchema = z.object({
     .string()
     .describe('Absolute path to a run artifact directory, e.g. the artifactDir returned by run_story or run_eligible.'),
   sessionRoot: z.string().optional().describe('Override root for child session artifacts when analyzing a run.'),
+  wait: z.boolean().optional().describe('For watch_run, poll until the run leaves running or timeoutMs expires.'),
+  intervalMs: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('For watch_run --wait, polling interval in milliseconds.'),
+  timeoutMs: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('For watch_run --wait, maximum wait time in milliseconds.'),
   json: z.boolean().optional().describe('Prefer machine-readable CLI-compatible JSON formatting in text summaries.'),
   responseFormat: z
     .enum(['concise', 'detailed'])
@@ -227,7 +240,15 @@ export function registerOrchestratorTools(server: McpServer): void {
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     async (input) =>
-      handleTool('analyze_run', input.responseFormat, () => analyzeRunHandler(input.runPath, toOverrides(input))),
+      handleTool(
+        'analyze_run',
+        input.responseFormat,
+        async () => {
+          const analysis = await analyzeRunHandler(input.runPath, toOverrides(input));
+          return input.responseFormat === 'detailed' ? analysis : conciseAnalysisContent(analysis);
+        },
+        summarizeAnalysis,
+      ),
   );
 
   server.registerTool(
@@ -268,6 +289,9 @@ function toOverrides(input: {
   dryRun?: boolean;
   force?: boolean;
   watch?: boolean;
+  wait?: boolean;
+  intervalMs?: number;
+  timeoutMs?: number;
   asyncLaunch?: boolean;
   childTimeoutMs?: number;
   model?: string;
@@ -287,7 +311,10 @@ function toOverrides(input: {
   if (input.dryRun === true) overrides.dryRun = true;
   if (input.asyncLaunch === true) overrides.asyncLaunch = true;
   if (input.force === true) overrides.force = true;
-  if (input.watch === true) overrides.watch = true;
+  if (input.watch !== undefined) overrides.watch = input.watch;
+  if (input.wait !== undefined) overrides.wait = input.wait;
+  if (input.intervalMs !== undefined) overrides.intervalMs = input.intervalMs;
+  if (input.timeoutMs !== undefined) overrides.timeoutMs = input.timeoutMs;
   if (input.childTimeoutMs !== undefined) overrides.childTimeoutMs = input.childTimeoutMs;
   if (input.model !== undefined) overrides.model = input.model;
   if (input.reasoning !== undefined) overrides.reasoning = input.reasoning;
@@ -423,6 +450,53 @@ function boundValue(
 function summarizeRun(result: RunState): string {
   if (result.status === 'running') return `run ${result.runId} launched with status running`;
   return `run ${result.runId} finished with status ${result.status}`;
+}
+
+function summarizeAnalysis(value: unknown): string {
+  if (!isPlainObject(value)) return 'analyze_run completed';
+  const runId = typeof value.runId === 'string' ? value.runId : 'unknown';
+  const status = typeof value.derivedStatus === 'string' ? value.derivedStatus : value.status;
+  const issueCount = Array.isArray(value.issues) ? value.issues.length : 0;
+  return `run ${runId} analysis status ${String(status ?? 'unknown')} with ${issueCount} issue(s)`;
+}
+
+function conciseAnalysisContent(value: unknown): unknown {
+  if (!isPlainObject(value)) return value;
+  return {
+    runId: value.runId,
+    status: value.status,
+    derivedStatus: value.derivedStatus,
+    blockedReason: value.blockedReason,
+    issues: Array.isArray(value.issues) ? value.issues.slice(0, 20) : [],
+    children: Array.isArray(value.children) ? value.children.slice(0, 20).map(conciseChildAnalysis) : [],
+    review: value.review,
+    verification: value.verification,
+    merge: value.merge,
+  };
+}
+
+function conciseChildAnalysis(value: unknown): unknown {
+  if (!isPlainObject(value)) return value;
+  return {
+    storyId: value.storyId,
+    ok: value.ok,
+    status: value.status,
+    sessionId: value.sessionId,
+    sessionLogPath: value.sessionLogPath,
+    linkageStatus: value.linkageStatus,
+    metricsStatus: value.metricsStatus,
+    completionAuthority: value.completionAuthority,
+    completionAuthoritySource: value.completionAuthoritySource,
+    staleParentSnapshot: value.staleParentSnapshot,
+    progress: value.progress,
+    verification: value.verification,
+    merge: value.merge,
+    recoveryEvents: value.recoveryEvents,
+  };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 const noopStdout = (): void => undefined;

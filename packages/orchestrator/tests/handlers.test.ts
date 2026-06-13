@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { listEligibleHandler, listTracksHandler } from '../src/commands/handlers';
+import { listEligibleHandler, listTracksHandler, watchRunHandler } from '../src/commands/handlers';
 
 const trackerMarkdown = `---
 title: Linkly tracker
@@ -58,5 +58,28 @@ describe('orchestrator command handlers', () => {
     const result = await listEligibleHandler({ cwd: root, track: 'linkly' });
 
     expect(result.stories.map((story) => story.id)).toEqual(['LK02']);
+  });
+
+  it('uses watch defaults from the run config snapshot', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-watch-'));
+    await mkdir(root, { recursive: true });
+    await writeFile(path.join(root, 'state.json'), JSON.stringify({ status: 'running' }));
+    await writeFile(
+      path.join(root, 'config.resolved.json'),
+      JSON.stringify({
+        orchestrator: {
+          watch: {
+            enabled: false,
+            wait: true,
+            intervalMs: 1000,
+            timeoutMs: 1,
+          },
+        },
+      }),
+    );
+
+    const result = await watchRunHandler(root);
+
+    expect(result.wait).toMatchObject({ timedOut: true });
   });
 });

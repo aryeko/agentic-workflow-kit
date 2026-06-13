@@ -60,6 +60,78 @@ async function createWorkspace(options: { storyCount?: number; secondEligibleTra
   return root;
 }
 
+async function createAnalyzableRun(): Promise<{ runPath: string; sessionRoot: string }> {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-analyze-'));
+  const runDir = path.join(root, 'runs/run-1');
+  const sessionRoot = path.join(root, 'sessions');
+  await mkdir(path.join(runDir, 'children'), { recursive: true });
+  await mkdir(sessionRoot, { recursive: true });
+  await writeFile(
+    path.join(runDir, 'state.json'),
+    JSON.stringify({
+      runId: 'run-1',
+      status: 'blocked',
+      blockedReason: 'DLD05 returned but status is implementing',
+    }),
+  );
+  await writeFile(
+    path.join(runDir, 'children', 'DLD05.json'),
+    JSON.stringify({
+      storyId: 'DLD05',
+      ok: true,
+      sessionId: 'thread-dld05',
+      returnedStatus: 'implementing',
+      completionAuthority: 'pr-policy-incomplete',
+      completionAuthoritySource: 'child-worktree-tracker',
+      evidence: {
+        finalStatus: 'done',
+        prNumber: 108,
+        prUrl: 'https://github.com/aryeko/pathway/pull/108',
+      },
+    }),
+  );
+  await writeFile(
+    path.join(runDir, 'events.ndjson'),
+    [
+      JSON.stringify({
+        type: 'completion_authority',
+        storyId: 'DLD05',
+        authority: 'pr-policy-incomplete',
+        source: 'child-worktree-tracker',
+      }),
+      JSON.stringify({ type: 'child-supervisor-poll', storyId: 'DLD05', eventAt: '2026-06-12T22:10:00.000Z' }),
+    ].join('\n'),
+  );
+  return { runPath: runDir, sessionRoot };
+}
+
+async function createWatchRun(
+  status: string,
+  watch?: { wait?: boolean; intervalMs?: number; timeoutMs?: number },
+): Promise<string> {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-watch-'));
+  const runDir = path.join(root, 'runs/run-1');
+  await mkdir(runDir, { recursive: true });
+  await writeFile(path.join(runDir, 'state.json'), JSON.stringify({ runId: 'run-1', status }));
+  await writeFile(path.join(runDir, 'metrics.live.json'), JSON.stringify({ runId: 'run-1', status }));
+  if (watch) {
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        orchestrator: {
+          watch: {
+            enabled: false,
+            wait: watch.wait ?? false,
+            intervalMs: watch.intervalMs ?? 300_000,
+            timeoutMs: watch.timeoutMs ?? 300_000,
+          },
+        },
+      }),
+    );
+  }
+  return runDir;
+}
+
 async function connectClient() {
   const server = createOrchestratorMcpServer();
   const client = new Client({ name: 'test-client', version: '1.0.0' });
@@ -199,6 +271,92 @@ describe('agentic-workflow-kit MCP server', () => {
       },
     });
     expect((result.structuredContent as { stories: unknown[] }).stories.length).toBe(51);
+    await client.close();
+    await server.close();
+  });
+
+  it('returns concise analyze_run structured content by default', async () => {
+    const { runPath, sessionRoot } = await createAnalyzableRun();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'analyze_run',
+      arguments: { runPath, sessionRoot },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      runId: 'run-1',
+      status: 'blocked',
+      issues: expect.arrayContaining([
+        'DLD05 PR policy incomplete: auto-merge policy has not produced merged evidence',
+      ]),
+      children: [
+        expect.objectContaining({
+          storyId: 'DLD05',
+          completionAuthority: 'pr-policy-incomplete',
+          completionAuthoritySource: 'child-worktree-tracker',
+        }),
+      ],
+    });
+    expect(result.structuredContent).not.toHaveProperty('timeline');
+    expect(result.structuredContent).not.toHaveProperty('commandCounts');
+    expect(result.structuredContent).not.toHaveProperty('tokenTotals');
+    await client.close();
+    await server.close();
+  });
+
+  it('keeps detailed analyze_run structured content when requested', async () => {
+    const { runPath, sessionRoot } = await createAnalyzableRun();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'analyze_run',
+      arguments: { runPath, sessionRoot, responseFormat: 'detailed' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      runId: 'run-1',
+      commandCounts: {},
+      tokenTotals: null,
+      timeline: [
+        expect.objectContaining({ type: 'completion_authority' }),
+        expect.objectContaining({ type: 'child-supervisor-poll' }),
+      ],
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('waits in watch_run until timeout when a run stays running', async () => {
+    const runPath = await createWatchRun('running');
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'watch_run',
+      arguments: { runPath, wait: true, intervalMs: 1, timeoutMs: 1 },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      state: { runId: 'run-1', status: 'running' },
+      wait: { timedOut: true },
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('lets explicit MCP wait false override a run config wait default', async () => {
+    const runPath = await createWatchRun('running', { wait: true, intervalMs: 1, timeoutMs: 1 });
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'watch_run',
+      arguments: { runPath, wait: false, intervalMs: 1, timeoutMs: 1 },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      state: { runId: 'run-1', status: 'running' },
+    });
+    expect((result.structuredContent as { wait?: unknown }).wait).toBeUndefined();
     await client.close();
     await server.close();
   });

@@ -75,6 +75,30 @@ describe('parseCommand', () => {
       runPath: '.codex/agentic-workflow-kit/runs/run-1',
       overrides: { json: true },
     });
+    expect(
+      parseCommand([
+        'watch-run',
+        '.codex/agentic-workflow-kit/runs/run-1',
+        '--wait',
+        '--interval-ms',
+        '1000',
+        '--timeout-ms',
+        '5000',
+      ]),
+    ).toEqual({
+      kind: 'watch-run',
+      runPath: '.codex/agentic-workflow-kit/runs/run-1',
+      overrides: { wait: true, intervalMs: 1000, timeoutMs: 5000 },
+    });
+    expect(parseCommand(['watch-run', '.codex/agentic-workflow-kit/runs/run-1', '--no-wait'])).toEqual({
+      kind: 'watch-run',
+      runPath: '.codex/agentic-workflow-kit/runs/run-1',
+      overrides: { wait: false },
+    });
+    expect(parseCommand(['run-eligible', '--no-watch'])).toEqual({
+      kind: 'run-eligible',
+      overrides: { watch: false },
+    });
     expect(parseCommand(['analyze-run', 'runs/run-1', '--session-root', 'sessions'])).toEqual({
       kind: 'analyze-run',
       runPath: 'runs/run-1',

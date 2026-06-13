@@ -69,6 +69,12 @@ orchestrator:
       driver: 'codex-mcp',
       maxParallel: 3,
       stopLaunchingOnBlocked: false,
+      watch: {
+        enabled: false,
+        wait: false,
+        intervalMs: 300_000,
+        timeoutMs: 300_000,
+      },
       childTimeoutMs: 9000,
       childNoProgressTimeoutMs: 9000,
       childStartupTimeoutMs: 60_000,

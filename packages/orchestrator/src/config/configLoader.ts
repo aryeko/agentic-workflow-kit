@@ -6,6 +6,8 @@ import { loadConfig } from './resolve.js';
 const SUPPORTED_DRIVERS = new Set<OrchestratorDriver>(['codex-mcp']);
 const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
 const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
+const DEFAULT_WATCH_INTERVAL_MS = 300_000;
+const DEFAULT_WATCH_TIMEOUT_MS = 300_000;
 
 export async function loadResolvedConfig(
   overrides: CliOverrides = {},
@@ -61,6 +63,7 @@ export async function loadResolvedConfig(
       driver,
       maxParallel,
       stopLaunchingOnBlocked: config.orchestrator.stopLaunchingOnBlocked,
+      watch: config.orchestrator.watch,
       childTimeoutMs: childNoProgressTimeoutMs,
       childNoProgressTimeoutMs,
       childStartupTimeoutMs,
@@ -132,6 +135,12 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       driver: 'codex-mcp',
       maxParallel: 2,
       stopLaunchingOnBlocked: true,
+      watch: {
+        enabled: false,
+        wait: false,
+        intervalMs: DEFAULT_WATCH_INTERVAL_MS,
+        timeoutMs: DEFAULT_WATCH_TIMEOUT_MS,
+      },
       childTimeoutMs: 1_800_000,
       childNoProgressTimeoutMs: 1_800_000,
       childStartupTimeoutMs: DEFAULT_CHILD_STARTUP_TIMEOUT_MS,

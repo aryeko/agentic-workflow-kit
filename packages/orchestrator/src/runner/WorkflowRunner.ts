@@ -62,6 +62,7 @@ export class WorkflowRunner {
   private readonly metrics: MetricsCollector;
   private readonly journal: RunJournal;
   private readonly completionGate: CompletionGate;
+  private readonly trackerClaims = new Map<string, ClaimedWorkflowStory>();
 
   constructor(private readonly dependencies: WorkflowRunnerDependencies) {
     this.metrics = new MetricsCollector(dependencies.clock);
@@ -345,6 +346,7 @@ export class WorkflowRunner {
       return null;
     }
     await this.journal.record('tracker-claimed', { storyId: story.id, owner });
+    this.trackerClaims.set(story.id, { story: claim.story, owner, previousStatus: story.status, trackerClaimed: true });
     return { story: claim.story, owner, previousStatus: story.status, trackerClaimed: true };
   }
 
@@ -537,6 +539,10 @@ export class WorkflowRunner {
         lastObservedChildProgressAt: progressAt,
         lastHeartbeatAt: progressAt,
       });
+      this.metrics.observeChildProgress(story.id, {
+        sessionLogPath: event?.sessionLogPath ?? fields.sessionLogPath ?? launch.record.sessionLogPath,
+        latestProgress: event ? 'session linked' : undefined,
+      });
       if (!childLaunchedRecorded) {
         childLaunchedRecorded = true;
         await this.journal.record('child-launched', {
@@ -584,6 +590,10 @@ export class WorkflowRunner {
       }
 
       await acknowledgeStartup({ progressSource: event.progressSource });
+      this.metrics.observeChildProgress(story.id, {
+        sessionLogPath: launch.record.sessionLogPath,
+        latestProgress: event.message,
+      });
       if (event.journal === false) return;
       await this.journal.record('child-progress', {
         storyId: story.id,
@@ -735,6 +745,9 @@ export class WorkflowRunner {
     this.state = { ...this.state, completed: [...this.state.completed, entry] };
     await this.writeState();
     await this.writeLiveMetrics();
+    if (this.state.status !== 'supervision_lost' && !isSupervisionLostError(settled.error ?? '')) {
+      await this.releaseSettledClaim(settled.storyId);
+    }
   }
 
   private async recordRecoveryGuard(story: WorkflowStory, launch: ChildLaunchRecord): Promise<void> {
@@ -825,6 +838,8 @@ export class WorkflowRunner {
         launchId: launch.record.launchId,
         reason: error instanceof Error ? error.message : String(error),
       });
+    } finally {
+      this.trackerClaims.delete(story.id);
     }
   }
 
@@ -856,6 +871,42 @@ export class WorkflowRunner {
         storyId: claim.story.id,
         reason: error instanceof Error ? error.message : String(error),
       });
+    } finally {
+      this.trackerClaims.delete(claim.story.id);
+    }
+  }
+
+  private async releaseSettledClaim(storyId: string): Promise<void> {
+    const claim = this.trackerClaims.get(storyId);
+    if (!claim?.trackerClaimed) return;
+    try {
+      const result = await releaseTrackerClaim({
+        config: this.dependencies.config,
+        story: claim.story,
+        owner: claim.owner,
+        previousStatus: claim.previousStatus,
+      });
+      if (result.ok) {
+        await this.journal.record('tracker-claim-released', {
+          storyId: claim.story.id,
+          fromStatus: result.fromStatus,
+          toStatus: result.toStatus,
+          owner: claim.owner,
+          reason: 'child-settled',
+        });
+      } else {
+        await this.journal.record('tracker-claim-release-skipped', {
+          storyId: claim.story.id,
+          reason: result.reason,
+        });
+      }
+    } catch (error) {
+      await this.journal.record('tracker-claim-release-skipped', {
+        storyId: claim.story.id,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      this.trackerClaims.delete(storyId);
     }
   }
 

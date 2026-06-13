@@ -57,6 +57,7 @@ export interface ChildResultEvidence {
   prePrReview?: unknown;
   prReview?: unknown;
   downgrades?: string[];
+  blockers?: string[];
 }
 
 export interface ChildLaunchRecord extends ActiveChildRun {
@@ -141,6 +142,12 @@ export interface ResolvedWorkflowConfig {
     driver: OrchestratorDriver;
     maxParallel: number;
     stopLaunchingOnBlocked: boolean;
+    watch: {
+      enabled: boolean;
+      wait: boolean;
+      intervalMs: number;
+      timeoutMs: number;
+    };
     /**
      * Compatibility alias for childNoProgressTimeoutMs.
      */
@@ -176,6 +183,9 @@ export interface CliOverrides {
   dryRun?: boolean;
   asyncLaunch?: boolean;
   watch?: boolean;
+  wait?: boolean;
+  intervalMs?: number;
+  timeoutMs?: number;
   sessionRoot?: string;
   cwd?: string;
   model?: string;
