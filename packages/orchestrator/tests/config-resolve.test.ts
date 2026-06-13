@@ -109,7 +109,7 @@ describe('ConfigSchema', () => {
           storyImplementer: {
             model: 'gpt-test',
             budget: {
-              tokens: { limit: 100_000, action: 'warn' },
+              tokens: { limit: 100_000 },
             },
           },
         },
@@ -131,7 +131,7 @@ describe('ConfigSchema', () => {
     expect(parsed.agents.profiles.storyImplementer.budget.tokens).toEqual({
       limit: 100_000,
       warnAtPercent: 80,
-      action: 'warn',
+      action: 'stop-new-launches',
     });
   });
 

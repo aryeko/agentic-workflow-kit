@@ -525,7 +525,7 @@
                         ]
                       },
                       "action": {
-                        "default": "warn",
+                        "default": "checkpoint-stop",
                         "type": "string",
                         "enum": [
                           "warn",
@@ -566,7 +566,7 @@
                         ]
                       },
                       "action": {
-                        "default": "warn",
+                        "default": "stop-new-launches",
                         "type": "string",
                         "enum": [
                           "warn",
@@ -607,7 +607,7 @@
                         ]
                       },
                       "action": {
-                        "default": "warn",
+                        "default": "checkpoint-stop",
                         "type": "string",
                         "enum": [
                           "warn",
@@ -689,7 +689,7 @@
                         ]
                       },
                       "action": {
-                        "default": "warn",
+                        "default": "stop-new-launches",
                         "type": "string",
                         "enum": [
                           "warn",

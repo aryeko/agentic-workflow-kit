@@ -20,22 +20,24 @@ const AGENT_TASK_TYPES = [
 ] as const;
 const BUDGET_ACTIONS = ['warn', 'stop-new-launches', 'checkpoint-stop', 'abort'] as const;
 
-const AgentBudgetDimensionSchema = z
-  .object({
-    limit: z.number().min(0).nullable().default(null),
-    warnAtPercent: z.number().int().min(1).max(100).nullable().default(80),
-    action: z.enum(BUDGET_ACTIONS).default('warn'),
-  })
-  .strict()
-  .prefault({});
+function agentBudgetDimensionSchema(defaultAction: (typeof BUDGET_ACTIONS)[number]) {
+  return z
+    .object({
+      limit: z.number().min(0).nullable().default(null),
+      warnAtPercent: z.number().int().min(1).max(100).nullable().default(80),
+      action: z.enum(BUDGET_ACTIONS).default(defaultAction),
+    })
+    .strict()
+    .prefault({});
+}
 
 const AgentBudgetPolicySchema = z
   .object({
-    wallMs: AgentBudgetDimensionSchema.prefault({ action: 'checkpoint-stop' }),
-    tokens: AgentBudgetDimensionSchema.prefault({ action: 'stop-new-launches' }),
-    toolCalls: AgentBudgetDimensionSchema.prefault({ action: 'checkpoint-stop' }),
-    failedToolCalls: AgentBudgetDimensionSchema.prefault({ action: 'warn' }),
-    costUsd: AgentBudgetDimensionSchema.prefault({ action: 'stop-new-launches' }),
+    wallMs: agentBudgetDimensionSchema('checkpoint-stop'),
+    tokens: agentBudgetDimensionSchema('stop-new-launches'),
+    toolCalls: agentBudgetDimensionSchema('checkpoint-stop'),
+    failedToolCalls: agentBudgetDimensionSchema('warn'),
+    costUsd: agentBudgetDimensionSchema('stop-new-launches'),
   })
   .strict()
   .prefault({});
