@@ -346,6 +346,7 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
   const cwd = resolveInvocationCwd(command.overrides);
   const config = await loadResolvedConfig(command.overrides, cwd);
   const tracks = await discoverTracks(config, command.overrides);
+  await assertTracksValidForDispatch(config, command.overrides, tracks);
   const runId = createRunId();
   const runDirectory = path.join(config.artifacts.runsDirAbs, runId);
   const storySource =
@@ -432,6 +433,41 @@ async function findStoryBriefs(
   const tracksDirAbs = path.resolve(config.workspace.rootAbs, tracksDir);
   const matches = await glob(`${trackId}/stories/*.md`, { cwd: tracksDirAbs, absolute: false });
   return new Set(matches.map((match) => slash(path.join(tracksDir, match))));
+}
+
+async function assertTracksValidForDispatch(
+  config: ResolvedWorkflowConfig,
+  overrides: CliOverrides,
+  tracks: WorkflowTrack[],
+): Promise<void> {
+  const selectedTracks = overrides.track ? [selectTrack(tracks, overrides.track)] : tracks;
+  const failures: string[] = [];
+  for (const track of selectedTracks) {
+    const markdown = await readFile(track.pathAbs, 'utf8');
+    const storyBriefs = await findStoryBriefs(config, overrides, track.id);
+    const report = validateTrackerMarkdown(markdown, {
+      completeStatuses: new Set(config.statuses.complete),
+      eligibleStatuses: new Set(config.statuses.eligible),
+      statusVocabulary: statusVocabulary(config),
+      idPattern: new RegExp(config.tracker.idPattern),
+      expectedIdPrefix: expectedPrefixFromMarkdown(markdown, config.tracker.idPattern),
+      storyBriefBaseDir: slash(path.join(path.dirname(track.relativePath), 'stories')),
+      existingStoryBriefs: storyBriefs,
+      trackId: track.id,
+      trackTitle: track.title,
+      trackerPath: track.relativePath,
+    });
+    if (!report.ok) {
+      const codes = report.diagnostics
+        .filter((diagnostic) => diagnostic.severity === 'error')
+        .map((diagnostic) => diagnostic.code)
+        .join(', ');
+      failures.push(`${track.id}: ${codes}`);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`tracker validation failed for ${failures.join('; ')}`);
+  }
 }
 
 function expectedPrefixFromMarkdown(markdown: string, idPattern: string): string | undefined {

@@ -83,14 +83,14 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
   if (command.kind === 'tracker-validate') {
     const envelope = await trackerValidateFacade(command.overrides);
     stdout(JSON.stringify(envelope, null, 2));
-    if (!envelope.ok) process.exitCode = 1;
+    if (!envelope.ok || envelope.result.report.ok === false) process.exitCode = 1;
     return;
   }
 
   if (command.kind === 'tracker-migrate') {
     const envelope = await trackerMigrateFacade({ ...command.overrides, from: command.from, track: command.track });
     stdout(JSON.stringify(envelope, null, 2));
-    if (!envelope.ok) process.exitCode = 1;
+    if (!envelope.ok || envelope.result.report.ok === false) process.exitCode = 1;
     return;
   }
   if (command.kind === 'run-preview') {

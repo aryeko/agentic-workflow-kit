@@ -11,6 +11,7 @@ import {
 } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
+import type { TrackerMigrationReport, TrackerValidationReport } from '../tracks/markdownTracker.js';
 import type { CliOverrides, ResolvedWorkflowConfig, RunStatus, WorkflowRunPreviewTarget } from '../types.js';
 
 export type WorkflowApiOperation =
@@ -134,7 +135,7 @@ export interface WorkflowTrackerValidateResult {
     id: string;
     relativePath: string;
   };
-  report: unknown;
+  report: TrackerValidationReport;
 }
 
 export interface WorkflowTrackerMigrateInput extends Omit<CliOverrides, 'track'>, TrackerMigrateInput {}
@@ -144,7 +145,7 @@ export interface WorkflowTrackerMigrateResult {
     id: string;
   };
   draftMarkdown: string;
-  report: unknown;
+  report: TrackerMigrationReport;
 }
 
 export async function projectInspectFacade(

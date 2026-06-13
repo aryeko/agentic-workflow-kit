@@ -282,7 +282,7 @@ export function migrateMarkdownTracker(
     const wave = readByAliases(sourceRow.cells, sourceColumns, ['wave', 'phase', 'milestone']) ?? 'W1';
     const rawStatus = readByAliases(sourceRow.cells, sourceColumns, ['status', 'state']) ?? 'specced';
     const owner = readByAliases(sourceRow.cells, sourceColumns, ['owner', 'assignee']) ?? '—';
-    const normalizedId = uniqueMigratedId(normalizeMigratedId(rawId, context.idPrefix), usedIds);
+    const normalizedId = uniqueMigratedId(normalizeMigratedId(rawId, context), usedIds);
     usedIds.add(normalizedId);
     idMap.set(stripMarkdown(rawId), normalizedId);
     if (stripMarkdown(rawId) !== normalizedId) {
@@ -308,7 +308,7 @@ export function migrateMarkdownTracker(
       });
     }
 
-    const dependencies = migrateDependencyCell(rawDeps, idMap, context.idPrefix);
+    const dependencies = migrateDependencyCell(rawDeps, idMap, context);
     rows.push([
       normalizedId,
       stripMarkdown(title),
@@ -720,13 +720,13 @@ function readByAliases(cells: string[], columns: Map<string, number>, aliases: s
   return undefined;
 }
 
-function normalizeMigratedId(value: string, prefix: string): string {
+function normalizeMigratedId(value: string, context: MigrateMarkdownTrackerContext): string {
   const clean = stripMarkdown(value)
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '');
-  if (/^[A-Z]+[0-9]+$/.test(clean)) return clean;
+  if (context.idPattern.test(clean)) return clean;
   const numeric = clean.match(/[0-9]+/)?.[0] ?? '1';
-  return `${prefix}${numeric}`;
+  return `${context.idPrefix}${numeric}`;
 }
 
 function uniqueMigratedId(id: string, usedIds: Set<string>): string {
@@ -754,14 +754,18 @@ function normalizeMigratedStatus(value: string, context: MigrateMarkdownTrackerC
   return firstAvailable(context.defaultEligibleStatus ?? 'specced', 'plan-approved');
 }
 
-function migrateDependencyCell(value: string, idMap: Map<string, string>, prefix: string): string[] {
+function migrateDependencyCell(
+  value: string,
+  idMap: Map<string, string>,
+  context: MigrateMarkdownTrackerContext,
+): string[] {
   const clean = stripMarkdown(value);
   if (UNOWNED_MARKERS.has(clean)) return [];
   return clean
     .split(/[,;/]+/)
     .map((entry) => entry.trim())
     .filter(Boolean)
-    .map((entry) => idMap.get(entry) ?? normalizeMigratedId(entry, prefix));
+    .map((entry) => idMap.get(entry) ?? normalizeMigratedId(entry, context));
 }
 
 function renderDraftTracker(context: MigrateMarkdownTrackerContext, rows: string[][]): string {

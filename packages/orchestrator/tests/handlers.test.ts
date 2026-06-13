@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   listEligibleHandler,
   listTracksHandler,
+  runWorkflowHandler,
   trackerMigrateHandler,
   trackerValidateHandler,
   watchRunHandler,
@@ -126,5 +127,20 @@ describe('orchestrator command handlers', () => {
     expect(result.draftMarkdown).toContain(
       '| LK10 | Import this | — | W1 | specced | [brief](./stories/LK10.md) | — | — | — |',
     );
+  });
+
+  it('blocks runtime dispatch when validation reports tracker errors', async () => {
+    const root = await createWorkspace();
+    await writeFile(
+      path.join(root, 'docs/tracks/linkly/README.md'),
+      trackerMarkdown.replace('| LK03 | Claimed | LK01 |', '| ZZ03 | Claimed | LK01 |'),
+    );
+
+    await expect(
+      runWorkflowHandler(
+        { kind: 'run-eligible', overrides: { cwd: root, track: 'linkly', dryRun: true } },
+        { stdout: () => undefined },
+      ),
+    ).rejects.toThrow('tracker validation failed for linkly');
   });
 });

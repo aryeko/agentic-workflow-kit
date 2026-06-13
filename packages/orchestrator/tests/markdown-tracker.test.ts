@@ -355,6 +355,28 @@ describe('migrateMarkdownTracker', () => {
     expect(result.draftMarkdown).toContain('| APP1 | Build shell | — | W1 | ready |');
     expect(result.draftMarkdown).toContain('| APP2 | Ship shell | — | W1 | finished |');
   });
+
+  it('normalizes migrated IDs to the configured pattern', () => {
+    const source = `# Imported backlog
+
+| Key | Summary | State |
+| --- | --- | --- |
+| A-1 | Build shell | todo |
+`;
+
+    const result = migrateMarkdownTracker(source, {
+      trackId: 'imported-app',
+      trackTitle: 'Imported App tracker',
+      idPrefix: 'APP',
+      idPattern: /^[A-Z]{2,}[0-9]+$/,
+      statusVocabulary: validationContext().statusVocabulary,
+    });
+
+    expect(result.draftMarkdown).toContain('| APP1 | Build shell | — | W1 | specced |');
+    expect(result.report.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'ID_NORMALIZED', sourceValue: 'A-1', storyId: 'APP1' }),
+    );
+  });
 });
 
 describe('discoverMarkdownTracks', () => {
