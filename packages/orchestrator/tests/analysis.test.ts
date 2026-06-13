@@ -428,6 +428,16 @@ describe('analyzeWorkflowRun', () => {
         { loop: 2, mode: 'subagent', status: 'passed', findings: 0 },
       ],
     });
+    expect(analysis.children[0].review.prePr).toMatchObject({
+      actualMode: 'subagent',
+      status: 'passed',
+      fixBatchCount: 1,
+      subagent: { agentId: 'agent-review-2', status: 'passed' },
+      loops: [
+        { loop: 1, mode: 'subagent', status: 'findings', findings: 3 },
+        { loop: 2, mode: 'subagent', status: 'passed', findings: 0 },
+      ],
+    });
   });
 
   it('reconstructs review and merge evidence from interactive events without session metadata', async () => {

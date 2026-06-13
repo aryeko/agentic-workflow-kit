@@ -277,6 +277,10 @@ export async function analyzeWorkflowRun(
 
     const sessionMetrics = await analyzeSessionLog(diagnosticSessionLogPath);
     analyzedChildren[analyzedChildren.length - 1].failedSpawnAgentAttempts = sessionMetrics.failedSpawnAgentAttempts;
+    const sessionPrePrReview = prePrReviewFromSessionLoops(sessionMetrics.reviewLoops);
+    if (sessionPrePrReview && analyzedChildren[analyzedChildren.length - 1].review.prePr === null) {
+      analyzedChildren[analyzedChildren.length - 1].review.prePr = sessionPrePrReview;
+    }
     mergeCounts(commandCounts, sessionMetrics.commandCounts);
     mergeCounts(subagentCounts, sessionMetrics.subagentCounts);
     sessionReviewLoops.push(...sessionMetrics.reviewLoops);
@@ -1037,6 +1041,23 @@ function mergeSessionReviewEvidence(review: ReviewSummary, sessionLoops: Session
         agentId: review.prePr.subagent.agentId ?? latestLoop?.agentId ?? null,
         status: review.prePr.subagent.status ?? (lastPassed ? 'passed' : hasFindings ? 'findings' : null),
       },
+    },
+  };
+}
+
+function prePrReviewFromSessionLoops(sessionLoops: SessionReviewLoop[]): unknown {
+  if (sessionLoops.length === 0) return null;
+  const latestLoop = sessionLoops[sessionLoops.length - 1];
+  const hasFindings = sessionLoops.some((loop) => loop.status === 'findings');
+  const lastPassed = latestLoop?.status === 'passed';
+  return {
+    actualMode: 'subagent',
+    status: lastPassed ? 'passed' : hasFindings ? 'findings' : 'not_started',
+    fixBatchCount: countFindingLoops(sessionLoops),
+    loops: sessionLoops.map(({ agentId: _agentId, ...loop }) => loop),
+    subagent: {
+      agentId: latestLoop?.agentId ?? null,
+      status: lastPassed ? 'passed' : hasFindings ? 'findings' : null,
     },
   };
 }
