@@ -24,6 +24,7 @@ import type {
   StorySource,
   WorkflowStory,
 } from '../types.js';
+import { type BudgetControlDecision, isStrongerBudgetControl, selectBudgetControlDecision } from './BudgetControl.js';
 import {
   type PrepareChildWorkspaceArgs,
   type PreparedChildWorkspace,
@@ -71,6 +72,8 @@ export class WorkflowRunner {
   private readonly completionGate: CompletionGate;
   private readonly trackerClaims = new Map<string, ClaimedWorkflowStory>();
   private readonly emittedBudgetEvents = new Set<string>();
+  private readonly activeChildAbortControllers = new Map<string, AbortController>();
+  private budgetControlDecision: BudgetControlDecision | null = null;
 
   constructor(private readonly dependencies: WorkflowRunnerDependencies) {
     this.metrics = new MetricsCollector(dependencies.clock);
@@ -203,6 +206,7 @@ export class WorkflowRunner {
     let stopLaunching = false;
 
     const launchAvailable = async (): Promise<void> => {
+      stopLaunching = this.budgetControlDecision?.stopNewLaunches === true || stopLaunching;
       if (stopLaunching) return;
 
       const activeIds = new Set(active.keys());
@@ -241,6 +245,7 @@ export class WorkflowRunner {
           limit(() => this.executeChild(claimedStory.story, launch)),
         );
         const startup = await launch.startup;
+        stopLaunching = this.budgetControlDecision?.stopNewLaunches === true || stopLaunching;
         if (startup === 'failed') {
           stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
           break;
@@ -260,7 +265,9 @@ export class WorkflowRunner {
           await this.recordSettledChild(settled);
           await this.journal.record('child-error', { storyId: settled.storyId, error: settled.error });
           this.blockOnce(settled.storyId, settled.error ?? 'child session failed');
-          stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
+          stopLaunching =
+            this.budgetControlDecision?.stopNewLaunches === true ||
+            this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
           await this.writeState();
           await this.writeLiveMetrics();
           await launchAvailable();
@@ -276,15 +283,21 @@ export class WorkflowRunner {
             storyId: settled.storyId,
             status: evaluation.returnedStory?.status ?? null,
           });
-          stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
+          stopLaunching =
+            this.budgetControlDecision?.stopNewLaunches === true ||
+            this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
           await launchAvailable();
           continue;
         }
 
         await this.journal.record('child-complete', { storyId: settled.storyId, sessionId: settled.sessionId });
+        stopLaunching = this.budgetControlDecision?.stopNewLaunches === true || stopLaunching;
         await launchAvailable();
       }
 
+      if (this.budgetControlDecision?.stopNewLaunches) {
+        this.blockOnce('run-eligible', this.budgetControlDecision.reason ?? 'budget policy stopped new launches');
+      }
       return await this.finish();
     };
 
@@ -519,6 +532,7 @@ export class WorkflowRunner {
     let childLaunchedRecorded = false;
     let terminalStartupFailure = false;
     const childAbortController = new AbortController();
+    this.activeChildAbortControllers.set(story.id, childAbortController);
 
     const abortChildStartup = (message: string): void => {
       terminalStartupFailure = true;
@@ -757,6 +771,7 @@ export class WorkflowRunner {
         baseShaAtLaunch: launch.record.baseShaAtLaunch,
       };
     } finally {
+      this.activeChildAbortControllers.delete(story.id);
       if (startupTimeoutHandle !== undefined) timer.clearTimeout(startupTimeoutHandle);
       if (noProgressTimeoutHandle !== undefined) timer.clearTimeout(noProgressTimeoutHandle);
       if (maxRuntimeTimeoutHandle !== undefined) timer.clearTimeout(maxRuntimeTimeoutHandle);
@@ -1017,6 +1032,26 @@ export class WorkflowRunner {
         message: `${evaluation.dimension} budget ${evaluation.status}`,
         data: evaluation,
       });
+    }
+    const decision = selectBudgetControlDecision(budgets.evaluations);
+    if (decision.action === 'continue' || decision.action === 'warn') return;
+    if (!isStrongerBudgetControl(decision, this.budgetControlDecision)) return;
+    this.budgetControlDecision = decision;
+    await this.journal.record('budget-control-applied', {
+      topic: 'budget',
+      level: decision.abort ? 'error' : 'warning',
+      controlAction: decision.action,
+      stopNewLaunches: decision.stopNewLaunches,
+      checkpointStop: decision.checkpointStop,
+      abort: decision.abort,
+      reason: decision.reason,
+      data: decision.evaluation,
+    });
+    if (decision.abort) {
+      for (const controller of this.activeChildAbortControllers.values()) {
+        if (!controller.signal.aborted) controller.abort(new Error(decision.reason ?? 'budget abort'));
+      }
+      this.blockOnce(this.state.active[0] ?? 'run-eligible', decision.reason ?? 'budget abort');
     }
   }
 

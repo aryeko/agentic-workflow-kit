@@ -190,3 +190,12 @@ Control actions:
   the loop without launching newly eligible work.
 - `resume`: not required in V1; artifacts should be shaped so a future resume can reconstruct
   completed, active, and blocked work without reading prose transcripts.
+
+Budget controls are evaluated at runner checkpoints after live metrics and budget artifacts are
+written. The runner uses the strongest observed action with this precedence: `abort`,
+`checkpoint-stop`, `stop-new-launches`, then `warn`. Budget stop actions are independent from child
+failure policy: they prevent new launches even when `stopLaunchingOnBlocked` is `false`. `warn`
+records evidence only, `stop-new-launches` and `checkpoint-stop` let active children settle before
+ending the track loop, and `abort` also signals active child sessions through the driver abort
+signal when supported. Completion still comes only from tracker/GitHub evidence; budget policy can
+stop autonomy, but it cannot mark a story complete.

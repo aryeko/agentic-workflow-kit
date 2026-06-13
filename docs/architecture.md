@@ -221,6 +221,14 @@ are guarded by evidence: child progress, branch and remote state, PR state, trac
 latest commit, and worktree cleanliness. Ambiguous evidence produces manual recovery required
 instead of mutating a child branch or worktree.
 
+Budget policy is enforced by the parent runner at metrics checkpoints using `budgets.json`
+evaluations. The strongest action wins: `abort` outranks `checkpoint-stop`, which outranks
+`stop-new-launches`, which outranks `warn`. Warning budgets only add evidence. Stop budgets prevent
+new story launches regardless of `stopLaunchingOnBlocked`, while allowing active children to settle
+unless the selected action is `abort`; abort budgets also signal active child sessions through the
+driver abort signal. Budget stops are autonomy controls, not completion evidence: the completion
+gate still accepts only tracker/GitHub-backed completion.
+
 For the Codex MCP driver, child liveness is observed through Codex custom `codex/event`
 notifications when available. Standard MCP `notifications/progress` remains supported, but normal
 Codex CLI session activity is not expected to arrive through the SDK `onprogress` path.
