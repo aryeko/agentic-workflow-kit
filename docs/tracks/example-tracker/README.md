@@ -1,6 +1,6 @@
 ---
 title: Linkly delivery tracker
-status: approved
+status: archived
 owner: "—"
 last-reviewed: 2026-06-07
 related:
@@ -23,7 +23,9 @@ sequencing and parallelism. Each story (`LK`n) has a lightweight brief under [`s
    and `L-2` (a short code 301-redirects to the original); `A-1` (per-link click count) is a target.
 2. **Audit findings.** This is a greenfield worked example. A real run of `plan-delivery-track`
    would record repo docs, source roots, existing trackers, and prefix collisions here.
-3. **What this tracker covers.** Status, ordering, and parallelism. Per-story delivery context
+3. **Archive state.** This docs-local copy is archived so repository-level autopilot runs do not
+   treat the Linkly example as active work. The active worked example remains under `examples/`.
+4. **What this tracker covers.** Status, ordering, and parallelism. Per-story delivery context
    lives in story briefs; implementation detail comes later.
 
 ## Dependency graph

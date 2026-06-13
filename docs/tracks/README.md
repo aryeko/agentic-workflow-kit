@@ -7,14 +7,13 @@ dependencies, ownership, and PR links.
 
 | Track | Prefix | Status | README |
 | --- | --- | --- | --- |
-| Example tracker | LK | approved | [README](./example-tracker/README.md) |
 | agentic-workflow-kit redesign | AWK | approved | [README](./agentic-workflow-kit-redesign/README.md) |
 
 ## Archived tracks
 
 | Track | Prefix | Archived | README |
 | --- | --- | --- | --- |
-| — | — | — | — |
+| Example tracker | LK | 2026-06-13 | [README](./example-tracker/README.md) |
 
 ## ID-prefix registry
 
