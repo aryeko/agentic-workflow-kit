@@ -541,13 +541,13 @@ owner: —
 function configWithBudgetAction(
   action: 'stop-new-launches' | 'checkpoint-stop' | 'abort',
   dimension: 'toolCalls' | 'wallMs' = 'toolCalls',
-  budget: { limit?: number; warnAtPercent?: number | null } = {},
+  budget: { limit?: number; warnAtPercent?: number | null; maxParallel?: number } = {},
 ): ResolvedWorkflowConfig {
   const base = config();
   const implementStory = base.agents.resolved.implementStory;
   return {
     ...base,
-    orchestrator: { ...base.orchestrator, maxParallel: 1, stopLaunchingOnBlocked: false },
+    orchestrator: { ...base.orchestrator, maxParallel: budget.maxParallel ?? 1, stopLaunchingOnBlocked: false },
     agents: {
       ...base.agents,
       resolved: {
@@ -557,6 +557,27 @@ function configWithBudgetAction(
           budget: {
             ...implementStory.budget,
             [dimension]: { limit: budget.limit ?? 1, warnAtPercent: budget.warnAtPercent ?? null, action },
+          },
+        },
+      },
+    },
+  };
+}
+
+function configWithInactivePrePrReviewBudget(): ResolvedWorkflowConfig {
+  const base = config();
+  const prePrReview = base.agents.resolved.prePrReview;
+  return {
+    ...base,
+    agents: {
+      ...base.agents,
+      resolved: {
+        ...base.agents.resolved,
+        prePrReview: {
+          ...prePrReview,
+          budget: {
+            ...prePrReview.budget,
+            wallMs: { limit: 1, warnAtPercent: null, action: 'abort' },
           },
         },
       },
@@ -1041,6 +1062,73 @@ describe('WorkflowRunner', () => {
     const state = await runner.runEligible();
 
     expect(metricsRunner.requests.map((request) => request.story.id)).toEqual(['A001', 'A002']);
+    expect(state.status).toBe('complete');
+  });
+
+  it('breaks a precomputed dispatch batch after a startup budget stop', async () => {
+    const mutableClock: Clock = {
+      now: () => (fakeMs >= 2_000 ? '2026-06-02T00:00:02.000Z' : '2026-06-02T00:00:00.000Z'),
+      nowMs: () => fakeMs,
+    };
+    fakeMs = 1_000;
+    const lifecycle = new ManualLifecycleRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: configWithBudgetAction('stop-new-launches', 'wallMs', { maxParallel: 2 }),
+      storySource: new MutableStorySource([
+        [story('A001'), story('A002')],
+        [story('A001', 'done'), story('A002')],
+      ]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock: mutableClock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const run = runner.runEligible();
+    await waitFor(() => expect(lifecycle.requests.map((request) => request.story.id)).toEqual(['A001']));
+    fakeMs = 2_000;
+    await lifecycle.link('A001');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(lifecycle.requests.map((request) => request.story.id)).toEqual(['A001']);
+    lifecycle.resolve('A001');
+    const state = await run;
+
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toContain('budget stop-new-launches');
+  });
+
+  it('does not control implementer children from inactive profile budgets', async () => {
+    const mutableClock: Clock = {
+      now: () => (fakeMs >= 2_000 ? '2026-06-02T00:00:02.000Z' : '2026-06-02T00:00:00.000Z'),
+      nowMs: () => fakeMs,
+    };
+    fakeMs = 1_000;
+    const lifecycle = new ManualLifecycleRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: configWithInactivePrePrReviewBudget(),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock: mutableClock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() => expect(lifecycle.requests).toHaveLength(1));
+    fakeMs = 2_000;
+    await lifecycle.link('A001');
+    expect(lifecycle.requests[0]?.signal?.aborted).toBe(false);
+    lifecycle.resolve('A001');
+    const state = await run;
+
     expect(state.status).toBe('complete');
   });
 

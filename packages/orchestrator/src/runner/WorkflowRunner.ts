@@ -246,6 +246,7 @@ export class WorkflowRunner {
         );
         const startup = await launch.startup;
         stopLaunching = this.budgetControlDecision?.stopNewLaunches === true || stopLaunching;
+        if (stopLaunching) break;
         if (startup === 'failed') {
           stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
           break;
@@ -621,14 +622,16 @@ export class WorkflowRunner {
           progressSource: event.progressSource,
         });
       }
+      let resolveStartupAfterCheckpoint = false;
       if (!startupSettled) {
         startupSettled = true;
-        launch.resolveStartup('acknowledged');
+        resolveStartupAfterCheckpoint = true;
       }
       refreshNoProgressTimeout();
       startSupervisorPolling();
       await this.writeState();
       await this.writeLiveMetrics();
+      if (resolveStartupAfterCheckpoint) launch.resolveStartup('acknowledged');
     };
 
     const handleLifecycle = async (event: ChildLifecycleEvent): Promise<void> => {
@@ -1033,7 +1036,13 @@ export class WorkflowRunner {
         data: evaluation,
       });
     }
-    const decision = selectBudgetControlDecision(budgets.evaluations);
+    const implementProfile = this.dependencies.config.agents.resolved.implementStory;
+    const decision = selectBudgetControlDecision(
+      budgets.evaluations.filter(
+        (evaluation) =>
+          evaluation.taskType === implementProfile.taskType && evaluation.profileName === implementProfile.name,
+      ),
+    );
     if (decision.action === 'continue' || decision.action === 'warn') return;
     if (!isStrongerBudgetControl(decision, this.budgetControlDecision)) return;
     this.budgetControlDecision = decision;
