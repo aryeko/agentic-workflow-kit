@@ -201,6 +201,8 @@ export type WorkflowCommand =
   | { kind: 'list-tracks'; overrides: CliOverrides }
   | { kind: 'list-stories'; overrides: CliOverrides }
   | { kind: 'list-eligible'; overrides: CliOverrides }
+  | { kind: 'tracker-validate'; overrides: CliOverrides }
+  | { kind: 'tracker-migrate'; from: string; track: string; overrides: CliOverrides }
   | { kind: 'run-preview'; target: WorkflowRunPreviewTarget; overrides: CliOverrides }
   | { kind: 'run-story'; storyId: string; overrides: CliOverrides }
   | { kind: 'run-eligible'; overrides: CliOverrides }

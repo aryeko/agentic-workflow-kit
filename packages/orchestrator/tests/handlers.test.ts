@@ -3,7 +3,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { listEligibleHandler, listTracksHandler, watchRunHandler } from '../src/commands/handlers';
+import {
+  listEligibleHandler,
+  listTracksHandler,
+  runWorkflowHandler,
+  trackerMigrateHandler,
+  trackerValidateHandler,
+  watchRunHandler,
+} from '../src/commands/handlers';
 
 const trackerMarkdown = `---
 title: Linkly tracker
@@ -81,5 +88,59 @@ describe('orchestrator command handlers', () => {
     const result = await watchRunHandler(root);
 
     expect(result.wait).toMatchObject({ timedOut: true });
+  });
+
+  it('validates a configured tracker and returns diagnostics', async () => {
+    const root = await createWorkspace();
+
+    const result = await trackerValidateHandler({ cwd: root, track: 'linkly' });
+
+    expect(result.track.id).toBe('linkly');
+    expect(result.report.ok).toBe(true);
+    expect(result.report.summary).toMatchObject({ storyCount: 3, errorCount: 0 });
+    expect(result.report.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'OWNER_CONFLICT', storyId: 'LK03', severity: 'warning' }),
+    );
+    expect(result.report.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'STORY_BRIEF_MISSING', storyId: 'LK02', severity: 'warning' }),
+    );
+  });
+
+  it('migrates a markdown backlog file without mutating the source', async () => {
+    const root = await createWorkspace();
+    const backlog = path.join(root, 'backlog.md');
+    await writeFile(
+      backlog,
+      [
+        '# Backlog',
+        '',
+        '| Key | Summary | Blocked By | Phase | State | Assignee |',
+        '| --- | --- | --- | --- | --- | --- |',
+        '| LK-10 | Import this | — | W1 | todo | — |',
+      ].join('\n'),
+    );
+
+    const result = await trackerMigrateHandler({ from: 'backlog.md', track: 'linkly' }, { cwd: root });
+
+    expect(result.report.ok).toBe(true);
+    expect(result.report.summary.importedRows).toBe(1);
+    expect(result.draftMarkdown).toContain(
+      '| LK10 | Import this | — | W1 | specced | [brief](./stories/LK10.md) | — | — | — |',
+    );
+  });
+
+  it('blocks runtime dispatch when validation reports tracker errors', async () => {
+    const root = await createWorkspace();
+    await writeFile(
+      path.join(root, 'docs/tracks/linkly/README.md'),
+      trackerMarkdown.replace('| LK03 | Claimed | LK01 |', '| ZZ03 | Claimed | LK01 |'),
+    );
+
+    await expect(
+      runWorkflowHandler(
+        { kind: 'run-eligible', overrides: { cwd: root, track: 'linkly', dryRun: true } },
+        { stdout: () => undefined },
+      ),
+    ).rejects.toThrow('tracker validation failed for linkly');
   });
 });

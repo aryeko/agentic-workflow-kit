@@ -84,6 +84,16 @@ describe('parseCommand', () => {
       target: { type: 'track', trackId: 'linkly', mode: 'eligible' },
       overrides: {},
     });
+    expect(parseCommand(['tracker', 'validate', '--track', 'linkly', '--json'])).toEqual({
+      kind: 'tracker-validate',
+      overrides: { track: 'linkly', json: true },
+    });
+    expect(parseCommand(['tracker', 'migrate', '--from', 'backlog.md', '--track', 'linkly'])).toEqual({
+      kind: 'tracker-migrate',
+      from: 'backlog.md',
+      track: 'linkly',
+      overrides: {},
+    });
     expect(() => parseCommand(['run', 'preview', '--story', 'LK02', '--mode', 'eligible'])).toThrow(
       'run preview cannot combine --story with --mode',
     );
@@ -149,6 +159,8 @@ describe('parseCommand', () => {
     expect(() => parseCommand(['unknown'])).toThrow('Unknown command: unknown');
     expect(() => parseCommand(['--json', 'list-tracks'])).toThrow('Unknown command: --json');
     expect(() => parseCommand(['mcp'])).toThrow('Expected `mcp check`');
+    expect(() => parseCommand(['tracker'])).toThrow('Expected `tracker validate` or `tracker migrate`');
+    expect(() => parseCommand(['tracker', 'migrate', '--track', 'linkly'])).toThrow('tracker migrate requires --from');
     expect(() => parseCommand(['run-story'])).toThrow('run-story requires a story id');
     expect(() => parseCommand(['watch-run'])).toThrow('watch-run requires a run directory');
     expect(() => parseCommand(['analyze-run'])).toThrow('analyze-run requires a run directory');

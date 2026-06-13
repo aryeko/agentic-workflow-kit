@@ -1,4 +1,4 @@
-import { mkdtemp, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -63,5 +63,40 @@ describe('runCli', () => {
     await symlink(target, bin);
 
     expect(isDirectCliExecution(bin, pathToFileURL(target).href)).toBe(true);
+  });
+
+  it('sets a nonzero exit code when tracker validation reports errors', async () => {
+    const previousExitCode = process.exitCode;
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-cli-validate-'));
+    const stdout: string[] = [];
+    await mkdir(path.join(root, '.workflow'), { recursive: true });
+    await mkdir(path.join(root, 'docs/tracks/linkly'), { recursive: true });
+    await writeFile(path.join(root, '.workflow/config.yaml'), 'version: 1\n');
+    await writeFile(
+      path.join(root, 'docs/tracks/linkly/README.md'),
+      [
+        '# Linkly',
+        '',
+        '| ID | Name | Depends on | Wave | Status | Spec | Plan | Owner | PR |',
+        '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+        '| LK01 | Foundation | — | 1 | done | [brief](./stories/LK01.md) | — | — | — |',
+        '| ZZ02 | Bad prefix | LK01 | 2 | specced | [brief](./stories/ZZ02.md) | — | — | — |',
+      ].join('\n'),
+    );
+
+    try {
+      process.exitCode = undefined;
+      await runCli(['tracker', 'validate', '--cwd', root, '--track', 'linkly'], {
+        stdout: (line) => stdout.push(line),
+      });
+
+      expect(process.exitCode).toBe(1);
+      expect(JSON.parse(stdout[0])).toMatchObject({
+        ok: true,
+        result: { report: { ok: false } },
+      });
+    } finally {
+      process.exitCode = previousExitCode;
+    }
   });
 });

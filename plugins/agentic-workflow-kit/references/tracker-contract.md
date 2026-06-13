@@ -66,3 +66,82 @@ A story is **eligible** to be picked if and only if:
 3. every story in its **Depends on** list has a Status in `statuses.complete`.
 
 If any condition fails the story is blocked, with the failing condition as the reason.
+
+## Validation diagnostics
+
+Runtime execution must validate a tracker before dispatch. The validation report is structured and
+actionable:
+
+```json
+{
+  "ok": false,
+  "trackerPath": "docs/tracks/example/README.md",
+  "diagnostics": [
+    {
+      "code": "STATUS_INVALID",
+      "severity": "error",
+      "message": "WK2 uses invalid status todo.",
+      "line": 42,
+      "storyId": "WK2",
+      "sourceValue": "todo"
+    }
+  ],
+  "summary": {
+    "storyCount": 4,
+    "errorCount": 1,
+    "warningCount": 0
+  }
+}
+```
+
+Initial diagnostic codes:
+
+| Code | Severity | Meaning |
+| --- | --- | --- |
+| `MISSING_CONTRACT_COLUMNS` | error | The status matrix is absent or does not use the required columns in order. |
+| `STORY_ID_INVALID` | error | A story ID does not match `tracker.idPattern`. |
+| `STORY_ID_DUPLICATE` | error | A story ID appears more than once in the matrix. |
+| `STATUS_INVALID` | error | A row uses a status outside the configured/contract vocabulary. |
+| `DEPENDENCY_TOKEN_INVALID` | error | A dependency cell contains a token that does not match `tracker.idPattern`. |
+| `DEPENDENCY_UNKNOWN` | error | A dependency refers to an ID that is not present in the same matrix. |
+| `ID_PREFIX_MISMATCH` | error | A row uses a different reserved prefix than the rest of the track. |
+| `OWNER_CONFLICT` | warning | A row is owned while not in the configured in-progress status. |
+| `STORY_BRIEF_MISSING` | warning | The Spec cell is empty or does not point to an expected story brief. |
+
+Errors block runtime execution. Warnings should be shown to the user but do not make an otherwise
+valid tracker non-executable.
+
+## Migration report
+
+Migration/import converts existing markdown backlog tables into draft kit trackers. It must not
+mutate the source backlog in place. The output is a draft tracker markdown document plus a report:
+
+```json
+{
+  "ok": true,
+  "trackId": "example",
+  "diagnostics": [
+    {
+      "code": "STATUS_MAPPED",
+      "severity": "warning",
+      "message": "Mapped source status todo to specced.",
+      "line": 7,
+      "storyId": "WK2",
+      "sourceValue": "todo"
+    }
+  ],
+  "summary": {
+    "sourceRows": 2,
+    "importedRows": 2,
+    "generatedStoryBriefCount": 2,
+    "errorCount": 0,
+    "warningCount": 1
+  }
+}
+```
+
+Migration drafts use the same status matrix columns as normal trackers. Unknown or custom statuses
+are mapped to the closest kit status when safe, otherwise to `specced` with a warning. Source IDs
+may be normalized to `tracker.idPattern`; dependencies are normalized through the same ID mapping.
+Users must review the draft tracker, generated story-brief links, and diagnostics before runtime
+execution.
