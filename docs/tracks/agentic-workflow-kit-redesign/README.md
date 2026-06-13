@@ -98,7 +98,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK06 | Runtime event and artifact model | AWK02 | W3 | done | [brief](./stories/AWK06.md) + [contract](../../../references/runtime-artifact-contract.md) | — | codex | [#60](https://github.com/aryeko/agentic-workflow-kit/pull/60) |
 | AWK07 | Run control and abort | AWK06 | W4 | done | [brief](./stories/AWK07.md) | — | codex | [#63](https://github.com/aryeko/agentic-workflow-kit/pull/63) |
 | AWK08 | Story and track autopilot policy | AWK03, AWK05, AWK06 | W4 | done | [brief](./stories/AWK08.md) | — | codex-2026-06-13T22-51-49Z | [#62](https://github.com/aryeko/agentic-workflow-kit/pull/62) |
-| AWK081 | AWK08.1 Review continuity policy | AWK08 | W4.5 | implementing | [brief](./stories/AWK081.md) + [spec](../../superpowers/specs/2026-06-14-awk081-awk08-1-review-continuity-policy-design.md) | [plan](../../superpowers/plans/2026-06-14-awk081-awk08-1-review-continuity-policy.md) | codex-2026-06-13T23-29-42Z | — |
+| AWK081 | AWK08.1 Review continuity policy | AWK08 | W4.5 | done | [brief](./stories/AWK081.md) + [spec](../../superpowers/specs/2026-06-14-awk081-awk08-1-review-continuity-policy-design.md) | [plan](../../superpowers/plans/2026-06-14-awk081-awk08-1-review-continuity-policy.md) | codex-2026-06-13T23-29-42Z | — |
 | AWK09 | Status and streaming API | AWK06, AWK07, AWK081 | W5 | specced | [brief](./stories/AWK09.md) | — | — | — |
 | AWK10 | Analyzer and report bundle | AWK06, AWK09, AWK081 | W5 | specced | [brief](./stories/AWK10.md) | — | — | — |
 | AWK11 | GitHub evidence hardening | AWK08 | W5 | specced | [brief](./stories/AWK11.md) | — | — | — |
