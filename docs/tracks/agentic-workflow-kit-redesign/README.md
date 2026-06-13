@@ -101,7 +101,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK081 | AWK08.1 Review continuity policy | AWK08 | W4.5 | done | [brief](./stories/AWK081.md) | — | codex-2026-06-13T23-29-42Z | [#65](https://github.com/aryeko/agentic-workflow-kit/pull/65) |
 | AWK09 | Status and streaming API | AWK06, AWK07, AWK081 | W5 | done | [brief](./stories/AWK09.md) | — | codex-2026-06-13T23-54-50Z | [#67](https://github.com/aryeko/agentic-workflow-kit/pull/67) |
 | AWK10 | Analyzer and report bundle | AWK06, AWK09, AWK081 | W5 | specced | [brief](./stories/AWK10.md) | — | — | — |
-| AWK11 | GitHub evidence hardening | AWK08 | W5 | implementing | [brief](./stories/AWK11.md) + [spec](../../superpowers/specs/2026-06-14-awk11-github-evidence-hardening-design.md) | — | codex-2026-06-13T23-54-50Z | — |
+| AWK11 | GitHub evidence hardening | AWK08 | W5 | implementing | [brief](./stories/AWK11.md) + [spec](../../superpowers/specs/2026-06-14-awk11-github-evidence-hardening-design.md) | [plan](../../superpowers/plans/2026-06-14-awk11-github-evidence-hardening.md) | codex-2026-06-13T23-54-50Z | — |
 | AWK12 | Plugin package compatibility | AWK09, AWK10, AWK11 | W6 | specced | [brief](./stories/AWK12.md) | — | — | — |
 | AWK13 | Canonical docs consolidation | AWK12 | W7 | deferred | [brief](./stories/AWK13.md) | — | — | — |
 | AWK14 | Changeset and release readiness | AWK13 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
