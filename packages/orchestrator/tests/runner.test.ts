@@ -225,6 +225,10 @@ class DeferredRunner implements StoryRunner {
     resolve({ storyId, sessionId: `thread-${storyId.toLowerCase()}`, content: 'ok', rawResult: {}, invocation: {} });
   }
 
+  hasPending(storyId: string): boolean {
+    return this.pending.has(storyId);
+  }
+
   async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
     return { ok: true, tools: ['codex'] };
   }
@@ -270,6 +274,10 @@ class ManualLifecycleRunner implements StoryRunner {
     if (!resolve) throw new Error(`No pending story ${storyId}`);
     this.pending.delete(storyId);
     resolve({ storyId, sessionId: `thread-${storyId.toLowerCase()}`, content: 'ok', rawResult: {}, invocation: {} });
+  }
+
+  hasPending(storyId: string): boolean {
+    return this.pending.has(storyId);
   }
 
   async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
@@ -338,6 +346,31 @@ class LifecycleRunner implements StoryRunner {
       rawResult: {},
       invocation: {},
     });
+  }
+
+  async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
+    return { ok: true, tools: ['codex'] };
+  }
+}
+
+class AutoCompletingLifecycleRunner implements StoryRunner {
+  requests: StoryRunRequest[] = [];
+
+  async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
+    this.requests.push(request);
+    await request.onLifecycle?.({
+      type: 'session-linked',
+      sessionId: `thread-${request.story.id.toLowerCase()}`,
+      sessionLogPath: `/sessions/${request.story.id.toLowerCase()}.jsonl`,
+      progressSource: 'session-linked',
+    });
+    return {
+      storyId: request.story.id,
+      sessionId: `thread-${request.story.id.toLowerCase()}`,
+      content: 'ok',
+      rawResult: {},
+      invocation: {},
+    };
   }
 
   async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
@@ -514,6 +547,35 @@ class DelayedSupervisorPollArtifacts extends MemoryArtifacts {
   }
 }
 
+class AbortOnFirstLaunchArtifacts extends MemoryArtifacts {
+  private appended = false;
+
+  override async writeJson(relativePath: string, value: unknown): Promise<void> {
+    await super.writeJson(relativePath, value);
+    if (
+      !this.appended &&
+      relativePath === 'children/A001.launch.json' &&
+      typeof value === 'object' &&
+      value !== null &&
+      (value as { status?: string }).status === 'launched'
+    ) {
+      this.appended = true;
+      await this.appendText(
+        'controls.ndjson',
+        `${JSON.stringify({
+          id: 'ctrl-after-startup',
+          runId: 'run-1',
+          action: 'abort',
+          storyId: null,
+          reason: 'operator stop',
+          requestedAt: '2026-06-02T00:00:00.000Z',
+          requestedBy: 'test',
+        })}\n`,
+      );
+    }
+  }
+}
+
 const logger: Logger = { info() {}, warn() {}, error() {} };
 let fakeMs = 1_000;
 const clock: Clock = { now: () => '2026-06-02T00:00:00.000Z', nowMs: () => fakeMs };
@@ -653,6 +715,85 @@ describe('WorkflowRunner', () => {
       }),
     );
     expect(artifacts.events.map((event) => event.type)).toContain('run-aborted');
+  });
+
+  it('keeps run-story aborted when a child finishes after an abort request', async () => {
+    const artifacts = new MemoryArtifacts();
+    const lifecycle = new ManualLifecycleRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001')]]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() => expect(lifecycle.requests).toHaveLength(1));
+    await lifecycle.link('A001');
+    await artifacts.appendText(
+      'controls.ndjson',
+      `${JSON.stringify({
+        id: 'ctrl-live-story',
+        runId: 'run-1',
+        action: 'abort',
+        storyId: null,
+        reason: 'operator stop',
+        requestedAt: '2026-06-02T00:00:00.000Z',
+        requestedBy: 'test',
+      })}\n`,
+    );
+    lifecycle.resolve('A001');
+
+    const state = await run;
+
+    expect(state.status).toBe('aborted');
+    expect(state.blockedReason).toBeNull();
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'control-applied',
+        controlId: 'ctrl-live-story',
+        outcome: 'applied',
+        phase: 'child-settled',
+      }),
+    );
+    expect(artifacts.events.map((event) => event.type)).not.toContain('completion_authority');
+    expect(artifacts.events.map((event) => event.type)).not.toContain('run-complete');
+  });
+
+  it('stops dispatching run-eligible when abort arrives after first child startup', async () => {
+    const artifacts = new AbortOnFirstLaunchArtifacts();
+    const storyRunner = new AutoCompletingLifecycleRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001'), story('A002')]]),
+      storyRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const run = runner.runEligible();
+    const state = await run;
+
+    expect(state.status).toBe('aborted');
+    expect(storyRunner.requests.map((request) => request.story.id)).toEqual(['A001']);
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'control-applied',
+        controlId: 'ctrl-after-startup',
+        phase: 'after-startup',
+      }),
+    );
   });
 
   it('runs one story and completes only after tracker reread shows complete status', async () => {

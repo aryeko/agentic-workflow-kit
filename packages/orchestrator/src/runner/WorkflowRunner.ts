@@ -168,11 +168,20 @@ export class WorkflowRunner {
       return await this.finish();
     }
 
+    if (await this.applyPendingAbortControl('before-launch')) {
+      return await this.finish();
+    }
     const settled = await this.launchChild(story, { force: options.force === true });
+    const abortRequested = await this.applyPendingAbortControl('child-settled');
     if (!settled.ok) {
       await this.recordSettledChild(settled);
       await this.journal.record('child-error', { storyId: settled.storyId, error: settled.error });
+      if (abortRequested) return await this.finish();
       this.blockOnce(story.id, settled.error ?? 'child session failed');
+      return await this.finish();
+    }
+    if (abortRequested) {
+      await this.recordSettledChild(settled);
       return await this.finish();
     }
 
@@ -229,6 +238,10 @@ export class WorkflowRunner {
       }
 
       for (const story of dispatchable) {
+        if (await this.applyPendingAbortControl('before-launch')) {
+          stopLaunching = true;
+          break;
+        }
         if (!(await this.preflightDuplicateLaunch(story))) {
           stopLaunching = true;
           break;
@@ -255,6 +268,10 @@ export class WorkflowRunner {
           stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
           break;
         }
+        if (await this.applyPendingAbortControl('after-startup')) {
+          stopLaunching = true;
+          break;
+        }
       }
     };
 
@@ -265,13 +282,15 @@ export class WorkflowRunner {
       while (active.size > 0) {
         const settled = await Promise.race(active.values());
         active.delete(settled.storyId);
-        if (await this.applyPendingAbortControl('child-settled')) {
+        const abortRequested = await this.applyPendingAbortControl('child-settled');
+        if (abortRequested) {
           stopLaunching = true;
         }
 
         if (!settled.ok) {
           await this.recordSettledChild(settled);
           await this.journal.record('child-error', { storyId: settled.storyId, error: settled.error });
+          if (abortRequested) continue;
           this.blockOnce(settled.storyId, settled.error ?? 'child session failed');
           stopLaunching =
             this.budgetControlDecision?.stopNewLaunches === true ||
@@ -279,6 +298,10 @@ export class WorkflowRunner {
           await this.writeState();
           await this.writeLiveMetrics();
           if (!stopLaunching) await launchAvailable();
+          continue;
+        }
+        if (abortRequested) {
+          await this.recordSettledChild(settled);
           continue;
         }
 

@@ -142,7 +142,7 @@ Command map:
 | `workflow-kit run start --track TRACK --mode eligible` | Start track autopilot over eligible stories. | yes |
 | `workflow-kit run status RUN_ID` | Read current run state, active children, recent events, budgets. | no |
 | `workflow-kit run stream RUN_ID --topics run,story,child,error` | Stream normalized events as table or NDJSON. | no |
-| `workflow-kit run control RUN_ID abort --reason TEXT` | Request abort and return applied/unsupported/terminal outcome. | yes |
+| `workflow-kit abort-run RUN_PATH --reason TEXT` | Request abort and return applied/unsupported/terminal outcome. | yes |
 | `workflow-kit run inspect RUN_ID` | Show artifact tree, child sessions, transcripts, PR links, metrics. | no |
 | `workflow-kit run report RUN_ID --format markdown|json` | Build or read run report. | optional |
 | `workflow-kit run export RUN_ID --out PATH` | Produce a shareable bounded artifact bundle. | yes |
@@ -152,7 +152,7 @@ Example:
 ```bash
 workflow-kit run start --track redesign --mode eligible --parallelism 2 --stream --json
 workflow-kit run stream 2026-06-13T15-48-02-107Z --topics run,story,child,pr,error --format ndjson
-workflow-kit run control 2026-06-13T15-48-02-107Z abort --reason "Wrong target branch"
+workflow-kit abort-run .codex/agentic-workflow-kit/runs/2026-06-13T15-48-02-107Z --reason "Wrong target branch"
 ```
 
 ## MCP tool design
@@ -463,7 +463,7 @@ Standard codes:
 
 - `preview`, `validate`, `list`, `show`, `status`, `stream`, `inspect`, and report reads are
   non-mutating.
-- `artifact create`, `tracker migrate --write-draft`, `run start`, `run control`, `run report`
+- `artifact create`, `tracker migrate --write-draft`, `run start`, `abort-run`, `run report`
   when generating missing outputs, and `run export` are mutating.
 - Mutating calls accept `dryRun` or `--dry-run` where a safe preview is meaningful.
 - Runtime mutating calls create a run id before tracker mutation, then record each mutation in
