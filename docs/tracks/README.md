@@ -8,6 +8,7 @@ dependencies, ownership, and PR links.
 | Track | Prefix | Status | README |
 | --- | --- | --- | --- |
 | Example tracker | LK | approved | [README](./example-tracker/README.md) |
+| agentic-workflow-kit redesign | AWK | approved | [README](./agentic-workflow-kit-redesign/README.md) |
 
 ## Archived tracks
 
@@ -20,3 +21,4 @@ dependencies, ownership, and PR links.
 | Prefix | Track | Status |
 | --- | --- | --- |
 | LK | Example tracker | reserved |
+| AWK | agentic-workflow-kit redesign | reserved |
