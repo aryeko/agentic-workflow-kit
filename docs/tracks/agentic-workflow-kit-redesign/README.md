@@ -92,7 +92,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK03 | Tracker validation and migration | AWK01 | W2 | done | [brief](./stories/AWK03.md) | — | codex | [#57](https://github.com/aryeko/agentic-workflow-kit/pull/57) |
 | AWK04 | Workflow authoring independence | AWK01 | W2 | done | [brief](./stories/AWK04.md) | — | codex | [#59](https://github.com/aryeko/agentic-workflow-kit/pull/59) |
 | AWK05 | Driver contract and Codex profile launch | AWK02 | W3 | specced | [brief](./stories/AWK05.md) | — | — | — |
-| AWK06 | Runtime event and artifact model | AWK02 | W3 | implementing | [brief](./stories/AWK06.md) + [spec](../../superpowers/specs/2026-06-14-awk06-runtime-event-and-artifact-model-design.md) | [plan](../../superpowers/plans/2026-06-14-awk06-runtime-event-and-artifact-model.md) | codex | — |
+| AWK06 | Runtime event and artifact model | AWK02 | W3 | done | [brief](./stories/AWK06.md) + [spec](../../superpowers/specs/2026-06-14-awk06-runtime-event-and-artifact-model-design.md) | [plan](../../superpowers/plans/2026-06-14-awk06-runtime-event-and-artifact-model.md) | codex | — |
 | AWK07 | Run control and abort | AWK06 | W4 | specced | [brief](./stories/AWK07.md) | — | — | — |
 | AWK08 | Story and track autopilot policy | AWK03, AWK05, AWK06 | W4 | specced | [brief](./stories/AWK08.md) | — | — | — |
 | AWK09 | Status and streaming API | AWK06, AWK07, AWK08 | W5 | specced | [brief](./stories/AWK09.md) | — | — | — |
