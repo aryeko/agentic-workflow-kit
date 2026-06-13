@@ -1059,6 +1059,62 @@ describe('WorkflowRunner', () => {
     );
   });
 
+  it('keeps the tracker claim when an acknowledged child becomes supervision-lost', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-supervision-lost-keeps-claim-'));
+    const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
+    mkdirSync(path.dirname(trackerPath), { recursive: true });
+    writeFileSync(trackerPath, trackerMarkdown('specced'));
+    const resolvedConfig = {
+      ...configForWorkspace(workspaceRoot),
+      orchestrator: { ...configForWorkspace(workspaceRoot).orchestrator, childTimeoutMs: 25 },
+    };
+    const storySource: StorySource = {
+      async listStories() {
+        const tracks = await discoverMarkdownTracks({
+          workspaceRoot,
+          tracksDir: resolvedConfig.paths.tracksDir,
+          archiveDir: resolvedConfig.paths.archiveDir,
+          completeStatuses: resolvedConfig.statuses.complete,
+          eligibleStatuses: resolvedConfig.statuses.eligible,
+          idPattern: resolvedConfig.tracker.idPattern,
+        });
+        return tracks.flatMap((track) => track.stories);
+      },
+    };
+    const artifacts = new MemoryArtifacts();
+    const deferred = new DeferredRunner();
+    const timer = new ManualChildTimer();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: resolvedConfig,
+      storySource,
+      storyRunner: deferred,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+      childTimer: timer,
+    });
+
+    const run = runner.runStory('WK001');
+    await waitFor(() => expect(deferred.requests).toHaveLength(1));
+    timer.fireTimeout(timer.latestTimeoutHandle());
+    const state = await run;
+
+    expect(state.status).toBe('supervision_lost');
+    expect(readFileSync(trackerPath, 'utf8')).toContain(
+      '| WK001 | Wire parser to runner | — | 1 | implementing | [spec](../../specs/WK001.md) | — | awk:run-1:WK001 | — |',
+    );
+    expect(artifacts.events).not.toContainEqual(
+      expect.objectContaining({
+        type: 'tracker-claim-released',
+        storyId: 'WK001',
+      }),
+    );
+  });
+
   it('persists child session linkage as soon as the child runner reports it', async () => {
     const artifacts = new MemoryArtifacts();
     const lifecycle = new LifecycleRunner();

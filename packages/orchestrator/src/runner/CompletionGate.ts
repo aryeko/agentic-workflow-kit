@@ -194,7 +194,7 @@ export class CompletionGate {
   ): Promise<WorkflowStory | null> {
     if (!shouldReadBaseTracker(this.deps.pr, settled)) return null;
     if (!this.deps.gitInspector.readFileFromRef) return null;
-    const trackerPath = settled.evidence?.trackerPath ?? returnedStory.metadata.trackerPath;
+    const trackerPath = returnedStory.metadata.trackerPath;
     await this.deps.gitInspector.refreshBaseBranch?.({
       cwdAbs: invocationCwd(settled) ?? this.deps.childCwdAbs,
       git: this.deps.git,
@@ -222,7 +222,7 @@ export class CompletionGate {
     settled: SettledStoryRun,
     returnedStory: WorkflowStory,
   ): Promise<WorkflowStory | null> {
-    const trackerPath = settled.evidence?.trackerPath ?? returnedStory.metadata.trackerPath;
+    const trackerPath = returnedStory.metadata.trackerPath;
     const cwd = invocationCwd(settled) ?? this.deps.childCwdAbs;
     let content: string;
     try {

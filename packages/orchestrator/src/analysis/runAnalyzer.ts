@@ -203,7 +203,7 @@ export async function analyzeWorkflowRun(
     const readableExplicitSessionLogPath =
       explicitSessionLogPath !== null && (await pathExists(explicitSessionLogPath)) ? explicitSessionLogPath : null;
     const discoveredSessionLogPath = sessionId ? (logsBySession.get(sessionId) ?? null) : null;
-    const sessionLogPath = explicitSessionLogPath ?? discoveredSessionLogPath;
+    const sessionLogPath = readableExplicitSessionLogPath ?? discoveredSessionLogPath ?? explicitSessionLogPath;
     const storyId = readString(child.storyId, 'child.storyId');
     const diagnosticSessionCandidates = diagnosticCandidatesForStory(events, storyId);
     const diagnosticSessionLogPath =

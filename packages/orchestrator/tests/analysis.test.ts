@@ -75,6 +75,40 @@ describe('analyzeWorkflowRun', () => {
     expect(analysis.tokenTotals?.totalTokens).toBe(110);
   });
 
+  it('displays a discovered readable session log path when explicit child path is stale', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-stale-session-path-'));
+    const runDir = path.join(root, 'runs', 'run-1');
+    const sessionRoot = path.join(root, 'sessions');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await mkdir(sessionRoot, { recursive: true });
+    await writeFile(path.join(runDir, 'state.json'), JSON.stringify({ runId: 'run-1', status: 'complete' }));
+    await writeFile(
+      path.join(runDir, 'children', 'A001.json'),
+      JSON.stringify({
+        storyId: 'A001',
+        ok: true,
+        sessionId: 'thread-a001',
+        sessionLogPath: path.join(root, 'missing.jsonl'),
+      }),
+    );
+    const discovered = path.join(sessionRoot, 'a001.jsonl');
+    await writeFile(
+      discovered,
+      [
+        JSON.stringify({ type: 'session_meta', payload: { id: 'thread-a001' } }),
+        JSON.stringify({ type: 'response_item', payload: { type: 'function_call', name: 'exec_command' } }),
+      ].join('\n'),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [sessionRoot] });
+
+    expect(analysis.children[0]).toMatchObject({
+      storyId: 'A001',
+      sessionLogPath: discovered,
+      metricsStatus: 'available',
+    });
+  });
+
   it('handles runs without child result artifacts', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-empty-'));
     const runDir = path.join(root, 'runs', 'run-1');

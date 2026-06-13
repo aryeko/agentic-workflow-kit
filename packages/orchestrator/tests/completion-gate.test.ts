@@ -347,6 +347,28 @@ describe('CompletionGate', () => {
     }
   });
 
+  it('does not let child evidence redirect child-worktree tracker authority away from the canonical path', async () => {
+    const childCwd = await writeChildTracker('implementing');
+    const alternateTrackerPath = path.join(childCwd, 'docs/tracks/other/README.md');
+    await mkdir(path.dirname(alternateTrackerPath), { recursive: true });
+    await writeFile(alternateTrackerPath, trackerMarkdown('done'));
+    const gate = new CompletionGate(makeDeps({ childCwdAbs: childCwd }));
+
+    const result = await gate.evaluate(
+      settled({
+        invocation: { cwd: childCwd },
+        evidence: { trackerPath: 'docs/tracks/other/README.md', finalStatus: 'done' },
+      }),
+      [story('A001', 'implementing')],
+    );
+
+    expect(result.complete).toBe(false);
+    if (!result.complete) {
+      expect(result.authority).toBe('tracker-status-not-complete');
+      expect(result.source).toBe('returned-tracker');
+    }
+  });
+
   it('returns complete=false for direct base branch commits even when auto-merge is enabled', async () => {
     const directBaseEvidence: StoryCommitEvidence = {
       ...goodEvidence,

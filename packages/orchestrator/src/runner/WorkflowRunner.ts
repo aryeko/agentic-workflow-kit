@@ -745,7 +745,9 @@ export class WorkflowRunner {
     this.state = { ...this.state, completed: [...this.state.completed, entry] };
     await this.writeState();
     await this.writeLiveMetrics();
-    await this.releaseSettledClaim(settled.storyId);
+    if (this.state.status !== 'supervision_lost' && !isSupervisionLostError(settled.error ?? '')) {
+      await this.releaseSettledClaim(settled.storyId);
+    }
   }
 
   private async recordRecoveryGuard(story: WorkflowStory, launch: ChildLaunchRecord): Promise<void> {
