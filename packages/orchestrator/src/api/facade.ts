@@ -197,7 +197,15 @@ async function buildRunPreview(input: WorkflowRunPreviewInput): Promise<{
   const target = input.target;
   if (target.type === 'story') {
     const { config, stories } = await listStoriesHandler(overrides);
-    const story = stories.find((entry) => entry.id === target.storyId);
+    const matchingStories = stories.filter((entry) => entry.id === target.storyId);
+    if (target.trackId === undefined && matchingStories.length > 1) {
+      throw new Error(
+        `story ${target.storyId} exists in multiple tracks: ${matchingStories
+          .map((story) => story.metadata.trackId)
+          .join(', ')}; pass --track <id>`,
+      );
+    }
+    const story = matchingStories[0];
     if (!story) throw new Error(`story ${target.storyId} was not found`);
     if (input.force === true) {
       return {
@@ -213,8 +221,14 @@ async function buildRunPreview(input: WorkflowRunPreviewInput): Promise<{
     };
   }
 
-  const { config, stories } = await listEligibleHandler(overrides);
-  const dispatchable = selectDispatchableStories(stories, {
+  const { config, stories } =
+    target.trackId === undefined ? await listStoriesHandler(overrides) : await listEligibleHandler(overrides);
+  const eligibleStories = stories.filter((story) => story.eligible);
+  const eligibleTrackIds = [...new Set(eligibleStories.map((story) => story.metadata.trackId))];
+  if (target.trackId === undefined && eligibleTrackIds.length > 1) {
+    throw new Error(`multiple tracks have eligible stories: ${eligibleTrackIds.join(', ')}; pass --track <id>`);
+  }
+  const dispatchable = selectDispatchableStories(eligibleStories, {
     maxParallel: input.maxParallel ?? config.orchestrator.maxParallel,
   });
   return {

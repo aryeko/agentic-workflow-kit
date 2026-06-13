@@ -29,12 +29,25 @@ flowchart TD
 \`\`\`
 `;
 
-async function createWorkspace(): Promise<string> {
+async function createWorkspace(
+  options: { secondEligibleTrack?: boolean; duplicateStoryTrack?: boolean } = {},
+): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-api-facade-'));
   await mkdir(path.join(root, '.workflow'), { recursive: true });
   await mkdir(path.join(root, 'docs/tracks/linkly'), { recursive: true });
   await writeFile(path.join(root, '.workflow/config.yaml'), 'version: 1\n');
   await writeFile(path.join(root, 'docs/tracks/linkly/README.md'), trackerMarkdown);
+  if (options.secondEligibleTrack || options.duplicateStoryTrack) {
+    await mkdir(path.join(root, 'docs/tracks/billing'), { recursive: true });
+    const billingMarkdown = options.duplicateStoryTrack
+      ? trackerMarkdown.replace('title: Linkly tracker', 'title: Billing tracker')
+      : trackerMarkdown
+          .replace('title: Linkly tracker', 'title: Billing tracker')
+          .replaceAll('LK01', 'BL01')
+          .replaceAll('LK02', 'BL02')
+          .replaceAll('LK03', 'BL03');
+    await writeFile(path.join(root, 'docs/tracks/billing/README.md'), billingMarkdown);
+  }
   return root;
 }
 
@@ -192,6 +205,42 @@ describe('workflow API facade', () => {
       error: {
         code: 'TRACKER_INVALID',
         message: expect.stringContaining('story LK99 was not found'),
+      },
+    });
+  });
+
+  it('rejects story preview when the story id exists in multiple tracks and no track is supplied', async () => {
+    const root = await createWorkspace({ duplicateStoryTrack: true });
+
+    const envelope = await runPreviewFacade({
+      cwd: root,
+      target: { type: 'story', storyId: 'LK02' },
+    });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_preview',
+      error: {
+        code: 'TRACKER_INVALID',
+        message: expect.stringContaining('story LK02 exists in multiple tracks'),
+      },
+    });
+  });
+
+  it('rejects eligible-track preview when multiple tracks are eligible and no track is supplied', async () => {
+    const root = await createWorkspace({ secondEligibleTrack: true });
+
+    const envelope = await runPreviewFacade({
+      cwd: root,
+      target: { type: 'track', mode: 'eligible' },
+    });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_preview',
+      error: {
+        code: 'TRACKER_INVALID',
+        message: expect.stringContaining('multiple tracks have eligible stories'),
       },
     });
   });
