@@ -217,7 +217,8 @@ export async function analyzeWorkflowRun(
     const evidence = readChildEvidence(child);
     const progress = childProgressSummary(child, latestSupervisorPollByStory.get(storyId) ?? null);
     const staleParentSnapshot = isStaleParentSnapshot(child, evidence, config);
-    const completionAuthority = completionAuthorityForStory(events, storyId) ?? readOptionalString(child.completionAuthority);
+    const completionAuthority =
+      completionAuthorityForStory(events, storyId) ?? readOptionalString(child.completionAuthority);
     const completionAuthoritySource =
       completionAuthoritySourceForStory(events, storyId) ?? readOptionalString(child.completionAuthoritySource);
     const status = deriveChildStatus(state, child, {

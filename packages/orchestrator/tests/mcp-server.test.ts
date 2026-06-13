@@ -260,7 +260,9 @@ describe('agentic-workflow-kit MCP server', () => {
     expect(result.structuredContent).toMatchObject({
       runId: 'run-1',
       status: 'blocked',
-      issues: expect.arrayContaining(['DLD05 PR policy incomplete: auto-merge policy has not produced merged evidence']),
+      issues: expect.arrayContaining([
+        'DLD05 PR policy incomplete: auto-merge policy has not produced merged evidence',
+      ]),
       children: [
         expect.objectContaining({
           storyId: 'DLD05',

@@ -1,10 +1,7 @@
 import { isRecord } from '../../internal/guards.js';
 import type { ChildResultEvidence, VerificationEvidence } from '../../types.js';
 
-export function childResultEvidence(
-  structuredContent: Record<string, unknown>,
-  content: string,
-): ChildResultEvidence {
+export function childResultEvidence(structuredContent: Record<string, unknown>, content: string): ChildResultEvidence {
   const structured =
     readEvidenceObject(structuredContent.childResult) ??
     readEvidenceObject(structuredContent.result) ??
