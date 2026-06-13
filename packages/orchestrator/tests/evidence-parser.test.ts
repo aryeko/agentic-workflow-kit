@@ -58,6 +58,26 @@ describe('childResultEvidence', () => {
     expect(evidence.mergeCommit).toBe('abc1234');
   });
 
+  it('keeps current-story merge commits with PR mentions when structured PR number is absent', () => {
+    const evidence = childResultEvidence(
+      { childResult: { storyId: 'DLD05' } },
+      'DLD05 PR #108 was merged with squash commit abc1234.',
+    );
+
+    expect(evidence.merged).toBe(true);
+    expect(evidence.mergeCommit).toBe('abc1234');
+  });
+
+  it('does not attach PR-only merge commits when structured PR number is absent', () => {
+    const evidence = childResultEvidence(
+      { childResult: { storyId: 'DLD05' } },
+      'PR #108 was merged with squash commit abc1234.',
+    );
+
+    expect(evidence.merged).toBeUndefined();
+    expect(evidence.mergeCommit).toBeUndefined();
+  });
+
   it('does not treat negated same-PR merge wording as merge evidence', () => {
     const evidence = childResultEvidence(
       {},

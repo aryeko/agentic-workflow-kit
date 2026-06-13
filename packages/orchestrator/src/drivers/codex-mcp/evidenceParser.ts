@@ -184,13 +184,12 @@ function lineMentionsDifferentPrOrStory(
   const prMentions = [...line.matchAll(/\b(?:PR|pull request)\s*#?(\d+)\b|\/pull\/(\d+)\b/gi)].map((match) =>
     Number(match[1] ?? match[2]),
   );
-  if (prNumber === undefined) {
-    if (prMentions.length > 0) return true;
-  } else {
+  const storyMentions = [...line.matchAll(/\b[A-Z]{2,}\d+\b/g)].map((match) => match[0]);
+  if (prNumber !== undefined) {
     if (prMentions.some((number) => number !== prNumber)) return true;
     if (prMentions.some((number) => number === prNumber)) return false;
   }
-  const storyMentions = [...line.matchAll(/\b[A-Z]{2,}\d+\b/g)].map((match) => match[0]);
+  if (prNumber === undefined && prMentions.length > 0 && storyMentions.length === 0) return true;
   if (storyMentions.length === 0) return false;
   if (!currentStoryId) return true;
   return storyMentions.some((storyId) => storyId !== currentStoryId);
