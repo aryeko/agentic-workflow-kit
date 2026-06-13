@@ -175,6 +175,7 @@ export interface ResolvedChildSessionConfig {
 export interface CliOverrides {
   configPath?: string;
   json?: boolean;
+  requestId?: string;
   force?: boolean;
   maxParallel?: number;
   childTimeoutMs?: number;
@@ -196,14 +197,20 @@ export interface CliOverrides {
 
 export type WorkflowCommand =
   | { kind: 'help' }
+  | { kind: 'project-inspect'; overrides: CliOverrides }
   | { kind: 'list-tracks'; overrides: CliOverrides }
   | { kind: 'list-stories'; overrides: CliOverrides }
   | { kind: 'list-eligible'; overrides: CliOverrides }
+  | { kind: 'run-preview'; target: WorkflowRunPreviewTarget; overrides: CliOverrides }
   | { kind: 'run-story'; storyId: string; overrides: CliOverrides }
   | { kind: 'run-eligible'; overrides: CliOverrides }
   | { kind: 'watch-run'; runPath: string; overrides: CliOverrides }
   | { kind: 'analyze-run'; runPath: string; overrides: CliOverrides }
   | { kind: 'mcp-check'; overrides: CliOverrides };
+
+export type WorkflowRunPreviewTarget =
+  | { type: 'story'; trackId?: string; storyId: string }
+  | { type: 'track'; trackId?: string; mode: 'eligible' };
 
 export interface WorkflowStory {
   id: string;

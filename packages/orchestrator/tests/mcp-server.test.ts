@@ -170,9 +170,64 @@ describe('agentic-workflow-kit MCP server', () => {
     });
     expect(runEligible?.inputSchema.properties).not.toHaveProperty('watch');
 
+    const projectInspect = result.tools.find((tool) => tool.name === 'workflow_project_inspect');
+    expect(projectInspect?.description).toContain('Resolve WorkflowKit project context');
+
+    const runPreview = result.tools.find((tool) => tool.name === 'workflow_run_preview');
+    expect(runPreview?.description).toContain('Preview story or track execution');
+    expect(runPreview?.inputSchema.properties?.target).toBeDefined();
+
     const analyzeRun = result.tools.find((tool) => tool.name === 'analyze_run');
     expect(analyzeRun?.inputSchema.properties?.runPath).toMatchObject({
       description: expect.stringContaining('artifactDir returned by run_story or run_eligible'),
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('calls workflow_project_inspect with the product result envelope', async () => {
+    const root = await createWorkspace();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'workflow_project_inspect',
+      arguments: { cwd: root, requestId: 'req-mcp' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_project_inspect',
+      requestId: 'req-mcp',
+      result: {
+        project: { tracks: [{ id: 'linkly' }] },
+        capabilities: { runStory: true, runTrack: true },
+      },
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('calls workflow_run_preview without removing legacy run_story dry-runs', async () => {
+    const root = await createWorkspace();
+    const { client, server } = await connectClient();
+
+    const preview = await client.callTool({
+      name: 'workflow_run_preview',
+      arguments: { cwd: root, target: { type: 'story', trackId: 'linkly', storyId: 'LK02' } },
+    });
+    const legacy = await client.callTool({
+      name: 'run_story',
+      arguments: { cwd: root, track: 'linkly', storyId: 'LK02' },
+    });
+
+    expect(preview.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_preview',
+      result: { dryRunDispatch: ['LK02'] },
+    });
+    expect(legacy.structuredContent).toMatchObject({
+      status: 'dry-run',
+      dryRunDispatch: ['LK02'],
     });
     await client.close();
     await server.close();

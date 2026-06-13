@@ -69,6 +69,23 @@ describe('parseCommand', () => {
     });
   });
 
+  it('parses product facade commands', () => {
+    expect(parseCommand(['project', 'inspect', '--json'])).toEqual({
+      kind: 'project-inspect',
+      overrides: { json: true },
+    });
+    expect(parseCommand(['run', 'preview', '--track', 'linkly', '--story', 'LK02', '--json'])).toEqual({
+      kind: 'run-preview',
+      target: { type: 'story', trackId: 'linkly', storyId: 'LK02' },
+      overrides: { json: true },
+    });
+    expect(parseCommand(['run', 'preview', '--track', 'linkly', '--mode', 'eligible'])).toEqual({
+      kind: 'run-preview',
+      target: { type: 'track', trackId: 'linkly', mode: 'eligible' },
+      overrides: {},
+    });
+  });
+
   it('parses watch/analyze/mcp commands', () => {
     expect(parseCommand(['watch-run', '.codex/agentic-workflow-kit/runs/run-1', '--json'])).toEqual({
       kind: 'watch-run',

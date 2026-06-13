@@ -36,6 +36,9 @@ tracker. Use this package directly when you want the runtime from a terminal, CI
 
 ```bash
 agentic-workflow-kit --help
+agentic-workflow-kit project inspect --cwd . --json
+agentic-workflow-kit run preview --cwd . --track product-foundation --mode eligible --json
+agentic-workflow-kit run preview --cwd . --track product-foundation --story WK001 --json
 agentic-workflow-kit list-tracks --cwd .
 agentic-workflow-kit list-stories --cwd . --track product-foundation
 agentic-workflow-kit list-eligible --cwd . --track product-foundation
@@ -50,6 +53,12 @@ agentic-workflow-kit mcp check --cwd .
 MCP sessions, create branches or worktrees, edit files, run verification commands, and update
 tracker rows according to `.workflow/config.yaml`.
 
+`project inspect` and `run preview` are the product API facade commands. They emit the shared
+WorkflowKit result envelope with `ok`, `operation`, `apiVersion`, `project`, `result`, `artifacts`,
+`warnings`, and `next` fields. `run preview` delegates to the existing dry-run runtime path, so it
+uses the same story and track selection behavior as `run-story --dry-run` and
+`run-eligible --dry-run` while exposing product nouns for future CLI/MCP parity.
+
 ## MCP Server
 
 Plugin installs start the MCP server with an exact package version:
@@ -60,6 +69,8 @@ npx -y --package @agentic-workflow-kit/orchestrator@<exact-version> agentic-work
 
 Available MCP tools:
 
+- `workflow_project_inspect`
+- `workflow_run_preview`
 - `list_tracks`
 - `list_stories`
 - `list_eligible`
@@ -71,6 +82,9 @@ Available MCP tools:
 
 The MCP tools operate on the target repository. If the MCP session is not already running from a
 workflow repo, pass `cwd` as the target repo root in tool input.
+
+The `workflow_*` tools are the product-named facade. The legacy tools remain available for
+0.5.13-compatible plugin workflows and existing automation.
 
 ## Workflow Contract
 

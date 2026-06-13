@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-
+import { projectInspectFacade, runPreviewFacade } from '../api/facade.js';
 import {
   analyzeRunHandler,
   listEligibleHandler,
@@ -20,6 +20,8 @@ import type { CliOverrides, Logger, RunState } from '../types.js';
 import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 
 export const ORCHESTRATOR_MCP_TOOLS = [
+  'workflow_project_inspect',
+  'workflow_run_preview',
   'list_tracks',
   'list_stories',
   'list_eligible',
@@ -34,6 +36,36 @@ export const ORCHESTRATOR_MCP_TOOLS = [
   'analyze_run',
   'check_codex_mcp',
 ] as const;
+
+const productBaseInputSchema = z.object({
+  cwd: z
+    .string()
+    .optional()
+    .describe('Target repo root to operate in; omit only when the MCP session is already running from that repo.'),
+  configPath: z.string().optional().describe('Path to .workflow/config.yaml; defaults to <cwd>/.workflow/config.yaml.'),
+  requestId: z.string().optional().describe('Optional client request id echoed in the WorkflowKit API envelope.'),
+  responseFormat: z
+    .enum(['concise', 'detailed'])
+    .optional()
+    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
+});
+
+const workflowRunPreviewInputSchema = productBaseInputSchema.extend({
+  target: z
+    .discriminatedUnion('type', [
+      z.object({
+        type: z.literal('story'),
+        trackId: z.string().optional().describe('Track id containing the story.'),
+        storyId: z.string().describe('Story id to preview.'),
+      }),
+      z.object({
+        type: z.literal('track'),
+        trackId: z.string().optional().describe('Track id to preview.'),
+        mode: z.literal('eligible').describe('Preview the eligible-story track run.'),
+      }),
+    ])
+    .describe('Product target for the run preview.'),
+});
 
 const baseInputSchema = z.object({
   cwd: z
@@ -167,6 +199,37 @@ const outputSchema = z
   .passthrough();
 
 export function registerOrchestratorTools(server: McpServer): void {
+  server.registerTool(
+    'workflow_project_inspect',
+    {
+      description: 'Resolve WorkflowKit project context, tracks, and capability flags using the product API envelope.',
+      inputSchema: productBaseInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_project_inspect', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return projectInspectFacade(toOverrides(input));
+      }),
+  );
+
+  server.registerTool(
+    'workflow_run_preview',
+    {
+      description:
+        'Preview story or track execution through the product API envelope. This is non-mutating runtime preview behavior and keeps legacy run_story/run_eligible tools available.',
+      inputSchema: workflowRunPreviewInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_run_preview', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return runPreviewFacade({ ...toOverrides(input), target: input.target });
+      }),
+  );
+
   server.registerTool(
     'list_tracks',
     {
@@ -399,6 +462,7 @@ function toOverrides(input: {
   tracksDir?: string;
   maxParallel?: number;
   json?: boolean;
+  requestId?: string;
   dryRun?: boolean;
   force?: boolean;
   watch?: boolean;
@@ -421,6 +485,7 @@ function toOverrides(input: {
   if (input.tracksDir !== undefined) overrides.tracksDir = input.tracksDir;
   if (input.maxParallel !== undefined) overrides.maxParallel = input.maxParallel;
   if (input.json === true) overrides.json = true;
+  if (input.requestId !== undefined) overrides.requestId = input.requestId;
   if (input.dryRun === true) overrides.dryRun = true;
   if (input.asyncLaunch === true) overrides.asyncLaunch = true;
   if (input.force === true) overrides.force = true;
