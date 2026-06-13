@@ -91,7 +91,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK02 | Agent profiles and budgets | AWK01 | W2 | done | [brief](./stories/AWK02.md) + [spec](../../superpowers/specs/2026-06-13-awk02-agent-profiles-and-budgets-design.md) | [plan](../../superpowers/plans/2026-06-13-awk02-agent-profiles-and-budgets.md) | codex | [#58](https://github.com/aryeko/agentic-workflow-kit/pull/58) |
 | AWK03 | Tracker validation and migration | AWK01 | W2 | done | [brief](./stories/AWK03.md) | — | codex | [#57](https://github.com/aryeko/agentic-workflow-kit/pull/57) |
 | AWK04 | Workflow authoring independence | AWK01 | W2 | done | [brief](./stories/AWK04.md) | — | codex | [#59](https://github.com/aryeko/agentic-workflow-kit/pull/59) |
-| AWK05 | Driver contract and Codex profile launch | AWK02 | W3 | implementing | [brief](./stories/AWK05.md) + [spec](../../superpowers/specs/2026-06-14-awk05-driver-contract-and-codex-profile-launch-design.md) | — | codex | — |
+| AWK05 | Driver contract and Codex profile launch | AWK02 | W3 | implementing | [brief](./stories/AWK05.md) + [spec](../../superpowers/specs/2026-06-14-awk05-driver-contract-and-codex-profile-launch-design.md) | [plan](../../superpowers/plans/2026-06-14-awk05-driver-contract-and-codex-profile-launch.md) | codex | — |
 | AWK06 | Runtime event and artifact model | AWK02 | W3 | done | [brief](./stories/AWK06.md) + [contract](../../../references/runtime-artifact-contract.md) | — | codex | [#60](https://github.com/aryeko/agentic-workflow-kit/pull/60) |
 | AWK07 | Run control and abort | AWK06 | W4 | specced | [brief](./stories/AWK07.md) | — | — | — |
 | AWK08 | Story and track autopilot policy | AWK03, AWK05, AWK06 | W4 | specced | [brief](./stories/AWK08.md) | — | — | — |
