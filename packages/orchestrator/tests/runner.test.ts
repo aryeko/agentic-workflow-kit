@@ -156,6 +156,31 @@ class SyncRunner implements StoryRunner {
   }
 }
 
+class MetricsRunner implements StoryRunner {
+  requests: StoryRunRequest[] = [];
+  async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
+    this.requests.push(request);
+    return {
+      storyId: request.story.id,
+      sessionId: `thread-${request.story.id.toLowerCase()}`,
+      content: 'ok',
+      rawResult: {},
+      invocation: {},
+      metrics: {
+        storyId: request.story.id,
+        toolCounts: { exec_command: 1 },
+        subagentCounts: {},
+        tokenTotals: null,
+        latestProgress: 'checked',
+        sessionLogPath: `/sessions/${request.story.id.toLowerCase()}.jsonl`,
+      },
+    };
+  }
+  async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
+    return { ok: true, tools: ['codex'] };
+  }
+}
+
 class CompletingTrackerRunner implements StoryRunner {
   requests: StoryRunRequest[] = [];
   constructor(private readonly trackerPath: string) {}
@@ -245,6 +270,36 @@ class ManualLifecycleRunner implements StoryRunner {
     if (!resolve) throw new Error(`No pending story ${storyId}`);
     this.pending.delete(storyId);
     resolve({ storyId, sessionId: `thread-${storyId.toLowerCase()}`, content: 'ok', rawResult: {}, invocation: {} });
+  }
+
+  async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
+    return { ok: true, tools: ['codex'] };
+  }
+}
+
+class AbortAwareManualRunner implements StoryRunner {
+  requests: StoryRunRequest[] = [];
+  private readonly pending = new Map<string, { reject: (error: Error) => void; request: StoryRunRequest }>();
+
+  async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
+    this.requests.push(request);
+    return await new Promise<StoryRunResult>((_resolve, reject) => {
+      this.pending.set(request.story.id, { reject, request });
+      request.signal?.addEventListener('abort', () => {
+        reject(new Error('child aborted'));
+      });
+    });
+  }
+
+  async link(storyId: string): Promise<void> {
+    const pending = this.pending.get(storyId);
+    if (!pending) throw new Error(`No pending story ${storyId}`);
+    await pending.request.onLifecycle?.({
+      type: 'session-linked',
+      sessionId: `thread-${storyId.toLowerCase()}`,
+      sessionLogPath: `/sessions/${storyId.toLowerCase()}.jsonl`,
+      progressSource: 'session-linked',
+    });
   }
 
   async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
@@ -481,6 +536,53 @@ owner: —
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | WK001 | Wire parser to runner | — | 1 | ${status} | [spec](../../specs/WK001.md) | — | — | — |
 `;
+}
+
+function configWithBudgetAction(
+  action: 'stop-new-launches' | 'checkpoint-stop' | 'abort',
+  dimension: 'toolCalls' | 'wallMs' = 'toolCalls',
+  budget: { limit?: number; warnAtPercent?: number | null; maxParallel?: number } = {},
+): ResolvedWorkflowConfig {
+  const base = config();
+  const implementStory = base.agents.resolved.implementStory;
+  return {
+    ...base,
+    orchestrator: { ...base.orchestrator, maxParallel: budget.maxParallel ?? 1, stopLaunchingOnBlocked: false },
+    agents: {
+      ...base.agents,
+      resolved: {
+        ...base.agents.resolved,
+        implementStory: {
+          ...implementStory,
+          budget: {
+            ...implementStory.budget,
+            [dimension]: { limit: budget.limit ?? 1, warnAtPercent: budget.warnAtPercent ?? null, action },
+          },
+        },
+      },
+    },
+  };
+}
+
+function configWithInactivePrePrReviewBudget(): ResolvedWorkflowConfig {
+  const base = config();
+  const prePrReview = base.agents.resolved.prePrReview;
+  return {
+    ...base,
+    agents: {
+      ...base.agents,
+      resolved: {
+        ...base.agents.resolved,
+        prePrReview: {
+          ...prePrReview,
+          budget: {
+            ...prePrReview.budget,
+            wallMs: { limit: 1, warnAtPercent: null, action: 'abort' },
+          },
+        },
+      },
+    },
+  };
 }
 
 async function waitFor(assertion: () => void): Promise<void> {
@@ -891,6 +993,174 @@ describe('WorkflowRunner', () => {
     await run;
 
     expect(unacknowledged.requests.map((request) => request.story.id)).toEqual(['A001', 'A002']);
+  });
+
+  it('stops launching new track stories when a stop-new-launches budget is reached', async () => {
+    const metricsRunner = new MetricsRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: configWithBudgetAction('stop-new-launches'),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done'), story('A002')]]),
+      storyRunner: metricsRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const state = await runner.runEligible();
+
+    expect(metricsRunner.requests.map((request) => request.story.id)).toEqual(['A001']);
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toContain('budget stop-new-launches');
+  });
+
+  it('checkpoint-stops after active children settle without launching newly eligible stories', async () => {
+    const metricsRunner = new MetricsRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: configWithBudgetAction('checkpoint-stop'),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done'), story('A002')]]),
+      storyRunner: metricsRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const state = await runner.runEligible();
+
+    expect(metricsRunner.requests.map((request) => request.story.id)).toEqual(['A001']);
+    expect(state.completed.map((entry) => entry.storyId)).toEqual(['A001']);
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toContain('budget checkpoint-stop');
+  });
+
+  it('records budget warnings without applying the configured over-limit stop action early', async () => {
+    const metricsRunner = new MetricsRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: configWithBudgetAction('abort', 'toolCalls', { limit: 10, warnAtPercent: 10 }),
+      storySource: new MutableStorySource([
+        [story('A001')],
+        [story('A001', 'done'), story('A002')],
+        [story('A001', 'done'), story('A002', 'done')],
+      ]),
+      storyRunner: metricsRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const state = await runner.runEligible();
+
+    expect(metricsRunner.requests.map((request) => request.story.id)).toEqual(['A001', 'A002']);
+    expect(state.status).toBe('complete');
+  });
+
+  it('breaks a precomputed dispatch batch after a startup budget stop', async () => {
+    const mutableClock: Clock = {
+      now: () => (fakeMs >= 2_000 ? '2026-06-02T00:00:02.000Z' : '2026-06-02T00:00:00.000Z'),
+      nowMs: () => fakeMs,
+    };
+    fakeMs = 1_000;
+    const lifecycle = new ManualLifecycleRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: configWithBudgetAction('stop-new-launches', 'wallMs', { maxParallel: 2 }),
+      storySource: new MutableStorySource([
+        [story('A001'), story('A002')],
+        [story('A001', 'done'), story('A002')],
+      ]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock: mutableClock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const run = runner.runEligible();
+    await waitFor(() => expect(lifecycle.requests.map((request) => request.story.id)).toEqual(['A001']));
+    fakeMs = 2_000;
+    await lifecycle.link('A001');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(lifecycle.requests.map((request) => request.story.id)).toEqual(['A001']);
+    lifecycle.resolve('A001');
+    const state = await run;
+
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toContain('budget stop-new-launches');
+  });
+
+  it('does not control implementer children from inactive profile budgets', async () => {
+    const mutableClock: Clock = {
+      now: () => (fakeMs >= 2_000 ? '2026-06-02T00:00:02.000Z' : '2026-06-02T00:00:00.000Z'),
+      nowMs: () => fakeMs,
+    };
+    fakeMs = 1_000;
+    const lifecycle = new ManualLifecycleRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: configWithInactivePrePrReviewBudget(),
+      storySource: new MutableStorySource([[story('A001')], [story('A001', 'done')]]),
+      storyRunner: lifecycle,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock: mutableClock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() => expect(lifecycle.requests).toHaveLength(1));
+    fakeMs = 2_000;
+    await lifecycle.link('A001');
+    expect(lifecycle.requests[0]?.signal?.aborted).toBe(false);
+    lifecycle.resolve('A001');
+    const state = await run;
+
+    expect(state.status).toBe('complete');
+  });
+
+  it('aborts an active child when an abort budget is reached', async () => {
+    const mutableClock: Clock = {
+      now: () => (fakeMs >= 2_000 ? '2026-06-02T00:00:02.000Z' : '2026-06-02T00:00:00.000Z'),
+      nowMs: () => fakeMs,
+    };
+    fakeMs = 1_000;
+    const abortAware = new AbortAwareManualRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: configWithBudgetAction('abort', 'wallMs'),
+      storySource: new MutableStorySource([[story('A001')]]),
+      storyRunner: abortAware,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: new MemoryArtifacts(),
+      logger,
+      clock: mutableClock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const run = runner.runStory('A001');
+    await waitFor(() => expect(abortAware.requests).toHaveLength(1));
+    fakeMs = 2_000;
+    await abortAware.link('A001');
+    const state = await run;
+
+    expect(abortAware.requests[0]?.signal?.aborted).toBe(true);
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toContain('budget abort');
   });
 
   it('blocks duplicate expected branches already active in this run', async () => {
