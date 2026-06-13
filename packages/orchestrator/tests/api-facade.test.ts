@@ -131,6 +131,32 @@ describe('workflow API facade', () => {
     });
   });
 
+  it('honors force for story previews without writing run artifacts', async () => {
+    const root = await createWorkspace();
+
+    const envelope = await runPreviewFacade({
+      cwd: root,
+      force: true,
+      target: { type: 'story', trackId: 'linkly', storyId: 'LK03' },
+    });
+
+    expect(envelope).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_preview',
+      result: {
+        run: {
+          id: null,
+          status: 'dry-run',
+          target: { type: 'story', trackId: 'linkly', storyId: 'LK03' },
+        },
+        dryRunDispatch: ['LK03'],
+        blockers: [],
+      },
+      artifacts: [],
+    });
+    await expect(access(path.join(root, '.codex', 'agentic-workflow-kit'))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('maps facade failures to a structured error envelope', async () => {
     const root = await createWorkspace();
 
@@ -149,6 +175,24 @@ describe('workflow API facade', () => {
         message: expect.stringContaining('track missing was not found'),
       },
       warnings: [],
+    });
+  });
+
+  it('maps missing story previews to a tracker validation error', async () => {
+    const root = await createWorkspace();
+
+    const envelope = await runPreviewFacade({
+      cwd: root,
+      target: { type: 'story', trackId: 'linkly', storyId: 'LK99' },
+    });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_preview',
+      error: {
+        code: 'TRACKER_INVALID',
+        message: expect.stringContaining('story LK99 was not found'),
+      },
     });
   });
 });

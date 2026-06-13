@@ -199,6 +199,13 @@ async function buildRunPreview(input: WorkflowRunPreviewInput): Promise<{
     const { config, stories } = await listStoriesHandler(overrides);
     const story = stories.find((entry) => entry.id === target.storyId);
     if (!story) throw new Error(`story ${target.storyId} was not found`);
+    if (input.force === true) {
+      return {
+        config,
+        dispatchableStoryIds: [story.id],
+        blockers: [],
+      };
+    }
     return {
       config,
       dispatchableStoryIds: story.eligible ? [story.id] : [],
@@ -302,6 +309,6 @@ function errorCodeForMessage(message: string): WorkflowApiErrorCode {
   if (message.includes('config') || message.includes('.workflow/config.yaml')) return 'CONFIG_INVALID';
   if (message.includes('not eligible')) return 'STORY_NOT_ELIGIBLE';
   if (message.includes('run') && message.includes('not found')) return 'RUN_NOT_FOUND';
-  if (message.includes('track') || message.includes('stories')) return 'TRACKER_INVALID';
+  if (message.includes('track') || message.includes('story') || message.includes('stories')) return 'TRACKER_INVALID';
   return 'INTERNAL_ERROR';
 }
