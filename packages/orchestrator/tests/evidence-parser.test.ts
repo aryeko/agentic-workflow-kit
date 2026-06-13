@@ -32,6 +32,18 @@ describe('childResultEvidence', () => {
     expect(evidence.mergeCommit).toBeUndefined();
   });
 
+  it('does not attach an unrelated merge commit when identity is structured only', () => {
+    const evidence = childResultEvidence(
+      { childResult: { storyId: 'DLD05', prNumber: 108 } },
+      'DLD04 was merged with squash commit abc1234.',
+    );
+
+    expect(evidence.prNumber).toBe(108);
+    expect(evidence.storyId).toBe('DLD05');
+    expect(evidence.merged).toBeUndefined();
+    expect(evidence.mergeCommit).toBeUndefined();
+  });
+
   it('keeps merge commits that name the current story', () => {
     const evidence = childResultEvidence(
       { childResult: { storyId: 'DLD05' } },

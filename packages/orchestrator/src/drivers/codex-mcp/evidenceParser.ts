@@ -7,7 +7,7 @@ export function childResultEvidence(structuredContent: Record<string, unknown>, 
     readEvidenceObject(structuredContent.result) ??
     readEvidenceObject(structuredContent.evidence) ??
     readEvidenceObject(structuredContent);
-  return mergeEvidence(compatibilityEvidence(content, structured?.storyId), structured);
+  return mergeEvidence(compatibilityEvidence(content, structured?.storyId, structured?.prNumber), structured);
 }
 
 function readEvidenceObject(value: unknown): ChildResultEvidence | null {
@@ -44,18 +44,23 @@ function readEvidenceObject(value: unknown): ChildResultEvidence | null {
   return Object.keys(evidence).length > 0 ? evidence : null;
 }
 
-function compatibilityEvidence(content: string, currentStoryId: string | undefined): ChildResultEvidence {
+function compatibilityEvidence(
+  content: string,
+  currentStoryId: string | undefined,
+  currentPrNumber: number | undefined,
+): ChildResultEvidence {
   const evidence: ChildResultEvidence = {};
   const prUrl = content.match(/https:\/\/github\.com\/[^\s)]+\/pull\/(\d+)/);
   if (prUrl) {
     evidence.prUrl = prUrl[0];
     evidence.prNumber = Number(prUrl[1]);
   }
-  const mergeCommit = mergeCommitEvidence(content, evidence.prNumber, currentStoryId);
+  const prNumber = evidence.prNumber ?? currentPrNumber;
+  const mergeCommit = mergeCommitEvidence(content, prNumber, currentStoryId);
   if (mergeCommit !== null) {
     evidence.merged = true;
     evidence.mergeCommit = mergeCommit;
-  } else if (evidence.prNumber !== undefined && hasSamePrMergeEvidence(content, evidence.prNumber)) {
+  } else if (prNumber !== undefined && hasSamePrMergeEvidence(content, prNumber)) {
     evidence.merged = true;
   }
   if (/remote story branch (?:was )?deleted|branch deletion confirmed/i.test(content)) {
@@ -142,7 +147,12 @@ function mergeCommitEvidence(
     if (line.length === 0 || hasNegatedMergeEvidence(line)) continue;
     const mergeCommit = line.match(/\b(?:Merged|merge commit|squash commit)[^`0-9a-f]*`?([0-9a-f]{7,40})`?/i);
     if (!mergeCommit) continue;
-    if (prNumber !== undefined && lineMentionsDifferentPrOrStory(line, prNumber, currentStoryId)) continue;
+    if (
+      (prNumber !== undefined || currentStoryId !== undefined) &&
+      lineMentionsDifferentPrOrStory(line, prNumber, currentStoryId)
+    ) {
+      continue;
+    }
     return mergeCommit[1];
   }
   return null;
@@ -166,12 +176,20 @@ function hasNegatedMergeEvidence(line: string): boolean {
   return /\b(?:not|never|no)\s+(?:been\s+)?merged\b|\bmerged\s+(?:not|never)\b/i.test(line);
 }
 
-function lineMentionsDifferentPrOrStory(line: string, prNumber: number, currentStoryId: string | undefined): boolean {
+function lineMentionsDifferentPrOrStory(
+  line: string,
+  prNumber: number | undefined,
+  currentStoryId: string | undefined,
+): boolean {
   const prMentions = [...line.matchAll(/\b(?:PR|pull request)\s*#?(\d+)\b|\/pull\/(\d+)\b/gi)].map((match) =>
     Number(match[1] ?? match[2]),
   );
-  if (prMentions.some((number) => number !== prNumber)) return true;
-  if (prMentions.some((number) => number === prNumber)) return false;
+  if (prNumber === undefined) {
+    if (prMentions.length > 0) return true;
+  } else {
+    if (prMentions.some((number) => number !== prNumber)) return true;
+    if (prMentions.some((number) => number === prNumber)) return false;
+  }
   const storyMentions = [...line.matchAll(/\b[A-Z]{2,}\d+\b/g)].map((match) => match[0]);
   if (storyMentions.length === 0) return false;
   if (!currentStoryId) return true;
