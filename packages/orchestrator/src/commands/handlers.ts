@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { glob } from 'tinyglobby';
 
@@ -10,6 +10,7 @@ import { createRunId, loadResolvedConfig, resolveCwdOnlyConfig } from '../config
 import { CodexMcpStoryRunner, type CodexMcpStoryRunnerOptions } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
 import { RealGitInspector } from '../git/GitInspector.js';
 import { ConsoleLogger } from '../logging/ConsoleLogger.js';
+import { sendCodexInterrupt } from '../mcp/codexControl.js';
 import { WorkflowRunner } from '../runner/WorkflowRunner.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import {
@@ -26,6 +27,9 @@ import type {
   LiveMetricsSnapshot,
   Logger,
   ResolvedWorkflowConfig,
+  RunControlChildOutcome,
+  RunControlRequest,
+  RunControlResult,
   RunState,
   StorySource,
   TokenTotals,
@@ -125,6 +129,13 @@ export interface PollWatchRunResult extends WatchRunSnapshot {
   changes: unknown[];
 }
 
+export interface AbortRunInput {
+  runPath: string;
+  storyId?: string;
+  reason?: string;
+  requestedBy?: string;
+}
+
 type RunCommand = Extract<WorkflowCommand, { kind: 'run-story' | 'run-eligible' }>;
 type WatchOptions = ResolvedWorkflowConfig['orchestrator']['watch'];
 
@@ -216,6 +227,122 @@ export async function analyzeRunHandler(runPath: string, overrides: CliOverrides
   return await analyzeWorkflowRun(path.resolve(runPath), {
     sessionRoots: overrides.sessionRoot ? [path.resolve(overrides.sessionRoot)] : undefined,
   });
+}
+
+export async function abortRunHandler(input: AbortRunInput): Promise<RunControlResult> {
+  const runPath = path.resolve(input.runPath);
+  const statePath = path.join(runPath, 'state.json');
+  const state = await readJsonIfExists(statePath);
+  if (!isObject(state) || typeof state.runId !== 'string') {
+    throw new Error(`run state not found or invalid: ${statePath}`);
+  }
+
+  const requestedAt = new Date().toISOString();
+  const request: RunControlRequest = {
+    id: `ctrl_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
+    runId: state.runId,
+    action: 'abort',
+    storyId: input.storyId ?? null,
+    reason: input.reason ?? null,
+    requestedAt,
+    requestedBy: input.requestedBy ?? 'operator',
+  };
+  await appendNdjson(path.join(runPath, 'controls.ndjson'), request);
+  await appendRunEvent(runPath, 'control-requested', {
+    controlId: request.id,
+    action: request.action,
+    storyId: request.storyId,
+    reason: request.reason,
+    requestedBy: request.requestedBy,
+  });
+
+  const status = readOptionalString(state.status);
+  const allActiveStoryIds = readStringArray(state.active);
+  if (request.storyId && allActiveStoryIds.length > 0 && !allActiveStoryIds.includes(request.storyId)) {
+    const childOutcomes: RunControlChildOutcome[] = [
+      {
+        storyId: request.storyId,
+        sessionId: null,
+        outcome: 'unsupported',
+        detail: 'requested story is not active in this run',
+      },
+    ];
+    await appendRunEvent(runPath, 'control-applied', {
+      controlId: request.id,
+      action: request.action,
+      outcome: 'unsupported',
+      childOutcomes,
+    });
+    return {
+      ok: true,
+      runId: request.runId,
+      action: request.action,
+      outcome: 'unsupported',
+      reason: request.reason,
+      requestedAt,
+      appliedAt: null,
+      runPath,
+      activeStoryIds: [],
+      childOutcomes,
+      artifacts: controlArtifactRefs(),
+    };
+  }
+  const activeStoryIds = allActiveStoryIds.filter((storyId) => !request.storyId || storyId === request.storyId);
+  const terminal = isTerminalRunStatus(status);
+  if (terminal) {
+    return {
+      ok: true,
+      runId: request.runId,
+      action: request.action,
+      outcome: 'already-terminal',
+      reason: request.reason,
+      requestedAt,
+      appliedAt: null,
+      runPath,
+      activeStoryIds,
+      childOutcomes: [],
+      artifacts: controlArtifactRefs(),
+    };
+  }
+
+  const childOutcomes = await abortActiveChildren(runPath, activeStoryIds, request.reason);
+  const hasActiveChildren = activeStoryIds.length > 0;
+  const appliedAt = new Date().toISOString();
+  const outcome = controlOutcomeForChildren(hasActiveChildren, childOutcomes);
+  const nextStatus = hasActiveChildren && outcome !== 'applied' ? 'aborting' : 'aborted';
+  const updatedState = {
+    ...state,
+    status: nextStatus,
+    blockedStoryId: nextStatus === 'aborted' ? null : readOptionalString(state.blockedStoryId),
+    blockedReason: nextStatus === 'aborted' ? null : (request.reason ?? 'abort requested'),
+    ...(nextStatus === 'aborted' ? { completedAt: appliedAt } : {}),
+  };
+  await writeJsonFile(statePath, updatedState);
+  await appendRunEvent(runPath, 'control-applied', {
+    controlId: request.id,
+    action: request.action,
+    outcome,
+    childOutcomes,
+  });
+  if (nextStatus === 'aborted') {
+    await appendRunEvent(runPath, 'run-aborted', {
+      controlId: request.id,
+      reason: request.reason,
+    });
+  }
+  return {
+    ok: true,
+    runId: request.runId,
+    action: request.action,
+    outcome,
+    reason: request.reason,
+    requestedAt,
+    appliedAt,
+    runPath,
+    activeStoryIds,
+    childOutcomes,
+    artifacts: controlArtifactRefs(),
+  };
 }
 
 export async function watchRunHandler(runPath: string, overrides: CliOverrides = {}): Promise<WatchRunSnapshot> {
@@ -321,12 +448,9 @@ async function readRunSnapshot(runDirectory: string): Promise<WatchRunSnapshot> 
 }
 
 function isRunningState(state: unknown): boolean {
-  return (
-    typeof state === 'object' &&
-    state !== null &&
-    !Array.isArray(state) &&
-    (state as { status?: unknown }).status === 'running'
-  );
+  if (typeof state !== 'object' || state === null || Array.isArray(state)) return false;
+  const status = (state as { status?: unknown }).status;
+  return status === 'running' || status === 'aborting';
 }
 
 export async function mcpCheckHandler(
@@ -677,8 +801,102 @@ async function readJsonIfExists(filePath: string): Promise<unknown | null> {
   }
 }
 
+async function writeJsonFile(filePath: string, value: unknown): Promise<void> {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function appendNdjson(filePath: string, value: unknown): Promise<void> {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await appendFile(filePath, `${JSON.stringify(value)}\n`);
+}
+
+async function appendRunEvent(runPath: string, type: string, fields: Record<string, unknown>): Promise<void> {
+  const now = new Date().toISOString();
+  await appendNdjson(path.join(runPath, 'events.ndjson'), {
+    ...fields,
+    recordedAt: now,
+    eventAt: now,
+    type,
+  });
+}
+
+async function abortActiveChildren(
+  runPath: string,
+  activeStoryIds: string[],
+  reason: string | null,
+): Promise<RunControlChildOutcome[]> {
+  const outcomes: RunControlChildOutcome[] = [];
+  for (const storyId of activeStoryIds) {
+    const launch = await readJsonIfExists(path.join(runPath, 'children', `${safeRunFileName(storyId)}.launch.json`));
+    const sessionId = isObject(launch) ? readOptionalString(launch.sessionId) : null;
+    if (!sessionId) {
+      outcomes.push({
+        storyId,
+        sessionId: null,
+        outcome: 'unsupported',
+        detail: 'active child has no linked Codex session',
+      });
+      continue;
+    }
+    try {
+      const result = await sendCodexInterrupt({ sessionId, storyId, runPath, reason: reason ?? undefined });
+      outcomes.push({
+        storyId,
+        sessionId,
+        outcome: 'requested',
+        detail: `sent ${result.tool}`,
+      });
+    } catch (error) {
+      outcomes.push({
+        storyId,
+        sessionId,
+        outcome: 'unsupported',
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return outcomes;
+}
+
+function controlOutcomeForChildren(
+  hasActiveChildren: boolean,
+  childOutcomes: RunControlChildOutcome[],
+): RunControlResult['outcome'] {
+  if (!hasActiveChildren) return 'applied';
+  if (childOutcomes.length === 0) return 'requested';
+  if (childOutcomes.every((entry) => entry.outcome === 'unsupported')) return 'unsupported';
+  if (childOutcomes.every((entry) => entry.outcome === 'applied')) return 'applied';
+  return 'requested';
+}
+
+function controlArtifactRefs(): RunControlResult['artifacts'] {
+  return {
+    controls: 'controls.ndjson',
+    events: 'events.ndjson',
+    state: 'state.json',
+  };
+}
+
+function isTerminalRunStatus(status: string | null): boolean {
+  return (
+    status === 'aborted' ||
+    status === 'blocked' ||
+    status === 'complete' ||
+    status === 'dry-run' ||
+    status === 'supervision_lost'
+  );
+}
+
+function safeRunFileName(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]+/g, '-');
+}
+
 const meaningfulWatchEventTypes = new Set([
   'run-started',
+  'control-requested',
+  'control-applied',
+  'run-aborted',
   'child-launch-requested',
   'child-launched',
   'child-session-linked',

@@ -168,11 +168,20 @@ export class WorkflowRunner {
       return await this.finish();
     }
 
+    if (await this.applyPendingAbortControl('before-launch')) {
+      return await this.finish();
+    }
     const settled = await this.launchChild(story, { force: options.force === true });
+    const abortRequested = await this.applyPendingAbortControl('child-settled');
     if (!settled.ok) {
       await this.recordSettledChild(settled);
       await this.journal.record('child-error', { storyId: settled.storyId, error: settled.error });
+      if (abortRequested) return await this.finish();
       this.blockOnce(story.id, settled.error ?? 'child session failed');
+      return await this.finish();
+    }
+    if (abortRequested) {
+      await this.recordSettledChild(settled);
       return await this.finish();
     }
 
@@ -208,6 +217,10 @@ export class WorkflowRunner {
     const launchAvailable = async (): Promise<void> => {
       stopLaunching = this.budgetControlDecision?.stopNewLaunches === true || stopLaunching;
       if (stopLaunching) return;
+      if (await this.applyPendingAbortControl('before-launch')) {
+        stopLaunching = true;
+        return;
+      }
 
       const activeIds = new Set(active.keys());
       const availableSlots = Math.max(0, this.dependencies.config.orchestrator.maxParallel - activeIds.size);
@@ -225,6 +238,10 @@ export class WorkflowRunner {
       }
 
       for (const story of dispatchable) {
+        if (await this.applyPendingAbortControl('before-launch')) {
+          stopLaunching = true;
+          break;
+        }
         if (!(await this.preflightDuplicateLaunch(story))) {
           stopLaunching = true;
           break;
@@ -251,6 +268,10 @@ export class WorkflowRunner {
           stopLaunching = this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
           break;
         }
+        if (await this.applyPendingAbortControl('after-startup')) {
+          stopLaunching = true;
+          break;
+        }
       }
     };
 
@@ -261,17 +282,26 @@ export class WorkflowRunner {
       while (active.size > 0) {
         const settled = await Promise.race(active.values());
         active.delete(settled.storyId);
+        const abortRequested = await this.applyPendingAbortControl('child-settled');
+        if (abortRequested) {
+          stopLaunching = true;
+        }
 
         if (!settled.ok) {
           await this.recordSettledChild(settled);
           await this.journal.record('child-error', { storyId: settled.storyId, error: settled.error });
+          if (abortRequested) continue;
           this.blockOnce(settled.storyId, settled.error ?? 'child session failed');
           stopLaunching =
             this.budgetControlDecision?.stopNewLaunches === true ||
             this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
           await this.writeState();
           await this.writeLiveMetrics();
-          await launchAvailable();
+          if (!stopLaunching) await launchAvailable();
+          continue;
+        }
+        if (abortRequested) {
+          await this.recordSettledChild(settled);
           continue;
         }
 
@@ -287,13 +317,13 @@ export class WorkflowRunner {
           stopLaunching =
             this.budgetControlDecision?.stopNewLaunches === true ||
             this.dependencies.config.orchestrator.stopLaunchingOnBlocked;
-          await launchAvailable();
+          if (!stopLaunching) await launchAvailable();
           continue;
         }
 
         await this.journal.record('child-complete', { storyId: settled.storyId, sessionId: settled.sessionId });
         stopLaunching = this.budgetControlDecision?.stopNewLaunches === true || stopLaunching;
-        await launchAvailable();
+        if (!stopLaunching) await launchAvailable();
       }
 
       if (this.budgetControlDecision?.stopNewLaunches) {
@@ -983,9 +1013,51 @@ export class WorkflowRunner {
     this.dependencies.logger.warn('run blocked', { storyId, reason });
   }
 
+  private async applyPendingAbortControl(phase: string): Promise<boolean> {
+    const request = (await this.journal.readControls()).find((entry) => entry.action === 'abort');
+    if (!request) return false;
+    if (this.state.status === 'aborted') return true;
+    if (
+      this.state.status === 'blocked' ||
+      this.state.status === 'complete' ||
+      this.state.status === 'supervision_lost'
+    ) {
+      return true;
+    }
+    const activeStoryIds = this.state.active;
+    const nextStatus = activeStoryIds.length > 0 ? 'aborting' : 'aborted';
+    this.state = {
+      ...this.state,
+      status: nextStatus,
+      blockedStoryId: nextStatus === 'aborting' ? (request.storyId ?? activeStoryIds[0] ?? null) : null,
+      blockedReason: nextStatus === 'aborting' ? (request.reason ?? 'abort requested') : null,
+    };
+    await this.journal.record('control-applied', {
+      controlId: request.id,
+      action: request.action,
+      outcome: nextStatus === 'aborted' ? 'applied' : 'requested',
+      phase,
+      activeStoryIds,
+    });
+    if (nextStatus === 'aborted') {
+      await this.journal.record('run-aborted', {
+        controlId: request.id,
+        reason: request.reason,
+      });
+    }
+    await this.writeState();
+    await this.writeLiveMetrics();
+    return true;
+  }
+
   private async finish(): Promise<RunState> {
+    if (this.state.status === 'aborting') {
+      this.state = { ...this.state, status: 'aborted', blockedStoryId: null, blockedReason: null };
+      await this.journal.record('run-aborted');
+    }
     if (
       this.state.status !== 'blocked' &&
+      this.state.status !== 'aborted' &&
       this.state.status !== 'dry-run' &&
       this.state.status !== 'supervision_lost'
     ) {

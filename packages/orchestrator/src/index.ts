@@ -36,6 +36,8 @@ export {
 } from './tracks/markdownTracker.js';
 export type {
   ResolvedWorkflowConfig,
+  RunControlRequest,
+  RunControlResult,
   RunState,
   WorkflowCommand,
   WorkflowRunPreviewTarget,

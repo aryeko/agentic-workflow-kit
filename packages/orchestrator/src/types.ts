@@ -9,7 +9,44 @@ export type AgentTaskType =
   | 'migrateTracker';
 export type AgentBudgetAction = 'warn' | 'stop-new-launches' | 'checkpoint-stop' | 'abort';
 
-export type RunStatus = 'blocked' | 'complete' | 'dry-run' | 'running' | 'supervision_lost';
+export type RunStatus = 'aborted' | 'aborting' | 'blocked' | 'complete' | 'dry-run' | 'running' | 'supervision_lost';
+export type RunControlAction = 'abort';
+export type RunControlOutcome = 'already-terminal' | 'applied' | 'requested' | 'unsupported';
+
+export interface RunControlRequest {
+  id: string;
+  runId: string;
+  action: RunControlAction;
+  storyId: string | null;
+  reason: string | null;
+  requestedAt: string;
+  requestedBy: string;
+}
+
+export interface RunControlChildOutcome {
+  storyId: string;
+  sessionId: string | null;
+  outcome: RunControlOutcome;
+  detail: string | null;
+}
+
+export interface RunControlResult {
+  ok: true;
+  runId: string;
+  action: RunControlAction;
+  outcome: RunControlOutcome;
+  reason: string | null;
+  requestedAt: string;
+  appliedAt: string | null;
+  runPath: string;
+  activeStoryIds: string[];
+  childOutcomes: RunControlChildOutcome[];
+  artifacts: {
+    controls: string;
+    events: string;
+    state: string;
+  };
+}
 
 export interface ResolvedGitConfig {
   strategy: 'worktree' | 'branch';
@@ -279,6 +316,8 @@ export interface CliOverrides {
   intervalMs?: number;
   timeoutMs?: number;
   sessionRoot?: string;
+  storyId?: string;
+  reason?: string;
   cwd?: string;
   model?: string;
   reasoning?: string;
@@ -298,6 +337,7 @@ export type WorkflowCommand =
   | { kind: 'run-story'; storyId: string; overrides: CliOverrides }
   | { kind: 'run-eligible'; overrides: CliOverrides }
   | { kind: 'watch-run'; runPath: string; overrides: CliOverrides }
+  | { kind: 'abort-run'; runPath: string; overrides: CliOverrides }
   | { kind: 'analyze-run'; runPath: string; overrides: CliOverrides }
   | { kind: 'mcp-check'; overrides: CliOverrides };
 
@@ -532,6 +572,8 @@ export interface TranscriptIndexArtifact {
 export interface ArtifactStore {
   writeJson(relativePath: string, value: unknown): Promise<void>;
   writeText(relativePath: string, value: string): Promise<void>;
+  readText?(relativePath: string): Promise<string | null>;
+  appendText?(relativePath: string, value: string): Promise<void>;
   appendEvent(event: RunEvent): Promise<void>;
 }
 

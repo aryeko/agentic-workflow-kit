@@ -32,6 +32,9 @@ export function parseCommand(argv: string[]): WorkflowCommand {
   if (args[0] === 'watch-run' && (!args[1] || args[1].startsWith('-'))) {
     throw new Error('watch-run requires a run directory');
   }
+  if (args[0] === 'abort-run' && (!args[1] || args[1].startsWith('-'))) {
+    throw new Error('abort-run requires a run directory');
+  }
   if (args[0] === 'analyze-run' && (!args[1] || args[1].startsWith('-'))) {
     throw new Error('analyze-run requires a run directory');
   }
@@ -110,6 +113,11 @@ function buildProgram(setParsed: (command: WorkflowCommand) => void): Command {
       setParsed({ kind: 'watch-run', runPath, overrides: toOverrides(options) });
     },
   );
+  withOptions(program.command('abort-run').argument('<runPath>'))
+    .option('--story <id>')
+    .action((runPath: string, options: CommanderOptions) => {
+      setParsed({ kind: 'abort-run', runPath, overrides: toOverrides(options) });
+    });
   withOptions(program.command('analyze-run').argument('<runPath>')).action(
     (runPath: string, options: CommanderOptions) => {
       setParsed({ kind: 'analyze-run', runPath, overrides: toOverrides(options) });
@@ -142,6 +150,7 @@ function withOptions(command: Command): Command {
     .addOption(new Option('--timeout-ms <n>').argParser((value) => parsePositiveIntegerFlag(value, '--timeout-ms')))
     .option('--track <id>')
     .option('--tracks-dir <path>')
+    .option('--reason <text>')
     .option('--from <path>')
     .option('--model <model>')
     .option('--reasoning <effort>')
@@ -171,6 +180,7 @@ interface CommanderOptions {
   cwd?: string;
   sessionRoot?: string;
   story?: string;
+  reason?: string;
   mode?: 'eligible';
   from?: string;
 }
@@ -195,6 +205,8 @@ function toOverrides(options: CommanderOptions): CliOverrides {
   if (options.sandbox !== undefined) overrides.sandbox = options.sandbox;
   if (options.cwd !== undefined) overrides.cwd = options.cwd;
   if (options.sessionRoot !== undefined) overrides.sessionRoot = options.sessionRoot;
+  if (options.story !== undefined) overrides.storyId = options.story;
+  if (options.reason !== undefined) overrides.reason = options.reason;
   return overrides;
 }
 
