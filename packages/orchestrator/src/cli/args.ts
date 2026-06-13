@@ -180,6 +180,9 @@ function toOverrides(options: CommanderOptions): CliOverrides {
 }
 
 function toRunPreviewTarget(options: CommanderOptions): WorkflowRunPreviewTarget {
+  if (options.story !== undefined && options.mode !== undefined) {
+    throw new Error('run preview cannot combine --story with --mode');
+  }
   if (options.story !== undefined) {
     return {
       type: 'story',

@@ -207,6 +207,35 @@ describe('agentic-workflow-kit MCP server', () => {
     await server.close();
   });
 
+  it('returns product MCP failures in the shared error envelope', async () => {
+    const originalCwd = process.cwd();
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-product-no-workflow-'));
+    const { client, server } = await connectClient();
+
+    try {
+      process.chdir(tempRoot);
+      delete process.env.INIT_CWD;
+      const result = await client.callTool({
+        name: 'workflow_project_inspect',
+        arguments: {},
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toMatchObject({
+        ok: false,
+        operation: 'workflow_project_inspect',
+        error: {
+          code: 'CONFIG_INVALID',
+          severity: 'error',
+        },
+      });
+    } finally {
+      process.chdir(originalCwd);
+      await client.close();
+      await server.close();
+    }
+  });
+
   it('calls workflow_run_preview without removing legacy run_story dry-runs', async () => {
     const root = await createWorkspace();
     const { client, server } = await connectClient();
@@ -224,6 +253,8 @@ describe('agentic-workflow-kit MCP server', () => {
       ok: true,
       operation: 'workflow_run_preview',
       result: { dryRunDispatch: ['LK02'] },
+      artifacts: [],
+      next: [expect.objectContaining({ mcpTool: 'run_story' })],
     });
     expect(legacy.structuredContent).toMatchObject({
       status: 'dry-run',

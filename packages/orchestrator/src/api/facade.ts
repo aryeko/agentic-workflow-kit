@@ -1,9 +1,10 @@
 import path from 'node:path';
 
 import { resolveInvocationCwd } from '../cli/args.js';
-import { discoverTracks, runWorkflowHandler } from '../commands/handlers.js';
+import { discoverTracks, listEligibleHandler, listStoriesHandler } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
-import type { CliOverrides, ResolvedWorkflowConfig, RunState, WorkflowRunPreviewTarget } from '../types.js';
+import { selectDispatchableStories } from '../scheduler/scheduler.js';
+import type { CliOverrides, ResolvedWorkflowConfig, RunStatus, WorkflowRunPreviewTarget } from '../types.js';
 
 export type WorkflowApiOperation = 'workflow_project_inspect' | 'workflow_run_preview';
 export type WorkflowApiErrorCode =
@@ -109,12 +110,12 @@ export interface WorkflowRunPreviewInput extends CliOverrides {
 
 export interface WorkflowRunPreviewResult {
   run: {
-    id: string;
-    status: RunState['status'];
+    id: null;
+    status: RunStatus;
     target: WorkflowRunPreviewTarget;
   };
   dryRunDispatch: string[];
-  state: RunState;
+  blockers: string[];
 }
 
 export async function projectInspectFacade(
@@ -156,23 +157,22 @@ export async function runPreviewFacade(
 ): Promise<WorkflowApiEnvelope<WorkflowRunPreviewResult>> {
   const operation = 'workflow_run_preview';
   try {
-    const config = await loadResolvedConfig(input, resolveInvocationCwd(input));
-    const runState = await runWorkflowHandler(toDryRunCommand(input), { logger: nullLogger, stdout: noopStdout });
-    return successEnvelope(operation, config, input.requestId, {
+    const preview = await buildRunPreview(input);
+    return successEnvelope(operation, preview.config, input.requestId, {
       result: {
         run: {
-          id: runState.runId,
-          status: runState.status,
+          id: null,
+          status: preview.blockers.length > 0 ? 'blocked' : 'dry-run',
           target: input.target,
         },
-        dryRunDispatch: runState.dryRunDispatch ?? [],
-        state: runState,
+        dryRunDispatch: preview.dispatchableStoryIds,
+        blockers: preview.blockers,
       },
-      artifacts: [{ kind: 'runRoot', path: runState.artifactDir, description: 'Run artifact root' }],
+      artifacts: [],
       next: [
         {
           label: 'Start run',
-          mcpTool: 'workflow_run_start',
+          mcpTool: input.target.type === 'story' ? 'run_story' : 'run_eligible',
           cli:
             input.target.type === 'story'
               ? `agentic-workflow-kit run-story ${input.target.storyId}`
@@ -185,15 +185,36 @@ export async function runPreviewFacade(
   }
 }
 
-function toDryRunCommand(input: WorkflowRunPreviewInput): Parameters<typeof runWorkflowHandler>[0] {
+async function buildRunPreview(input: WorkflowRunPreviewInput): Promise<{
+  config: ResolvedWorkflowConfig;
+  dispatchableStoryIds: string[];
+  blockers: string[];
+}> {
   const overrides = {
     ...input,
-    dryRun: true,
     ...(input.target.trackId !== undefined ? { track: input.target.trackId } : {}),
   };
-  return input.target.type === 'story'
-    ? { kind: 'run-story', storyId: input.target.storyId, overrides }
-    : { kind: 'run-eligible', overrides };
+  const target = input.target;
+  if (target.type === 'story') {
+    const { config, stories } = await listStoriesHandler(overrides);
+    const story = stories.find((entry) => entry.id === target.storyId);
+    if (!story) throw new Error(`story ${target.storyId} was not found`);
+    return {
+      config,
+      dispatchableStoryIds: story.eligible ? [story.id] : [],
+      blockers: story.eligible ? [] : [story.blockedReason ?? `story ${story.id} is not eligible`],
+    };
+  }
+
+  const { config, stories } = await listEligibleHandler(overrides);
+  const dispatchable = selectDispatchableStories(stories, {
+    maxParallel: input.maxParallel ?? config.orchestrator.maxParallel,
+  });
+  return {
+    config,
+    dispatchableStoryIds: dispatchable.map((story) => story.id),
+    blockers: [],
+  };
 }
 
 function successEnvelope<T>(
@@ -284,11 +305,3 @@ function errorCodeForMessage(message: string): WorkflowApiErrorCode {
   if (message.includes('track') || message.includes('stories')) return 'TRACKER_INVALID';
   return 'INTERNAL_ERROR';
 }
-
-const noopStdout = (): void => undefined;
-
-const nullLogger = {
-  info: () => undefined,
-  warn: () => undefined,
-  error: () => undefined,
-};

@@ -209,7 +209,6 @@ export function registerOrchestratorTools(server: McpServer): void {
     },
     async (input) =>
       handleTool('workflow_project_inspect', input.responseFormat, () => {
-        assertWorkflowRepoContext(input);
         return projectInspectFacade(toOverrides(input));
       }),
   );
@@ -225,7 +224,6 @@ export function registerOrchestratorTools(server: McpServer): void {
     },
     async (input) =>
       handleTool('workflow_run_preview', input.responseFormat, () => {
-        assertWorkflowRepoContext(input);
         return runPreviewFacade({ ...toOverrides(input), target: input.target });
       }),
   );

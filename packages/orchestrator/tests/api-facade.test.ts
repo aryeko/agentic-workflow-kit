@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -90,24 +90,22 @@ describe('workflow API facade', () => {
       requestId: 'req-story',
       result: {
         run: {
+          id: null,
           status: 'dry-run',
           target: { type: 'story', trackId: 'linkly', storyId: 'LK02' },
         },
         dryRunDispatch: ['LK02'],
+        blockers: [],
       },
-      artifacts: [
-        expect.objectContaining({
-          kind: 'runRoot',
-          description: 'Run artifact root',
-        }),
-      ],
+      artifacts: [],
       next: [
         expect.objectContaining({
           label: 'Start run',
-          mcpTool: 'workflow_run_start',
+          mcpTool: 'run_story',
         }),
       ],
     });
+    await expect(access(path.join(root, '.codex', 'agentic-workflow-kit'))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('previews an eligible track run through the same request model', async () => {
@@ -123,10 +121,12 @@ describe('workflow API facade', () => {
       operation: 'workflow_run_preview',
       result: {
         run: {
+          id: null,
           status: 'dry-run',
           target: { type: 'track', trackId: 'linkly', mode: 'eligible' },
         },
         dryRunDispatch: ['LK02'],
+        blockers: [],
       },
     });
   });

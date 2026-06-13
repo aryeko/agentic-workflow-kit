@@ -84,6 +84,9 @@ describe('parseCommand', () => {
       target: { type: 'track', trackId: 'linkly', mode: 'eligible' },
       overrides: {},
     });
+    expect(() => parseCommand(['run', 'preview', '--story', 'LK02', '--mode', 'eligible'])).toThrow(
+      'run preview cannot combine --story with --mode',
+    );
   });
 
   it('parses watch/analyze/mcp commands', () => {
