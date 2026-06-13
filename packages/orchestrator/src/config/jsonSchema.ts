@@ -6,12 +6,14 @@ const ID = 'https://github.com/aryeko/agentic-workflow-kit/config.schema.json';
 
 export function buildConfigJsonSchema(): Record<string, unknown> {
   const generated = z.toJSONSchema(ConfigSchema) as Record<string, unknown>;
-  return relaxObjectRequired({
+  const schema = relaxObjectRequired({
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     $id: ID,
     title: 'agentic-workflow-kit config',
     ...generated,
   });
+  schema.$comment = 'Runtime validation: every agents.bindings value must reference a key in agents.profiles.';
+  return schema;
 }
 
 export function serializeConfigJsonSchema(): string {

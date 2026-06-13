@@ -7,6 +7,10 @@ const schema = JSON.parse(readFileSync('references/config.schema.json', 'utf8'))
 const ajv = new Ajv2020({ allErrors: true });
 const validate = ajv.compile(schema);
 
+function validateConfigContract(value: unknown): boolean {
+  return validate(value) && ConfigSchema.safeParse(value).success;
+}
+
 const goodConfig = {
   version: 1,
   paths: {
@@ -106,10 +110,10 @@ const goodConfig = {
 
 describe('config.schema.json', () => {
   it('accepts a fully-populated valid config', () => {
-    expect(validate(goodConfig)).toBe(true);
+    expect(validateConfigContract(goodConfig)).toBe(true);
   });
   it('accepts a version-only config because all other fields have defaults', () => {
-    expect(validate({ version: 1 })).toBe(true);
+    expect(validateConfigContract({ version: 1 })).toBe(true);
   });
   it('applies runtime defaults for interactive review and subagent policy', () => {
     const parsed = ConfigSchema.parse({ version: 1 });
@@ -155,7 +159,7 @@ describe('config.schema.json', () => {
   });
   it('accepts partial nested config objects and relies on runtime defaults', () => {
     expect(
-      validate({
+      validateConfigContract({
         version: 1,
         paths: {},
         pr: {
@@ -243,7 +247,7 @@ describe('config.schema.json', () => {
     ).toBe(false);
   });
   it('accepts a fully-populated agents config', () => {
-    expect(validate(goodConfig)).toBe(true);
+    expect(validateConfigContract(goodConfig)).toBe(true);
   });
   it('rejects invalid agents budget policy values', () => {
     expect(
@@ -266,17 +270,20 @@ describe('config.schema.json', () => {
     ).toBe(false);
   });
   it('rejects bindings that reference missing agent profiles', () => {
-    expect(() =>
-      ConfigSchema.parse({
-        ...goodConfig,
-        agents: {
-          ...goodConfig.agents,
-          bindings: {
-            ...goodConfig.agents.bindings,
-            implementStory: 'missingProfile',
-          },
+    const config = {
+      ...goodConfig,
+      agents: {
+        ...goodConfig.agents,
+        bindings: {
+          ...goodConfig.agents.bindings,
+          implementStory: 'missingProfile',
         },
-      }),
-    ).toThrow(/implementStory/);
+      },
+    };
+
+    expect(validate(config)).toBe(true);
+    expect(validateConfigContract(config)).toBe(false);
+    expect(() => ConfigSchema.parse(config)).toThrow(/implementStory/);
+    expect(schema.$comment).toContain('every agents.bindings value must reference a key in agents.profiles');
   });
 });

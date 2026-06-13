@@ -759,5 +759,6 @@
   "required": [
     "version"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$comment": "Runtime validation: every agents.bindings value must reference a key in agents.profiles."
 }
