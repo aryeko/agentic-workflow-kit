@@ -9,8 +9,9 @@ user-invocable: true
 # define-product
 
 Author a product requirements document (PRD) before technical planning. The PRD defines the
-product: the what and why. Technical how is decided downstream by `design-technical-solution` for complex
-technical work, or by `plan-delivery-track` directly for simple product work.
+product: the what and why. It can start from notes, brainstorming output, existing docs, or session context; no upstream kit artifact is required. Technical how is decided downstream by
+`design-technical-solution` for complex technical work, or by `plan-delivery-track` directly for
+simple product work.
 
 ## References (read before acting)
 
@@ -38,8 +39,9 @@ Then proceed unless a blocking decision is needed.
 
 ## Step 2 — Ingest existing material
 
-If the user has notes, a brief, a partial PRD, design docs, or relevant code, read them first.
-Summarize what was found and which PRD sections it pre-fills. Only interview on the gaps.
+If the user has notes, brainstorming output, existing docs, a brief, a partial PRD, design docs,
+session context, or relevant code, read them first. Summarize what was found and which PRD sections
+it pre-fills. Only interview on the gaps.
 
 ## Step 3 — Draft with a context-rich fast path
 
@@ -51,6 +53,11 @@ When the user has provided rich context, use a context-rich fast path:
   acceptance criteria, roles, phases, success metrics, or launch risk.
 - For safe defaults, record safe assumptions instead of interrupting.
 - Avoid section-by-section questioning unless the supplied context is thin or contradictory.
+- Add an **Assumptions and blockers** pass before writing: list assumptions the PRD will carry, then
+  ask only questions that block a coherent PRD.
+- Add an **Artifact boundaries** pass: confirm the PRD owns what/why, while technical solution,
+  tracker, story brief, detailed technical story spec, implementation plan, and runtime artifacts
+  own their downstream responsibilities.
 
 When context is thin, use the guided interview path: walk the contract's section order, asking
 focused questions one at a time. Confirm which optional sections apply (`02-principles`,
@@ -69,6 +76,7 @@ Write `<prdsDir>/<slug>/` from the bundled templates, filling placeholders. Conf
 note, back-link headers and navigation footers per section, relative cross-links, and
 frontmatter `status` from the PRD vocabulary (`draft | approved | shipped | archived`). Do not
 use the story-level status vocabulary here.
+Record assumptions and blocking questions in `09-risks-and-open-questions.md`.
 
 ## Step 5 — Summarize and hand off
 

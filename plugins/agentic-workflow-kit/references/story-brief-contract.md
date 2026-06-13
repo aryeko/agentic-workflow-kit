@@ -37,6 +37,19 @@ List tracker dependencies, upstream story briefs, and any dependency-specific as
 State what is in scope and out of scope for the story. This prevents the detailed spec from
 silently expanding the story.
 
+### Assumptions and blockers
+
+List safe assumptions the detailed technical story spec may rely on, plus blocking questions that
+must be resolved before planning or code. These blocking questions should mirror the final **Open
+technical questions** table when they are implementation-level.
+
+### Artifact boundaries
+
+State the responsibilities this story must preserve: PRD owns what/why, technical solution owns
+high-level how, tracker owns sequencing/status, story brief owns lightweight story-local scope,
+detailed technical story spec owns exact implementation design, implementation plan owns execution
+steps, and Runtime artifacts own execution evidence.
+
 ### Candidate surfaces
 
 List likely files, modules, commands, routes, queries, prompts, events, components, migrations, or

@@ -1,7 +1,8 @@
 # Technical solution contract
 
-A technical solution document defines the high-level technical "how" for complex product work after
-a PRD exists and before a delivery tracker is sliced. It is authored by
+A technical solution document defines the high-level technical "how" for complex product work before
+a delivery tracker is sliced. It is usually authored from a PRD, but may also start from a PRD, existing design docs, technical notes, or session context when the supplied material is sufficient to
+identify scope, requirements, and technical boundaries. It is authored by
 `design-technical-solution` and consumed by `plan-delivery-track`.
 
 Responsibilities stay distinct:
@@ -64,7 +65,7 @@ still blocking.
 ### Context and existing surfaces
 
 Summarize the relevant PRD scope, acceptance-criteria IDs, current architecture, affected files,
-existing docs, and constraints discovered during repo audit.
+existing docs, safe assumptions, and constraints discovered during repo audit.
 
 ### Technical requirements
 
@@ -112,6 +113,12 @@ List only genuinely blocking questions. Include a recommended default when one i
 that can be resolved during detailed story-spec work should become story-brief inputs instead of
 blocking solution approval.
 
+### Assumptions
+
+List safe assumptions carried from the PRD, existing design docs, technical notes, or session
+context. Assumptions must be specific enough for `plan-delivery-track` to preserve or challenge
+them in story briefs.
+
 ### Inputs for delivery tracker/story briefs
 
 Provide the delivery planner with concrete story brief inputs:
@@ -125,6 +132,7 @@ Provide the delivery planner with concrete story brief inputs:
 ## Conventions
 
 - Ask only blocking questions before writing; record safe assumptions in the document.
+- Keep **Blocking technical questions** distinct from safe assumptions and non-blocking follow-ups.
 - Prefer repo-local docs and source over memory.
 - Use headings that future story briefs can cite directly.
 - Do not duplicate the tracker status matrix or story ownership.

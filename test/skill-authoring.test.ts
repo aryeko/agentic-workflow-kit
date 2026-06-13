@@ -124,31 +124,52 @@ describe('skill authoring', () => {
     const { body } = readSkill('define-product');
 
     expect(body).toContain('context-rich fast path');
+    expect(body).toContain('notes, brainstorming output, existing docs, or session context');
     expect(body).toContain('show the assumed flow');
     expect(body).toContain('ask only blocking questions');
     expect(body).toContain('record safe assumptions');
+    expect(body).toContain('Assumptions and blockers');
+    expect(body).toContain('Artifact boundaries');
     expect(body).toContain('simple feature -> `plan-delivery-track`');
     expect(body).toContain('technical feature -> `design-technical-solution`');
     expect(body).toContain('research-heavy feature -> validation/research first');
   });
 
   it('design-technical-solution documents the technical solution artifact contract', () => {
-    const { body } = readSkill('design-technical-solution');
+    const { body, frontmatter } = readSkill('design-technical-solution');
+    const description = frontmatter.description as string;
 
+    expect(description).toContain('PRD, existing design docs, technical notes, or session context');
+    expect(description).not.toContain('Use after a PRD exists');
     expect(body).toContain('technical solution gate');
+    expect(body).toContain('PRD, existing design docs, technical notes, or session context');
     expect(body).toContain('references/technical-solution-contract.md');
     expect(body).toContain('references/templates/technical-solution-template.md');
     expect(body).toContain('ask only blocking questions');
+    expect(body).toContain('record safe assumptions');
+    expect(body).toContain('Assumptions and blockers');
+    expect(body).toContain('Artifact boundaries');
     expect(body).toContain('<prdsDir>/<slug>/technical-solution.md');
     expect(body).toContain('suggest `/plan-delivery-track`');
   });
 
   it('plan-delivery-track emits lightweight story briefs instead of detailed specs', () => {
-    const { body } = readSkill('plan-delivery-track');
+    const { body, frontmatter } = readSkill('plan-delivery-track');
+    const description = frontmatter.description as string;
 
+    expect(description).toContain(
+      'PRD plus technical solution, a technical solution alone, or explicit backlog/design context',
+    );
+    expect(description).not.toContain('Use after a PRD exists');
+    expect(description).not.toContain('If no PRD exists, stop');
     expect(body).toContain('Technical solution gate');
+    expect(body).toContain(
+      'PRD plus technical solution, a technical solution alone, or explicit backlog/design context',
+    );
     expect(body).toContain('complex technical PRD');
     expect(body).toContain('If technical solution is required and missing, stop');
+    expect(body).toContain('Assumptions and blockers');
+    expect(body).toContain('Artifact boundaries');
     expect(body).toContain('<tracksDir>/<track>/stories/<ID>.md');
     expect(body).toContain('story briefs are not implementation-ready');
     expect(body).toContain('Do not write detailed technical story specs');

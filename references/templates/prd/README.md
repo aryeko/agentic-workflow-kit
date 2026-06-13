@@ -34,6 +34,8 @@ related:
 
 This PRD owns *what* and *why*. It is not a technical design document; *how* lives in the
 technical solution for complex work, lightweight story briefs, and downstream detailed story specs.
+The delivery tracker owns sequencing and status, the implementation plan owns execution steps, and
+runtime artifacts own execution evidence.
 
 ## Status & next steps
 

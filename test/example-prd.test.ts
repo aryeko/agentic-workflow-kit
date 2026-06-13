@@ -37,4 +37,11 @@ describe('example PRD conforms to the contract', () => {
     for (const cells of rows) expect(AC_ID.test(cells[1])).toBe(true);
     expect(acceptance).toContain('[ship blocker]');
   });
+
+  it('shows assumptions, blockers, and artifact boundaries', () => {
+    const risks = readFileSync(`${DIR}/09-risks-and-open-questions.md`, 'utf8');
+    expect(readme).toContain('runtime artifacts own execution evidence');
+    expect(risks).toContain('## Assumptions');
+    expect(risks).toContain('## Blocking questions');
+  });
 });

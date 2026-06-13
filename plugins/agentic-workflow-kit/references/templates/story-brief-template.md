@@ -42,6 +42,23 @@ If no technical solution was required, state the reason here.
 
 - <deferred or forbidden work>
 
+## Assumptions and blockers
+
+| Type | Item | Evidence or resolution path |
+| --- | --- | --- |
+| Assumption | <safe assumption> | <source context or why safe> |
+| Blocking question | <question> | <how implement-next must resolve it> |
+
+## Artifact boundaries
+
+- PRD owns what/why and acceptance criteria.
+- Technical solution owns high-level how when required.
+- Tracker owns sequencing, status, owner, plan, and PR fields.
+- Story brief owns lightweight story-local scope and citations.
+- Detailed technical story spec owns exact implementation design.
+- Implementation plan owns execution steps.
+- Runtime artifacts own execution evidence.
+
 ## Candidate surfaces
 
 - **Files/modules:** <candidate paths or modules>

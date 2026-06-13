@@ -1,6 +1,6 @@
 ---
 name: design-technical-solution
-description: "Use after a PRD exists and before delivery-track planning when product work has meaningful technical complexity: new modules, data/query changes, AI prompts/tools/triggers, observability, migrations/deploy surfaces, security boundaries, or multi-system integration. Writes a high-level technical solution document under the PRD directory for plan-delivery-track to consume. Ingests rich context first, shows the flow, asks only blocking questions, and records safe assumptions."
+description: "Use before delivery-track planning when product or design context has meaningful technical complexity: new modules, data/query changes, AI prompts/tools/triggers, observability, migrations/deploy surfaces, security boundaries, or multi-system integration. Can start from a PRD, existing design docs, technical notes, or session context when enough scope exists. Writes a high-level technical solution document for plan-delivery-track to consume. Ingests rich context first, shows the flow, asks only blocking questions, and records safe assumptions."
 argument-hint: "[prd-slug or technical notes]"
 arguments: prd_slug_or_notes
 user-invocable: true
@@ -8,9 +8,9 @@ user-invocable: true
 
 # design-technical-solution
 
-Author the technical solution gate between `define-product` and `plan-delivery-track`. This skill
+Author the technical solution gate between product intent and delivery-track planning. This skill
 defines the high-level technical "how" for complex product work before delivery stories are sliced
-into lightweight briefs.
+into lightweight briefs. It can start from a PRD, existing design docs, technical notes, or session context when the supplied material is enough to identify scope, requirements, and technical boundaries.
 
 ## References (read before acting)
 
@@ -32,21 +32,31 @@ Then proceed unless a blocking decision is needed.
 ## Step 1 - Resolve PRD and solution location
 
 - Read `.workflow/config.yaml` if present and take `paths.prdsDir` (default `docs/prds`).
-- Locate the PRD at `<prdsDir>/<slug>/` and verify it conforms to `prd-contract.md`.
-- If no conforming PRD exists, stop and point the user at `/define-product`.
+- Locate the PRD at `<prdsDir>/<slug>/` when a PRD slug or path is supplied, and verify it conforms
+  to `prd-contract.md`.
+- If no conforming PRD exists but the user supplied explicit design docs, technical notes, or
+  session context with enough product scope and acceptance outcomes, continue and record the source
+  material as assumptions. If neither a PRD nor sufficient context exists, stop and point the user at
+  `/define-product`.
 - Write the technical solution at `<prdsDir>/<slug>/technical-solution.md`.
 - If that file already exists, switch to resume/extend mode. Never overwrite it without explicit
   confirmation.
 
 ## Step 2 - Ingest context before asking
 
-Read the PRD, supplied notes, relevant repo docs, existing solution/design docs, and source
-surfaces before interviewing. Summarize the material found and list the assumptions it supports.
+Read the PRD, existing design docs, technical notes, session context, relevant repo docs, existing
+solution/design docs, and source surfaces before interviewing. Summarize the material found and list
+the assumptions it supports.
 
 Ask only blocking questions: questions whose answer would materially change module boundaries,
 data/query design, AI prompts/triggers/tools, migration/deploy surfaces, observability, security
 boundaries, or test strategy. For safe defaults, record safe assumptions in the document instead of
 interrupting the user.
+
+Add an **Assumptions and blockers** pass: list safe assumptions first, then ask only questions that
+block a coherent high-level technical solution. Add an **Artifact boundaries** pass: confirm the
+technical solution owns high-level how, while tracker, story brief, detailed technical story spec,
+implementation plan, and runtime artifacts own downstream detail and evidence.
 
 ## Step 3 - Draft the technical solution
 
@@ -68,6 +78,8 @@ The technical solution must cite PRD acceptance-criteria IDs from `08-acceptance
 must include concrete inputs for `plan-delivery-track`: candidate story areas, sequencing
 constraints, file contention, validation expectations, and technical solution headings that story
 briefs should cite.
+When there is no PRD, cite equivalent product outcomes from the supplied external context and mark
+the PRD criteria column as context-derived until a PRD is created.
 
 ## Step 4 - Self-review
 

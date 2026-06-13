@@ -17,6 +17,12 @@ related:
 Summarize the PRD scope, existing system surfaces, affected files, current docs, constraints, and
 safe assumptions.
 
+## Assumptions
+
+| Assumption | Evidence | Revisit when |
+| --- | --- | --- |
+| <safe assumption> | <PRD/design notes/session context> | <condition that would change it> |
+
 ## Technical requirements
 
 | Requirement | PRD criteria | Technical bar | Notes |
@@ -67,6 +73,10 @@ cleanup.
 | <layer> | <scope> | <command> | <criteria and <technical solution section IDs>> |
 
 ## Open technical questions
+
+List only genuinely blocking questions in the table before approval. Treat this as the **Blocking
+technical questions** checkpoint; non-blocking follow-ups should include a safe default and a
+resolution path.
 
 | Question | Blocking? | Recommended default | Resolution path |
 | --- | --- | --- | --- |
