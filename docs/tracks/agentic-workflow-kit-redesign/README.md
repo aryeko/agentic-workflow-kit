@@ -87,7 +87,7 @@ Statuses come from `references/tracker-contract.md`:
 
 | ID | Name | Depends on | Wave | Status | Spec | Plan | Owner | PR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| AWK01 | API facade foundation | — | W1 | specced | [brief](./stories/AWK01.md) | — | — | — |
+| AWK01 | API facade foundation | — | W1 | done | [brief](./stories/AWK01.md) | — | codex | [#56](https://github.com/aryeko/agentic-workflow-kit/pull/56) |
 | AWK02 | Agent profiles and budgets | AWK01 | W2 | specced | [brief](./stories/AWK02.md) | — | — | — |
 | AWK03 | Tracker validation and migration | AWK01 | W2 | specced | [brief](./stories/AWK03.md) | — | — | — |
 | AWK04 | Workflow authoring independence | AWK01 | W2 | specced | [brief](./stories/AWK04.md) | — | — | — |

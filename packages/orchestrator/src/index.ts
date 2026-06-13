@@ -1,4 +1,15 @@
 export { analyzeWorkflowRun } from './analysis/runAnalyzer.js';
+export type {
+  WorkflowApiCapabilities,
+  WorkflowApiEnvelope,
+  WorkflowApiError,
+  WorkflowApiErrorCode,
+  WorkflowArtifactRef,
+  WorkflowProjectInspectResult,
+  WorkflowRunPreviewInput,
+  WorkflowRunPreviewResult,
+} from './api/facade.js';
+export { projectInspectFacade, runPreviewFacade } from './api/facade.js';
 export { createRunId, loadResolvedConfig } from './config/configLoader.js';
 export { buildConfigJsonSchema, serializeConfigJsonSchema } from './config/jsonSchema.js';
 export { type PresetName, type RepoSignals, selectPreset } from './config/preset.js';
@@ -11,6 +22,7 @@ export type {
   ResolvedWorkflowConfig,
   RunState,
   WorkflowCommand,
+  WorkflowRunPreviewTarget,
   WorkflowStory,
   WorkflowTrack,
 } from './types.js';

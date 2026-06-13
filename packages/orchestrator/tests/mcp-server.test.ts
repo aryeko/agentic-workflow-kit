@@ -170,9 +170,95 @@ describe('agentic-workflow-kit MCP server', () => {
     });
     expect(runEligible?.inputSchema.properties).not.toHaveProperty('watch');
 
+    const projectInspect = result.tools.find((tool) => tool.name === 'workflow_project_inspect');
+    expect(projectInspect?.description).toContain('Resolve WorkflowKit project context');
+
+    const runPreview = result.tools.find((tool) => tool.name === 'workflow_run_preview');
+    expect(runPreview?.description).toContain('Preview story or track execution');
+    expect(runPreview?.inputSchema.properties?.target).toBeDefined();
+
     const analyzeRun = result.tools.find((tool) => tool.name === 'analyze_run');
     expect(analyzeRun?.inputSchema.properties?.runPath).toMatchObject({
       description: expect.stringContaining('artifactDir returned by run_story or run_eligible'),
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('calls workflow_project_inspect with the product result envelope', async () => {
+    const root = await createWorkspace();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'workflow_project_inspect',
+      arguments: { cwd: root, requestId: 'req-mcp' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_project_inspect',
+      requestId: 'req-mcp',
+      result: {
+        project: { tracks: [{ id: 'linkly' }] },
+        capabilities: { runStory: true, runTrack: true },
+      },
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('returns product MCP failures in the shared error envelope', async () => {
+    const originalCwd = process.cwd();
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-product-no-workflow-'));
+    const { client, server } = await connectClient();
+
+    try {
+      process.chdir(tempRoot);
+      delete process.env.INIT_CWD;
+      const result = await client.callTool({
+        name: 'workflow_project_inspect',
+        arguments: {},
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toMatchObject({
+        ok: false,
+        operation: 'workflow_project_inspect',
+        error: {
+          code: 'CONFIG_INVALID',
+          severity: 'error',
+        },
+      });
+    } finally {
+      process.chdir(originalCwd);
+      await client.close();
+      await server.close();
+    }
+  });
+
+  it('calls workflow_run_preview without removing legacy run_story dry-runs', async () => {
+    const root = await createWorkspace();
+    const { client, server } = await connectClient();
+
+    const preview = await client.callTool({
+      name: 'workflow_run_preview',
+      arguments: { cwd: root, target: { type: 'story', trackId: 'linkly', storyId: 'LK02' } },
+    });
+    const legacy = await client.callTool({
+      name: 'run_story',
+      arguments: { cwd: root, track: 'linkly', storyId: 'LK02' },
+    });
+
+    expect(preview.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_preview',
+      result: { dryRunDispatch: ['LK02'] },
+      artifacts: [],
+      next: [expect.objectContaining({ mcpTool: 'run_story' })],
+    });
+    expect(legacy.structuredContent).toMatchObject({
+      status: 'dry-run',
+      dryRunDispatch: ['LK02'],
     });
     await client.close();
     await server.close();

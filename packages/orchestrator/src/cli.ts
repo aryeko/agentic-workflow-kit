@@ -3,7 +3,7 @@
 import { realpathSync } from 'node:fs';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-
+import { projectInspectFacade, runPreviewFacade } from './api/facade.js';
 import { getHelpText, parseCommand } from './cli/args.js';
 import {
   analyzeRunHandler,
@@ -55,6 +55,13 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
     return;
   }
 
+  if (command.kind === 'project-inspect') {
+    const envelope = await projectInspectFacade(command.overrides);
+    stdout(JSON.stringify(envelope, null, 2));
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
   if (command.kind === 'list-tracks') {
     const result = await listTracksHandler(command.overrides);
     printTracks(result.tracks, command.overrides, stdout);
@@ -70,6 +77,13 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
   if (command.kind === 'list-eligible') {
     const result = await listEligibleHandler(command.overrides);
     printStories(result.stories, command.overrides, 'No eligible stories.', stdout);
+    return;
+  }
+
+  if (command.kind === 'run-preview') {
+    const envelope = await runPreviewFacade({ ...command.overrides, target: command.target });
+    stdout(JSON.stringify(envelope, null, 2));
+    if (!envelope.ok) process.exitCode = 1;
     return;
   }
 

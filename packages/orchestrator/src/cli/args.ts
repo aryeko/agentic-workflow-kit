@@ -1,7 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
 import { Command, CommanderError, InvalidArgumentError, Option } from 'commander';
-import type { ApprovalPolicy, CliOverrides, SandboxMode, WorkflowCommand } from '../types.js';
+import type { ApprovalPolicy, CliOverrides, SandboxMode, WorkflowCommand, WorkflowRunPreviewTarget } from '../types.js';
 
 const APPROVAL_POLICIES = new Set<ApprovalPolicy>(['untrusted', 'on-failure', 'on-request', 'never']);
 const SANDBOX_MODES = new Set<SandboxMode>(['read-only', 'workspace-write', 'danger-full-access']);
@@ -16,6 +16,12 @@ export function parseCommand(argv: string[]): WorkflowCommand {
   }
   if (args[0] === 'mcp' && args[1] !== 'check') {
     throw new Error('Expected `mcp check`');
+  }
+  if (args[0] === 'project' && args[1] !== 'inspect') {
+    throw new Error('Expected `project inspect`');
+  }
+  if (args[0] === 'run' && args[1] !== 'preview') {
+    throw new Error('Expected `run preview`');
   }
   if (args[0] === 'run-story' && (!args[1] || args[1].startsWith('-'))) {
     throw new Error('run-story requires a story id');
@@ -63,6 +69,17 @@ function buildProgram(setParsed: (command: WorkflowCommand) => void): Command {
   withOptions(program.command('list-eligible')).action((options: CommanderOptions) => {
     setParsed({ kind: 'list-eligible', overrides: toOverrides(options) });
   });
+  const project = program.command('project').allowExcessArguments(false);
+  withOptions(project.command('inspect')).action((options: CommanderOptions) => {
+    setParsed({ kind: 'project-inspect', overrides: toOverrides(options) });
+  });
+  const run = program.command('run').allowExcessArguments(false);
+  withOptions(run.command('preview'))
+    .option('--story <id>')
+    .addOption(new Option('--mode <mode>').choices(['eligible']))
+    .action((options: CommanderOptions) => {
+      setParsed({ kind: 'run-preview', target: toRunPreviewTarget(options), overrides: toProductOverrides(options) });
+    });
   withOptions(program.command('run-story').argument('<storyId>')).action(
     (storyId: string, options: CommanderOptions) => {
       setParsed({ kind: 'run-story', storyId, overrides: toOverrides(options) });
@@ -135,6 +152,8 @@ interface CommanderOptions {
   sandbox?: SandboxMode;
   cwd?: string;
   sessionRoot?: string;
+  story?: string;
+  mode?: 'eligible';
 }
 
 function toOverrides(options: CommanderOptions): CliOverrides {
@@ -158,6 +177,25 @@ function toOverrides(options: CommanderOptions): CliOverrides {
   if (options.cwd !== undefined) overrides.cwd = options.cwd;
   if (options.sessionRoot !== undefined) overrides.sessionRoot = options.sessionRoot;
   return overrides;
+}
+
+function toRunPreviewTarget(options: CommanderOptions): WorkflowRunPreviewTarget {
+  if (options.story !== undefined && options.mode !== undefined) {
+    throw new Error('run preview cannot combine --story with --mode');
+  }
+  if (options.story !== undefined) {
+    return {
+      type: 'story',
+      ...(options.track !== undefined ? { trackId: options.track } : {}),
+      storyId: options.story,
+    };
+  }
+  return { type: 'track', ...(options.track !== undefined ? { trackId: options.track } : {}), mode: 'eligible' };
+}
+
+function toProductOverrides(options: CommanderOptions): CliOverrides {
+  const { track: _track, story: _story, mode: _mode, ...baseOptions } = options;
+  return toOverrides(baseOptions);
 }
 
 function parseApprovalPolicy(value: string): ApprovalPolicy {

@@ -1,0 +1,328 @@
+import path from 'node:path';
+
+import { resolveInvocationCwd } from '../cli/args.js';
+import { discoverTracks, listEligibleHandler, listStoriesHandler } from '../commands/handlers.js';
+import { loadResolvedConfig } from '../config/configLoader.js';
+import { selectDispatchableStories } from '../scheduler/scheduler.js';
+import type { CliOverrides, ResolvedWorkflowConfig, RunStatus, WorkflowRunPreviewTarget } from '../types.js';
+
+export type WorkflowApiOperation = 'workflow_project_inspect' | 'workflow_run_preview';
+export type WorkflowApiErrorCode =
+  | 'CONFIG_INVALID'
+  | 'TRACKER_INVALID'
+  | 'STORY_NOT_ELIGIBLE'
+  | 'RUN_NOT_FOUND'
+  | 'INTERNAL_ERROR';
+
+export interface WorkflowArtifactRef {
+  kind: string;
+  path: string;
+  description?: string;
+}
+
+export interface WorkflowApiWarning {
+  code: string;
+  message: string;
+}
+
+export interface WorkflowNextAction {
+  label: string;
+  mcpTool?: string;
+  cli?: string;
+}
+
+export interface WorkflowProjectRef {
+  repoRoot: string;
+  configPath: string;
+}
+
+export interface WorkflowApiError {
+  code: WorkflowApiErrorCode;
+  message: string;
+  severity: 'error';
+  retryable: boolean;
+  details: unknown[];
+  artifactRefs: WorkflowArtifactRef[];
+}
+
+export type WorkflowApiEnvelope<T> = WorkflowApiSuccess<T> | WorkflowApiFailure;
+
+export interface WorkflowApiSuccess<T> {
+  ok: true;
+  operation: WorkflowApiOperation;
+  apiVersion: '1';
+  requestId?: string;
+  project: WorkflowProjectRef;
+  result: T;
+  artifacts: WorkflowArtifactRef[];
+  warnings: WorkflowApiWarning[];
+  next: WorkflowNextAction[];
+  response: {
+    include: 'summary';
+    bounded: true;
+  };
+}
+
+export interface WorkflowApiFailure {
+  ok: false;
+  operation: WorkflowApiOperation;
+  apiVersion: '1';
+  requestId?: string;
+  project?: WorkflowProjectRef;
+  error: WorkflowApiError;
+  artifacts: WorkflowArtifactRef[];
+  warnings: WorkflowApiWarning[];
+  next: WorkflowNextAction[];
+}
+
+export interface WorkflowProjectInspectResult {
+  project: {
+    repoRoot: string;
+    configPath: string;
+    tracksDir: string;
+    artifactsRoot: string;
+    tracks: Array<{
+      id: string;
+      title: string;
+      relativePath: string;
+      storyCount: number;
+      eligibleCount: number;
+    }>;
+  };
+  capabilities: WorkflowApiCapabilities;
+}
+
+export interface WorkflowApiCapabilities {
+  authoring: boolean;
+  trackerMigration: boolean;
+  runStory: boolean;
+  runTrack: boolean;
+  streaming: boolean;
+  abort: boolean;
+  tokenTelemetryLive: boolean;
+  structuredOutputEnforced: boolean;
+  github: boolean;
+}
+
+export interface WorkflowRunPreviewInput extends CliOverrides {
+  target: WorkflowRunPreviewTarget;
+}
+
+export interface WorkflowRunPreviewResult {
+  run: {
+    id: null;
+    status: RunStatus;
+    target: WorkflowRunPreviewTarget;
+  };
+  dryRunDispatch: string[];
+  blockers: string[];
+}
+
+export async function projectInspectFacade(
+  input: CliOverrides = {},
+): Promise<WorkflowApiEnvelope<WorkflowProjectInspectResult>> {
+  const operation = 'workflow_project_inspect';
+  try {
+    const config = await loadResolvedConfig(input, resolveInvocationCwd(input));
+    const tracks = await discoverTracks(config, input);
+    return successEnvelope(operation, config, input.requestId, {
+      result: {
+        project: {
+          repoRoot: config.workspace.rootAbs,
+          configPath: relativeToRepo(config, config.configPath),
+          tracksDir: config.paths.tracksDir,
+          artifactsRoot: config.artifacts.rootDir,
+          tracks: tracks.map((track) => ({
+            id: track.id,
+            title: track.title,
+            relativePath: track.relativePath,
+            storyCount: track.stories.length,
+            eligibleCount: track.stories.filter((story) => story.eligible).length,
+          })),
+        },
+        capabilities: capabilitiesFromConfig(config),
+      },
+      artifacts: [{ kind: 'config', path: relativeToRepo(config, config.configPath), description: 'Workflow config' }],
+      next: [
+        { label: 'Preview eligible run', mcpTool: 'workflow_run_preview', cli: 'agentic-workflow-kit run preview' },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+export async function runPreviewFacade(
+  input: WorkflowRunPreviewInput,
+): Promise<WorkflowApiEnvelope<WorkflowRunPreviewResult>> {
+  const operation = 'workflow_run_preview';
+  try {
+    const preview = await buildRunPreview(input);
+    return successEnvelope(operation, preview.config, input.requestId, {
+      result: {
+        run: {
+          id: null,
+          status: preview.blockers.length > 0 ? 'blocked' : 'dry-run',
+          target: input.target,
+        },
+        dryRunDispatch: preview.dispatchableStoryIds,
+        blockers: preview.blockers,
+      },
+      artifacts: [],
+      next: [
+        {
+          label: 'Start run',
+          mcpTool: input.target.type === 'story' ? 'run_story' : 'run_eligible',
+          cli:
+            input.target.type === 'story'
+              ? `agentic-workflow-kit run-story ${input.target.storyId}`
+              : 'agentic-workflow-kit run-eligible',
+        },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+async function buildRunPreview(input: WorkflowRunPreviewInput): Promise<{
+  config: ResolvedWorkflowConfig;
+  dispatchableStoryIds: string[];
+  blockers: string[];
+}> {
+  const overrides = {
+    ...input,
+    ...(input.target.trackId !== undefined ? { track: input.target.trackId } : {}),
+  };
+  const target = input.target;
+  if (target.type === 'story') {
+    const { config, stories } = await listStoriesHandler(overrides);
+    const matchingStories = stories.filter((entry) => entry.id === target.storyId);
+    if (target.trackId === undefined && matchingStories.length > 1) {
+      throw new Error(
+        `story ${target.storyId} exists in multiple tracks: ${matchingStories
+          .map((story) => story.metadata.trackId)
+          .join(', ')}; pass --track <id>`,
+      );
+    }
+    const story = matchingStories[0];
+    if (!story) throw new Error(`story ${target.storyId} was not found`);
+    if (input.force === true) {
+      return {
+        config,
+        dispatchableStoryIds: [story.id],
+        blockers: [],
+      };
+    }
+    return {
+      config,
+      dispatchableStoryIds: story.eligible ? [story.id] : [],
+      blockers: story.eligible ? [] : [story.blockedReason ?? `story ${story.id} is not eligible`],
+    };
+  }
+
+  const { config, stories } =
+    target.trackId === undefined ? await listStoriesHandler(overrides) : await listEligibleHandler(overrides);
+  const eligibleStories = stories.filter((story) => story.eligible);
+  const eligibleTrackIds = [...new Set(eligibleStories.map((story) => story.metadata.trackId))];
+  if (target.trackId === undefined && eligibleTrackIds.length > 1) {
+    throw new Error(`multiple tracks have eligible stories: ${eligibleTrackIds.join(', ')}; pass --track <id>`);
+  }
+  const dispatchable = selectDispatchableStories(eligibleStories, {
+    maxParallel: input.maxParallel ?? config.orchestrator.maxParallel,
+  });
+  return {
+    config,
+    dispatchableStoryIds: dispatchable.map((story) => story.id),
+    blockers: [],
+  };
+}
+
+function successEnvelope<T>(
+  operation: WorkflowApiOperation,
+  config: ResolvedWorkflowConfig,
+  requestId: string | undefined,
+  content: { result: T; artifacts?: WorkflowArtifactRef[]; next?: WorkflowNextAction[] },
+): WorkflowApiSuccess<T> {
+  return {
+    ok: true,
+    operation,
+    apiVersion: '1',
+    ...(requestId !== undefined ? { requestId } : {}),
+    project: projectRef(config),
+    result: content.result,
+    artifacts: content.artifacts ?? [],
+    warnings: [],
+    next: content.next ?? [],
+    response: {
+      include: 'summary',
+      bounded: true,
+    },
+  };
+}
+
+function failureEnvelope(
+  operation: WorkflowApiOperation,
+  input: Pick<CliOverrides, 'cwd' | 'configPath' | 'requestId'>,
+  error: unknown,
+): WorkflowApiFailure {
+  const message = error instanceof Error ? error.message : String(error);
+  return {
+    ok: false,
+    operation,
+    apiVersion: '1',
+    ...(input.requestId !== undefined ? { requestId: input.requestId } : {}),
+    project: input.cwd
+      ? {
+          repoRoot: path.resolve(input.cwd),
+          configPath: input.configPath ?? '.workflow/config.yaml',
+        }
+      : undefined,
+    error: {
+      code: errorCodeForMessage(message),
+      message,
+      severity: 'error',
+      retryable: false,
+      details: [],
+      artifactRefs: [],
+    },
+    artifacts: [],
+    warnings: [],
+    next: [
+      { label: 'Inspect project', mcpTool: 'workflow_project_inspect', cli: 'agentic-workflow-kit project inspect' },
+    ],
+  };
+}
+
+function projectRef(config: ResolvedWorkflowConfig): WorkflowProjectRef {
+  return {
+    repoRoot: config.workspace.rootAbs,
+    configPath: relativeToRepo(config, config.configPath),
+  };
+}
+
+function relativeToRepo(config: ResolvedWorkflowConfig, filePath: string): string {
+  return path.isAbsolute(filePath) ? path.relative(config.workspace.rootAbs, filePath) || '.' : filePath;
+}
+
+function capabilitiesFromConfig(config: ResolvedWorkflowConfig): WorkflowApiCapabilities {
+  return {
+    authoring: true,
+    trackerMigration: false,
+    runStory: true,
+    runTrack: true,
+    streaming: false,
+    abort: false,
+    tokenTelemetryLive: false,
+    structuredOutputEnforced: false,
+    github: config.pr.create,
+  };
+}
+
+function errorCodeForMessage(message: string): WorkflowApiErrorCode {
+  if (message.includes('config') || message.includes('.workflow/config.yaml')) return 'CONFIG_INVALID';
+  if (message.includes('not eligible')) return 'STORY_NOT_ELIGIBLE';
+  if (message.includes('run') && message.includes('not found')) return 'RUN_NOT_FOUND';
+  if (message.includes('track') || message.includes('story') || message.includes('stories')) return 'TRACKER_INVALID';
+  return 'INTERNAL_ERROR';
+}
