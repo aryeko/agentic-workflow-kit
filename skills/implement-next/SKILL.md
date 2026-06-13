@@ -441,6 +441,12 @@ Stop after `implement.review.prePr.maxLoops` local review fix batches and ask th
   findings, fix summary, changed diff since the previous review, and latest verification evidence.
 - `full`: every loop gets the full review context packet.
 
+For incremental follow-up loops, prefer reusing the same review subagent/thread when the host tool
+supports continuing it. If the host cannot continue the previous reviewer, spawn a new read-only
+review subagent with the incremental packet; this is not a downgrade when a real subagent performs
+the review. Record the continuity in review journal events with `agentId`, `previousAgentId` when
+applicable, and `continuityMode: "reused-agent" | "new-agent-incremental-context" | "full-context"`.
+
 Subagents are recommended only for bounded sidecar work: review, analysis, log inspection, or
 independent test investigation. Do not delegate blocking critical-path implementation to a subagent.
 Worker subagents that write files are disallowed unless `implement.subagents.allowWorkers: true`;

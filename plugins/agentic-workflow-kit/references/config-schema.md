@@ -132,6 +132,12 @@ maximum number of local review fix batches before stopping or escalating; it is 
 review agent invocations. With the default `review.prePr.loopMode: incremental`, the first local
 review receives the full review packet and later loops receive prior findings, fix summaries,
 changed diffs since the previous loop, and latest verification evidence.
+`review.prePr.loopMode` controls the shape of review context, not whether a host can reuse the same
+reviewer thread. When `loopMode: incremental`, runtimes should reuse the same review subagent/thread
+for follow-up loops when supported. If host tooling cannot continue the previous reviewer, spawning
+a new read-only review subagent with the incremental packet is acceptable and should not be recorded
+as a downgrade. Journal events should identify whether continuity used `reused-agent`,
+`new-agent-incremental-context`, or `full-context`.
 External PR review fix behavior is controlled by `pr.review.rerequestAfterFix`; when it is `false`,
 one external PR review pass plus local fix verification and comment resolution is enough.
 

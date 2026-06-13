@@ -237,6 +237,12 @@ Event journals are also audit artifacts: `analyze-run` normalizes legacy `ts` ev
 `eventAt`/`recordedAt` events into a deterministic file-order timeline, then derives local pre-PR
 review mode, downgrades, execution blockers, review findings, local fix batches, PR review
 findings, resolved threads, final verification, merge, and cleanup status from the event stream.
+Incremental local pre-PR review loops should record reviewer continuity with `loop`, `agentId`,
+`previousAgentId`, and `continuityMode`. `continuityMode: "reused-agent"` means the same review
+thread handled a follow-up loop; `new-agent-incremental-context` means host tooling could not
+continue the previous reviewer and a new read-only reviewer received the incremental packet;
+`full-context` means the loop intentionally used a full review packet. The new-agent incremental
+fallback is not a review downgrade when a real subagent returns a review result.
 When explicit pre-PR journal events are missing but child session logs are available, `analyze-run`
 also extracts review loops from `spawn_agent`, `wait_agent`, and `close_agent` calls and summarizes
 actual mode, loop status, finding counts, fix batches, and final subagent status. Local
