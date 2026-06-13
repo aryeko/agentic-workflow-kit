@@ -65,6 +65,19 @@ after completion, blockage, or suspected stale state.
 Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-full-access` with
 `approvalPolicy: never` grants those children full local disk access without interactive approval.
 
+## Supervision discipline
+
+- Keep human updates sparse and meaningful: report launch, blockage, recovery, merge, and final
+  verification changes rather than every poll.
+- Before editing branches, tracker rows, or application code for a blocked run, inspect the run with
+  `watch_run` and `analyze_run`, then verify the relevant child artifact, PR check log, or served
+  deployment response.
+- Treat CI and deploy-smoke failures as evidence to classify first. If a protected preview,
+  missing bypass secret, or external service condition explains the failure, record that as recovery
+  context instead of changing app code.
+- Do not diagnose git author metadata, app regressions, or deploy regressions from parent prose
+  alone. Use child session logs, PR metadata, check logs, tracker snapshots, and run artifacts.
+
 ## CLI fallback
 
 Installed package usage when the plugin-provided MCP runtime is not available:
