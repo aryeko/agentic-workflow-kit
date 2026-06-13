@@ -528,6 +528,23 @@ describe('agentic-workflow-kit MCP server', () => {
     await server.close();
   });
 
+  it('waits in watch_run until timeout when a run is aborting', async () => {
+    const runPath = await createWatchRun('aborting');
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'watch_run',
+      arguments: { runPath, wait: true, intervalMs: 1, timeoutMs: 1 },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      state: { runId: 'run-1', status: 'aborting' },
+      wait: { timedOut: true },
+    });
+    await client.close();
+    await server.close();
+  });
+
   it('lets explicit MCP wait false override a run config wait default', async () => {
     const runPath = await createWatchRun('running', { wait: true, intervalMs: 1, timeoutMs: 1 });
     const { client, server } = await connectClient();

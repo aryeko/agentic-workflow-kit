@@ -257,9 +257,37 @@ export async function abortRunHandler(input: AbortRunInput): Promise<RunControlR
   });
 
   const status = readOptionalString(state.status);
-  const activeStoryIds = readStringArray(state.active).filter(
-    (storyId) => !request.storyId || storyId === request.storyId,
-  );
+  const allActiveStoryIds = readStringArray(state.active);
+  if (request.storyId && allActiveStoryIds.length > 0 && !allActiveStoryIds.includes(request.storyId)) {
+    const childOutcomes: RunControlChildOutcome[] = [
+      {
+        storyId: request.storyId,
+        sessionId: null,
+        outcome: 'unsupported',
+        detail: 'requested story is not active in this run',
+      },
+    ];
+    await appendRunEvent(runPath, 'control-applied', {
+      controlId: request.id,
+      action: request.action,
+      outcome: 'unsupported',
+      childOutcomes,
+    });
+    return {
+      ok: true,
+      runId: request.runId,
+      action: request.action,
+      outcome: 'unsupported',
+      reason: request.reason,
+      requestedAt,
+      appliedAt: null,
+      runPath,
+      activeStoryIds: [],
+      childOutcomes,
+      artifacts: controlArtifactRefs(),
+    };
+  }
+  const activeStoryIds = allActiveStoryIds.filter((storyId) => !request.storyId || storyId === request.storyId);
   const terminal = isTerminalRunStatus(status);
   if (terminal) {
     return {
@@ -420,12 +448,9 @@ async function readRunSnapshot(runDirectory: string): Promise<WatchRunSnapshot> 
 }
 
 function isRunningState(state: unknown): boolean {
-  return (
-    typeof state === 'object' &&
-    state !== null &&
-    !Array.isArray(state) &&
-    (state as { status?: unknown }).status === 'running'
-  );
+  if (typeof state !== 'object' || state === null || Array.isArray(state)) return false;
+  const status = (state as { status?: unknown }).status;
+  return status === 'running' || status === 'aborting';
 }
 
 export async function mcpCheckHandler(

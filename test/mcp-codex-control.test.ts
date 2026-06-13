@@ -108,4 +108,39 @@ describe('codex MCP control target resolution', () => {
       blockedReason: 'operator stop',
     });
   });
+
+  it('does not abort active children when a targeted story is not active', async () => {
+    const runPath = await mkdtemp(path.join(tmpdir(), 'awk-control-unmatched-'));
+    tempRoots.push(runPath);
+    await mkdir(path.join(runPath, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runPath, 'state.json'),
+      JSON.stringify({
+        runId: 'run-1',
+        status: 'running',
+        active: ['DLD07'],
+        completed: [],
+        blockedStoryId: null,
+        blockedReason: null,
+      }),
+    );
+
+    const result = await abortRunHandler({ runPath, storyId: 'DLD99', reason: 'operator stop', requestedBy: 'test' });
+
+    expect(result.outcome).toBe('unsupported');
+    expect(result.activeStoryIds).toEqual([]);
+    expect(result.childOutcomes).toEqual([
+      {
+        storyId: 'DLD99',
+        sessionId: null,
+        outcome: 'unsupported',
+        detail: 'requested story is not active in this run',
+      },
+    ]);
+    expect(JSON.parse(await readFile(path.join(runPath, 'state.json'), 'utf8'))).toMatchObject({
+      status: 'running',
+      active: ['DLD07'],
+      blockedReason: null,
+    });
+  });
 });
