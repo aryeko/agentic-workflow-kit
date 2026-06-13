@@ -1,5 +1,6 @@
 import type { ChildMetricsSnapshot, LiveMetricsSnapshot, RunStatus } from '../types.js';
 import { mergeChildMetrics } from './aggregate.js';
+import { available, normalizeChildMetricAvailability, normalizeChildMetricsSnapshot } from './availability.js';
 import { analyzeSessionLogMetrics } from './sessionLogMetrics.js';
 
 export interface BuildLiveMetricsInput {
@@ -16,6 +17,9 @@ export interface BuildLiveMetricsInput {
 }
 
 export function buildLiveMetricsSnapshot(input: BuildLiveMetricsInput): LiveMetricsSnapshot {
+  const children = Object.fromEntries(
+    Object.entries(input.childMetrics).map(([storyId, child]) => [storyId, normalizeChildMetricsSnapshot(child)]),
+  );
   return {
     runId: input.runId,
     status: input.status,
@@ -25,8 +29,8 @@ export function buildLiveMetricsSnapshot(input: BuildLiveMetricsInput): LiveMetr
     completedCount: input.completed.length,
     blockedStoryId: input.blockedStoryId,
     blockedReason: input.blockedReason,
-    children: input.childMetrics,
-    aggregate: mergeChildMetrics(Object.values(input.childMetrics)),
+    children,
+    aggregate: mergeChildMetrics(Object.values(children)),
   };
 }
 
@@ -46,11 +50,21 @@ async function enrichChildMetric(child: ChildMetricsSnapshot): Promise<ChildMetr
   if (!child.sessionLogPath) return child;
   try {
     const metrics = await analyzeSessionLogMetrics(child.sessionLogPath);
+    const availability = normalizeChildMetricAvailability(child);
     return {
       ...child,
       toolCounts: hasCounts(metrics.commandCounts) ? metrics.commandCounts : child.toolCounts,
       subagentCounts: hasCounts(metrics.subagentCounts) ? metrics.subagentCounts : child.subagentCounts,
       tokenTotals: metrics.tokenTotals ?? child.tokenTotals,
+      availability: {
+        toolCounts: availability.toolCounts,
+        subagentCounts: availability.subagentCounts,
+        tokenTotals: availability.tokenTotals,
+        ...(hasCounts(metrics.commandCounts) ? { toolCounts: available() } : {}),
+        ...(hasCounts(metrics.subagentCounts) ? { subagentCounts: available() } : {}),
+        ...(metrics.tokenTotals || child.tokenTotals ? { tokenTotals: available() } : {}),
+        sessionLog: available(),
+      },
     };
   } catch {
     return child;

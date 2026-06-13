@@ -1,3 +1,4 @@
+import { normalizeChildMetricAvailability } from '../metrics/availability.js';
 import type { ChildMetricsSnapshot, ChildRunMetric, Clock, RunMetrics, RunStatus } from '../types.js';
 
 interface ChildTiming {
@@ -48,13 +49,17 @@ export class MetricsCollector {
     fields: { latestProgress?: string | null; sessionLogPath?: string | null },
   ): void {
     const existing = this.observedMetrics[storyId];
-    this.observedMetrics[storyId] = {
+    const updated = {
       storyId,
       toolCounts: existing?.toolCounts ?? {},
       subagentCounts: existing?.subagentCounts ?? {},
       tokenTotals: existing?.tokenTotals ?? null,
       latestProgress: fields.latestProgress ?? existing?.latestProgress ?? null,
       sessionLogPath: fields.sessionLogPath ?? existing?.sessionLogPath ?? null,
+    };
+    this.observedMetrics[storyId] = {
+      ...updated,
+      availability: normalizeChildMetricAvailability({ ...updated, availability: existing?.availability }),
     };
   }
 
@@ -91,13 +96,20 @@ function mergeChildMetricSnapshots(
   next: ChildMetricsSnapshot,
 ): ChildMetricsSnapshot {
   if (!existing) return next;
-  return {
+  const merged = {
     storyId: next.storyId,
     toolCounts: maxCounts(existing.toolCounts, next.toolCounts),
     subagentCounts: maxCounts(existing.subagentCounts, next.subagentCounts),
     tokenTotals: next.tokenTotals ?? existing.tokenTotals,
     latestProgress: next.latestProgress ?? existing.latestProgress,
     sessionLogPath: next.sessionLogPath ?? existing.sessionLogPath,
+  };
+  return {
+    ...merged,
+    availability: normalizeChildMetricAvailability({
+      ...merged,
+      availability: next.availability ?? existing.availability,
+    }),
   };
 }
 
