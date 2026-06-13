@@ -1,7 +1,8 @@
 import path from 'node:path';
 
 import { renderExpectedBranch, renderExpectedWorktreePath } from '../../runner/launchMetadata.js';
-import type { ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
+import type { CapabilityDowngrade, ResolvedAgentProfile, ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
+import type { StoryPromptMetadata } from '../StoryRunner.js';
 
 export interface CodexToolInput {
   cwd: string;
@@ -17,6 +18,8 @@ export function buildCodexToolInput(
   story: WorkflowStory,
   prompt = buildGenericPrompt(story, config),
   cwdAbs = config.codex.childSession.cwdAbs,
+  profile?: ResolvedAgentProfile,
+  promptMetadata?: StoryPromptMetadata,
 ): CodexToolInput {
   const childSession = config.codex.childSession;
   const input: CodexToolInput = {
@@ -24,9 +27,13 @@ export function buildCodexToolInput(
     prompt,
   };
 
-  if (childSession.model) input.model = childSession.model;
-  if (childSession.approvalPolicy) input['approval-policy'] = childSession.approvalPolicy;
-  if (childSession.sandbox) input.sandbox = childSession.sandbox;
+  const model = profile?.effectiveModel ?? childSession.model;
+  const approvalPolicy = profile?.approvalPolicy ?? childSession.approvalPolicy;
+  const sandbox = profile?.sandbox ?? childSession.sandbox;
+
+  if (model) input.model = model;
+  if (approvalPolicy) input['approval-policy'] = approvalPolicy;
+  if (sandbox) input.sandbox = sandbox;
 
   // D8 fix: inject the workspace .git and configured worktree directory as codex writable roots so
   // the child session can run `git commit` and `git worktree add` under --sandbox workspace-write.
@@ -48,9 +55,44 @@ export function buildCodexToolInput(
     sandbox_workspace_write: { writable_roots: [gitAbs, worktreesAbs] },
   };
 
-  input.config = { ...childSession.config, ...writableRootsEntry };
+  input.config = {
+    ...childSession.config,
+    ...(profile && promptMetadata
+      ? {
+          workflowkit_profile: {
+            name: profile.name,
+            taskType: profile.taskType,
+            promptTemplate: promptMetadata.template,
+            promptHash: promptMetadata.promptHash,
+          },
+          workflowkit_structured_output: {
+            schema: promptMetadata.structuredOutputSchema,
+            required: promptMetadata.structuredOutputRequired,
+            enforced: false,
+          },
+        }
+      : {}),
+    ...('model_reasoning_effort' in (childSession.config ?? {})
+      ? {}
+      : profile?.effectiveReasoning
+        ? { model_reasoning_effort: profile.effectiveReasoning }
+        : {}),
+    ...writableRootsEntry,
+  };
 
   return input;
+}
+
+export function codexDriverCapabilityDowngrades(promptMetadata?: StoryPromptMetadata): CapabilityDowngrade[] {
+  if (!promptMetadata?.structuredOutputRequired) return [];
+  return [
+    {
+      capability: 'structured-output-enforcement',
+      reason: 'Codex MCP V1 records structured-output intent but does not expose a stable schema-enforcement knob.',
+      severity: 'warning',
+      source: 'driver',
+    },
+  ];
 }
 
 export function buildGenericPrompt(

@@ -260,6 +260,56 @@ describe('CodexMcpStoryRunner', () => {
     });
   });
 
+  it('passes resolved profile metadata to Codex and returns structured-output downgrade evidence', async () => {
+    const client = new FakeClient({ callTool: async () => validResult });
+    const runner = new CodexMcpStoryRunner(config(), {
+      retries: 0,
+      createClient: () => ({ client: client as never, transport: {} as never }),
+    });
+    const profile = config().agents.resolved.implementStory;
+    const result = await runner.runStory({
+      story: story(),
+      prompt: 'prompt',
+      cwd: '/repo',
+      metadata: {},
+      profile,
+      promptMetadata: {
+        template: profile.prompt.template,
+        promptHash: 'hash-a001',
+        structuredOutputSchema: profile.structuredOutput.schema,
+        structuredOutputRequired: profile.structuredOutput.required,
+      },
+    });
+
+    expect(result.invocation).toMatchObject({
+      config: expect.objectContaining({
+        workflowkit_profile: {
+          name: 'storyImplementer',
+          taskType: 'implementStory',
+          promptTemplate: 'built-in/story-implementer',
+          promptHash: 'hash-a001',
+        },
+        workflowkit_structured_output: {
+          schema: 'built-in/child-run-result',
+          required: true,
+          enforced: false,
+        },
+      }),
+    });
+    expect(result.evidence).toMatchObject({
+      profile: { name: 'storyImplementer', taskType: 'implementStory' },
+      prompt: { template: 'built-in/story-implementer', hash: 'hash-a001' },
+      structuredOutput: { schema: 'built-in/child-run-result', required: true, enforced: false },
+      capabilityDowngrades: [
+        {
+          capability: 'structured-output-enforcement',
+          source: 'driver',
+          severity: 'warning',
+        },
+      ],
+    });
+  });
+
   it('passes the child abort signal to the MCP tool request', async () => {
     const controller = new AbortController();
     const client = new FakeClient({ callTool: async () => validResult });
