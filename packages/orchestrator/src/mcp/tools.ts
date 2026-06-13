@@ -87,8 +87,18 @@ const runPathInputSchema = z.object({
     .describe('Absolute path to a run artifact directory, e.g. the artifactDir returned by run_story or run_eligible.'),
   sessionRoot: z.string().optional().describe('Override root for child session artifacts when analyzing a run.'),
   wait: z.boolean().optional().describe('For watch_run, poll until the run leaves running or timeoutMs expires.'),
-  intervalMs: z.number().int().positive().optional().describe('For watch_run --wait, polling interval in milliseconds.'),
-  timeoutMs: z.number().int().positive().optional().describe('For watch_run --wait, maximum wait time in milliseconds.'),
+  intervalMs: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('For watch_run --wait, polling interval in milliseconds.'),
+  timeoutMs: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('For watch_run --wait, maximum wait time in milliseconds.'),
   json: z.boolean().optional().describe('Prefer machine-readable CLI-compatible JSON formatting in text summaries.'),
   responseFormat: z
     .enum(['concise', 'detailed'])
