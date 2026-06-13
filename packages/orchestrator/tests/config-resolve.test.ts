@@ -35,6 +35,32 @@ describe('ConfigSchema', () => {
       timeoutMs: 300_000,
     });
     expect(parsed.orchestrator.childTimeoutMs).toBe(1_800_000);
+    expect(parsed.agents.bindings).toEqual({
+      implementStory: 'storyImplementer',
+      prePrReview: 'prePrReviewer',
+      planTrack: 'planner',
+      analyzeRun: 'analyzer',
+      recoverRun: 'recovery',
+      migrateTracker: 'planner',
+    });
+    expect(parsed.agents.profiles.storyImplementer).toMatchObject({
+      driver: 'codex-mcp',
+      reasoning: 'medium',
+      approvalPolicy: 'never',
+      sandbox: 'workspace-write',
+      prompt: {
+        template: 'built-in/story-implementer',
+      },
+      structuredOutput: {
+        schema: 'built-in/child-run-result',
+        required: true,
+      },
+    });
+    expect(parsed.agents.profiles.storyImplementer.budget.wallMs).toEqual({
+      limit: 7_200_000,
+      warnAtPercent: 80,
+      action: 'checkpoint-stop',
+    });
   });
 
   it('rejects version other than 1', () => {
@@ -61,6 +87,52 @@ describe('ConfigSchema', () => {
 
   it('rejects a malformed pr.merge.method (previously silently ignored)', () => {
     expect(() => ConfigSchema.parse({ version: 1, pr: { merge: { method: 'rocket' } } })).toThrow(/pr/);
+  });
+
+  it('rejects an agents binding that references a missing profile', () => {
+    expect(() =>
+      ConfigSchema.parse({
+        version: 1,
+        agents: {
+          profiles: { custom: { driver: 'inline', prompt: { template: 'built-in/custom' } } },
+          bindings: { implementStory: 'missingProfile' },
+        },
+      }),
+    ).toThrow(/implementStory/);
+  });
+
+  it('deep-merges partial overrides for built-in agent profiles', () => {
+    const parsed = ConfigSchema.parse({
+      version: 1,
+      agents: {
+        profiles: {
+          storyImplementer: {
+            model: 'gpt-test',
+            budget: {
+              tokens: { limit: 100_000, action: 'warn' },
+            },
+          },
+        },
+      },
+    });
+
+    expect(parsed.agents.profiles.storyImplementer).toMatchObject({
+      driver: 'codex-mcp',
+      model: 'gpt-test',
+      reasoning: 'medium',
+      prompt: { template: 'built-in/story-implementer' },
+      structuredOutput: { schema: 'built-in/child-run-result', required: true },
+    });
+    expect(parsed.agents.profiles.storyImplementer.budget.wallMs).toEqual({
+      limit: 7_200_000,
+      warnAtPercent: 80,
+      action: 'checkpoint-stop',
+    });
+    expect(parsed.agents.profiles.storyImplementer.budget.tokens).toEqual({
+      limit: 100_000,
+      warnAtPercent: 80,
+      action: 'warn',
+    });
   });
 });
 

@@ -1,4 +1,13 @@
 export type OrchestratorDriver = 'codex-mcp';
+export type AgentDriver = 'codex-mcp' | 'inline';
+export type AgentTaskType =
+  | 'implementStory'
+  | 'prePrReview'
+  | 'planTrack'
+  | 'analyzeRun'
+  | 'recoverRun'
+  | 'migrateTracker';
+export type AgentBudgetAction = 'warn' | 'stop-new-launches' | 'checkpoint-stop' | 'abort';
 
 export type RunStatus = 'blocked' | 'complete' | 'dry-run' | 'running' | 'supervision_lost';
 
@@ -93,6 +102,56 @@ export interface ResolvedPrConfig {
   };
 }
 
+export interface AgentPromptRef {
+  template: string;
+  variables: Record<string, unknown>;
+}
+
+export interface AgentStructuredOutputRef {
+  schema: string;
+  required: boolean;
+}
+
+export interface AgentBudgetDimension {
+  limit: number | null;
+  warnAtPercent: number | null;
+  action: AgentBudgetAction;
+}
+
+export interface AgentBudgetPolicy {
+  wallMs: AgentBudgetDimension;
+  tokens: AgentBudgetDimension;
+  toolCalls: AgentBudgetDimension;
+  failedToolCalls: AgentBudgetDimension;
+  costUsd: AgentBudgetDimension;
+}
+
+export interface AgentProfile {
+  driver: AgentDriver;
+  model: string | null;
+  reasoning: string | null;
+  approvalPolicy: string | null;
+  sandbox: string | null;
+  prompt: AgentPromptRef;
+  structuredOutput: AgentStructuredOutputRef;
+  budget: AgentBudgetPolicy;
+  host: Record<string, unknown>;
+}
+
+export interface AgentBudgetSupport {
+  enforceable: boolean;
+  unavailableReason: string | null;
+}
+
+export interface ResolvedAgentProfile extends AgentProfile {
+  name: string;
+  taskType: AgentTaskType;
+  effectiveModel: string | null;
+  effectiveReasoning: string | null;
+  budgetSupport: Record<keyof AgentBudgetPolicy, AgentBudgetSupport>;
+  capabilityWarnings: string[];
+}
+
 export interface ResolvedWorkflowConfig {
   version: 1;
   configPath: string;
@@ -137,6 +196,11 @@ export interface ResolvedWorkflowConfig {
       maxParallel: number;
       allowWorkers: boolean;
     };
+  };
+  agents: {
+    profiles: Record<string, AgentProfile>;
+    bindings: Record<AgentTaskType, string>;
+    resolved: Record<AgentTaskType, ResolvedAgentProfile>;
   };
   orchestrator: {
     driver: OrchestratorDriver;

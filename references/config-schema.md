@@ -150,6 +150,42 @@ can require instrumentation of existing interactions or internal state transitio
 not request new visible controls unless those docs explicitly require the UI. Out-of-scope visible
 UI additions should be flagged as review findings.
 
+## `agents`
+
+Named profiles and task bindings for host-neutral agent execution policy. Existing configs may omit
+this block; the runtime fills safe built-in defaults for current task types.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `profiles` | object |  | Named agent profiles. Each profile can set `driver` (`codex-mcp` or `inline`), `model`, `reasoning`, `approvalPolicy`, `sandbox`, `prompt.template`, `prompt.variables`, `structuredOutput.schema`, `structuredOutput.required`, `budget`, and host-specific settings. |
+| `bindings.implementStory` | string | `storyImplementer` | Profile name used for story implementation runs. |
+| `bindings.prePrReview` | string | `prePrReviewer` | Profile name used for local pre-PR review. |
+| `bindings.planTrack` | string | `planner` | Profile name used for delivery-track planning. |
+| `bindings.analyzeRun` | string | `analyzer` | Profile name used for run analysis. |
+| `bindings.recoverRun` | string | `recovery` | Profile name used for recovery decisions. |
+| `bindings.migrateTracker` | string | `planner` | Profile name used for tracker migration/import work. |
+
+Default profiles:
+
+- `storyImplementer`: `codex-mcp`, medium reasoning, `approvalPolicy: never`,
+  `sandbox: workspace-write`, `prompt.template: built-in/story-implementer`,
+  `structuredOutput.schema: built-in/child-run-result`, and a wall-clock budget of `7200000` ms
+  with `checkpoint-stop`.
+- `prePrReviewer`: `codex-mcp`, medium reasoning, `prompt.template: built-in/pre-pr-reviewer`, and
+  `structuredOutput.schema: built-in/review-result`.
+- `planner`, `analyzer`, and `recovery`: `inline` profiles with built-in prompt and
+  structured-output schema names.
+
+Budget dimensions are `wallMs`, `tokens`, `toolCalls`, `failedToolCalls`, and `costUsd`. Each
+dimension has `limit` (`number | null`), `warnAtPercent` (`1..100 | null`), and `action`
+(`warn` | `stop-new-launches` | `checkpoint-stop` | `abort`). Token and cost budgets are accepted
+for forward-compatible policy configuration, but current resolved config marks them unenforceable
+until live telemetry and budget enforcement land in the runtime.
+
+Every binding must reference an existing profile. `loadResolvedConfig` exposes the source profiles,
+task bindings, and effective task profiles so `config.resolved.json` artifacts include the selected
+prompt/template, structured-output schema, host policy, and budget policy.
+
 ## `orchestrator` (optional)
 
 Consulted only when the orchestrator package is installed.

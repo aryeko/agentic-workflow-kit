@@ -107,6 +107,20 @@ orchestrator:
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     });
+    expect(config.agents.bindings.implementStory).toBe('storyImplementer');
+    expect(config.agents.resolved.implementStory).toMatchObject({
+      name: 'storyImplementer',
+      taskType: 'implementStory',
+      driver: 'codex-mcp',
+      prompt: { template: 'built-in/story-implementer' },
+      structuredOutput: { schema: 'built-in/child-run-result', required: true },
+      effectiveModel: null,
+      effectiveReasoning: 'medium',
+    });
+    expect(config.agents.resolved.implementStory.budgetSupport.tokens).toEqual({
+      enforceable: false,
+      unavailableReason: 'live token telemetry is not available before AWK06/AWK08 budget enforcement',
+    });
     expect(config.codex.childSession).toEqual({ cwdAbs: root });
   });
 
@@ -239,6 +253,10 @@ git:
         model_reasoning_effort: 'medium',
       },
     });
+    expect(config.agents.resolved.implementStory.effectiveModel).toBe('gpt-5.5');
+    expect(config.agents.resolved.implementStory.effectiveReasoning).toBe('medium');
+    expect(config.agents.profiles.storyImplementer.model).toBeNull();
+    expect(config.agents.profiles.storyImplementer.reasoning).toBe('medium');
   });
 
   it('resolves legacy childTimeoutMs as the no-progress timeout', async () => {
@@ -297,6 +315,8 @@ orchestrator:
 
     expect(config.workspace.rootAbs).toBe(root);
     expect(config.codex.childSession.cwdAbs).toBe(root);
+    expect(config.agents.bindings.prePrReview).toBe('prePrReviewer');
+    expect(config.agents.resolved.prePrReview.prompt.template).toBe('built-in/pre-pr-reviewer');
     expect(config.orchestrator.childTimeoutMs).toBe(1_800_000);
     expect(config.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
     expect(config.orchestrator.childStartupTimeoutMs).toBe(60_000);

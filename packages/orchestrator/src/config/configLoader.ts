@@ -1,13 +1,32 @@
 import path from 'node:path';
 
-import type { CliOverrides, OrchestratorDriver, ResolvedWorkflowConfig } from '../types.js';
+import type {
+  AgentBudgetPolicy,
+  AgentBudgetSupport,
+  AgentTaskType,
+  CliOverrides,
+  OrchestratorDriver,
+  ResolvedAgentProfile,
+  ResolvedWorkflowConfig,
+} from '../types.js';
 import { loadConfig } from './resolve.js';
+import { ConfigSchema, type WorkflowConfig } from './schema.js';
 
 const SUPPORTED_DRIVERS = new Set<OrchestratorDriver>(['codex-mcp']);
 const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
 const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
 const DEFAULT_WATCH_INTERVAL_MS = 300_000;
 const DEFAULT_WATCH_TIMEOUT_MS = 300_000;
+const AGENT_TASK_TYPES: AgentTaskType[] = [
+  'implementStory',
+  'prePrReview',
+  'planTrack',
+  'analyzeRun',
+  'recoverRun',
+  'migrateTracker',
+];
+const UNAVAILABLE_TOKEN_BUDGET_REASON = 'live token telemetry is not available before AWK06/AWK08 budget enforcement';
+const UNAVAILABLE_COST_BUDGET_REASON = 'live cost telemetry is not available before AWK06/AWK08 budget enforcement';
 
 export async function loadResolvedConfig(
   overrides: CliOverrides = {},
@@ -34,6 +53,7 @@ export async function loadResolvedConfig(
   if (overrides.reasoning !== undefined) {
     childSessionConfig.model_reasoning_effort = overrides.reasoning;
   }
+  const agents = resolveAgentProfiles(config, overrides);
 
   return {
     version: 1,
@@ -59,6 +79,7 @@ export async function loadResolvedConfig(
     git: config.git,
     pr: config.pr,
     implement: config.implement,
+    agents,
     orchestrator: {
       driver,
       maxParallel,
@@ -83,6 +104,7 @@ export async function loadResolvedConfig(
 
 export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfig {
   const workspaceRoot = path.resolve(cwd);
+  const config = ConfigSchema.parse({ version: 1 });
   return {
     version: 1,
     configPath: path.resolve(workspaceRoot, '.workflow/config.yaml'),
@@ -131,6 +153,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
+    agents: resolveAgentProfiles(config),
     orchestrator: {
       driver: 'codex-mcp',
       maxParallel: 2,
@@ -161,4 +184,60 @@ function resolveDriver(value: string): OrchestratorDriver {
     throw new Error(`Unsupported orchestrator.driver "${value}". Supported drivers: codex-mcp.`);
   }
   return value as OrchestratorDriver;
+}
+
+function resolveAgentProfiles(
+  config: Pick<WorkflowConfig, 'agents'>,
+  overrides: CliOverrides = {},
+): ResolvedWorkflowConfig['agents'] {
+  const resolved = Object.fromEntries(
+    AGENT_TASK_TYPES.map((taskType) => {
+      const name = config.agents.bindings[taskType];
+      const profile = config.agents.profiles[name];
+      const effectiveModel =
+        taskType === 'implementStory' && overrides.model !== undefined ? overrides.model : profile.model;
+      const effectiveReasoning =
+        taskType === 'implementStory' && overrides.reasoning !== undefined ? overrides.reasoning : profile.reasoning;
+      const resolvedProfile: ResolvedAgentProfile = {
+        ...profile,
+        name,
+        taskType,
+        effectiveModel,
+        effectiveReasoning,
+        budgetSupport: budgetSupportFor(profile.budget),
+        capabilityWarnings: capabilityWarningsFor(profile),
+      };
+      return [taskType, resolvedProfile];
+    }),
+  ) as Record<AgentTaskType, ResolvedAgentProfile>;
+
+  return {
+    profiles: config.agents.profiles,
+    bindings: config.agents.bindings,
+    resolved,
+  };
+}
+
+function budgetSupportFor(budget: AgentBudgetPolicy): Record<keyof AgentBudgetPolicy, AgentBudgetSupport> {
+  return {
+    wallMs: { enforceable: budget.wallMs.limit !== null, unavailableReason: null },
+    tokens: { enforceable: false, unavailableReason: UNAVAILABLE_TOKEN_BUDGET_REASON },
+    toolCalls: { enforceable: budget.toolCalls.limit !== null, unavailableReason: null },
+    failedToolCalls: { enforceable: budget.failedToolCalls.limit !== null, unavailableReason: null },
+    costUsd: { enforceable: false, unavailableReason: UNAVAILABLE_COST_BUDGET_REASON },
+  };
+}
+
+function capabilityWarningsFor(profile: WorkflowConfig['agents']['profiles'][string]): string[] {
+  if (profile.driver !== 'inline') return [];
+  const warnings: string[] = [];
+  if (profile.model !== null) warnings.push('inline profile model is visible but not consumed by a host driver');
+  if (profile.reasoning !== null)
+    warnings.push('inline profile reasoning is visible but not consumed by a host driver');
+  if (profile.approvalPolicy !== null)
+    warnings.push('inline profile approvalPolicy is visible but not consumed by a host driver');
+  if (profile.sandbox !== null) warnings.push('inline profile sandbox is visible but not consumed by a host driver');
+  if (Object.keys(profile.host).length > 0)
+    warnings.push('inline profile host settings are visible but not consumed by a host driver');
+  return warnings;
 }
