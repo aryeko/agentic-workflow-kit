@@ -183,8 +183,8 @@ Watch output is intentionally summary-first. The default non-JSON watch stream s
 supervisor polls and tiny progress events, while snapshots expose per-story state, latest progress,
 session log path, branch/worktree expectations, command counts, subagent counts, and token totals.
 Raw event detail remains available in `events.ndjson` and JSON/debug output. `codex_reply` journals
-a short preview plus a message hash when run-targeted; `codex_interrupt` journals the interruption
-metadata. Neither tool stores full secret-bearing messages in run artifacts.
+a message hash when run-targeted and omits the reply body; `codex_interrupt` journals the
+interruption metadata. Neither tool stores secret-bearing reply messages in run artifacts.
 
 Child supervision is conservative. A launch-only child in a running parent is not considered
 `supervision_lost` while there is session linkage, a discoverable session log, recent observed child

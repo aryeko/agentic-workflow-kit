@@ -159,8 +159,9 @@ export async function startWatchRunHandler(
   overrides: CliOverrides = {},
 ): Promise<StartWatchRunResult> {
   const runDirectory = path.resolve(runPath);
+  const snapshotOverrides = { ...overrides, wait: false };
   const [snapshot, eventOffset] = await Promise.all([
-    watchRunHandler(runDirectory, overrides),
+    watchRunHandler(runDirectory, snapshotOverrides),
     countRunEvents(runDirectory),
   ]);
   return {
@@ -175,7 +176,11 @@ export async function pollWatchRunHandler(
   overrides: CliOverrides = {},
 ): Promise<PollWatchRunResult> {
   const runDirectory = path.resolve(input.runPath);
-  const [snapshot, events] = await Promise.all([watchRunHandler(runDirectory, overrides), readRunEvents(runDirectory)]);
+  const snapshotOverrides = { ...overrides, wait: false };
+  const [snapshot, events] = await Promise.all([
+    watchRunHandler(runDirectory, snapshotOverrides),
+    readRunEvents(runDirectory),
+  ]);
   const eventOffset = boundedEventOffset(input.cursor.eventOffset, events.length);
   return {
     ...snapshot,

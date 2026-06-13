@@ -69,11 +69,7 @@ export async function sendCodexReply(input: CodexReplyInput): Promise<CodexContr
     threadId: target.sessionId,
     message: input.message,
   });
-  await journalControlEvent(target, 'codex-reply-sent', {
-    messagePreview: input.message.slice(0, 200),
-    messageSha256: sha256(input.message),
-    tool: result.tool,
-  });
+  await journalControlEvent(target, 'codex-reply-sent', codexReplyJournalFields(input.message, result.tool));
   return { ok: true, ...target, tool: result.tool, rawResult: result.rawResult };
 }
 
@@ -142,4 +138,11 @@ async function journalControlEvent(
 
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+export function codexReplyJournalFields(message: string, tool: string): Record<string, unknown> {
+  return {
+    messageSha256: sha256(message),
+    tool,
+  };
 }
