@@ -28,6 +28,12 @@ describe('ConfigSchema', () => {
     expect(parsed.pr.merge.method).toBe('squash');
     expect(parsed.orchestrator.driver).toBe('codex-mcp');
     expect(parsed.orchestrator.maxParallel).toBe(2);
+    expect(parsed.orchestrator.watch).toEqual({
+      enabled: false,
+      wait: false,
+      intervalMs: 300_000,
+      timeoutMs: 300_000,
+    });
     expect(parsed.orchestrator.childTimeoutMs).toBe(1_800_000);
   });
 

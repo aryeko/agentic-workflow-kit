@@ -107,8 +107,12 @@ Inspect a run:
 
 ```bash
 agentic-workflow-kit watch-run .workflow/runs/<run-id> --json
+agentic-workflow-kit watch-run .workflow/runs/<run-id> --wait --interval-ms 300000 --timeout-ms 300000 --json
 agentic-workflow-kit analyze-run .workflow/runs/<run-id> --json
 ```
+
+`watch-run` reads `orchestrator.watch` defaults from the run's `config.resolved.json`; CLI flags
+override those defaults for one invocation.
 
 ## Troubleshooting
 

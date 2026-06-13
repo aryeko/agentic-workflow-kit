@@ -142,6 +142,12 @@ export interface ResolvedWorkflowConfig {
     driver: OrchestratorDriver;
     maxParallel: number;
     stopLaunchingOnBlocked: boolean;
+    watch: {
+      enabled: boolean;
+      wait: boolean;
+      intervalMs: number;
+      timeoutMs: number;
+    };
     /**
      * Compatibility alias for childNoProgressTimeoutMs.
      */

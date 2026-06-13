@@ -340,6 +340,32 @@
           "default": true,
           "type": "boolean"
         },
+        "watch": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": false,
+              "type": "boolean"
+            },
+            "wait": {
+              "default": false,
+              "type": "boolean"
+            },
+            "intervalMs": {
+              "default": 300000,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "timeoutMs": {
+              "default": 300000,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "additionalProperties": false
+        },
         "childTimeoutMs": {
           "default": 1800000,
           "type": "integer",

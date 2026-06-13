@@ -50,6 +50,12 @@ const goodConfig = {
     driver: 'codex-mcp',
     maxParallel: 2,
     stopLaunchingOnBlocked: true,
+    watch: {
+      enabled: false,
+      wait: false,
+      intervalMs: 300_000,
+      timeoutMs: 300_000,
+    },
     childTimeoutMs: 1_800_000,
     childNoProgressTimeoutMs: 1_800_000,
     childStartupTimeoutMs: 60_000,
@@ -78,6 +84,12 @@ describe('config.schema.json', () => {
     expect(parsed.pr.review.maxFixBatches).toBe(1);
     expect(parsed.pr.review.rerequestAfterFix).toBe(false);
     expect(parsed.pr.review.waitTimeoutMinutes).toBe(30);
+    expect(parsed.orchestrator.watch).toEqual({
+      enabled: false,
+      wait: false,
+      intervalMs: 300_000,
+      timeoutMs: 300_000,
+    });
     expect(parsed.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
     expect(parsed.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(parsed.orchestrator.childMaxRuntimeMs).toBe(7_200_000);

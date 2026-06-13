@@ -8,6 +8,8 @@ const repoRelativePath = nonEmpty.refine((value) => !path.isAbsolute(value) && !
 const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
 const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
 const DEFAULT_CHILD_MAX_RUNTIME_MS = 7_200_000;
+const DEFAULT_WATCH_INTERVAL_MS = 300_000;
+const DEFAULT_WATCH_TIMEOUT_MS = 300_000;
 
 export const ConfigSchema = z
   .object({
@@ -116,6 +118,15 @@ export const ConfigSchema = z
         driver: nonEmpty.default('codex-mcp'),
         maxParallel: z.number().int().min(1).default(2),
         stopLaunchingOnBlocked: z.boolean().default(true),
+        watch: z
+          .object({
+            enabled: z.boolean().default(false),
+            wait: z.boolean().default(false),
+            intervalMs: z.number().int().min(1).default(DEFAULT_WATCH_INTERVAL_MS),
+            timeoutMs: z.number().int().min(1).default(DEFAULT_WATCH_TIMEOUT_MS),
+          })
+          .strict()
+          .prefault({}),
         childTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS),
         childNoProgressTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS),
         childStartupTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_STARTUP_TIMEOUT_MS),
