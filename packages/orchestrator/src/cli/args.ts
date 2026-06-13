@@ -113,11 +113,11 @@ function buildProgram(setParsed: (command: WorkflowCommand) => void): Command {
       setParsed({ kind: 'watch-run', runPath, overrides: toOverrides(options) });
     },
   );
-  withOptions(program.command('abort-run').argument('<runPath>')).action(
-    (runPath: string, options: CommanderOptions) => {
+  withOptions(program.command('abort-run').argument('<runPath>'))
+    .option('--story <id>')
+    .action((runPath: string, options: CommanderOptions) => {
       setParsed({ kind: 'abort-run', runPath, overrides: toOverrides(options) });
-    },
-  );
+    });
   withOptions(program.command('analyze-run').argument('<runPath>')).action(
     (runPath: string, options: CommanderOptions) => {
       setParsed({ kind: 'analyze-run', runPath, overrides: toOverrides(options) });
@@ -150,7 +150,6 @@ function withOptions(command: Command): Command {
     .addOption(new Option('--timeout-ms <n>').argParser((value) => parsePositiveIntegerFlag(value, '--timeout-ms')))
     .option('--track <id>')
     .option('--tracks-dir <path>')
-    .option('--story <id>')
     .option('--reason <text>')
     .option('--from <path>')
     .option('--model <model>')
