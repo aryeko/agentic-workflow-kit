@@ -61,4 +61,14 @@ describe('example tracker story briefs and PRD linkage', () => {
     expect(a).not.toMatch(/linkly-status:/);
     expect(b).not.toMatch(/linkly-status:/);
   });
+
+  it('worked story briefs record assumptions and artifact boundaries', () => {
+    const a = readFileSync(LK01, 'utf8');
+    const b = readFileSync(LK02, 'utf8');
+    for (const brief of [a, b]) {
+      expect(brief).toContain('## Assumptions and blockers');
+      expect(brief).toContain('## Artifact boundaries');
+      expect(brief).toContain('Runtime artifacts');
+    }
+  });
 });

@@ -33,7 +33,9 @@ is visited. This example PRD demonstrates the agentic-workflow-kit PRD contract 
 
 This PRD owns what/why. How Linkly stores links, generates codes, or scales is technical design,
 decided downstream. This small example goes directly to tracker planning; larger products should
-add `technical-solution.md` with `/design-technical-solution` first.
+add `technical-solution.md` with `/design-technical-solution` first. The tracker owns sequencing and
+story status, story briefs own lightweight story-local scope, detailed story specs own exact
+implementation design, implementation plans own execution steps, and runtime artifacts own execution evidence.
 
 ## Status & next steps
 

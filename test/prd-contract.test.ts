@@ -39,4 +39,17 @@ describe('prd-contract.md', () => {
     expect(lower).toContain('boundary');
     expect(lower).toContain('technical');
   });
+
+  it('supports independent authoring from rich context and records assumptions/blockers', () => {
+    expect(doc).toContain('notes, brainstorming, existing docs, or session context');
+    expect(doc).toContain('Assumptions');
+    expect(doc).toContain('Blocking questions');
+  });
+
+  it('keeps artifact responsibilities distinct through runtime artifacts', () => {
+    expect(doc).toContain('story brief');
+    expect(doc).toContain('detailed technical story spec');
+    expect(doc).toContain('implementation plan');
+    expect(doc).toContain('runtime artifacts');
+  });
 });

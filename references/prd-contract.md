@@ -1,10 +1,10 @@
 # PRD contract
 
 A PRD (product requirements document) defines a product — the *what* and *why* — before
-any technical decomposition. It is authored by the `define-product` skill and consumed by
-`design-technical-solution` for complex technical work and `plan-delivery-track`, which maps tracker stories back to
-the PRD's acceptance criteria. This file
-is the canonical format; it is the PRD analog of `tracker-contract.md`.
+any technical decomposition. It can be authored from notes, brainstorming, existing docs, or session context; no prior kit artifact is required. It is authored by the `define-product` skill and consumed
+by `design-technical-solution` for complex technical work and `plan-delivery-track`, which maps
+tracker stories back to the PRD's acceptance criteria. This file is the canonical format; it is the
+PRD analog of `tracker-contract.md`.
 
 ## Layout
 
@@ -22,7 +22,7 @@ default `docs/prds`) containing a README index and numbered section files:
   06-quality-bars.md              ID-keyed cross-cutting quality requirements
   07-success-metrics.md           north-star, metric tables, anti-metrics
   08-acceptance-criteria.md       grouped, ID'd ship checklist (the downstream linkage)
-  09-risks-and-open-questions.md  risk register + open questions
+  09-risks-and-open-questions.md  assumptions, risk register, blocking questions, and open questions
   10-glossary.md                  term definitions
 ```
 
@@ -43,7 +43,10 @@ Frontmatter keys: `title`, `status`, `owner`, `last-reviewed`, `related`. Body: 
 boundary** note (the PRD owns what/why; the technical solution owns high-level how for complex
 work), and a
 **Status & next steps** section linking to the technical solution doc and tracker once downstream
-planning creates them.
+planning creates them. The boundary note distinguishes all downstream artifacts: PRD owns what/why,
+technical solution owns high-level how, delivery tracker owns sequencing/status, story brief owns
+lightweight story-local scope, detailed technical story spec owns exact implementation design,
+implementation plan owns execution steps, and runtime artifacts own execution evidence.
 
 ## Acceptance-criteria format
 
@@ -63,6 +66,15 @@ PRD frontmatter `status` uses one of: `draft`, `approved`, `shipped`, `archived`
 This is the **product-level** lifecycle and is deliberately distinct from the **story-level**
 status vocabulary in `tracker-contract.md` (`specced` -> `plan-approved` -> `implementing` ->
 `done` -> `verified`, plus terminal states). Do not conflate the two.
+
+## Assumptions and blocking questions
+
+`define-product` should ask only blocking questions before writing: questions whose answer would
+materially change product scope, acceptance criteria, roles, phases, success metrics, or launch
+risk. Safe assumptions belong in `09-risks-and-open-questions.md` under **Assumptions** instead of
+interrupting the user. Questions that block a coherent PRD belong under **Blocking questions** and
+must be resolved before marking the PRD `approved`; non-blocking follow-ups can remain under
+**Open questions** with a recommended default.
 
 ## Conventions
 

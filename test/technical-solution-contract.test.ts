@@ -38,4 +38,10 @@ describe('technical solution contract', () => {
     expect(doc).toContain('detailed technical story spec owns exact implementation design');
     expect(doc).toContain('implementation plan owns execution steps');
   });
+
+  it('supports non-linear HLD authoring inputs and records assumptions/blockers', () => {
+    expect(doc).toContain('PRD, existing design docs, technical notes, or session context');
+    expect(doc).toContain('Assumptions');
+    expect(doc).toContain('Blocking technical questions');
+  });
 });

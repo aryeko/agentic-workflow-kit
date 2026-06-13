@@ -1,6 +1,6 @@
 ---
 name: plan-delivery-track
-description: Use after a PRD exists to decompose it into a delivery tracker and lightweight story briefs. For complex technical PRDs, require and consume the technical solution document produced by design-technical-solution before writing tracker stories. Produces docs/tracks/<track>/README.md plus docs/tracks/<track>/stories/<ID>.md briefs that cite PRD criteria and technical solution sections. Story briefs are not implementation-ready; implement-next creates the detailed technical story spec and implementation plan before code. If no PRD exists, stop and point at /define-product. If technical solution is required and missing, stop and point at /design-technical-solution.
+description: Use to decompose product or design context into a delivery tracker and lightweight story briefs. Accepts a PRD plus technical solution, a technical solution alone, or explicit backlog/design context when enough scope, outcomes, sequencing, and validation expectations exist. For complex technical work, require a technical solution or equivalent external design context before writing tracker stories. Produces docs/tracks/<track>/README.md plus docs/tracks/<track>/stories/<ID>.md briefs that cite PRD criteria or context-derived outcomes and technical solution sections or external context labels. Story briefs are not implementation-ready; implement-next creates the detailed technical story spec and implementation plan before code.
 argument-hint: "[prd-slug or notes]"
 arguments: prd_slug_or_notes
 user-invocable: true
@@ -8,9 +8,9 @@ user-invocable: true
 
 # Plan a delivery tracker
 
-Turn an agreed PRD, plus a technical solution when needed, into delivery sequencing: a tracker of
-bounded stories and lightweight story briefs. This skill does not write detailed technical story
-specs and does not write implementation plans.
+Turn agreed product/design input into delivery sequencing: a tracker of bounded stories and
+lightweight story briefs. The input can be a PRD plus technical solution, a technical solution alone, or explicit backlog/design context when enough scope exists. This skill does not write
+detailed technical story specs and does not write implementation plans.
 
 ## Where this sits
 
@@ -43,12 +43,17 @@ Read `.workflow/config.yaml` if present; otherwise use defaults. Keys used:
 
 ## The recipe
 
-### Step 1 - PRD gate
+### Step 1 - Source context gate
 
-Resolve `paths.prdsDir` and locate the PRD for this work (`<prdsDir>/<slug>/`, conforming to
-`references/prd-contract.md`). If no conforming PRD exists, stop and tell the user to run
-`/define-product` first. Read `08-acceptance-criteria.md`; every story brief maps to one or more
-PRD criteria.
+Resolve `paths.prdsDir`. Locate the PRD for this work (`<prdsDir>/<slug>/`, conforming to
+`references/prd-contract.md`) when a PRD slug or path is supplied. Read `08-acceptance-criteria.md`;
+every story brief maps to one or more PRD criteria when PRD criteria exist.
+
+If no conforming PRD exists, continue only when the user supplied a technical solution alone or
+explicit backlog/design context with enough product scope, acceptance outcomes, sequencing
+constraints, and validation expectations to create responsible tracker rows. Record that assumption
+in the tracker and each story brief. If that context is missing or contradictory, stop and tell the
+user to run `/define-product` first.
 
 ### Step 2 - Technical solution gate
 
@@ -59,11 +64,14 @@ security/privacy boundaries, multi-system integration, or multiple implementatio
 sequencing depends on technical design.
 
 If technical solution is required and missing, stop and tell the user to run
-`/design-technical-solution` first. Do not decompose complex technical work directly from the PRD.
+`/design-technical-solution` first unless explicit external design context already covers the same
+high-level how. Do not decompose complex technical work directly from a thin PRD.
 
 If the technical solution is present, read `<prdsDir>/<slug>/technical-solution.md` and confirm it
 conforms to `references/technical-solution-contract.md`. Use it as the source for story boundaries,
 sequencing, validation expectations, file-contention constraints, and required section citations.
+For technical-solution-only or backlog/design-context planning, cite the supplied document headings
+or context labels in the story brief's technical solution sections.
 
 ### Step 3 - Audit reality
 
@@ -85,6 +93,12 @@ For each story, define PRD criteria and technical solution sections, dependencie
 candidate surfaces, validation expectations, and open technical questions that the detailed spec
 must resolve.
 
+Add an **Assumptions and blockers** pass before writing: record safe assumptions and ask only
+questions that block a valid tracker or story brief. Add an **Artifact boundaries** pass: confirm the
+tracker owns delivery slicing and status, story briefs are lightweight and not implementation-ready,
+detailed technical story specs own exact implementation design, implementation plans own execution
+steps, and runtime artifacts own execution evidence.
+
 ### Step 6 - Write tracker README
 
 Write `<tracksDir>/<track>/README.md` from `tracker-readme-template.md`. Keep the 9-column status
@@ -100,8 +114,9 @@ Write one lightweight story brief per tracker row at:
 <tracksDir>/<track>/stories/<ID>.md
 ```
 
-Use `references/templates/story-brief-template.md`. Each brief must include PRD criteria,
-technical solution sections, dependencies, scope boundary, candidate surfaces, validation
+Use `references/templates/story-brief-template.md`. Each brief must include PRD criteria or
+context-derived outcomes, technical solution sections or external context citations, dependencies,
+scope boundary, assumptions and blockers, artifact boundaries, candidate surfaces, validation
 expectations, open technical questions, and the exact note:
 
 ```text
