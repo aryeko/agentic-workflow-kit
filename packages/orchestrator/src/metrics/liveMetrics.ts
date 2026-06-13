@@ -1,5 +1,6 @@
 import type { ChildMetricsSnapshot, LiveMetricsSnapshot, RunStatus } from '../types.js';
 import { mergeChildMetrics } from './aggregate.js';
+import { analyzeSessionLogMetrics } from './sessionLogMetrics.js';
 
 export interface BuildLiveMetricsInput {
   runId: string;
@@ -27,6 +28,37 @@ export function buildLiveMetricsSnapshot(input: BuildLiveMetricsInput): LiveMetr
     children: input.childMetrics,
     aggregate: mergeChildMetrics(Object.values(input.childMetrics)),
   };
+}
+
+export async function enrichLiveMetricsFromSessionLogs(snapshot: LiveMetricsSnapshot): Promise<LiveMetricsSnapshot> {
+  const children: Record<string, ChildMetricsSnapshot> = {};
+  for (const [storyId, child] of Object.entries(snapshot.children)) {
+    children[storyId] = await enrichChildMetric(child);
+  }
+  return {
+    ...snapshot,
+    children,
+    aggregate: mergeChildMetrics(Object.values(children)),
+  };
+}
+
+async function enrichChildMetric(child: ChildMetricsSnapshot): Promise<ChildMetricsSnapshot> {
+  if (!child.sessionLogPath) return child;
+  try {
+    const metrics = await analyzeSessionLogMetrics(child.sessionLogPath);
+    return {
+      ...child,
+      toolCounts: hasCounts(metrics.commandCounts) ? metrics.commandCounts : child.toolCounts,
+      subagentCounts: hasCounts(metrics.subagentCounts) ? metrics.subagentCounts : child.subagentCounts,
+      tokenTotals: metrics.tokenTotals ?? child.tokenTotals,
+    };
+  } catch {
+    return child;
+  }
+}
+
+function hasCounts(value: Record<string, number>): boolean {
+  return Object.keys(value).length > 0;
 }
 
 export { mergeChildMetrics } from './aggregate.js';

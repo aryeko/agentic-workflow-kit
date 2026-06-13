@@ -106,6 +106,12 @@ export function buildGenericPrompt(
     `- Review wait timeout: ${pr.review.waitTimeoutMinutes} minutes.`,
     `- Auto-merge: ${pr.merge.auto ? `yes (${pr.merge.method})` : 'no'}.`,
     `- Delete branch after merge: ${pr.merge.deleteBranch ? 'yes' : 'no'}.`,
+    pr.merge.auto
+      ? `- Before merge, fetch the latest \`${git.baseBranch}\`, rebase or otherwise update the story branch onto \`${git.baseBranch}\`, and rerun the required verification after the base update.`
+      : null,
+    pr.merge.auto
+      ? '- If the base update conflicts or verification fails, stop and report the blocker instead of merging.'
+      : null,
     '',
     'Implementation policy (from .workflow/config.yaml - follow exactly):',
     `- Pre-PR review: ${implement.review.prePr.enabled ? 'enabled' : 'disabled'}, mode ${implement.review.prePr.mode}, max loops ${implement.review.prePr.maxLoops}, loop mode ${implement.review.prePr.loopMode}.`,
@@ -156,10 +162,12 @@ function reviewGateDetails(review: ResolvedWorkflowConfig['pr']['review']): stri
 
   return [
     '- Codex review signal is reaction/comment based, not a native GitHub approval gate.',
-    '- Codex eyes reaction means review started/pending; it is not approval.',
-    '- Codex thumbs-up reaction means clear/no findings.',
+    '- Check PR body reactions, issue comments, and PR review comments before deciding whether Codex review is pending, approved, or has findings.',
+    `- A +1 reaction from bot \`${review.bot}\` means approval / clear / no findings.`,
+    `- An eyes reaction from bot \`${review.bot}\` means review is pending; it is not approval.`,
     `- Codex PR review comments or PR comments are findings. ${triage}`,
     '- Do not require a GitHub PullRequestReview APPROVED or CHANGES_REQUESTED state from Codex.',
+    '- Do not re-request Codex review after a +1 reaction has been observed.',
     '- Do not mention @codex unless auto review failed to start or a manual retry is needed.',
   ];
 }

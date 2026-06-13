@@ -96,6 +96,14 @@ function configForWorkspace(workspaceRoot: string): ResolvedWorkflowConfig {
   };
 }
 
+function branchConfigForWorkspace(workspaceRoot: string): ResolvedWorkflowConfig {
+  const resolved = configForWorkspace(workspaceRoot);
+  return {
+    ...resolved,
+    git: { ...resolved.git, strategy: 'branch' },
+  };
+}
+
 function story(id: string, status = 'specced', eligible = true): WorkflowStory {
   return {
     id,
@@ -1065,9 +1073,10 @@ describe('WorkflowRunner', () => {
     const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
     mkdirSync(path.dirname(trackerPath), { recursive: true });
     writeFileSync(trackerPath, trackerMarkdown('specced'));
+    const branchConfig = branchConfigForWorkspace(workspaceRoot);
     const resolvedConfig = {
-      ...configForWorkspace(workspaceRoot),
-      orchestrator: { ...configForWorkspace(workspaceRoot).orchestrator, childTimeoutMs: 25 },
+      ...branchConfig,
+      orchestrator: { ...branchConfig.orchestrator, childTimeoutMs: 25 },
     };
     const storySource: StorySource = {
       async listStories() {
@@ -1112,6 +1121,59 @@ describe('WorkflowRunner', () => {
       expect.objectContaining({
         type: 'tracker-claim-released',
         storyId: 'WK001',
+      }),
+    );
+  });
+
+  it('does not claim the parent tracker before launching a worktree child', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-worktree-skip-parent-claim-'));
+    const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
+    mkdirSync(path.dirname(trackerPath), { recursive: true });
+    const originalTracker = trackerMarkdown('specced');
+    writeFileSync(trackerPath, originalTracker);
+    const resolvedConfig = configForWorkspace(workspaceRoot);
+    const storySource: StorySource = {
+      async listStories() {
+        const tracks = await discoverMarkdownTracks({
+          workspaceRoot,
+          tracksDir: resolvedConfig.paths.tracksDir,
+          archiveDir: resolvedConfig.paths.archiveDir,
+          completeStatuses: resolvedConfig.statuses.complete,
+          eligibleStatuses: resolvedConfig.statuses.eligible,
+          idPattern: resolvedConfig.tracker.idPattern,
+        });
+        return tracks.flatMap((track) => track.stories);
+      },
+    };
+    const artifacts = new MemoryArtifacts();
+    const deferred = new DeferredRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-eligible',
+      config: resolvedConfig,
+      storySource,
+      storyRunner: deferred,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: async ({ story: preparedStory, git }) => ({
+        childCwdAbs: path.join(workspaceRoot, '.worktrees/wk001'),
+        expectedBranch: renderExpectedBranch(preparedStory, git),
+        expectedWorktreePath: path.join(workspaceRoot, '.worktrees/wk001'),
+        prepared: true,
+      }),
+    });
+
+    const state = await runner.runEligible({ returnAfterInitialLaunch: true });
+
+    expect(state.status).toBe('running');
+    expect(readFileSync(trackerPath, 'utf8')).toBe(originalTracker);
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'tracker-claim-skipped',
+        storyId: 'WK001',
+        reason: 'worktree-child-owns-tracker',
       }),
     );
   });
@@ -1168,7 +1230,7 @@ describe('WorkflowRunner', () => {
     mkdirSync(path.dirname(childTrackerPath), { recursive: true });
     writeFileSync(trackerPath, trackerMarkdown('specced'));
     writeFileSync(childTrackerPath, trackerMarkdown('done'));
-    const resolvedConfig = configForWorkspace(workspaceRoot);
+    const resolvedConfig = branchConfigForWorkspace(workspaceRoot);
     const storySource: StorySource = {
       async listStories() {
         const tracks = await discoverMarkdownTracks({
@@ -1317,9 +1379,10 @@ describe('WorkflowRunner', () => {
     const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
     mkdirSync(path.dirname(trackerPath), { recursive: true });
     writeFileSync(trackerPath, trackerMarkdown('specced'));
+    const branchConfig = branchConfigForWorkspace(workspaceRoot);
     const resolvedConfig = {
-      ...configForWorkspace(workspaceRoot),
-      orchestrator: { ...configForWorkspace(workspaceRoot).orchestrator, childStartupTimeoutMs: 25 },
+      ...branchConfig,
+      orchestrator: { ...branchConfig.orchestrator, childStartupTimeoutMs: 25 },
     };
     const storySource: StorySource = {
       async listStories() {
@@ -1889,8 +1952,8 @@ describe('WorkflowRunner', () => {
 
     expect(storyRunner.requests.map((request) => request.story.id)).toEqual(['WK001']);
     expect(storyRunner.requests[0].story).toMatchObject({
-      status: 'implementing',
-      owner: 'awk:run-1:WK001',
+      status: 'specced',
+      owner: null,
     });
     expect(state.status).toBe('complete');
     expect(state.completed[0]).toMatchObject({ storyId: 'WK001', returnedStatus: 'done', returnedComplete: true });
@@ -1958,7 +2021,7 @@ describe('WorkflowRunner', () => {
     mkdirSync(path.dirname(trackerPath), { recursive: true });
     writeFileSync(trackerPath, trackerMarkdown('blocked'));
 
-    const resolvedConfig = configForWorkspace(workspaceRoot);
+    const resolvedConfig = branchConfigForWorkspace(workspaceRoot);
     const storySource: StorySource = {
       async listStories() {
         const tracks = await discoverMarkdownTracks({
@@ -2001,7 +2064,7 @@ describe('WorkflowRunner', () => {
     mkdirSync(path.dirname(trackerPath), { recursive: true });
     writeFileSync(trackerPath, trackerMarkdown('specced').replace('| — | — |\n', '| arye | — |\n'));
 
-    const resolvedConfig = configForWorkspace(workspaceRoot);
+    const resolvedConfig = branchConfigForWorkspace(workspaceRoot);
     const storySource: StorySource = {
       async listStories() {
         const tracks = await discoverMarkdownTracks({
