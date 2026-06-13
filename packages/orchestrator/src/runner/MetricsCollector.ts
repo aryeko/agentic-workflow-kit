@@ -40,7 +40,7 @@ export class MetricsCollector {
   }
 
   updateChildMetric(storyId: string, metrics: ChildMetricsSnapshot): void {
-    this.observedMetrics[storyId] = metrics;
+    this.observedMetrics[storyId] = mergeChildMetricSnapshots(this.observedMetrics[storyId], metrics);
   }
 
   observeChildProgress(
@@ -84,4 +84,27 @@ export class MetricsCollector {
       criticalPath: completedChildren,
     };
   }
+}
+
+function mergeChildMetricSnapshots(
+  existing: ChildMetricsSnapshot | undefined,
+  next: ChildMetricsSnapshot,
+): ChildMetricsSnapshot {
+  if (!existing) return next;
+  return {
+    storyId: next.storyId,
+    toolCounts: maxCounts(existing.toolCounts, next.toolCounts),
+    subagentCounts: maxCounts(existing.subagentCounts, next.subagentCounts),
+    tokenTotals: next.tokenTotals ?? existing.tokenTotals,
+    latestProgress: next.latestProgress ?? existing.latestProgress,
+    sessionLogPath: next.sessionLogPath ?? existing.sessionLogPath,
+  };
+}
+
+function maxCounts(left: Record<string, number>, right: Record<string, number>): Record<string, number> {
+  const result = { ...left };
+  for (const [key, value] of Object.entries(right)) {
+    result[key] = Math.max(result[key] ?? 0, value);
+  }
+  return result;
 }

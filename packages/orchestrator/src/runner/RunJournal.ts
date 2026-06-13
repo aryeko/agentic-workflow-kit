@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { StoryCommitEvidence } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
-import { buildLiveMetricsSnapshot } from '../metrics/liveMetrics.js';
+import { buildLiveMetricsSnapshot, enrichLiveMetricsFromSessionLogs } from '../metrics/liveMetrics.js';
 import type {
   ArtifactStore,
   ChildLaunchRecord,
@@ -58,8 +58,7 @@ export class RunJournal {
   }
 
   async writeLiveMetrics(state: RunState, childMetrics: Record<string, ChildMetricsSnapshot>): Promise<void> {
-    await this.dependencies.artifactStore.writeJson(
-      'metrics.live.json',
+    const snapshot = await enrichLiveMetricsFromSessionLogs(
       buildLiveMetricsSnapshot({
         runId: state.runId,
         status: state.status,
@@ -73,6 +72,7 @@ export class RunJournal {
         childMetrics,
       }),
     );
+    await this.dependencies.artifactStore.writeJson('metrics.live.json', snapshot);
   }
 
   async writeStorySnapshot(label: string, stories: WorkflowStory[]): Promise<void> {
