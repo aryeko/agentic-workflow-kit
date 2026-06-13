@@ -10,7 +10,10 @@ import {
   listStoriesHandler,
   listTracksHandler,
   mcpCheckHandler,
+  pollWatchRunHandler,
   runWorkflowHandler,
+  startWatchRunHandler,
+  stopWatchRunHandler,
   watchRunHandler,
 } from '../commands/handlers.js';
 import type { CliOverrides, Logger, RunState } from '../types.js';
@@ -22,6 +25,9 @@ export const ORCHESTRATOR_MCP_TOOLS = [
   'run_eligible',
   'run_story',
   'watch_run',
+  'watch_run_start',
+  'watch_run_poll',
+  'watch_run_stop',
   'analyze_run',
   'check_codex_mcp',
 ] as const;
@@ -100,6 +106,22 @@ const runPathInputSchema = z.object({
     .optional()
     .describe('For watch_run --wait, maximum wait time in milliseconds.'),
   json: z.boolean().optional().describe('Prefer machine-readable CLI-compatible JSON formatting in text summaries.'),
+  responseFormat: z
+    .enum(['concise', 'detailed'])
+    .optional()
+    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
+});
+
+const watchRunPollInputSchema = runPathInputSchema.extend({
+  cursor: z
+    .object({
+      eventOffset: z.number().int().nonnegative().describe('Number of run events the caller has already consumed.'),
+    })
+    .describe('Cursor returned by watch_run_start or a previous watch_run_poll call.'),
+});
+
+const watchRunStopInputSchema = z.object({
+  watchId: z.string().describe('Watch id returned by watch_run_start.'),
   responseFormat: z
     .enum(['concise', 'detailed'])
     .optional()
@@ -221,13 +243,54 @@ export function registerOrchestratorTools(server: McpServer): void {
     'watch_run',
     {
       description:
-        'Read current state.json and metrics.live.json for a run artifact directory returned by run_story or run_eligible.',
+        'Read current state.json, metrics.live.json, and a meaningful run summary for a run artifact directory returned by run_story or run_eligible. Returns immediately by default; prefer watch_run_start and watch_run_poll for long supervision.',
       inputSchema: runPathInputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     async (input) =>
       handleTool('watch_run', input.responseFormat, () => watchRunHandler(input.runPath, toOverrides(input))),
+  );
+
+  server.registerTool(
+    'watch_run_start',
+    {
+      description:
+        'Start nonblocking run supervision. Returns the current watch summary plus a cursor for later watch_run_poll calls.',
+      inputSchema: runPathInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('watch_run_start', input.responseFormat, () => startWatchRunHandler(input.runPath, toOverrides(input))),
+  );
+
+  server.registerTool(
+    'watch_run_poll',
+    {
+      description:
+        'Poll a nonblocking run watch using a cursor from watch_run_start or a previous watch_run_poll call. Returns meaningful snapshot data and raw changes since the cursor.',
+      inputSchema: watchRunPollInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('watch_run_poll', input.responseFormat, () =>
+        pollWatchRunHandler({ runPath: input.runPath, cursor: input.cursor }, toOverrides(input)),
+      ),
+  );
+
+  server.registerTool(
+    'watch_run_stop',
+    {
+      description:
+        'Stop a nonblocking watch id returned by watch_run_start. Cursor correctness is client-side, so this only releases process-local watch state when present.',
+      inputSchema: watchRunStopInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('watch_run_stop', input.responseFormat, () => stopWatchRunHandler(input.watchId)),
   );
 
   server.registerTool(

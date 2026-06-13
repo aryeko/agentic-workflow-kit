@@ -79,6 +79,20 @@ export interface WatchStorySummary {
   tokenTotals: TokenTotals | null;
 }
 
+export interface WatchRunCursor {
+  eventOffset: number;
+}
+
+export interface StartWatchRunResult extends WatchRunSnapshot {
+  watchId: string;
+  cursor: WatchRunCursor;
+}
+
+export interface PollWatchRunResult extends WatchRunSnapshot {
+  cursor: WatchRunCursor;
+  changes: unknown[];
+}
+
 type RunCommand = Extract<WorkflowCommand, { kind: 'run-story' | 'run-eligible' }>;
 type WatchOptions = ResolvedWorkflowConfig['orchestrator']['watch'];
 
@@ -138,6 +152,37 @@ export async function watchRunHandler(runPath: string, overrides: CliOverrides =
     }
     await delay(Math.min(watch.intervalMs, Math.max(0, watch.timeoutMs - (Date.now() - startedAt))));
   }
+}
+
+export async function startWatchRunHandler(
+  runPath: string,
+  overrides: CliOverrides = {},
+): Promise<StartWatchRunResult> {
+  const runDirectory = path.resolve(runPath);
+  const [snapshot, eventOffset] = await Promise.all([watchRunHandler(runDirectory, overrides), countRunEvents(runDirectory)]);
+  return {
+    ...snapshot,
+    watchId: `watch_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
+    cursor: { eventOffset },
+  };
+}
+
+export async function pollWatchRunHandler(
+  input: { runPath: string; cursor: WatchRunCursor },
+  overrides: CliOverrides = {},
+): Promise<PollWatchRunResult> {
+  const runDirectory = path.resolve(input.runPath);
+  const [snapshot, events] = await Promise.all([watchRunHandler(runDirectory, overrides), readRunEvents(runDirectory)]);
+  const eventOffset = boundedEventOffset(input.cursor.eventOffset, events.length);
+  return {
+    ...snapshot,
+    cursor: { eventOffset: events.length },
+    changes: events.slice(eventOffset),
+  };
+}
+
+export async function stopWatchRunHandler(watchId: string): Promise<{ watchId: string; stopped: boolean }> {
+  return { watchId, stopped: true };
 }
 
 async function resolveWatchOptions(runDirectory: string, overrides: CliOverrides): Promise<WatchOptions> {
@@ -410,6 +455,36 @@ async function printNewEvents(
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function countRunEvents(runDirectory: string): Promise<number> {
+  return (await readRunEvents(runDirectory)).length;
+}
+
+async function readRunEvents(runDirectory: string): Promise<unknown[]> {
+  let content: string;
+  try {
+    content = await readFile(path.join(runDirectory, 'events.ndjson'), 'utf8');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return content
+    .trimEnd()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line) as unknown;
+      } catch {
+        return { raw: line };
+      }
+    });
+}
+
+function boundedEventOffset(offset: number, eventCount: number): number {
+  if (!Number.isInteger(offset) || offset < 0) return 0;
+  return Math.min(offset, eventCount);
 }
 
 async function readJsonIfExists(filePath: string): Promise<unknown | null> {

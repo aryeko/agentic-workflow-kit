@@ -3,7 +3,12 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { watchRunHandler } from '../packages/orchestrator/src/commands/handlers.js';
+import {
+  pollWatchRunHandler,
+  startWatchRunHandler,
+  stopWatchRunHandler,
+  watchRunHandler,
+} from '../packages/orchestrator/src/commands/handlers.js';
 
 const tempRoots: string[] = [];
 
@@ -96,6 +101,24 @@ describe('watch run handler', () => {
         subagentCounts: { reviewer: 1 },
       }),
     ]);
+  });
+
+  it('starts, polls, and stops a watch cursor without holding a long request open', async () => {
+    const runPath = await writeRun({
+      state: { runId: 'run-1', status: 'running', active: ['DLD07'], completed: [] },
+      metrics: { runId: 'run-1', status: 'running', children: {}, aggregate: {} },
+    });
+
+    const started = await startWatchRunHandler(runPath, {});
+    expect(started.watchId).toMatch(/^watch_/);
+    expect(started.cursor).toEqual({ eventOffset: 0 });
+
+    const polled = await pollWatchRunHandler({ runPath, cursor: started.cursor }, {});
+    expect(polled.summary?.runId).toBe('run-1');
+    expect(polled.cursor.eventOffset).toBe(0);
+
+    const stopped = await stopWatchRunHandler(started.watchId);
+    expect(stopped.stopped).toBe(true);
   });
 });
 
