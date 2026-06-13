@@ -334,6 +334,14 @@ export class WorkflowRunner {
     options: { force?: boolean } = {},
   ): Promise<ClaimedWorkflowStory | null> {
     const owner = `awk:${this.state.runId}:${story.id}`;
+    if (this.dependencies.config.git.strategy === 'worktree') {
+      await this.journal.record('tracker-claim-skipped', {
+        storyId: story.id,
+        owner,
+        reason: 'worktree-child-owns-tracker',
+      });
+      return { story, owner, previousStatus: story.status, trackerClaimed: false };
+    }
     if (!(await trackerFileExists(this.dependencies.config, story))) {
       return { story, owner, previousStatus: story.status, trackerClaimed: false };
     }
