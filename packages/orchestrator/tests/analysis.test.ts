@@ -995,4 +995,81 @@ describe('analyzeWorkflowRun', () => {
       ]),
     );
   });
+
+  it('reports actionable issues for DLD05-shaped completion evidence contradictions', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-dld05-'));
+    const runDir = path.join(root, 'runs', '2026-06-12T22-09-21-463Z');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await mkdir(path.join(runDir, 'stories'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({
+        runId: '2026-06-12T22-09-21-463Z',
+        command: 'run-eligible',
+        status: 'blocked',
+        blockedReason: 'DLD05 returned but status is implementing',
+        completed: [{ storyId: 'DLD05', ok: true, sessionId: 'thread-dld05', returnedStatus: 'implementing' }],
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        statuses: { eligible: ['specced'], complete: ['done'] },
+        orchestrator: { childNoProgressTimeoutMs: 1_800_000 },
+        pr: { merge: { auto: true }, review: { rerequestAfterFix: false } },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'DLD05.json'),
+      JSON.stringify({
+        storyId: 'DLD05',
+        ok: true,
+        sessionId: 'thread-dld05',
+        returnedStatus: 'implementing',
+        returnedComplete: false,
+        completionAuthority: 'tracker-status-not-complete',
+        completionAuthoritySource: 'returned-tracker',
+        evidence: {
+          finalStatus: 'done',
+          trackerPath: 'docs/tracks/dashboard-layout-density/README.md',
+          prNumber: 108,
+          prUrl: 'https://github.com/aryeko/pathway/pull/108',
+          merged: true,
+          verification: [
+            {
+              command: 'Post-deploy smoke',
+              status: 'passed',
+              phase: 'verification',
+              detail: 'Blocker: PR checks are not green. Post-deploy smoke fails on the protected preview.',
+            },
+          ],
+          blockers: ['Blocker: PR checks are not green. Post-deploy smoke fails on the protected preview.'],
+        },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'stories', 'after-DLD05.json'),
+      JSON.stringify([{ id: 'DLD05', status: 'implementing' }]),
+    );
+    await writeFile(
+      path.join(runDir, 'events.ndjson'),
+      JSON.stringify({
+        type: 'completion_authority',
+        storyId: 'DLD05',
+        authority: 'tracker-status-not-complete',
+        source: 'returned-tracker',
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.issues).toEqual(
+      expect.arrayContaining([
+        'DLD05 child tracker evidence conflicts with parent snapshot: returned status implementing but child evidence reports done',
+        'DLD05 PR policy incomplete: PR #108 is marked merged without merge commit or merge timestamp',
+        'DLD05 verification evidence contradiction for Post-deploy smoke: passed status includes blocker or failure detail',
+        'DLD05 merge evidence needs review: PR #108 is marked merged without merge commit, merge timestamp, or branch deletion evidence',
+      ]),
+    );
+  });
 });
