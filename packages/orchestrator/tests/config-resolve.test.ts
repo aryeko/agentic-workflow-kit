@@ -134,6 +134,43 @@ describe('ConfigSchema', () => {
       action: 'warn',
     });
   });
+
+  it('preserves dimension-specific budget action defaults for partial budget dimensions', () => {
+    const parsed = ConfigSchema.parse({
+      version: 1,
+      agents: {
+        profiles: {
+          storyImplementer: {
+            budget: {
+              tokens: { limit: 100_000 },
+              toolCalls: { limit: 200 },
+              costUsd: { limit: 25 },
+            },
+          },
+          customReviewer: {
+            driver: 'codex-mcp',
+            prompt: { template: 'built-in/custom-reviewer' },
+            budget: {
+              wallMs: { limit: 60_000 },
+              tokens: { limit: 10_000 },
+              toolCalls: { limit: 50 },
+              failedToolCalls: { limit: 5 },
+              costUsd: { limit: 2 },
+            },
+          },
+        },
+      },
+    });
+
+    expect(parsed.agents.profiles.storyImplementer.budget.tokens.action).toBe('stop-new-launches');
+    expect(parsed.agents.profiles.storyImplementer.budget.toolCalls.action).toBe('checkpoint-stop');
+    expect(parsed.agents.profiles.storyImplementer.budget.costUsd.action).toBe('stop-new-launches');
+    expect(parsed.agents.profiles.customReviewer.budget.wallMs.action).toBe('checkpoint-stop');
+    expect(parsed.agents.profiles.customReviewer.budget.tokens.action).toBe('stop-new-launches');
+    expect(parsed.agents.profiles.customReviewer.budget.toolCalls.action).toBe('checkpoint-stop');
+    expect(parsed.agents.profiles.customReviewer.budget.failedToolCalls.action).toBe('warn');
+    expect(parsed.agents.profiles.customReviewer.budget.costUsd.action).toBe('stop-new-launches');
+  });
 });
 
 describe('loadConfig', () => {
