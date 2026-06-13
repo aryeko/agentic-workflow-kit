@@ -524,6 +524,10 @@ function summarizeEvents(
           readOptionalNumber(event.raw.loop) ?? nextReviewLoop(loops, prePrFixBatchCount),
         ),
       );
+      if (eventMode?.startsWith('subagent') || typeof event.raw.agentId === 'string') {
+        subagentAgentId = readOptionalString(event.raw.agentId) ?? subagentAgentId;
+        subagentStatus = 'findings';
+      }
     }
 
     if (isPrePrExecutionBlockedEvent(event)) {

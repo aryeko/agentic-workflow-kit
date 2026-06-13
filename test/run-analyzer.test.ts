@@ -548,6 +548,65 @@ describe('run analyzer', () => {
     expect(analysis.review.prePr.subagent).toEqual({ agentId: 'reviewer-2', status: 'passed' });
   });
 
+  it('uses finding-only local pre-PR review events as latest subagent evidence', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-review-finding-agent-'));
+    tempRoots.push(root);
+    const runDirectory = path.join(root, 'repo/.codex/agentic-workflow-kit/runs/review-finding-agent');
+    mkdirSync(runDirectory, { recursive: true });
+
+    writeFileSync(
+      path.join(runDirectory, 'state.json'),
+      JSON.stringify(
+        {
+          runId: 'review-finding-agent',
+          command: 'implement-next',
+          status: 'blocked',
+          blockedReason: 'pre-PR review returned findings',
+          interactive: {
+            storyId: 'AWK081',
+            ok: false,
+            sessionId: null,
+            sessionLogPath: null,
+          },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'config.resolved.json'),
+      JSON.stringify(
+        {
+          implement: {
+            review: {
+              prePr: { enabled: true, mode: 'subagent', maxLoops: 2, loopMode: 'incremental' },
+            },
+          },
+          pr: { review: { rerequestAfterFix: false } },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(
+      path.join(runDirectory, 'events.ndjson'),
+      JSON.stringify({
+        recordedAt: '2026-06-14T10:00:00Z',
+        eventAt: '2026-06-14T10:00:00Z',
+        type: 'pre_pr_review_completed',
+        loop: 1,
+        mode: 'subagent',
+        agentId: 'reviewer-1',
+        verdict: 'BLOCK',
+        findings: ['Finding-only review result'],
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDirectory, { sessionRoots: [] });
+
+    expect(analysis.review.prePr.subagent).toEqual({ agentId: 'reviewer-1', status: 'findings' });
+  });
+
   it('flags merges that happen before required final verification after review fixes', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'awk-analyze-order-'));
     tempRoots.push(root);
