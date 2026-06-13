@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { resolveCwdOnlyConfig } from '../src/config/configLoader.js';
 import { claimTrackerRow } from '../src/tracks/trackerClaimer.js';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../src/types.js';
 
@@ -63,6 +64,7 @@ function config(root: string): ResolvedWorkflowConfig {
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
+    agents: resolveCwdOnlyConfig(root).agents,
     orchestrator: {
       driver: 'codex-mcp',
       maxParallel: 2,

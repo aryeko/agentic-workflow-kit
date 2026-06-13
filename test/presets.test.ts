@@ -23,6 +23,25 @@ describe('presets', () => {
     it(`${name} validates against the schema`, () => {
       expect(validate(loadPreset(name))).toBe(true);
     });
+
+    it(`${name} ships default agent profiles and task bindings`, () => {
+      const preset = loadPreset(name);
+
+      expect(preset.agents.bindings.implementStory).toBe('storyImplementer');
+      expect(preset.agents.bindings.prePrReview).toBe('prePrReviewer');
+      expect(Object.keys(preset.agents.profiles).sort()).toEqual([
+        'analyzer',
+        'planner',
+        'prePrReviewer',
+        'recovery',
+        'storyImplementer',
+      ]);
+      expect(preset.agents.profiles.storyImplementer.budget.wallMs).toEqual({
+        limit: 7_200_000,
+        warnAtPercent: 80,
+        action: 'checkpoint-stop',
+      });
+    });
   }
 
   it('push-and-merge does not wait and auto-merges (ship-fast repo)', () => {

@@ -10,6 +10,173 @@ const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
 const DEFAULT_CHILD_MAX_RUNTIME_MS = 7_200_000;
 const DEFAULT_WATCH_INTERVAL_MS = 300_000;
 const DEFAULT_WATCH_TIMEOUT_MS = 300_000;
+const AGENT_TASK_TYPES = [
+  'implementStory',
+  'prePrReview',
+  'planTrack',
+  'analyzeRun',
+  'recoverRun',
+  'migrateTracker',
+] as const;
+const BUDGET_ACTIONS = ['warn', 'stop-new-launches', 'checkpoint-stop', 'abort'] as const;
+
+function agentBudgetDimensionSchema(defaultAction: (typeof BUDGET_ACTIONS)[number]) {
+  return z
+    .object({
+      limit: z.number().min(0).nullable().default(null),
+      warnAtPercent: z.number().int().min(1).max(100).nullable().default(80),
+      action: z.enum(BUDGET_ACTIONS).default(defaultAction),
+    })
+    .strict()
+    .prefault({});
+}
+
+const AgentBudgetPolicySchema = z
+  .object({
+    wallMs: agentBudgetDimensionSchema('checkpoint-stop'),
+    tokens: agentBudgetDimensionSchema('stop-new-launches'),
+    toolCalls: agentBudgetDimensionSchema('checkpoint-stop'),
+    failedToolCalls: agentBudgetDimensionSchema('warn'),
+    costUsd: agentBudgetDimensionSchema('stop-new-launches'),
+  })
+  .strict()
+  .prefault({});
+
+const AgentProfileSchema = z
+  .object({
+    driver: z.enum(['codex-mcp', 'inline']).default('codex-mcp'),
+    model: nonEmpty.nullable().default(null),
+    reasoning: nonEmpty.nullable().default(null),
+    approvalPolicy: nonEmpty.nullable().default(null),
+    sandbox: nonEmpty.nullable().default(null),
+    prompt: z
+      .object({
+        template: nonEmpty,
+        variables: z.record(z.string(), z.unknown()).default({}),
+      })
+      .strict(),
+    structuredOutput: z
+      .object({
+        schema: nonEmpty,
+        required: z.boolean().default(false),
+      })
+      .strict()
+      .prefault({ schema: 'built-in/none', required: false }),
+    budget: AgentBudgetPolicySchema,
+    host: z.record(z.string(), z.unknown()).default({}),
+  })
+  .strict();
+
+const DEFAULT_AGENT_PROFILES = {
+  storyImplementer: {
+    driver: 'codex-mcp',
+    model: null,
+    reasoning: 'medium',
+    approvalPolicy: 'never',
+    sandbox: 'workspace-write',
+    prompt: {
+      template: 'built-in/story-implementer',
+      variables: {
+        includeRepoInstructions: true,
+        includePrPolicy: true,
+        includeVerificationPolicy: true,
+      },
+    },
+    structuredOutput: { schema: 'built-in/child-run-result', required: true },
+    budget: {
+      wallMs: { limit: DEFAULT_CHILD_MAX_RUNTIME_MS, warnAtPercent: 80, action: 'checkpoint-stop' },
+    },
+    host: {},
+  },
+  prePrReviewer: {
+    driver: 'codex-mcp',
+    model: null,
+    reasoning: 'medium',
+    approvalPolicy: null,
+    sandbox: null,
+    prompt: { template: 'built-in/pre-pr-reviewer', variables: {} },
+    structuredOutput: { schema: 'built-in/review-result', required: true },
+    budget: {},
+    host: {},
+  },
+  planner: {
+    driver: 'inline',
+    model: null,
+    reasoning: null,
+    approvalPolicy: null,
+    sandbox: null,
+    prompt: { template: 'built-in/planner', variables: {} },
+    structuredOutput: { schema: 'built-in/planning-result', required: false },
+    budget: {},
+    host: {},
+  },
+  analyzer: {
+    driver: 'inline',
+    model: null,
+    reasoning: null,
+    approvalPolicy: null,
+    sandbox: null,
+    prompt: { template: 'built-in/analyzer', variables: {} },
+    structuredOutput: { schema: 'built-in/run-analysis', required: true },
+    budget: {},
+    host: {},
+  },
+  recovery: {
+    driver: 'inline',
+    model: null,
+    reasoning: null,
+    approvalPolicy: null,
+    sandbox: null,
+    prompt: { template: 'built-in/recovery', variables: {} },
+    structuredOutput: { schema: 'built-in/recovery-decision', required: true },
+    budget: {},
+    host: {},
+  },
+} as const;
+
+const DEFAULT_AGENT_BINDINGS = {
+  implementStory: 'storyImplementer',
+  prePrReview: 'prePrReviewer',
+  planTrack: 'planner',
+  analyzeRun: 'analyzer',
+  recoverRun: 'recovery',
+  migrateTracker: 'planner',
+} as const;
+
+function mergeAgentProfiles(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+
+  const profiles = { ...DEFAULT_AGENT_PROFILES } as Record<string, unknown>;
+  for (const [name, profile] of Object.entries(value as Record<string, unknown>)) {
+    const defaultProfile = profiles[name];
+    profiles[name] =
+      defaultProfile &&
+      profile &&
+      typeof defaultProfile === 'object' &&
+      typeof profile === 'object' &&
+      !Array.isArray(profile)
+        ? deepMergeObjects(defaultProfile as Record<string, unknown>, profile as Record<string, unknown>)
+        : profile;
+  }
+  return profiles;
+}
+
+function deepMergeObjects(base: Record<string, unknown>, override: Record<string, unknown>): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    const baseValue = merged[key];
+    merged[key] =
+      baseValue &&
+      value &&
+      typeof baseValue === 'object' &&
+      typeof value === 'object' &&
+      !Array.isArray(baseValue) &&
+      !Array.isArray(value)
+        ? deepMergeObjects(baseValue as Record<string, unknown>, value as Record<string, unknown>)
+        : value;
+  }
+  return merged;
+}
 
 export const ConfigSchema = z
   .object({
@@ -134,6 +301,34 @@ export const ConfigSchema = z
       })
       .strict()
       .prefault({}),
+    agents: z
+      .object({
+        profiles: z
+          .preprocess(mergeAgentProfiles, z.record(nonEmpty, AgentProfileSchema))
+          .prefault(DEFAULT_AGENT_PROFILES),
+        bindings: z
+          .object(
+            Object.fromEntries(
+              AGENT_TASK_TYPES.map((taskType) => [taskType, nonEmpty.default(DEFAULT_AGENT_BINDINGS[taskType])]),
+            ) as Record<(typeof AGENT_TASK_TYPES)[number], z.ZodDefault<typeof nonEmpty>>,
+          )
+          .strict()
+          .prefault(DEFAULT_AGENT_BINDINGS),
+      })
+      .strict()
+      .prefault({})
+      .superRefine((agents, context) => {
+        for (const taskType of AGENT_TASK_TYPES) {
+          const profileName = agents.bindings[taskType];
+          if (!Object.hasOwn(agents.profiles, profileName)) {
+            context.addIssue({
+              code: 'custom',
+              path: ['bindings', taskType],
+              message: `references missing agent profile "${profileName}"`,
+            });
+          }
+        }
+      }),
   })
   .strict();
 

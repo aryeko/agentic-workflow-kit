@@ -62,3 +62,93 @@ orchestrator:
   childNoProgressTimeoutMs: 1800000
   childStartupTimeoutMs: 60000
   childMaxRuntimeMs: 7200000
+agents:
+  profiles:
+    storyImplementer:
+      driver: codex-mcp
+      model: null
+      reasoning: medium
+      approvalPolicy: never
+      sandbox: workspace-write
+      prompt:
+        template: built-in/story-implementer
+        variables:
+          includeRepoInstructions: true
+          includePrPolicy: true
+          includeVerificationPolicy: true
+      structuredOutput:
+        schema: built-in/child-run-result
+        required: true
+      budget:
+        wallMs:
+          limit: 7200000
+          warnAtPercent: 80
+          action: checkpoint-stop
+        tokens:
+          limit: null
+          warnAtPercent: 80
+          action: stop-new-launches
+        toolCalls:
+          limit: null
+          warnAtPercent: 80
+          action: checkpoint-stop
+        failedToolCalls:
+          limit: null
+          warnAtPercent: 80
+          action: warn
+        costUsd:
+          limit: null
+          warnAtPercent: 80
+          action: stop-new-launches
+      host: {}
+    prePrReviewer:
+      driver: codex-mcp
+      model: null
+      reasoning: medium
+      approvalPolicy: null
+      sandbox: null
+      prompt:
+        template: built-in/pre-pr-reviewer
+        variables: {}
+      structuredOutput:
+        schema: built-in/review-result
+        required: true
+      budget: {}
+      host: {}
+    planner:
+      driver: inline
+      prompt:
+        template: built-in/planner
+        variables: {}
+      structuredOutput:
+        schema: built-in/planning-result
+        required: false
+      budget: {}
+      host: {}
+    analyzer:
+      driver: inline
+      prompt:
+        template: built-in/analyzer
+        variables: {}
+      structuredOutput:
+        schema: built-in/run-analysis
+        required: true
+      budget: {}
+      host: {}
+    recovery:
+      driver: inline
+      prompt:
+        template: built-in/recovery
+        variables: {}
+      structuredOutput:
+        schema: built-in/recovery-decision
+        required: true
+      budget: {}
+      host: {}
+  bindings:
+    implementStory: storyImplementer
+    prePrReview: prePrReviewer
+    planTrack: planner
+    analyzeRun: analyzer
+    recoverRun: recovery
+    migrateTracker: planner

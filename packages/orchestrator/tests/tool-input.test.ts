@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { resolveCwdOnlyConfig } from '../src/config/configLoader';
 import { buildCodexToolInput, buildGenericPrompt } from '../src/drivers/codex-mcp/toolInput';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../src/types';
 
@@ -46,6 +47,7 @@ const config: ResolvedWorkflowConfig = {
     },
     subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
   },
+  agents: resolveCwdOnlyConfig('/repo').agents,
   orchestrator: {
     driver: 'codex-mcp',
     maxParallel: 2,

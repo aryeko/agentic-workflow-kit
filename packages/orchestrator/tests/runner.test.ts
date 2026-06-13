@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { resolveCwdOnlyConfig } from '../src/config/configLoader';
 import type { StoryRunner, StoryRunRequest, StoryRunResult } from '../src/drivers/StoryRunner';
 import type { GitInspector, StoryCommitEvidence } from '../src/git/GitInspector';
 import { renderExpectedBranch, renderExpectedWorktreePath } from '../src/runner/launchMetadata';
@@ -62,6 +63,7 @@ function config(): ResolvedWorkflowConfig {
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
     },
+    agents: resolveCwdOnlyConfig('/repo').agents,
     orchestrator: {
       driver: 'codex-mcp',
       maxParallel: 2,

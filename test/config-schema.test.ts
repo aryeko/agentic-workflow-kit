@@ -7,6 +7,10 @@ const schema = JSON.parse(readFileSync('references/config.schema.json', 'utf8'))
 const ajv = new Ajv2020({ allErrors: true });
 const validate = ajv.compile(schema);
 
+function validateConfigContract(value: unknown): boolean {
+  return validate(value) && ConfigSchema.safeParse(value).success;
+}
+
 const goodConfig = {
   version: 1,
   paths: {
@@ -61,14 +65,55 @@ const goodConfig = {
     childStartupTimeoutMs: 60_000,
     childMaxRuntimeMs: 7_200_000,
   },
+  agents: {
+    profiles: {
+      storyImplementer: {
+        driver: 'codex-mcp',
+        model: null,
+        reasoning: 'medium',
+        approvalPolicy: 'never',
+        sandbox: 'workspace-write',
+        prompt: {
+          template: 'built-in/story-implementer',
+          variables: {
+            includeRepoInstructions: true,
+            includePrPolicy: true,
+            includeVerificationPolicy: true,
+          },
+        },
+        structuredOutput: { schema: 'built-in/child-run-result', required: true },
+        budget: {
+          wallMs: { limit: 7_200_000, warnAtPercent: 80, action: 'checkpoint-stop' },
+          tokens: { limit: null, warnAtPercent: 80, action: 'stop-new-launches' },
+          toolCalls: { limit: null, warnAtPercent: 80, action: 'checkpoint-stop' },
+          failedToolCalls: { limit: null, warnAtPercent: 80, action: 'warn' },
+          costUsd: { limit: null, warnAtPercent: 80, action: 'stop-new-launches' },
+        },
+        host: {},
+      },
+      reviewer: {
+        driver: 'codex-mcp',
+        prompt: { template: 'built-in/pre-pr-reviewer' },
+        structuredOutput: { schema: 'built-in/review-result', required: true },
+      },
+    },
+    bindings: {
+      implementStory: 'storyImplementer',
+      prePrReview: 'reviewer',
+      planTrack: 'storyImplementer',
+      analyzeRun: 'storyImplementer',
+      recoverRun: 'storyImplementer',
+      migrateTracker: 'storyImplementer',
+    },
+  },
 };
 
 describe('config.schema.json', () => {
   it('accepts a fully-populated valid config', () => {
-    expect(validate(goodConfig)).toBe(true);
+    expect(validateConfigContract(goodConfig)).toBe(true);
   });
   it('accepts a version-only config because all other fields have defaults', () => {
-    expect(validate({ version: 1 })).toBe(true);
+    expect(validateConfigContract({ version: 1 })).toBe(true);
   });
   it('applies runtime defaults for interactive review and subagent policy', () => {
     const parsed = ConfigSchema.parse({ version: 1 });
@@ -93,6 +138,13 @@ describe('config.schema.json', () => {
     expect(parsed.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
     expect(parsed.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(parsed.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
+    expect(parsed.agents.bindings.implementStory).toBe('storyImplementer');
+    expect(parsed.agents.profiles.storyImplementer.prompt.template).toBe('built-in/story-implementer');
+    expect(parsed.agents.profiles.storyImplementer.budget.wallMs).toEqual({
+      limit: 7_200_000,
+      warnAtPercent: 80,
+      action: 'checkpoint-stop',
+    });
   });
   it('keeps childTimeoutMs as a compatibility alias for no-progress timeout', () => {
     const parsed = ConfigSchema.parse({
@@ -107,7 +159,7 @@ describe('config.schema.json', () => {
   });
   it('accepts partial nested config objects and relies on runtime defaults', () => {
     expect(
-      validate({
+      validateConfigContract({
         version: 1,
         paths: {},
         pr: {
@@ -193,5 +245,45 @@ describe('config.schema.json', () => {
         },
       }),
     ).toBe(false);
+  });
+  it('accepts a fully-populated agents config', () => {
+    expect(validateConfigContract(goodConfig)).toBe(true);
+  });
+  it('rejects invalid agents budget policy values', () => {
+    expect(
+      validate({
+        ...goodConfig,
+        agents: {
+          ...goodConfig.agents,
+          profiles: {
+            ...goodConfig.agents.profiles,
+            storyImplementer: {
+              ...goodConfig.agents.profiles.storyImplementer,
+              budget: {
+                ...goodConfig.agents.profiles.storyImplementer.budget,
+                wallMs: { limit: -1, warnAtPercent: 101, action: 'explode' },
+              },
+            },
+          },
+        },
+      }),
+    ).toBe(false);
+  });
+  it('rejects bindings that reference missing agent profiles', () => {
+    const config = {
+      ...goodConfig,
+      agents: {
+        ...goodConfig.agents,
+        bindings: {
+          ...goodConfig.agents.bindings,
+          implementStory: 'missingProfile',
+        },
+      },
+    };
+
+    expect(validate(config)).toBe(true);
+    expect(validateConfigContract(config)).toBe(false);
+    expect(() => ConfigSchema.parse(config)).toThrow(/implementStory/);
+    expect(schema.$comment).toContain('every agents.bindings value must reference a key in agents.profiles');
   });
 });

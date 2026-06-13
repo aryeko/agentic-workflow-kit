@@ -35,6 +35,32 @@ describe('ConfigSchema', () => {
       timeoutMs: 300_000,
     });
     expect(parsed.orchestrator.childTimeoutMs).toBe(1_800_000);
+    expect(parsed.agents.bindings).toEqual({
+      implementStory: 'storyImplementer',
+      prePrReview: 'prePrReviewer',
+      planTrack: 'planner',
+      analyzeRun: 'analyzer',
+      recoverRun: 'recovery',
+      migrateTracker: 'planner',
+    });
+    expect(parsed.agents.profiles.storyImplementer).toMatchObject({
+      driver: 'codex-mcp',
+      reasoning: 'medium',
+      approvalPolicy: 'never',
+      sandbox: 'workspace-write',
+      prompt: {
+        template: 'built-in/story-implementer',
+      },
+      structuredOutput: {
+        schema: 'built-in/child-run-result',
+        required: true,
+      },
+    });
+    expect(parsed.agents.profiles.storyImplementer.budget.wallMs).toEqual({
+      limit: 7_200_000,
+      warnAtPercent: 80,
+      action: 'checkpoint-stop',
+    });
   });
 
   it('rejects version other than 1', () => {
@@ -61,6 +87,89 @@ describe('ConfigSchema', () => {
 
   it('rejects a malformed pr.merge.method (previously silently ignored)', () => {
     expect(() => ConfigSchema.parse({ version: 1, pr: { merge: { method: 'rocket' } } })).toThrow(/pr/);
+  });
+
+  it('rejects an agents binding that references a missing profile', () => {
+    expect(() =>
+      ConfigSchema.parse({
+        version: 1,
+        agents: {
+          profiles: { custom: { driver: 'inline', prompt: { template: 'built-in/custom' } } },
+          bindings: { implementStory: 'missingProfile' },
+        },
+      }),
+    ).toThrow(/implementStory/);
+  });
+
+  it('deep-merges partial overrides for built-in agent profiles', () => {
+    const parsed = ConfigSchema.parse({
+      version: 1,
+      agents: {
+        profiles: {
+          storyImplementer: {
+            model: 'gpt-test',
+            budget: {
+              tokens: { limit: 100_000 },
+            },
+          },
+        },
+      },
+    });
+
+    expect(parsed.agents.profiles.storyImplementer).toMatchObject({
+      driver: 'codex-mcp',
+      model: 'gpt-test',
+      reasoning: 'medium',
+      prompt: { template: 'built-in/story-implementer' },
+      structuredOutput: { schema: 'built-in/child-run-result', required: true },
+    });
+    expect(parsed.agents.profiles.storyImplementer.budget.wallMs).toEqual({
+      limit: 7_200_000,
+      warnAtPercent: 80,
+      action: 'checkpoint-stop',
+    });
+    expect(parsed.agents.profiles.storyImplementer.budget.tokens).toEqual({
+      limit: 100_000,
+      warnAtPercent: 80,
+      action: 'stop-new-launches',
+    });
+  });
+
+  it('preserves dimension-specific budget action defaults for partial budget dimensions', () => {
+    const parsed = ConfigSchema.parse({
+      version: 1,
+      agents: {
+        profiles: {
+          storyImplementer: {
+            budget: {
+              tokens: { limit: 100_000 },
+              toolCalls: { limit: 200 },
+              costUsd: { limit: 25 },
+            },
+          },
+          customReviewer: {
+            driver: 'codex-mcp',
+            prompt: { template: 'built-in/custom-reviewer' },
+            budget: {
+              wallMs: { limit: 60_000 },
+              tokens: { limit: 10_000 },
+              toolCalls: { limit: 50 },
+              failedToolCalls: { limit: 5 },
+              costUsd: { limit: 2 },
+            },
+          },
+        },
+      },
+    });
+
+    expect(parsed.agents.profiles.storyImplementer.budget.tokens.action).toBe('stop-new-launches');
+    expect(parsed.agents.profiles.storyImplementer.budget.toolCalls.action).toBe('checkpoint-stop');
+    expect(parsed.agents.profiles.storyImplementer.budget.costUsd.action).toBe('stop-new-launches');
+    expect(parsed.agents.profiles.customReviewer.budget.wallMs.action).toBe('checkpoint-stop');
+    expect(parsed.agents.profiles.customReviewer.budget.tokens.action).toBe('stop-new-launches');
+    expect(parsed.agents.profiles.customReviewer.budget.toolCalls.action).toBe('checkpoint-stop');
+    expect(parsed.agents.profiles.customReviewer.budget.failedToolCalls.action).toBe('warn');
+    expect(parsed.agents.profiles.customReviewer.budget.costUsd.action).toBe('stop-new-launches');
   });
 });
 
