@@ -1,12 +1,23 @@
 import path from 'node:path';
 
 import { resolveInvocationCwd } from '../cli/args.js';
-import { discoverTracks, listEligibleHandler, listStoriesHandler } from '../commands/handlers.js';
+import {
+  discoverTracks,
+  listEligibleHandler,
+  listStoriesHandler,
+  type TrackerMigrateInput,
+  trackerMigrateHandler,
+  trackerValidateHandler,
+} from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import type { CliOverrides, ResolvedWorkflowConfig, RunStatus, WorkflowRunPreviewTarget } from '../types.js';
 
-export type WorkflowApiOperation = 'workflow_project_inspect' | 'workflow_run_preview';
+export type WorkflowApiOperation =
+  | 'workflow_project_inspect'
+  | 'workflow_run_preview'
+  | 'workflow_tracker_validate'
+  | 'workflow_tracker_migrate';
 export type WorkflowApiErrorCode =
   | 'CONFIG_INVALID'
   | 'TRACKER_INVALID'
@@ -118,6 +129,24 @@ export interface WorkflowRunPreviewResult {
   blockers: string[];
 }
 
+export interface WorkflowTrackerValidateResult {
+  track: {
+    id: string;
+    relativePath: string;
+  };
+  report: unknown;
+}
+
+export interface WorkflowTrackerMigrateInput extends Omit<CliOverrides, 'track'>, TrackerMigrateInput {}
+
+export interface WorkflowTrackerMigrateResult {
+  track: {
+    id: string;
+  };
+  draftMarkdown: string;
+  report: unknown;
+}
+
 export async function projectInspectFacade(
   input: CliOverrides = {},
 ): Promise<WorkflowApiEnvelope<WorkflowProjectInspectResult>> {
@@ -177,6 +206,57 @@ export async function runPreviewFacade(
             input.target.type === 'story'
               ? `agentic-workflow-kit run-story ${input.target.storyId}`
               : 'agentic-workflow-kit run-eligible',
+        },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+export async function trackerValidateFacade(
+  input: CliOverrides = {},
+): Promise<WorkflowApiEnvelope<WorkflowTrackerValidateResult>> {
+  const operation = 'workflow_tracker_validate';
+  try {
+    const validation = await trackerValidateHandler(input);
+    return successEnvelope(operation, validation.config, input.requestId, {
+      result: {
+        track: validation.track,
+        report: validation.report,
+      },
+      artifacts: [{ kind: 'tracker', path: validation.track.relativePath, description: 'Validated tracker' }],
+      next: [
+        {
+          label: 'List eligible stories',
+          mcpTool: 'list_eligible',
+          cli: `agentic-workflow-kit list-eligible --track ${validation.track.id}`,
+        },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+export async function trackerMigrateFacade(
+  input: WorkflowTrackerMigrateInput,
+): Promise<WorkflowApiEnvelope<WorkflowTrackerMigrateResult>> {
+  const operation = 'workflow_tracker_migrate';
+  try {
+    const migration = await trackerMigrateHandler({ from: input.from, track: input.track }, input);
+    return successEnvelope(operation, migration.config, input.requestId, {
+      result: {
+        track: migration.track,
+        draftMarkdown: migration.draftMarkdown,
+        report: migration.report,
+      },
+      artifacts: [],
+      next: [
+        {
+          label: 'Validate migrated tracker',
+          mcpTool: 'workflow_tracker_validate',
+          cli: `agentic-workflow-kit tracker validate --track ${migration.track.id}`,
         },
       ],
     });

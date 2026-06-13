@@ -30,6 +30,62 @@ export interface ParseTrackerStoriesContext {
   trackerPath: string;
 }
 
+export interface ValidateTrackerMarkdownContext extends ParseTrackerStoriesContext {
+  statusVocabulary: readonly string[];
+  expectedIdPrefix?: string;
+  storyBriefBaseDir?: string;
+  existingStoryBriefs?: Set<string>;
+}
+
+export interface TrackerDiagnostic {
+  code: string;
+  severity: 'error' | 'warning';
+  message: string;
+  line?: number;
+  storyId?: string;
+  sourceValue?: string;
+}
+
+export interface TrackerValidationReport {
+  ok: boolean;
+  trackerPath: string;
+  diagnostics: TrackerDiagnostic[];
+  summary: {
+    storyCount: number;
+    errorCount: number;
+    warningCount: number;
+  };
+}
+
+export interface MigrateMarkdownTrackerContext {
+  trackId: string;
+  trackTitle: string;
+  idPrefix: string;
+  idPattern: RegExp;
+  statusVocabulary: readonly string[];
+  defaultEligibleStatus?: string;
+  defaultCompleteStatus?: string;
+  inProgressStatus?: string;
+}
+
+export interface TrackerMigrationReport {
+  ok: boolean;
+  trackId: string;
+  diagnostics: TrackerDiagnostic[];
+  summary: {
+    sourceRows: number;
+    importedRows: number;
+    generatedStoryBriefCount: number;
+    errorCount: number;
+    warningCount: number;
+  };
+}
+
+export interface TrackerMigrationResult {
+  draftMarkdown: string;
+  report: TrackerMigrationReport;
+}
+
 export class MarkdownTrackStorySource implements StorySource {
   constructor(
     private readonly options: DiscoverMarkdownTracksOptions,
@@ -123,6 +179,167 @@ export function parseTrackerStories(markdown: string, context: ParseTrackerStori
       },
     };
   });
+}
+
+export function validateTrackerMarkdown(
+  markdown: string,
+  context: ValidateTrackerMarkdownContext,
+): TrackerValidationReport {
+  const diagnostics: TrackerDiagnostic[] = [];
+  const tableRows = safeExtractTableRows(markdown, context.trackerPath, diagnostics);
+  let columns: ColumnIndexes | null = null;
+  let currentTable = -1;
+  let sawPotentialMatrix = false;
+  const ids = new Map<string, number>();
+  const rows: ParsedRow[] = [];
+  const vocabulary = new Set(context.statusVocabulary.map((status) => status.toLowerCase()));
+
+  for (const tableRow of tableRows) {
+    if (tableRow.tableIndex !== currentTable) {
+      columns = null;
+      currentTable = tableRow.tableIndex;
+    }
+
+    const header = tryReadHeader(tableRow.cells);
+    if (header) {
+      if (!header.valid) {
+        diagnostics.push({
+          code: 'MISSING_CONTRACT_COLUMNS',
+          severity: 'error',
+          message: `${context.trackerPath} must contain the contract status matrix columns`,
+          line: tableRow.line,
+        });
+        columns = null;
+      } else {
+        columns = header.columns;
+      }
+      sawPotentialMatrix = false;
+      continue;
+    }
+
+    if (hasStoryTableMarkers(tableRow.cells)) {
+      sawPotentialMatrix = true;
+    }
+
+    if (!columns) continue;
+
+    const row = validateStoryRow(tableRow, columns, context, vocabulary, ids, diagnostics);
+    if (row) rows.push(row);
+  }
+
+  if (rows.length === 0 && sawPotentialMatrix) {
+    diagnostics.push({
+      code: 'MISSING_CONTRACT_COLUMNS',
+      severity: 'error',
+      message: `${context.trackerPath} must contain the contract status matrix columns`,
+    });
+  }
+
+  const knownIds = new Set(rows.map((row) => row.id));
+  for (const row of rows) {
+    for (const dependency of row.dependencies) {
+      if (!knownIds.has(dependency)) {
+        diagnostics.push({
+          code: 'DEPENDENCY_UNKNOWN',
+          severity: 'error',
+          message: `${row.id} depends on unknown story ${dependency}`,
+          line: row.order,
+          storyId: row.id,
+          sourceValue: dependency,
+        });
+      }
+    }
+  }
+
+  return validationReport(context.trackerPath, rows.length, diagnostics);
+}
+
+export function migrateMarkdownTracker(
+  markdown: string,
+  context: MigrateMarkdownTrackerContext,
+): TrackerMigrationResult {
+  const diagnostics: TrackerDiagnostic[] = [];
+  const tableRows = safeExtractTableRows(markdown, `${context.trackId}:source`, diagnostics);
+  const source = firstMigrationTable(tableRows);
+  const sourceRows = source?.rows ?? [];
+  const rows: string[][] = [];
+  const idMap = new Map<string, string>();
+  const usedIds = new Set<string>();
+
+  if (!source) {
+    diagnostics.push({
+      code: 'SOURCE_TABLE_MISSING',
+      severity: 'error',
+      message: 'No markdown table was found to migrate.',
+    });
+  }
+
+  const sourceColumns = source?.columns ?? new Map<string, number>();
+  for (const sourceRow of sourceRows) {
+    const rawId = readByAliases(sourceRow.cells, sourceColumns, ['id', 'key', 'story', 'issue']) ?? '';
+    const title = readByAliases(sourceRow.cells, sourceColumns, ['name', 'title', 'summary']) ?? rawId;
+    const rawDeps = readByAliases(sourceRow.cells, sourceColumns, ['depends on', 'dependencies', 'blocked by']) ?? '—';
+    const wave = readByAliases(sourceRow.cells, sourceColumns, ['wave', 'phase', 'milestone']) ?? 'W1';
+    const rawStatus = readByAliases(sourceRow.cells, sourceColumns, ['status', 'state']) ?? 'specced';
+    const owner = readByAliases(sourceRow.cells, sourceColumns, ['owner', 'assignee']) ?? '—';
+    const normalizedId = uniqueMigratedId(normalizeMigratedId(rawId, context.idPrefix), usedIds);
+    usedIds.add(normalizedId);
+    idMap.set(stripMarkdown(rawId), normalizedId);
+    if (stripMarkdown(rawId) !== normalizedId) {
+      diagnostics.push({
+        code: 'ID_NORMALIZED',
+        severity: 'warning',
+        message: `Normalized source id ${stripMarkdown(rawId)} to ${normalizedId}.`,
+        line: sourceRow.line,
+        storyId: normalizedId,
+        sourceValue: stripMarkdown(rawId),
+      });
+    }
+
+    const status = normalizeMigratedStatus(rawStatus, context);
+    if (stripMarkdown(rawStatus).toLowerCase() !== status) {
+      diagnostics.push({
+        code: 'STATUS_MAPPED',
+        severity: 'warning',
+        message: `Mapped source status ${stripMarkdown(rawStatus)} to ${status}.`,
+        line: sourceRow.line,
+        storyId: normalizedId,
+        sourceValue: stripMarkdown(rawStatus),
+      });
+    }
+
+    const dependencies = migrateDependencyCell(rawDeps, idMap, context.idPrefix);
+    rows.push([
+      normalizedId,
+      stripMarkdown(title),
+      dependencies.length === 0 ? '—' : dependencies.join(', '),
+      stripMarkdown(wave) || 'W1',
+      status,
+      `[brief](./stories/${normalizedId}.md)`,
+      '—',
+      normalizeOwner(owner) ?? '—',
+      '—',
+    ]);
+  }
+
+  const draftMarkdown = renderDraftTracker(context, rows);
+  const errorCount = diagnostics.filter((entry) => entry.severity === 'error').length;
+  const warningCount = diagnostics.length - errorCount;
+  return {
+    draftMarkdown,
+    report: {
+      ok: errorCount === 0,
+      trackId: context.trackId,
+      diagnostics,
+      summary: {
+        sourceRows: sourceRows.length,
+        importedRows: rows.length,
+        generatedStoryBriefCount: rows.length,
+        errorCount,
+        warningCount,
+      },
+    },
+  };
 }
 
 export function updateTrackerStoryRow(
@@ -291,6 +508,292 @@ function readHeader(cells: string[], trackerPath: string): ColumnIndexes | null 
     owner: 7,
     pr: 8,
   };
+}
+
+function safeExtractTableRows(markdown: string, trackerPath: string, diagnostics: TrackerDiagnostic[]): TableRow[] {
+  try {
+    return extractTableRows(markdown, trackerPath);
+  } catch (error) {
+    diagnostics.push({
+      code: 'TABLE_PARSE_ERROR',
+      severity: 'error',
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return [];
+  }
+}
+
+function validationReport(
+  trackerPath: string,
+  storyCount: number,
+  diagnostics: TrackerDiagnostic[],
+): TrackerValidationReport {
+  const errorCount = diagnostics.filter((entry) => entry.severity === 'error').length;
+  return {
+    ok: errorCount === 0,
+    trackerPath,
+    diagnostics,
+    summary: {
+      storyCount,
+      errorCount,
+      warningCount: diagnostics.length - errorCount,
+    },
+  };
+}
+
+function validateStoryRow(
+  tableRow: TableRow,
+  columns: ColumnIndexes,
+  context: ValidateTrackerMarkdownContext,
+  vocabulary: Set<string>,
+  ids: Map<string, number>,
+  diagnostics: TrackerDiagnostic[],
+): ParsedRow | null {
+  const id = stripMarkdown(tableRow.cells[columns.id]);
+  const storyId = context.idPattern.test(id) ? id : undefined;
+  if (!storyId) {
+    diagnostics.push({
+      code: 'STORY_ID_INVALID',
+      severity: 'error',
+      message: `Invalid story id ${id}. Expected ${context.idPattern.source}.`,
+      line: tableRow.line,
+      sourceValue: id,
+    });
+  } else {
+    if (ids.has(storyId)) {
+      diagnostics.push({
+        code: 'STORY_ID_DUPLICATE',
+        severity: 'error',
+        message: `Duplicate story id ${storyId}. First seen at line ${ids.get(storyId)}.`,
+        line: tableRow.line,
+        storyId,
+        sourceValue: storyId,
+      });
+    } else {
+      ids.set(storyId, tableRow.line);
+    }
+    if (context.expectedIdPrefix && !storyId.startsWith(context.expectedIdPrefix)) {
+      diagnostics.push({
+        code: 'ID_PREFIX_MISMATCH',
+        severity: 'error',
+        message: `${storyId} does not use expected prefix ${context.expectedIdPrefix}.`,
+        line: tableRow.line,
+        storyId,
+        sourceValue: storyId,
+      });
+    }
+  }
+
+  const status = stripMarkdown(tableRow.cells[columns.status]).toLowerCase();
+  if (!vocabulary.has(status)) {
+    diagnostics.push({
+      code: 'STATUS_INVALID',
+      severity: 'error',
+      message: `${storyId ?? id} uses invalid status ${status}.`,
+      line: tableRow.line,
+      storyId,
+      sourceValue: status,
+    });
+  }
+
+  const parsedDependencies = parseDependencies(tableRow.cells[columns.dependencies], context.idPattern);
+  for (const invalidDependency of parsedDependencies.invalidDependencies) {
+    diagnostics.push({
+      code: 'DEPENDENCY_TOKEN_INVALID',
+      severity: 'error',
+      message: `${storyId ?? id} has invalid dependency token ${invalidDependency}.`,
+      line: tableRow.line,
+      storyId,
+      sourceValue: invalidDependency,
+    });
+  }
+
+  const owner = normalizeOwner(readOptionalCell(tableRow.cells, columns.owner) ?? '');
+  if (owner !== null && status !== 'implementing') {
+    diagnostics.push({
+      code: 'OWNER_CONFLICT',
+      severity: 'warning',
+      message: `${storyId ?? id} has owner ${owner} while status is ${status}.`,
+      line: tableRow.line,
+      storyId,
+      sourceValue: owner,
+    });
+  }
+
+  const spec = readOptionalCell(tableRow.rawCells, columns.spec);
+  if (isMissingStoryBrief(spec, storyId, context)) {
+    diagnostics.push({
+      code: 'STORY_BRIEF_MISSING',
+      severity: 'warning',
+      message: `${storyId ?? id} is missing a story brief link.`,
+      line: tableRow.line,
+      storyId,
+      sourceValue: spec,
+    });
+  }
+
+  if (!storyId) return null;
+  return {
+    order: tableRow.line,
+    id: storyId,
+    title: stripMarkdown(tableRow.cells[columns.title]),
+    dependencies: parsedDependencies.dependencies,
+    invalidDependencies: parsedDependencies.invalidDependencies,
+    wave: readOptionalCell(tableRow.cells, columns.wave),
+    status,
+    spec,
+    plan: readOptionalCell(tableRow.rawCells, columns.plan),
+    owner,
+    pr: readOptionalCell(tableRow.rawCells, columns.pr),
+  };
+}
+
+function isMissingStoryBrief(
+  spec: string | undefined,
+  storyId: string | undefined,
+  context: ValidateTrackerMarkdownContext,
+): boolean {
+  if (!storyId) return false;
+  if (!spec || UNOWNED_MARKERS.has(stripMarkdown(spec))) return true;
+  if (!context.storyBriefBaseDir || !context.existingStoryBriefs) return false;
+  const link = spec.match(/\(([^)]+)\)/)?.[1];
+  if (!link) return true;
+  const resolved = slash(path.normalize(path.join(path.dirname(context.trackerPath), link)));
+  return !context.existingStoryBriefs.has(resolved);
+}
+
+function tryReadHeader(cells: string[]): { valid: false } | { valid: true; columns: ColumnIndexes } | null {
+  const normalized = cells.map((cell) => normalizeHeader(cell));
+  if (!normalized.includes('id') || !normalized.includes('status')) {
+    return null;
+  }
+  if (
+    normalized.length < CONTRACT_COLUMNS.length ||
+    !CONTRACT_COLUMNS.every((column, index) => normalized[index] === column)
+  ) {
+    return { valid: false };
+  }
+  return {
+    valid: true,
+    columns: {
+      id: 0,
+      title: 1,
+      dependencies: 2,
+      wave: 3,
+      status: 4,
+      spec: 5,
+      plan: 6,
+      owner: 7,
+      pr: 8,
+    },
+  };
+}
+
+function firstMigrationTable(tableRows: TableRow[]): { columns: Map<string, number>; rows: TableRow[] } | null {
+  let currentTable = -1;
+  let columns: Map<string, number> | null = null;
+  const rows: TableRow[] = [];
+
+  for (const tableRow of tableRows) {
+    if (tableRow.tableIndex !== currentTable) {
+      if (columns && rows.length > 0) return { columns, rows };
+      currentTable = tableRow.tableIndex;
+      columns = null;
+      rows.length = 0;
+    }
+
+    if (!columns) {
+      columns = new Map(tableRow.cells.map((cell, index) => [normalizeHeader(cell), index]));
+      continue;
+    }
+    rows.push(tableRow);
+  }
+
+  return columns && rows.length > 0 ? { columns, rows } : null;
+}
+
+function readByAliases(cells: string[], columns: Map<string, number>, aliases: string[]): string | undefined {
+  for (const alias of aliases) {
+    const index = columns.get(alias);
+    if (index !== undefined) return cells[index];
+  }
+  return undefined;
+}
+
+function normalizeMigratedId(value: string, prefix: string): string {
+  const clean = stripMarkdown(value)
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+  if (/^[A-Z]+[0-9]+$/.test(clean)) return clean;
+  const numeric = clean.match(/[0-9]+/)?.[0] ?? '1';
+  return `${prefix}${numeric}`;
+}
+
+function uniqueMigratedId(id: string, usedIds: Set<string>): string {
+  if (!usedIds.has(id)) return id;
+  let suffix = 2;
+  while (usedIds.has(`${id}${suffix}`)) suffix += 1;
+  return `${id}${suffix}`;
+}
+
+function normalizeMigratedStatus(value: string, context: MigrateMarkdownTrackerContext): string {
+  const clean = stripMarkdown(value).toLowerCase();
+  const vocabulary = new Set(context.statusVocabulary);
+  const firstAvailable = (...candidates: string[]) =>
+    candidates.find((candidate) => vocabulary.has(candidate)) ?? context.statusVocabulary[0] ?? 'specced';
+  if (clean === 'done' || clean === 'verified' || clean === 'complete' || clean === 'completed') {
+    return firstAvailable(context.defaultCompleteStatus ?? 'done', 'verified');
+  }
+  if (clean === 'in progress' || clean === 'doing' || clean === 'implementing') {
+    return firstAvailable(context.inProgressStatus ?? 'implementing');
+  }
+  if (clean === 'blocked') return firstAvailable('blocked');
+  if (clean === 'deferred') return firstAvailable('deferred');
+  if (clean === 'canceled' || clean === 'cancelled') return firstAvailable('canceled');
+  if (clean === 'superseded') return firstAvailable('superseded');
+  return firstAvailable(context.defaultEligibleStatus ?? 'specced', 'plan-approved');
+}
+
+function migrateDependencyCell(value: string, idMap: Map<string, string>, prefix: string): string[] {
+  const clean = stripMarkdown(value);
+  if (UNOWNED_MARKERS.has(clean)) return [];
+  return clean
+    .split(/[,;/]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => idMap.get(entry) ?? normalizeMigratedId(entry, prefix));
+}
+
+function renderDraftTracker(context: MigrateMarkdownTrackerContext, rows: string[][]): string {
+  const table = [
+    renderTableRow(
+      CONTRACT_COLUMNS.map((column) => column.replace(/^id$/, 'ID').replace(/\b\w/g, (char) => char.toUpperCase())),
+    ),
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    ...rows.map(renderTableRow),
+  ].join('\n');
+  return `---
+title: ${context.trackTitle}
+status: draft
+owner: —
+---
+
+# ${context.trackTitle}
+
+## Status matrix
+
+${table}
+
+## Dependency graph
+
+\`\`\`mermaid
+flowchart TD
+\`\`\`
+
+## Migration report
+
+Review generated story briefs and validation diagnostics before execution.
+`;
 }
 
 function blockedReasonFor(

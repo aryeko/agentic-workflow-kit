@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { glob } from 'tinyglobby';
 
 import { analyzeWorkflowRun } from '../analysis/runAnalyzer.js';
 import { FileArtifactStore } from '../artifacts/FileArtifactStore.js';
@@ -11,7 +12,15 @@ import { RealGitInspector } from '../git/GitInspector.js';
 import { ConsoleLogger } from '../logging/ConsoleLogger.js';
 import { WorkflowRunner } from '../runner/WorkflowRunner.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
-import { discoverMarkdownTracks, EmptyStorySource, MarkdownTrackStorySource } from '../tracks/markdownTracker.js';
+import {
+  discoverMarkdownTracks,
+  EmptyStorySource,
+  MarkdownTrackStorySource,
+  migrateMarkdownTracker,
+  type TrackerMigrationReport,
+  type TrackerValidationReport,
+  validateTrackerMarkdown,
+} from '../tracks/markdownTracker.js';
 import type {
   CliOverrides,
   LiveMetricsSnapshot,
@@ -39,6 +48,29 @@ export interface TracksResult {
 export interface StoriesResult {
   config: ResolvedWorkflowConfig;
   stories: WorkflowStory[];
+}
+
+export interface TrackerValidateResult {
+  config: ResolvedWorkflowConfig;
+  track: {
+    id: string;
+    relativePath: string;
+  };
+  report: TrackerValidationReport;
+}
+
+export interface TrackerMigrateInput {
+  from: string;
+  track: string;
+}
+
+export interface TrackerMigrateResult {
+  config: ResolvedWorkflowConfig;
+  track: {
+    id: string;
+  };
+  draftMarkdown: string;
+  report: TrackerMigrationReport;
 }
 
 export interface WatchRunSnapshot {
@@ -127,6 +159,57 @@ export async function listEligibleHandler(
   const { config, tracks } = await loadConfigAndTracks(overrides);
   const stories = selectStoriesFromTracks(tracks, overrides).filter((story) => story.eligible);
   return { config, stories };
+}
+
+export async function trackerValidateHandler(
+  overrides: CliOverrides = {},
+  _options: CommandHandlerOptions = {},
+): Promise<TrackerValidateResult> {
+  const cwd = resolveInvocationCwd(overrides);
+  const config = await loadResolvedConfig(overrides, cwd);
+  const trackId = requireTrack(overrides.track);
+  const relativePath = slash(path.join(overrides.tracksDir ?? config.paths.tracksDir, trackId, 'README.md'));
+  const trackerPath = path.join(config.workspace.rootAbs, relativePath);
+  const markdown = await readFile(trackerPath, 'utf8');
+  const storyBriefs = await findStoryBriefs(config, overrides, trackId);
+  const report = validateTrackerMarkdown(markdown, {
+    completeStatuses: new Set(config.statuses.complete),
+    eligibleStatuses: new Set(config.statuses.eligible),
+    statusVocabulary: statusVocabulary(config),
+    idPattern: new RegExp(config.tracker.idPattern),
+    expectedIdPrefix: expectedPrefixFromMarkdown(markdown, config.tracker.idPattern),
+    storyBriefBaseDir: slash(path.join(path.dirname(relativePath), 'stories')),
+    existingStoryBriefs: storyBriefs,
+    trackId,
+    trackTitle: trackId,
+    trackerPath: relativePath,
+  });
+  return { config, track: { id: trackId, relativePath }, report };
+}
+
+export async function trackerMigrateHandler(
+  input: TrackerMigrateInput,
+  overrides: CliOverrides = {},
+  _options: CommandHandlerOptions = {},
+): Promise<TrackerMigrateResult> {
+  const cwd = resolveInvocationCwd(overrides);
+  const config = await loadResolvedConfig(overrides, cwd);
+  const sourcePath = path.isAbsolute(input.from) ? input.from : path.join(config.workspace.rootAbs, input.from);
+  const markdown = await readFile(sourcePath, 'utf8');
+  const tracks = await discoverTracks(config, overrides);
+  const existingTrack = tracks.find((track) => track.id === input.track);
+  const idPrefix = prefixFromTrack(existingTrack) ?? prefixFromTrackId(input.track);
+  const result = migrateMarkdownTracker(markdown, {
+    trackId: input.track,
+    trackTitle: existingTrack?.title ?? `${input.track} tracker`,
+    idPrefix,
+    idPattern: new RegExp(config.tracker.idPattern),
+    statusVocabulary: statusVocabulary(config),
+    defaultEligibleStatus: config.statuses.eligible[0],
+    defaultCompleteStatus: config.statuses.complete[0],
+    inProgressStatus: config.statuses.inProgress,
+  });
+  return { config, track: { id: input.track }, ...result };
 }
 
 export async function analyzeRunHandler(runPath: string, overrides: CliOverrides = {}): Promise<unknown> {
@@ -319,6 +402,60 @@ export async function discoverTracks(
 
 function selectStoriesFromTracks(tracks: WorkflowTrack[], overrides: CliOverrides): WorkflowStory[] {
   return overrides.track ? selectTrack(tracks, overrides.track).stories : tracks.flatMap((track) => track.stories);
+}
+
+function requireTrack(track: string | undefined): string {
+  if (!track) throw new Error('tracker validation requires --track <id>');
+  return track;
+}
+
+function statusVocabulary(config: ResolvedWorkflowConfig): string[] {
+  return [
+    ...new Set([
+      ...config.statuses.eligible,
+      config.statuses.inProgress,
+      ...config.statuses.complete,
+      'blocked',
+      'canceled',
+      'deferred',
+      'superseded',
+    ]),
+  ];
+}
+
+async function findStoryBriefs(
+  config: ResolvedWorkflowConfig,
+  overrides: CliOverrides,
+  trackId: string,
+): Promise<Set<string>> {
+  const tracksDir = overrides.tracksDir ?? config.paths.tracksDir;
+  const tracksDirAbs = path.resolve(config.workspace.rootAbs, tracksDir);
+  const matches = await glob(`${trackId}/stories/*.md`, { cwd: tracksDirAbs, absolute: false });
+  return new Set(matches.map((match) => slash(path.join(tracksDir, match))));
+}
+
+function expectedPrefixFromMarkdown(markdown: string, idPattern: string): string | undefined {
+  const pattern = new RegExp(idPattern);
+  const match = markdown.match(/\|\s*([A-Z]{2,}[0-9]+)\s*\|/);
+  if (!match || !pattern.test(match[1])) return undefined;
+  return match[1].match(/^[A-Z]+/)?.[0];
+}
+
+function prefixFromTrack(track: WorkflowTrack | undefined): string | null {
+  const firstId = track?.stories[0]?.id;
+  return firstId?.match(/^[A-Z]+/)?.[0] ?? null;
+}
+
+function prefixFromTrackId(trackId: string): string {
+  const letters = trackId
+    .split(/[^a-zA-Z]+/)
+    .map((part) => part.slice(0, 1).toUpperCase())
+    .join('');
+  return letters.length >= 2 ? letters : 'WK';
+}
+
+function slash(value: string): string {
+  return value.split(path.sep).join('/');
 }
 
 function selectStorySourceForRunEligible(

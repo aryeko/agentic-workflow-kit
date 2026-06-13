@@ -3,7 +3,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { discoverMarkdownTracks, parseTrackerStories } from '../src/tracks/markdownTracker';
+import {
+  discoverMarkdownTracks,
+  migrateMarkdownTracker,
+  parseTrackerStories,
+  validateTrackerMarkdown,
+} from '../src/tracks/markdownTracker';
 
 const trackerMarkdown = `---
 title: Linkly tracker
@@ -215,6 +220,143 @@ describe('parseTrackerStories', () => {
   });
 });
 
+describe('validateTrackerMarkdown', () => {
+  it('returns an ok report for a contract-compliant tracker', () => {
+    const report = validateTrackerMarkdown(
+      trackerMarkdown
+        .replace('| L004 | Waiting | L999 |', '| L004 | Waiting | L001 |')
+        .replace(
+          '| L003 | Claimed | L001 | 2 | specced | [spec](../../specs/l003.md) | — | arye | — |',
+          '| L003 | Claimed | L001 | 2 | specced | [spec](../../specs/l003.md) | — | — | — |',
+        ),
+      {
+        ...validationContext(),
+      },
+    );
+
+    expect(report.ok).toBe(true);
+    expect(report.summary).toMatchObject({ storyCount: 4, errorCount: 0 });
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  it('reports actionable tracker contract diagnostics without throwing', () => {
+    const invalid = trackerMarkdown
+      .replace('| L002 | Pilot | L001 |', '| BAD-2 | Pilot | nope |')
+      .replace('| L003 | Claimed | L001 | 2 | specced |', '| L001 | Claimed | L001 | 2 | mystery |')
+      .replace('| L004 | Waiting | L999 |', '| ZZ04 | Waiting | L999 |')
+      .replace('[spec](../../specs/l001.md)', '—');
+
+    const report = validateTrackerMarkdown(invalid, {
+      ...validationContext(),
+      expectedIdPrefix: 'L',
+      storyBriefBaseDir: 'docs/tracks/linkly/stories',
+      existingStoryBriefs: new Set(['docs/tracks/linkly/stories/L002.md']),
+    });
+
+    expect(report.ok).toBe(false);
+    expect(report.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'STORY_ID_INVALID', line: 14, severity: 'error' }),
+        expect.objectContaining({ code: 'DEPENDENCY_TOKEN_INVALID', line: 14, severity: 'error' }),
+        expect.objectContaining({ code: 'STORY_ID_DUPLICATE', line: 15, severity: 'error' }),
+        expect.objectContaining({ code: 'STATUS_INVALID', line: 15, severity: 'error' }),
+        expect.objectContaining({ code: 'DEPENDENCY_UNKNOWN', line: 16, severity: 'error' }),
+        expect.objectContaining({ code: 'ID_PREFIX_MISMATCH', line: 16, severity: 'error' }),
+        expect.objectContaining({ code: 'STORY_BRIEF_MISSING', line: 13, severity: 'warning' }),
+        expect.objectContaining({ code: 'OWNER_CONFLICT', line: 15, severity: 'warning' }),
+      ]),
+    );
+  });
+
+  it('reports missing contract columns', () => {
+    const report = validateTrackerMarkdown('| ID | Name | Status |\n| --- | --- | --- |\n| L001 | Bad | specced |', {
+      ...validationContext(),
+    });
+
+    expect(report.ok).toBe(false);
+    expect(report.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'MISSING_CONTRACT_COLUMNS', severity: 'error' }),
+    );
+  });
+});
+
+describe('migrateMarkdownTracker', () => {
+  it('converts a custom markdown backlog table into a draft kit tracker and migration report', () => {
+    const source = `# Imported backlog
+
+| Key | Summary | Blocked By | Phase | State | Assignee |
+| --- | --- | --- | --- | --- | --- |
+| APP-1 | Build shell | — | W1 | complete | — |
+| APP-2 | Add sync | APP-1 | W2 | todo | nina |
+`;
+
+    const result = migrateMarkdownTracker(source, {
+      trackId: 'imported-app',
+      trackTitle: 'Imported App tracker',
+      idPrefix: 'APP',
+      idPattern: /^[A-Z]{2,}[0-9]+$/,
+      statusVocabulary: validationContext().statusVocabulary,
+    });
+
+    expect(result.report.ok).toBe(true);
+    expect(result.report.summary).toMatchObject({ importedRows: 2, generatedStoryBriefCount: 2 });
+    expect(result.draftMarkdown).toContain(
+      '| APP1 | Build shell | — | W1 | done | [brief](./stories/APP1.md) | — | — | — |',
+    );
+    expect(result.draftMarkdown).toContain(
+      '| APP2 | Add sync | APP1 | W2 | specced | [brief](./stories/APP2.md) | — | nina | — |',
+    );
+    expect(result.report.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'STATUS_MAPPED', severity: 'warning', sourceValue: 'complete' }),
+        expect.objectContaining({ code: 'ID_NORMALIZED', severity: 'warning', sourceValue: 'APP-1' }),
+      ]),
+    );
+  });
+
+  it('does not treat a Blocks column as Depends on during migration', () => {
+    const source = `# Imported backlog
+
+| Key | Summary | Blocks | State |
+| --- | --- | --- | --- |
+| APP-1 | Build shell | APP-2 | todo |
+`;
+
+    const result = migrateMarkdownTracker(source, {
+      trackId: 'imported-app',
+      trackTitle: 'Imported App tracker',
+      idPrefix: 'APP',
+      idPattern: /^[A-Z]{2,}[0-9]+$/,
+      statusVocabulary: validationContext().statusVocabulary,
+    });
+
+    expect(result.draftMarkdown).toContain('| APP1 | Build shell | — | W1 | specced |');
+  });
+
+  it('uses configured status vocabulary when migrating custom backlog states', () => {
+    const source = `# Imported backlog
+
+| Key | Summary | State |
+| --- | --- | --- |
+| APP-1 | Build shell | todo |
+| APP-2 | Ship shell | complete |
+`;
+
+    const result = migrateMarkdownTracker(source, {
+      trackId: 'imported-app',
+      trackTitle: 'Imported App tracker',
+      idPrefix: 'APP',
+      idPattern: /^[A-Z]{2,}[0-9]+$/,
+      statusVocabulary: ['ready', 'finished'],
+      defaultEligibleStatus: 'ready',
+      defaultCompleteStatus: 'finished',
+    });
+
+    expect(result.draftMarkdown).toContain('| APP1 | Build shell | — | W1 | ready |');
+    expect(result.draftMarkdown).toContain('| APP2 | Ship shell | — | W1 | finished |');
+  });
+});
+
 describe('discoverMarkdownTracks', () => {
   it('discovers active trackers and skips archived paths/frontmatter', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-tracks-'));
@@ -242,3 +384,25 @@ describe('discoverMarkdownTracks', () => {
     expect(tracks[0].stories.some((story) => story.id === 'L002' && story.eligible)).toBe(true);
   });
 });
+
+function validationContext() {
+  return {
+    completeStatuses: new Set(['done', 'verified']),
+    eligibleStatuses: new Set(['specced', 'plan-approved']),
+    statusVocabulary: [
+      'specced',
+      'plan-approved',
+      'implementing',
+      'done',
+      'verified',
+      'blocked',
+      'canceled',
+      'deferred',
+      'superseded',
+    ],
+    idPattern: /^[A-Z]{1,}[0-9]+$/,
+    trackId: 'linkly',
+    trackTitle: 'Linkly tracker',
+    trackerPath: 'docs/tracks/linkly/README.md',
+  };
+}

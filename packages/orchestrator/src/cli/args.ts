@@ -17,6 +17,9 @@ export function parseCommand(argv: string[]): WorkflowCommand {
   if (args[0] === 'mcp' && args[1] !== 'check') {
     throw new Error('Expected `mcp check`');
   }
+  if (args[0] === 'tracker' && args[1] !== 'validate' && args[1] !== 'migrate') {
+    throw new Error('Expected `tracker validate` or `tracker migrate`');
+  }
   if (args[0] === 'project' && args[1] !== 'inspect') {
     throw new Error('Expected `project inspect`');
   }
@@ -80,6 +83,20 @@ function buildProgram(setParsed: (command: WorkflowCommand) => void): Command {
     .action((options: CommanderOptions) => {
       setParsed({ kind: 'run-preview', target: toRunPreviewTarget(options), overrides: toProductOverrides(options) });
     });
+  const tracker = program.command('tracker').allowExcessArguments(false);
+  withOptions(tracker.command('validate')).action((options: CommanderOptions) => {
+    setParsed({ kind: 'tracker-validate', overrides: toOverrides(options) });
+  });
+  withOptions(tracker.command('migrate')).action((options: CommanderOptions) => {
+    if (!options.from) throw new Error('tracker migrate requires --from');
+    if (!options.track) throw new Error('tracker migrate requires --track');
+    setParsed({
+      kind: 'tracker-migrate',
+      from: options.from,
+      track: options.track,
+      overrides: toProductOverrides(options),
+    });
+  });
   withOptions(program.command('run-story').argument('<storyId>')).action(
     (storyId: string, options: CommanderOptions) => {
       setParsed({ kind: 'run-story', storyId, overrides: toOverrides(options) });
@@ -125,6 +142,7 @@ function withOptions(command: Command): Command {
     .addOption(new Option('--timeout-ms <n>').argParser((value) => parsePositiveIntegerFlag(value, '--timeout-ms')))
     .option('--track <id>')
     .option('--tracks-dir <path>')
+    .option('--from <path>')
     .option('--model <model>')
     .option('--reasoning <effort>')
     .addOption(new Option('--approval-policy <policy>').argParser(parseApprovalPolicy))
@@ -154,6 +172,7 @@ interface CommanderOptions {
   sessionRoot?: string;
   story?: string;
   mode?: 'eligible';
+  from?: string;
 }
 
 function toOverrides(options: CommanderOptions): CliOverrides {
@@ -194,7 +213,7 @@ function toRunPreviewTarget(options: CommanderOptions): WorkflowRunPreviewTarget
 }
 
 function toProductOverrides(options: CommanderOptions): CliOverrides {
-  const { track: _track, story: _story, mode: _mode, ...baseOptions } = options;
+  const { track: _track, story: _story, mode: _mode, from: _from, ...baseOptions } = options;
   return toOverrides(baseOptions);
 }
 

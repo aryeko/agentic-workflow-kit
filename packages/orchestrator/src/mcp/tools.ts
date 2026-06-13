@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { projectInspectFacade, runPreviewFacade } from '../api/facade.js';
+import { projectInspectFacade, runPreviewFacade, trackerMigrateFacade, trackerValidateFacade } from '../api/facade.js';
 import {
   analyzeRunHandler,
   listEligibleHandler,
@@ -22,6 +22,8 @@ import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_project_inspect',
   'workflow_run_preview',
+  'workflow_tracker_validate',
+  'workflow_tracker_migrate',
   'list_tracks',
   'list_stories',
   'list_eligible',
@@ -50,6 +52,12 @@ const productBaseInputSchema = z.object({
     .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
 
+function baseProductTrackerInputSchema() {
+  return productBaseInputSchema.extend({
+    track: z.string().describe('Track id containing the tracker to validate or use as migration target.'),
+  });
+}
+
 const workflowRunPreviewInputSchema = productBaseInputSchema.extend({
   target: z
     .discriminatedUnion('type', [
@@ -65,6 +73,12 @@ const workflowRunPreviewInputSchema = productBaseInputSchema.extend({
       }),
     ])
     .describe('Product target for the run preview.'),
+});
+
+const workflowTrackerValidateInputSchema = baseProductTrackerInputSchema();
+
+const workflowTrackerMigrateInputSchema = baseProductTrackerInputSchema().extend({
+  from: z.string().describe('Markdown backlog or tracker source file to import without mutating it in place.'),
 });
 
 const baseInputSchema = z.object({
@@ -225,6 +239,36 @@ export function registerOrchestratorTools(server: McpServer): void {
     async (input) =>
       handleTool('workflow_run_preview', input.responseFormat, () => {
         return runPreviewFacade({ ...toOverrides(input), target: input.target });
+      }),
+  );
+
+  server.registerTool(
+    'workflow_tracker_validate',
+    {
+      description: 'Validate tracker contract diagnostics before runtime execution.',
+      inputSchema: workflowTrackerValidateInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_tracker_validate', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return trackerValidateFacade(toOverrides(input));
+      }),
+  );
+
+  server.registerTool(
+    'workflow_tracker_migrate',
+    {
+      description: 'Draft a kit tracker from an existing markdown backlog or tracker source plus diagnostics.',
+      inputSchema: workflowTrackerMigrateInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_tracker_migrate', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return trackerMigrateFacade({ ...toOverrides(input), from: input.from, track: input.track });
       }),
   );
 

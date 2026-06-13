@@ -177,6 +177,13 @@ describe('agentic-workflow-kit MCP server', () => {
     expect(runPreview?.description).toContain('Preview story or track execution');
     expect(runPreview?.inputSchema.properties?.target).toBeDefined();
 
+    const trackerValidate = result.tools.find((tool) => tool.name === 'workflow_tracker_validate');
+    expect(trackerValidate?.description).toContain('Validate tracker contract');
+
+    const trackerMigrate = result.tools.find((tool) => tool.name === 'workflow_tracker_migrate');
+    expect(trackerMigrate?.description).toContain('Draft a kit tracker');
+    expect(trackerMigrate?.inputSchema.properties?.from).toBeDefined();
+
     const analyzeRun = result.tools.find((tool) => tool.name === 'analyze_run');
     expect(analyzeRun?.inputSchema.properties?.runPath).toMatchObject({
       description: expect.stringContaining('artifactDir returned by run_story or run_eligible'),
@@ -276,6 +283,64 @@ describe('agentic-workflow-kit MCP server', () => {
     expect(result.structuredContent).toMatchObject({
       stories: [{ id: 'LK02' }],
     });
+    await client.close();
+    await server.close();
+  });
+
+  it('calls workflow_tracker_validate with structured diagnostics', async () => {
+    const root = await createWorkspace();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'workflow_tracker_validate',
+      arguments: { cwd: root, track: 'linkly' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_tracker_validate',
+      result: {
+        track: { id: 'linkly' },
+        report: {
+          ok: true,
+          summary: { storyCount: 3, errorCount: 0 },
+        },
+      },
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('calls workflow_tracker_migrate with a draft artifact and report', async () => {
+    const root = await createWorkspace();
+    const backlog = path.join(root, 'backlog.md');
+    await writeFile(
+      backlog,
+      ['# Backlog', '', '| Key | Summary | State |', '| --- | --- | --- |', '| LK-10 | Import this | todo |'].join(
+        '\n',
+      ),
+    );
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'workflow_tracker_migrate',
+      arguments: { cwd: root, track: 'linkly', from: backlog },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_tracker_migrate',
+      result: {
+        track: { id: 'linkly' },
+        report: {
+          ok: true,
+          summary: { importedRows: 1 },
+        },
+      },
+    });
+    expect((result.structuredContent as { result?: { draftMarkdown?: string } }).result?.draftMarkdown).toContain(
+      '| LK10 | Import this | — | W1 | specced |',
+    );
     await client.close();
     await server.close();
   });
