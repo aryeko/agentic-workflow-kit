@@ -17,6 +17,8 @@ export interface SessionReviewLoop {
   status: string;
   findings: number | null;
   agentId: string | null;
+  previousAgentId: string | null;
+  continuityMode: string | null;
 }
 
 export async function mapSessionLogsByThread(sessionLogs: string[]): Promise<Map<string, string>> {
@@ -107,7 +109,7 @@ class SessionReviewState {
     if (!call || rawOutput === null) return;
 
     if (call.name === 'spawn_agent') {
-      const prompt = readOptionalString(call.args?.prompt) ?? '';
+      const prompt = readOptionalString(call.args?.message) ?? readOptionalString(call.args?.prompt) ?? '';
       const output = parseLooseJsonObject(rawOutput);
       const agentId = readOptionalString(output?.agent_path) ?? readOptionalString(output?.target);
       if (!agentId && /error|failed|invalid|provide either/i.test(rawOutput)) {
@@ -134,6 +136,8 @@ class SessionReviewState {
         status,
         findings,
         agentId: target,
+        previousAgentId: null,
+        continuityMode: null,
       });
     }
   }
