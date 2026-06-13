@@ -121,12 +121,14 @@ describe('buildGenericPrompt', () => {
     expect(prompt).toContain('PR policy (from .workflow/config.yaml - follow exactly):');
     expect(prompt).toContain('- Review gate: wait for bot `codex`.');
     expect(prompt).toContain('Codex review signal is reaction/comment based, not a native GitHub approval gate.');
-    expect(prompt).toContain('eyes reaction means review started/pending');
-    expect(prompt).toContain('thumbs-up reaction means clear/no findings');
+    expect(prompt).toContain('Check PR body reactions, issue comments, and PR review comments');
+    expect(prompt).toContain('A +1 reaction from bot `codex` means approval');
+    expect(prompt).toContain('An eyes reaction from bot `codex` means review is pending');
     expect(prompt).toContain('PR review comments or PR comments are findings');
     expect(prompt).toContain(
       'Do not require a GitHub PullRequestReview APPROVED or CHANGES_REQUESTED state from Codex.',
     );
+    expect(prompt).toContain('Do not re-request Codex review after a +1 reaction has been observed.');
     expect(prompt).toContain('Do not mention @codex unless auto review failed to start or a manual retry is needed.');
   });
 

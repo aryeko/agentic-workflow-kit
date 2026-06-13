@@ -1,5 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -30,7 +29,10 @@ describe('codex MCP control target resolution', () => {
     const runPath = await mkdtemp(path.join(tmpdir(), 'awk-control-missing-'));
     tempRoots.push(runPath);
     await mkdir(path.join(runPath, 'children'), { recursive: true });
-    await writeFile(path.join(runPath, 'children/DLD07.launch.json'), JSON.stringify({ storyId: 'DLD07', sessionId: null }));
+    await writeFile(
+      path.join(runPath, 'children/DLD07.launch.json'),
+      JSON.stringify({ storyId: 'DLD07', sessionId: null }),
+    );
 
     await expect(resolveCodexControlTarget({ runPath, storyId: 'DLD07' })).rejects.toThrow(
       'story DLD07 does not have a linked Codex session',

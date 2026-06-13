@@ -146,6 +146,19 @@ pnpm agentic-workflow-kit -- watch-run .codex/agentic-workflow-kit/runs/<runId>
 pnpm agentic-workflow-kit -- analyze-run .codex/agentic-workflow-kit/runs/<runId>
 ```
 
+In MCP sessions, use the nonblocking watch tools for long supervision:
+
+```text
+watch_run_start({ runPath })
+watch_run_poll({ runPath, cursor })
+watch_run_stop({ watchId })
+```
+
+Use `watch_run` for an immediate snapshot. Use `codex_reply` when a linked child session is alive
+but needs operator input, and `codex_interrupt` only when the child should stop. Both tools can
+target a direct `sessionId` or resolve the child from `runPath` plus `storyId`; run-targeted
+interventions are journaled in the run artifacts.
+
 Do not edit run artifacts or tracker rows by hand while a child may still be active. Session ids,
 session logs, observed child progress, worktree activity, or not-yet-stale launch timestamps mean
 the safe action is to wait or keep observing. Parent supervisor polls only prove the parent loop
@@ -187,15 +200,16 @@ for dirty-check purposes.
 
 For MCP dispatch, non-dry-run `run_eligible` returns as soon as the initial child sessions are
 launched and the run artifact directory exists. Treat that response as a launch receipt, then use
-`watch_run` for active state and `analyze_run` for the post-run explanation.
+`watch_run_start` and `watch_run_poll` for active state and `analyze_run` for the post-run
+explanation.
 
 For UI stories, rendered verification can fall back to repo Playwright/e2e gates when the Browser
 connector or local browser-safe env is unavailable. Record the downgrade reason and evidence in the
 run journal/final handoff; avoid ad hoc browser scripts unless the story explicitly requires them.
 
 When supervising long runs, prefer coarse polling on meaningful state changes over micro-polling.
-Use `watch-run` for active state and `analyze-run` for decisions: wait, complete, blocked, or manual
-recovery required.
+Use `watch-run` for a CLI snapshot, MCP watch cursors for long supervision, and `analyze-run` for
+decisions: wait, complete, blocked, or manual recovery required.
 
 ## 6. Ship and repeat
 

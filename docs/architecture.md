@@ -123,7 +123,7 @@ The autonomous driver ships two surfaces over the same command handlers:
 - plugin installs use the pinned `@agentic-workflow-kit/orchestrator` package MCP executable and expose MCP tools to Claude Code and Codex;
 - the same published package provides the standalone CLI for local development, CI, and troubleshooting.
 
-The package MCP server exposes eight tools over the shared handlers:
+The package MCP server exposes these tools over the shared handlers:
 
 | Tool | Purpose |
 | --- | --- |
@@ -132,7 +132,12 @@ The package MCP server exposes eight tools over the shared handlers:
 | `list_eligible` | Return stories dispatchable after status, owner, and dependency filtering. |
 | `run_eligible` | Dry-run (default) or launch eligible stories for one track. |
 | `run_story` | Dry-run (default) or launch a specific story. |
-| `watch_run` | Read `state.json` and `metrics.live.json` for a run artifact directory. |
+| `watch_run` | Read `state.json`, `metrics.live.json`, and a meaningful summary for a run artifact directory; returns immediately by default. |
+| `watch_run_start` | Start nonblocking supervision and return the current summary plus a cursor. |
+| `watch_run_poll` | Poll with a previous cursor and return the latest summary plus changes since that cursor. |
+| `watch_run_stop` | Release a nonblocking watch id; cursor correctness remains client-side. |
+| `codex_reply` | Send an operator reply to a live Codex child by direct session id or `runPath` plus `storyId`. |
+| `codex_interrupt` | Interrupt a live Codex child by direct session id or `runPath` plus `storyId`. |
 | `analyze_run` | Analyze a completed run and its child session artifacts, including compatible interactive `implement-next` journals. |
 | `check_codex_mcp` | Validate the Codex child MCP server schema used by the `codex-mcp` driver. |
 
@@ -144,7 +149,9 @@ widened with `responseFormat: detailed`.
 The MCP server also returns concise server-level instructions during initialization. Those
 instructions cover cross-tool workflow guidance: inspect tracks and eligibility before dispatch,
 operate on the target repo cwd, require explicit user approval before non-dry-run launches, treat
-tracker state as authoritative, and inspect launched runs with `watch_run` / `analyze_run`.
+tracker state as authoritative, use `watch_run_start` / `watch_run_poll` for long supervision, use
+`codex_reply` / `codex_interrupt` for deliberate live-child intervention, and inspect finished or
+blocked runs with `analyze_run`.
 Tool-specific descriptions stay with the individual MCP tools. The Codex plugin uses
 `.codex-plugin/.mcp.json`; that `mcpServers` configuration starts
 `npx -y --package @agentic-workflow-kit/orchestrator@<exact-version> agentic-workflow-kit-mcp`.
@@ -161,9 +168,23 @@ this same boundary; today's plugin-provided autopilot still uses the `codex-mcp`
 Autonomous orchestrator runs write structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
 per-child JSON). These runtime artifacts are ignored for completion dirty checks so a run cannot
-make its own completed story look uncommitted. `analyze-run` reconstructs metrics from Codex session
-logs. Interactive `implement-next` journals use the same run directory and can be analyzed when
+make its own completed story look uncommitted. `metrics.live.json`, `watch_run`, and `analyze-run`
+share Codex session-log parsing for command counts, subagent counts, and token totals by type when a
+child session log is linked. Interactive `implement-next` journals use the same run directory and can be analyzed when
 `state.json` contains `command: "implement-next"` plus an `interactive` child record.
+
+For `git.strategy: worktree`, the parent orchestrator does not claim tracker rows in the parent
+checkout. Child worktrees own story status and owner changes; the parent records
+`tracker-claim-skipped` and reserves launches through run artifacts, active child metadata,
+expected branch, expected worktree path, and stale-launch duplicate checks. Branch strategy keeps
+the parent tracker claim/release behavior because there is no separate child worktree owner.
+
+Watch output is intentionally summary-first. The default non-JSON watch stream suppresses
+supervisor polls and tiny progress events, while snapshots expose per-story state, latest progress,
+session log path, branch/worktree expectations, command counts, subagent counts, and token totals.
+Raw event detail remains available in `events.ndjson` and JSON/debug output. `codex_reply` journals
+a short preview plus a message hash when run-targeted; `codex_interrupt` journals the interruption
+metadata. Neither tool stores full secret-bearing messages in run artifacts.
 
 Child supervision is conservative. A launch-only child in a running parent is not considered
 `supervision_lost` while there is session linkage, a discoverable session log, recent observed child

@@ -287,7 +287,9 @@ export function registerOrchestratorTools(server: McpServer): void {
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     async (input) =>
-      handleTool('watch_run_start', input.responseFormat, () => startWatchRunHandler(input.runPath, toOverrides(input))),
+      handleTool('watch_run_start', input.responseFormat, () =>
+        startWatchRunHandler(input.runPath, toOverrides(input)),
+      ),
   );
 
   server.registerTool(
@@ -314,8 +316,7 @@ export function registerOrchestratorTools(server: McpServer): void {
       outputSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
-    async (input) =>
-      handleTool('watch_run_stop', input.responseFormat, () => stopWatchRunHandler(input.watchId)),
+    async (input) => handleTool('watch_run_stop', input.responseFormat, () => stopWatchRunHandler(input.watchId)),
   );
 
   server.registerTool(

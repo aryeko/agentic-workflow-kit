@@ -14,8 +14,8 @@ import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import { discoverMarkdownTracks, EmptyStorySource, MarkdownTrackStorySource } from '../tracks/markdownTracker.js';
 import type {
   CliOverrides,
-  Logger,
   LiveMetricsSnapshot,
+  Logger,
   ResolvedWorkflowConfig,
   RunState,
   StorySource,
@@ -159,7 +159,10 @@ export async function startWatchRunHandler(
   overrides: CliOverrides = {},
 ): Promise<StartWatchRunResult> {
   const runDirectory = path.resolve(runPath);
-  const [snapshot, eventOffset] = await Promise.all([watchRunHandler(runDirectory, overrides), countRunEvents(runDirectory)]);
+  const [snapshot, eventOffset] = await Promise.all([
+    watchRunHandler(runDirectory, overrides),
+    countRunEvents(runDirectory),
+  ]);
   return {
     ...snapshot,
     watchId: `watch_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
@@ -517,14 +520,14 @@ function buildWatchRunSummary(state: unknown | null, metrics: unknown | null): W
   const stateObject = isObject(state) ? state : {};
   const metricsObject = isObject(metrics) ? metrics : {};
   const children = readRecordMap(metricsObject.children);
-  const activeChildren = Array.isArray(stateObject.activeChildren)
-    ? stateObject.activeChildren.filter(isObject)
-    : [];
+  const activeChildren = Array.isArray(stateObject.activeChildren) ? stateObject.activeChildren.filter(isObject) : [];
   const completed = Array.isArray(stateObject.completed) ? stateObject.completed.filter(isObject) : [];
   const active = readStringArray(stateObject.active);
   const storyIds = new Set<string>([
     ...active,
-    ...activeChildren.map((child) => readOptionalString(child.storyId)).filter((storyId): storyId is string => !!storyId),
+    ...activeChildren
+      .map((child) => readOptionalString(child.storyId))
+      .filter((storyId): storyId is string => !!storyId),
     ...completed.map((child) => readOptionalString(child.storyId)).filter((storyId): storyId is string => !!storyId),
     ...Object.keys(children),
   ]);
@@ -589,7 +592,8 @@ function watchStoryStatus(input: {
   completedChild: Record<string, unknown> | null;
 }): WatchStorySummary['status'] {
   if (input.completedChild) return readOptionalBoolean(input.completedChild.ok) === false ? 'blocked' : 'complete';
-  if (input.blockedStoryId === input.storyId) return input.runStatus === 'supervision_lost' ? 'supervision_lost' : 'blocked';
+  if (input.blockedStoryId === input.storyId)
+    return input.runStatus === 'supervision_lost' ? 'supervision_lost' : 'blocked';
   if (input.active.includes(input.storyId)) return 'active';
   if (input.activeChild) return 'launched';
   return 'unknown';
@@ -597,7 +601,9 @@ function watchStoryStatus(input: {
 
 function readRecordMap(value: unknown): Record<string, Record<string, unknown>> {
   if (!isObject(value)) return {};
-  return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, Record<string, unknown>] => isObject(entry[1])));
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, Record<string, unknown>] => isObject(entry[1])),
+  );
 }
 
 function readAggregate(value: unknown): LiveMetricsSnapshot['aggregate'] | null {

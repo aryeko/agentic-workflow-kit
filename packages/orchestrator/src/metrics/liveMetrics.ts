@@ -30,9 +30,7 @@ export function buildLiveMetricsSnapshot(input: BuildLiveMetricsInput): LiveMetr
   };
 }
 
-export async function enrichLiveMetricsFromSessionLogs(
-  snapshot: LiveMetricsSnapshot,
-): Promise<LiveMetricsSnapshot> {
+export async function enrichLiveMetricsFromSessionLogs(snapshot: LiveMetricsSnapshot): Promise<LiveMetricsSnapshot> {
   const children: Record<string, ChildMetricsSnapshot> = {};
   for (const [storyId, child] of Object.entries(snapshot.children)) {
     children[storyId] = await enrichChildMetric(child);
