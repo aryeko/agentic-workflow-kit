@@ -21,6 +21,10 @@ be treated as runtime API payloads:
   not invent cross-cutting architecture.
 - Review and recovery prompts must include artifact paths and evidence requirements, not only prose
   summaries.
+- Incremental pre-PR review loops should preserve reviewer context by reusing the same review
+  subagent/thread when a host can continue it. When a host cannot continue a completed reviewer,
+  spawning a new read-only reviewer with the incremental packet is an expected fallback, not a
+  downgrade, as long as the journal records the continuity mode and a real subagent review result.
 
 ## Triggers and tools
 
@@ -104,6 +108,12 @@ future evaluation:
 Realtime CLI/MCP status reads from `state.json`, `metrics.live.json`, `events.ndjson`, and control
 state. Streaming/subscription follows the normalized run event stream and applies config/tool-call
 filters for topic, level, story id, and data inclusion.
+
+Local pre-PR review events should include review-loop continuity fields when available:
+`loop`, `agentId`, `previousAgentId`, and `continuityMode`. Supported continuity modes are
+`reused-agent`, `new-agent-incremental-context`, and `full-context`. Analyzer and report surfaces
+should distinguish an execution downgrade from a host fallback that still produced a real subagent
+review.
 
 ## Notification model
 

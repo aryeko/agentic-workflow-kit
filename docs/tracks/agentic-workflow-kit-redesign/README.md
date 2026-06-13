@@ -46,6 +46,7 @@ flowchart TD
   AWK06[AWK06 Runtime event and artifact model]
   AWK07[AWK07 Run control and abort]
   AWK08[AWK08 Story and track autopilot policy]
+  AWK081[AWK08.1 Review continuity policy]
   AWK09[AWK09 Status and streaming API]
   AWK10[AWK10 Analyzer and report bundle]
   AWK11[AWK11 GitHub evidence hardening]
@@ -65,7 +66,9 @@ flowchart TD
   AWK06 --> AWK09
   AWK06 --> AWK10
   AWK07 --> AWK09
-  AWK08 --> AWK09
+  AWK08 --> AWK081
+  AWK081 --> AWK09
+  AWK081 --> AWK10
   AWK08 --> AWK11
   AWK09 --> AWK10
   AWK09 --> AWK12
@@ -95,8 +98,9 @@ Statuses come from `references/tracker-contract.md`:
 | AWK06 | Runtime event and artifact model | AWK02 | W3 | done | [brief](./stories/AWK06.md) + [contract](../../../references/runtime-artifact-contract.md) | — | codex | [#60](https://github.com/aryeko/agentic-workflow-kit/pull/60) |
 | AWK07 | Run control and abort | AWK06 | W4 | specced | [brief](./stories/AWK07.md) | — | — | — |
 | AWK08 | Story and track autopilot policy | AWK03, AWK05, AWK06 | W4 | done | [brief](./stories/AWK08.md) | — | codex-2026-06-13T22-51-49Z | [#62](https://github.com/aryeko/agentic-workflow-kit/pull/62) |
-| AWK09 | Status and streaming API | AWK06, AWK07, AWK08 | W5 | specced | [brief](./stories/AWK09.md) | — | — | — |
-| AWK10 | Analyzer and report bundle | AWK06, AWK09 | W5 | specced | [brief](./stories/AWK10.md) | — | — | — |
+| AWK081 | AWK08.1 Review continuity policy | AWK08 | W4.5 | specced | [brief](./stories/AWK081.md) | — | — | — |
+| AWK09 | Status and streaming API | AWK06, AWK07, AWK081 | W5 | specced | [brief](./stories/AWK09.md) | — | — | — |
+| AWK10 | Analyzer and report bundle | AWK06, AWK09, AWK081 | W5 | specced | [brief](./stories/AWK10.md) | — | — | — |
 | AWK11 | GitHub evidence hardening | AWK08 | W5 | specced | [brief](./stories/AWK11.md) | — | — | — |
 | AWK12 | Plugin package compatibility | AWK09, AWK10, AWK11 | W6 | specced | [brief](./stories/AWK12.md) | — | — | — |
 | AWK13 | Canonical docs consolidation | AWK12 | W7 | deferred | [brief](./stories/AWK13.md) | — | — | — |
@@ -120,6 +124,10 @@ concurrently only if detailed specs keep driver-contract files and artifact/even
 
 **Wave 4 — Runtime behavior (mostly sequential):** AWK07 and AWK08 both touch `WorkflowRunner`,
 handlers, and state transitions. Run AWK07 first when possible, then AWK08.
+
+**Wave 4.5 — Review policy follow-up (sequential):** AWK081 is an AWK08 follow-up for local
+pre-PR review continuity semantics. Run it after AWK08 lands and before AWK09/AWK10 consume
+review-loop events in status, stream, analyzer, or report surfaces.
 
 **Wave 5 — Observability and collaboration (up to 2-way parallel):** AWK09, AWK10, and AWK11 may
 run with at most two concurrent sessions after runtime state is stable. They have likely contention
