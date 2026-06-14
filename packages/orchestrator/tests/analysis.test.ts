@@ -1156,4 +1156,103 @@ describe('analyzeWorkflowRun', () => {
 
     expect(analysis.issues).toContain('DLD05 child blocker evidence: Blocker: PR checks are not green.');
   });
+
+  it('reports missing policy-required GitHub evidence', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-github-missing-'));
+    const runDir = path.join(root, 'runs', 'run-github-missing');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-github-missing', status: 'blocked' }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        statuses: { eligible: ['specced'], complete: ['done'] },
+        pr: {
+          create: true,
+          ci: { wait: true },
+          review: { wait: 'bot', bot: 'codex', triageComments: true, rerequestAfterFix: false },
+          merge: { auto: true, deleteBranch: true },
+        },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'AWK11.json'),
+      JSON.stringify({
+        storyId: 'AWK11',
+        ok: true,
+        returnedStatus: 'done',
+        evidence: { finalStatus: 'done' },
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.issues).toEqual(
+      expect.arrayContaining([
+        'AWK11 PR evidence missing: configured PR creation requires PR number or URL',
+        'AWK11 CI evidence missing: configured CI wait requires check evidence',
+        'AWK11 PR review evidence missing: configured bot review requires a review signal',
+        'AWK11 merge evidence missing: configured auto-merge requires merged base evidence',
+      ]),
+    );
+  });
+
+  it('accepts complete structured GitHub evidence without policy-required diagnostics', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-github-complete-'));
+    const runDir = path.join(root, 'runs', 'run-github-complete');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-github-complete', status: 'complete' }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        statuses: { eligible: ['specced'], complete: ['done'] },
+        pr: {
+          create: true,
+          ci: { wait: true },
+          review: { wait: 'bot', bot: 'codex', triageComments: true, rerequestAfterFix: false },
+          merge: { auto: true, deleteBranch: true },
+        },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'AWK11.json'),
+      JSON.stringify({
+        storyId: 'AWK11',
+        ok: true,
+        returnedStatus: 'done',
+        evidence: {
+          finalStatus: 'done',
+          github: {
+            prNumber: 66,
+            prUrl: 'https://github.com/aryeko/agentic-workflow-kit/pull/66',
+            checks: [{ command: 'gh pr checks 66 --watch --fail-fast', status: 'passed' }],
+            review: { reviewer: 'codex', mechanism: 'reaction', signal: 'approved', findings: 0, triaged: true },
+            merge: { merged: true, commit: 'abc1234', branchDeleted: true },
+          },
+        },
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.issues).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('PR evidence missing'),
+        expect.stringContaining('CI evidence missing'),
+        expect.stringContaining('PR review evidence missing'),
+        expect.stringContaining('merge evidence missing'),
+        expect.stringContaining('branch cleanup evidence missing'),
+      ]),
+    );
+    expect(analysis.children[0].merge).toMatchObject({
+      prNumber: 66,
+      mergeCommit: 'abc1234',
+      branchDeleted: true,
+    });
+  });
 });

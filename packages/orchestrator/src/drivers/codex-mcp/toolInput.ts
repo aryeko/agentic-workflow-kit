@@ -133,6 +133,19 @@ export function buildGenericPrompt(
     `- Review wait timeout: ${pr.review.waitTimeoutMinutes} minutes.`,
     `- Auto-merge: ${pr.merge.auto ? `yes (${pr.merge.method})` : 'no'}.`,
     `- Delete branch after merge: ${pr.merge.deleteBranch ? 'yes' : 'no'}.`,
+    pr.create
+      ? '- Final evidence MUST include the PR URL and PR number. If PR creation/auth fails, stop and report that blocker.'
+      : null,
+    pr.ci.wait
+      ? '- Final evidence MUST include CI/check evidence: command used, pass/fail/skipped status, and detail. Failed or unknown required checks block merge.'
+      : null,
+    pr.review.wait === 'bot'
+      ? '- Final evidence MUST include bot review evidence: reviewer/bot, mechanism, signal, findings count, and triage/reply status for findings.'
+      : null,
+    pr.merge.auto
+      ? '- Final evidence MUST include merge evidence: merge method, merge commit or merge timestamp, PR number/URL, and whether branch deletion was confirmed.'
+      : null,
+    '- Final evidence MUST identify blockers such as missing review signal, auth failure, stale base, merge conflict, failed checks, failed verification, missing PR state, or inconsistent artifacts.',
     pr.merge.auto
       ? `- Before merge, fetch the latest \`${git.baseBranch}\`, rebase or otherwise update the story branch onto \`${git.baseBranch}\`, and rerun the required verification after the base update.`
       : null,
