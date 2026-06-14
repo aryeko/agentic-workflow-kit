@@ -190,6 +190,46 @@ describe('GhCollaborationInspector', () => {
     expect(result.checks).toEqual([expect.objectContaining({ command: 'required-build', status: 'passed' })]);
   });
 
+  it('does not treat aggregate native approval as approval for a configured bot gate', async () => {
+    const inspector = new GhCollaborationInspector({
+      execFile: async (_command, args) => {
+        if (args[0] === 'auth') return '';
+        if (args[0] === 'pr' && args[1] === 'view') {
+          return JSON.stringify({
+            number: 72,
+            url: 'https://github.com/aryeko/agentic-workflow-kit/pull/72',
+            state: 'OPEN',
+            headRefOid: 'head-sha',
+            headRefName: 'track/story',
+            baseRefName: 'main',
+            reviewDecision: 'APPROVED',
+            statusCheckRollup: [{ name: 'build', conclusion: 'SUCCESS' }],
+            reactionGroups: [],
+          });
+        }
+        if (args[0] === 'api' && args.some((arg) => arg.includes('/required_status_checks'))) {
+          throw new Error('not found');
+        }
+        if (args[0] === 'api' && args.some((arg) => arg.includes('/branches/track%2Fstory'))) {
+          return JSON.stringify({});
+        }
+        throw new Error(`unexpected args ${args.join(' ')}`);
+      },
+    });
+
+    const result = await inspector.inspectPullRequest({
+      cwdAbs: '/repo',
+      owner: 'aryeko',
+      repo: 'agentic-workflow-kit',
+      prNumber: 72,
+      branchName: 'track/story',
+      reviewBot: 'codex',
+    });
+
+    expect(result.available).toBe(true);
+    expect(result.review?.signal).toBe('unknown');
+  });
+
   it('fails closed when required-check metadata cannot be queried', async () => {
     const inspector = new GhCollaborationInspector({
       execFile: async (_command, args) => {

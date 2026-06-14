@@ -68,10 +68,10 @@ export class CompletionGate {
       };
     }
     if (!isCompleteStatus(returnedStory.status, this.deps.statuses.complete)) {
-      const baseStory = await this.readCompleteBaseTrackerStory(settled, returnedStory);
-      if (baseStory) return await this.evaluateCompleteBaseStory(settled, baseStory);
       const childStory = await this.readCompleteChildTrackerStory(settled, returnedStory);
       if (childStory) return await this.evaluateCompleteStory(settled, childStory, 'child-worktree-tracker');
+      const baseStory = await this.readCompleteBaseTrackerStory(settled, returnedStory);
+      if (baseStory) return await this.evaluateCompleteBaseStory(settled, baseStory);
       return {
         complete: false,
         returnedStory,
@@ -129,7 +129,7 @@ export class CompletionGate {
     }
     const verified = collaborationEvidence
       ? { ok: true as const, evidence: collaborationEvidence }
-      : await this.verifyAutoMergeIfNeeded(settled, returnedStory, source);
+      : await this.verifyAutoMergeIfNeeded(settled, returnedStory, source, commitEvidence.headSha);
     if (!verified.ok) return verified.result;
     if (this.deps.pr.merge.auto && verified.evidence?.pr?.state === 'merged') {
       const baseStory = await this.readCompleteBaseTrackerStory(settled, returnedStory);
@@ -202,6 +202,7 @@ export class CompletionGate {
     settled: SettledStoryRun,
     story: WorkflowStory,
     source: CompletionAuthoritySource,
+    inspectedHeadSha?: string | null,
   ): Promise<{ ok: true; evidence?: CollaborationEvidence } | { ok: false; result: ReturnEvaluation }> {
     if (!this.deps.pr.merge.auto) return { ok: true };
     if (!this.deps.collaborationInspector) {
@@ -245,6 +246,19 @@ export class CompletionGate {
             complete: false,
             returnedStory: story,
             reason: 'github-verification-incomplete: pull request head commit is not verified',
+            authority: 'github-verification-incomplete',
+            source,
+            collaborationEvidence: evidence,
+          },
+        };
+      }
+      if (!inspectedHeadSha || evidence.pr.headSha !== inspectedHeadSha) {
+        return {
+          ok: false,
+          result: {
+            complete: false,
+            returnedStory: story,
+            reason: 'github-verification-incomplete: pull request head does not match inspected branch',
             authority: 'github-verification-incomplete',
             source,
             collaborationEvidence: evidence,

@@ -100,6 +100,8 @@ class RefreshingBaseTrackerGitInspector implements GitInspector {
   calls: string[] = [];
   private refreshed = false;
 
+  constructor(private readonly storyEvidence: StoryCommitEvidence | null = null) {}
+
   async refreshBaseBranch(): Promise<void> {
     this.calls.push('refreshBaseBranch');
     this.refreshed = true;
@@ -117,6 +119,7 @@ class RefreshingBaseTrackerGitInspector implements GitInspector {
 
   async inspectStory(): Promise<StoryCommitEvidence> {
     this.calls.push('inspectStory');
+    if (this.storyEvidence) return this.storyEvidence;
     throw new Error('stale local checkout should not be inspected for refreshed base tracker authority');
   }
 }
@@ -340,7 +343,7 @@ describe('CompletionGate', () => {
   });
 
   it('fails closed when auto-merge evidence is only child-reported', async () => {
-    const gitInspector = new RefreshingBaseTrackerGitInspector();
+    const gitInspector = new RefreshingBaseTrackerGitInspector({ ...goodEvidence, headSha: 'head' });
     const gate = new CompletionGate(
       makeDeps({
         gitInspector,
@@ -441,14 +444,15 @@ describe('CompletionGate', () => {
   });
 
   it('performs parent-side merge for verified ready open PRs before accepting completion', async () => {
-    const gitInspector = new RefreshingBaseTrackerGitInspector();
+    const childCwd = await writeChildTracker('done');
+    const gitInspector = new RefreshingBaseTrackerGitInspector({ ...goodEvidence, headSha: 'head' });
     const collaborationInspector = new FakeCollaborationInspector(
       verifiedCollaborationEvidence({
         pr: {
           number: 88,
           url: 'https://github.com/aryeko/pathway/pull/88',
           state: 'open',
-          headSha: 'head-sha',
+          headSha: 'head',
           mergeCommitSha: null,
           mergedAt: null,
         },
@@ -458,6 +462,7 @@ describe('CompletionGate', () => {
     );
     const gate = new CompletionGate(
       makeDeps({
+        childCwdAbs: childCwd,
         gitInspector,
         collaborationInspector,
         pr: {
@@ -478,6 +483,7 @@ describe('CompletionGate', () => {
 
     const result = await gate.evaluate(
       settled({
+        invocation: { cwd: childCwd },
         evidence: {
           trackerPath: 'docs/tracks/t/README.md',
           prNumber: 88,
@@ -489,6 +495,63 @@ describe('CompletionGate', () => {
 
     expect(result.complete).toBe(true);
     expect(collaborationInspector.mergeCalls).toEqual([{ prNumber: 88, method: 'squash', deleteBranch: true }]);
+  });
+
+  it('fails closed when verified PR head differs from inspected story branch head before parent merge', async () => {
+    const childCwd = await writeChildTracker('done');
+    const collaborationInspector = new FakeCollaborationInspector(
+      verifiedCollaborationEvidence({
+        pr: {
+          number: 88,
+          url: 'https://github.com/aryeko/pathway/pull/88',
+          state: 'open',
+          headSha: 'remote-head',
+          mergeCommitSha: null,
+          mergedAt: null,
+        },
+        branch: { name: 't/a001-story', exists: true },
+      }),
+      verifiedCollaborationEvidence(),
+    );
+    const gate = new CompletionGate(
+      makeDeps({
+        childCwdAbs: childCwd,
+        gitInspector: new FakeGitInspector({ ...goodEvidence, headSha: 'local-head' }),
+        collaborationInspector,
+        pr: {
+          create: true,
+          ci: { wait: true, command: 'gh pr checks --watch --fail-fast' },
+          review: {
+            wait: 'bot',
+            bot: 'codex',
+            triageComments: true,
+            maxFixBatches: 1,
+            rerequestAfterFix: false,
+            waitTimeoutMinutes: 30,
+          },
+          merge: { auto: true, method: 'squash', deleteBranch: true },
+        },
+      }),
+    );
+
+    const result = await gate.evaluate(
+      settled({
+        invocation: { cwd: childCwd },
+        evidence: {
+          trackerPath: 'docs/tracks/t/README.md',
+          prNumber: 88,
+          prUrl: 'https://github.com/aryeko/pathway/pull/88',
+        },
+      }),
+      [story('A001', 'implementing')],
+    );
+
+    expect(result.complete).toBe(false);
+    if (!result.complete) {
+      expect(result.authority).toBe('github-verification-incomplete');
+      expect(result.reason).toBe('github-verification-incomplete: pull request head does not match inspected branch');
+    }
+    expect(collaborationInspector.mergeCalls).toEqual([]);
   });
 
   it('uses nested GitHub merge commit evidence for refreshed base tracker authority', async () => {

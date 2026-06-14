@@ -289,6 +289,9 @@ function readReview(value: unknown, reviewBot: string): GithubReviewEvidence | u
   if (hasBotReaction(record.reactionGroups, reviewBot, 'EYES')) {
     return { reviewer: reviewBot, signal: 'pending', mechanism: 'reaction', detail: 'eyes reaction' };
   }
+  if (reviewBot !== 'none') {
+    return { reviewer: reviewBot, signal: 'unknown', mechanism: 'unknown', detail: decision };
+  }
   if (decision === 'APPROVED') {
     return { reviewer: null, signal: 'approved', mechanism: 'native-review', detail: decision };
   }
