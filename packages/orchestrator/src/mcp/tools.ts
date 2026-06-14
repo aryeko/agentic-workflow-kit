@@ -1,9 +1,17 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { type McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { projectInspectFacade, runPreviewFacade, trackerMigrateFacade, trackerValidateFacade } from '../api/facade.js';
+import {
+  projectInspectFacade,
+  runInspectFacade,
+  runPreviewFacade,
+  runStatusFacade,
+  runStreamFacade,
+  trackerMigrateFacade,
+  trackerValidateFacade,
+} from '../api/facade.js';
 import {
   abortRunHandler,
   analyzeRunHandler,
@@ -23,6 +31,9 @@ import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_project_inspect',
   'workflow_run_preview',
+  'workflow_run_status',
+  'workflow_run_stream',
+  'workflow_run_inspect',
   'workflow_run_control',
   'workflow_tracker_validate',
   'workflow_tracker_migrate',
@@ -82,6 +93,22 @@ const workflowRunControlInputSchema = productBaseInputSchema.extend({
   action: z.literal('abort').describe('Run control action to apply.'),
   storyId: z.string().optional().describe('Optional active story id to target within the run.'),
   reason: z.string().optional().describe('Operator-facing reason for the control request.'),
+});
+
+const workflowRunReadInputSchema = productBaseInputSchema.extend({
+  runId: z.string().optional().describe('Run id under the configured artifact root.'),
+  runPath: z.string().optional().describe('Absolute path to a run artifact directory.'),
+  limit: z.number().int().positive().max(200).optional().describe('Maximum recent events to include.'),
+});
+
+const workflowRunStreamInputSchema = workflowRunReadInputSchema.extend({
+  timeoutMs: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Maximum stream duration before returning a timeout summary.'),
+  intervalMs: z.number().int().positive().optional().describe('Polling interval while waiting for new run events.'),
 });
 
 const workflowTrackerValidateInputSchema = baseProductTrackerInputSchema();
@@ -222,6 +249,8 @@ const outputSchema = z
   .passthrough();
 
 export function registerOrchestratorTools(server: McpServer): void {
+  registerWorkflowResources(server);
+
   server.registerTool(
     'workflow_project_inspect',
     {
@@ -249,6 +278,78 @@ export function registerOrchestratorTools(server: McpServer): void {
       handleTool('workflow_run_preview', input.responseFormat, () => {
         return runPreviewFacade({ ...toOverrides(input), target: input.target });
       }),
+  );
+
+  server.registerTool(
+    'workflow_run_status',
+    {
+      description: 'Read a bounded product status snapshot for a run from WorkflowKit run artifacts.',
+      inputSchema: workflowRunReadInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_run_status', input.responseFormat, () =>
+        runStatusFacade({
+          ...toOverrides(input),
+          runId: input.runId,
+          runPath: input.runPath,
+          events: { limit: input.limit },
+        }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_run_stream',
+    {
+      description:
+        'Replay a bounded run event tail, emit standard MCP progress notifications when available, and return a terminal or timeout stream summary.',
+      inputSchema: workflowRunStreamInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input, extra) =>
+      handleTool('workflow_run_stream', input.responseFormat, () =>
+        runStreamFacade({
+          ...toOverrides(input),
+          runId: input.runId,
+          runPath: input.runPath,
+          subscription: {
+            replay: { lastEvents: input.limit },
+            timeoutMs: input.timeoutMs,
+            pollIntervalMs: input.intervalMs,
+          },
+          onProgress:
+            extra._meta?.progressToken === undefined
+              ? undefined
+              : async (event, delivered) => {
+                  const progressToken = extra._meta?.progressToken;
+                  if (progressToken === undefined) return;
+                  await extra.sendNotification({
+                    method: 'notifications/progress',
+                    params: {
+                      progressToken,
+                      progress: delivered,
+                      message: event.message,
+                    },
+                  });
+                },
+        }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_run_inspect',
+    {
+      description: 'Inspect a bounded run artifact/session/PR index without copying transcripts.',
+      inputSchema: workflowRunReadInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_run_inspect', input.responseFormat, () =>
+        runInspectFacade({ ...toOverrides(input), runId: input.runId, runPath: input.runPath }),
+      ),
   );
 
   server.registerTool(
@@ -512,6 +613,55 @@ export function registerOrchestratorTools(server: McpServer): void {
         return mcpCheckHandler(toOverrides(input), { logger: nullLogger });
       }),
   );
+}
+
+function registerWorkflowResources(server: McpServer): void {
+  server.registerResource(
+    'workflow-project-context',
+    'workflow://project/context',
+    { mimeType: 'application/json', description: 'WorkflowKit project context and capabilities.' },
+    async (uri) => resourceJson(uri, await projectInspectFacade({})),
+  );
+  server.registerResource(
+    'workflow-config-resolved',
+    'workflow://config/resolved',
+    { mimeType: 'application/json', description: 'Resolved WorkflowKit config with defaults.' },
+    async (uri) => {
+      const project = await projectInspectFacade({});
+      return resourceJson(uri, project.ok ? project.project : project);
+    },
+  );
+  server.registerResource(
+    'workflow-tracks',
+    'workflow://tracks',
+    { mimeType: 'application/json', description: 'WorkflowKit track index.' },
+    async (uri) => resourceJson(uri, await listTracksHandler({})),
+  );
+  server.registerResource(
+    'workflow-run-state',
+    new ResourceTemplate('workflow://runs/{runId}/state', { list: undefined }),
+    { mimeType: 'application/json', description: 'WorkflowKit run state snapshot.' },
+    async (uri, variables) => resourceJson(uri, await runStatusFacade({ runId: String(variables.runId) })),
+  );
+  server.registerResource(
+    'workflow-run-events',
+    new ResourceTemplate('workflow://runs/{runId}/events', { list: undefined }),
+    { mimeType: 'application/json', description: 'WorkflowKit bounded run event tail.' },
+    async (uri, variables) =>
+      resourceJson(uri, await runStatusFacade({ runId: String(variables.runId), events: { limit: 50 } })),
+  );
+}
+
+function resourceJson(uri: URL, value: unknown) {
+  return {
+    contents: [
+      {
+        uri: uri.href,
+        mimeType: 'application/json',
+        text: JSON.stringify(value, null, 2),
+      },
+    ],
+  };
 }
 
 function assertWorkflowRepoContext(input: { cwd?: string; configPath?: string }): void {

@@ -1,9 +1,18 @@
 #!/usr/bin/env node
 
 import { realpathSync } from 'node:fs';
+import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { projectInspectFacade, runPreviewFacade, trackerMigrateFacade, trackerValidateFacade } from './api/facade.js';
+import {
+  projectInspectFacade,
+  runInspectFacade,
+  runPreviewFacade,
+  runStatusFacade,
+  runStreamFacade,
+  trackerMigrateFacade,
+  trackerValidateFacade,
+} from './api/facade.js';
 import { getHelpText, parseCommand } from './cli/args.js';
 import {
   abortRunHandler,
@@ -112,6 +121,49 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
     return;
   }
 
+  if (command.kind === 'run-status') {
+    const input = runRefInput(command.runRef, command.overrides);
+    const envelope = await runStatusFacade({
+      ...command.overrides,
+      ...input,
+      events: { limit: command.overrides.limit },
+    });
+    stdout(JSON.stringify(envelope, null, 2));
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command.kind === 'run-stream') {
+    const input = runRefInput(command.runRef, command.overrides);
+    const envelope = await runStreamFacade({
+      ...command.overrides,
+      ...input,
+      subscription: { replay: { lastEvents: command.overrides.limit }, timeoutMs: command.overrides.timeoutMs },
+    });
+    if (command.overrides.format === 'ndjson' && envelope.ok) {
+      for (const event of envelope.result.events) stdout(JSON.stringify(event));
+      stdout(
+        JSON.stringify({
+          runId: envelope.result.runId,
+          status: envelope.result.status,
+          terminal: envelope.result.terminal,
+        }),
+      );
+    } else {
+      stdout(JSON.stringify(envelope, null, 2));
+    }
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command.kind === 'run-inspect') {
+    const input = runRefInput(command.runRef, command.overrides);
+    const envelope = await runInspectFacade({ ...command.overrides, ...input });
+    stdout(JSON.stringify(envelope, null, 2));
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
   const result = await runWorkflowHandler(command, {
     logger,
     stdout,
@@ -133,6 +185,17 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
   if (result.status === 'blocked') {
     process.exitCode = 1;
   }
+}
+
+function runRefInput(runRef: string, overrides: CliOverrides): { runId?: string; runPath?: string } {
+  if (path.isAbsolute(runRef) || runRef.includes('/') || runRef.startsWith('.')) {
+    return { runPath: path.resolve(resolveCwdForRunRef(overrides), runRef) };
+  }
+  return { runId: runRef };
+}
+
+function resolveCwdForRunRef(overrides: CliOverrides): string {
+  return overrides.cwd ? path.resolve(overrides.cwd) : process.cwd();
 }
 
 function printTracks(tracks: WorkflowTrack[], overrides: CliOverrides, stdout: (line: string) => void): void {

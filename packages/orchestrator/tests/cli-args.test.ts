@@ -84,6 +84,21 @@ describe('parseCommand', () => {
       target: { type: 'track', trackId: 'linkly', mode: 'eligible' },
       overrides: {},
     });
+    expect(parseCommand(['run', 'status', 'run-1', '--limit', '5'])).toEqual({
+      kind: 'run-status',
+      runRef: 'run-1',
+      overrides: { limit: 5 },
+    });
+    expect(parseCommand(['run', 'stream', '.codex/runs/run-1', '--format', 'ndjson', '--timeout-ms', '10'])).toEqual({
+      kind: 'run-stream',
+      runRef: '.codex/runs/run-1',
+      overrides: { format: 'ndjson', timeoutMs: 10 },
+    });
+    expect(parseCommand(['run', 'inspect', '/tmp/run-1'])).toEqual({
+      kind: 'run-inspect',
+      runRef: '/tmp/run-1',
+      overrides: {},
+    });
     expect(parseCommand(['tracker', 'validate', '--track', 'linkly', '--json'])).toEqual({
       kind: 'tracker-validate',
       overrides: { track: 'linkly', json: true },

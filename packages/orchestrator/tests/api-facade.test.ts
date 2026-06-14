@@ -74,7 +74,7 @@ describe('workflow API facade', () => {
         capabilities: {
           runStory: true,
           runTrack: true,
-          streaming: false,
+          streaming: true,
           abort: true,
         },
       },

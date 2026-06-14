@@ -132,6 +132,49 @@ async function createWatchRun(
   return runDir;
 }
 
+async function createProductRun(): Promise<{ root: string; runPath: string }> {
+  const root = await createWorkspace();
+  const runPath = path.join(root, '.codex/agentic-workflow-kit/runs/run-1');
+  await mkdir(path.join(runPath, 'children'), { recursive: true });
+  await writeFile(
+    path.join(runPath, 'state.json'),
+    JSON.stringify({
+      runId: 'run-1',
+      status: 'complete',
+      active: [],
+      completed: [{ storyId: 'LK02', ok: true, sessionId: 'thread-1', completedAt: '2026-06-14T00:00:00.000Z' }],
+      blockedStoryId: null,
+      blockedReason: null,
+    }),
+  );
+  await writeFile(path.join(runPath, 'metrics.live.json'), JSON.stringify({ runId: 'run-1', status: 'complete' }));
+  await writeFile(
+    path.join(runPath, 'controls.ndjson'),
+    `${JSON.stringify({ id: 'ctrl-1', runId: 'run-1', action: 'abort', storyId: null, reason: 'stop', requestedAt: '2026-06-14T00:00:00.000Z', requestedBy: 'test' })}\n`,
+  );
+  await writeFile(
+    path.join(runPath, 'events.ndjson'),
+    [
+      JSON.stringify({
+        type: 'run-started',
+        recordedAt: '2026-06-14T00:00:00.000Z',
+        eventAt: '2026-06-14T00:00:00.000Z',
+      }),
+      JSON.stringify({
+        type: 'child-session-linked',
+        storyId: 'LK02',
+        sessionId: 'thread-1',
+        prUrl: 'https://github.com/aryeko/example/pull/12',
+      }),
+    ].join('\n'),
+  );
+  await writeFile(
+    path.join(runPath, 'children/LK02.json'),
+    JSON.stringify({ storyId: 'LK02', sessionId: 'thread-1', sessionLogPath: '/tmp/session.jsonl', prNumber: 12 }),
+  );
+  return { root, runPath };
+}
+
 async function connectClient() {
   const server = createOrchestratorMcpServer();
   const client = new Client({ name: 'test-client', version: '1.0.0' });
@@ -177,6 +220,10 @@ describe('agentic-workflow-kit MCP server', () => {
     expect(runPreview?.description).toContain('Preview story or track execution');
     expect(runPreview?.inputSchema.properties?.target).toBeDefined();
 
+    expect(result.tools.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining(['workflow_run_status', 'workflow_run_stream', 'workflow_run_inspect']),
+    );
+
     const trackerValidate = result.tools.find((tool) => tool.name === 'workflow_tracker_validate');
     expect(trackerValidate?.description).toContain('Validate tracker contract');
 
@@ -207,8 +254,74 @@ describe('agentic-workflow-kit MCP server', () => {
       requestId: 'req-mcp',
       result: {
         project: { tracks: [{ id: 'linkly' }] },
-        capabilities: { runStory: true, runTrack: true },
+        capabilities: { runStory: true, runTrack: true, streaming: true },
       },
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('exposes product run status, stream, and inspect tools', async () => {
+    const { root, runPath } = await createProductRun();
+    const { client, server } = await connectClient();
+
+    const status = await client.callTool({
+      name: 'workflow_run_status',
+      arguments: { cwd: root, runId: 'run-1', limit: 1 },
+    });
+    const stream = await client.callTool({
+      name: 'workflow_run_stream',
+      arguments: { cwd: root, runId: 'run-1', limit: 2, timeoutMs: 1 },
+    });
+    const inspect = await client.callTool({
+      name: 'workflow_run_inspect',
+      arguments: { runPath },
+    });
+
+    expect(status.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_status',
+      result: {
+        runId: 'run-1',
+        status: 'complete',
+        controls: [expect.objectContaining({ action: 'abort' })],
+        recentEvents: [expect.objectContaining({ type: 'child-session-linked', topic: 'child' })],
+      },
+    });
+    expect(stream.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_stream',
+      result: { runId: 'run-1', terminal: true, eventsDelivered: 2 },
+    });
+    expect(inspect.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_inspect',
+      result: {
+        artifactDir: runPath,
+        children: [expect.objectContaining({ storyId: 'LK02', sessionId: 'thread-1' })],
+        pr: { numbers: [12] },
+      },
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('exposes bounded read-only workflow resources', async () => {
+    const { root } = await createProductRun();
+    const { client, server } = await connectClient();
+    process.env.INIT_CWD = root;
+
+    const resources = await client.listResources();
+    const state = await client.readResource({ uri: 'workflow://runs/run-1/state' });
+
+    expect(resources.resources.map((resource) => resource.uri)).toEqual(
+      expect.arrayContaining(['workflow://project/context', 'workflow://config/resolved', 'workflow://tracks']),
+    );
+    const stateText = 'text' in state.contents[0] ? state.contents[0].text : '';
+    expect(JSON.parse(stateText)).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_status',
+      result: { runId: 'run-1' },
     });
     await client.close();
     await server.close();

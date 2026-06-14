@@ -129,6 +129,9 @@ The package MCP server exposes these tools over the shared handlers:
 | --- | --- |
 | `workflow_project_inspect` | Resolve project context, config path, tracks, and capability flags in the shared WorkflowKit API envelope. |
 | `workflow_run_preview` | Preview a story or eligible-track run using the product target model and shared result/error envelope. |
+| `workflow_run_status` | Read a bounded product status snapshot from `state.json`, `metrics.live.json`, `controls.ndjson`, and recent normalized events. |
+| `workflow_run_stream` | Replay a bounded event tail, optionally send standard MCP progress notifications, and return a terminal or timeout stream summary. |
+| `workflow_run_inspect` | Inspect a bounded run artifact, child/session, and PR-reference index without copying transcripts. |
 | `list_tracks` | Discover tracker directories and active tracks. |
 | `list_stories` | Parse stories for one track or all active tracks. |
 | `list_eligible` | Return stories dispatchable after status, owner, and dependency filtering. |
@@ -151,13 +154,18 @@ widened with `responseFormat: detailed`.
 The `workflow_*` product facade coexists with the legacy tool names. Facade calls return a shared
 envelope with `ok`, `operation`, `apiVersion`, `project`, `result`, `artifacts`, `warnings`, and
 `next` fields; failures use the same shape with `ok: false` and a structured error code. AWK01
-implements this foundation for project inspection and run preview only. Later stories can add
-launch, status, stream, control, inspect, report, and export operations against the same envelope
-without removing the 0.5.13-compatible tools that current plugin workflows still use.
+implemented this foundation for project inspection and run preview. The current product surface
+also includes run status, stream, control, and inspect operations without removing the
+0.5.13-compatible tools that current plugin workflows still use. Report and export operations remain
+future additions.
 
 The matching CLI facade is `agentic-workflow-kit project inspect` and
-`agentic-workflow-kit run preview`. These commands always print the envelope as JSON for now. Human
-formatting can be added later without changing the JSON contract.
+`agentic-workflow-kit run preview|status|stream|inspect`. These commands print the product envelope
+as JSON by default; `run stream --format ndjson` emits one normalized event per line followed by a
+final stream summary for automation.
+
+The MCP server exposes read-only resources for project context, resolved config, tracks, and
+bounded run state/event tails. Run resources are artifact-backed and do not copy full transcripts.
 
 The MCP server also returns concise server-level instructions during initialization. Those
 instructions cover cross-tool workflow guidance: inspect tracks and eligibility before dispatch,
