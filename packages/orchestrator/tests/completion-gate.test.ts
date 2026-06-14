@@ -291,6 +291,48 @@ describe('CompletionGate', () => {
     expect(gitInspector.calls).toEqual(['refreshBaseBranch', 'readFileFromRef', 'isCommitReachableFromRef']);
   });
 
+  it('uses nested GitHub merge commit evidence for refreshed base tracker authority', async () => {
+    const gitInspector = new RefreshingBaseTrackerGitInspector();
+    const gate = new CompletionGate(
+      makeDeps({
+        gitInspector,
+        pr: {
+          create: true,
+          ci: { wait: false, command: null },
+          review: {
+            wait: 'bot',
+            bot: 'codex',
+            triageComments: true,
+            maxFixBatches: 1,
+            rerequestAfterFix: false,
+            waitTimeoutMinutes: 30,
+          },
+          merge: { auto: true, method: 'squash', deleteBranch: true },
+        },
+      }),
+    );
+
+    const result = await gate.evaluate(
+      settled({
+        evidence: {
+          trackerPath: 'docs/tracks/t/README.md',
+          prNumber: 88,
+          prUrl: 'https://github.com/aryeko/pathway/pull/88',
+          github: {
+            merge: { merged: true, commit: 'merge-sha', branchDeleted: true },
+          },
+        },
+      }),
+      [story('A001', 'implementing')],
+    );
+
+    expect(result.complete).toBe(true);
+    if (result.complete) {
+      expect(result.authority).toBe('merged-pr-on-base');
+      expect(result.commitEvidence?.mergedPullRequest?.mergeCommitSha).toBe('merge-sha');
+    }
+  });
+
   it('uses child worktree tracker completion but blocks when auto-merge policy evidence is incomplete', async () => {
     const childCwd = await writeChildTracker('done');
     const gate = new CompletionGate(

@@ -132,6 +132,11 @@ describe('buildGenericPrompt', () => {
     );
     expect(prompt).toContain('Do not re-request Codex review after a +1 reaction has been observed.');
     expect(prompt).toContain('Do not mention @codex unless auto review failed to start or a manual retry is needed.');
+    expect(prompt).toContain('Final evidence MUST include the PR URL and PR number.');
+    expect(prompt).toContain('Final evidence MUST include CI/check evidence');
+    expect(prompt).toContain('Final evidence MUST include bot review evidence');
+    expect(prompt).toContain('Final evidence MUST include merge evidence');
+    expect(prompt).toContain('Final evidence MUST identify blockers');
   });
 
   it('includes interactive implementation review and subagent policy', () => {

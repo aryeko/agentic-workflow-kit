@@ -162,7 +162,7 @@ export class CompletionGate {
   }
 
   private async mergedBaseRefCommitEvidence(settled: SettledStoryRun): Promise<StoryCommitEvidence | null> {
-    const mergeCommit = settled.evidence?.mergeCommit;
+    const mergeCommit = settled.evidence?.mergeCommit ?? settled.evidence?.github?.merge?.commit;
     if (!mergeCommit || !this.deps.gitInspector.isCommitReachableFromRef) return null;
     const baseRef = `origin/${this.deps.git.baseBranch}`;
     const reachable = await this.deps.gitInspector.isCommitReachableFromRef({
@@ -246,7 +246,12 @@ export class CompletionGate {
 }
 
 function shouldReadBaseTracker(pr: ResolvedWorkflowConfig['pr'], settled: SettledStoryRun): boolean {
-  return pr.merge.auto || settled.evidence?.merged === true || typeof settled.evidence?.mergeCommit === 'string';
+  return (
+    pr.merge.auto ||
+    settled.evidence?.merged === true ||
+    typeof settled.evidence?.mergeCommit === 'string' ||
+    typeof settled.evidence?.github?.merge?.commit === 'string'
+  );
 }
 
 function isAcceptedAutoMergeEvidence(pr: ResolvedWorkflowConfig['pr'], commitEvidence: StoryCommitEvidence): boolean {

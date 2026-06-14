@@ -88,6 +88,49 @@ export interface VerificationEvidence {
   detail?: string | null;
 }
 
+export type GithubCheckConclusion =
+  | 'success'
+  | 'failure'
+  | 'cancelled'
+  | 'skipped'
+  | 'neutral'
+  | 'timed_out'
+  | 'action_required'
+  | 'unknown';
+
+export interface GithubCheckEvidence {
+  command: string | null;
+  status: 'passed' | 'failed' | 'skipped' | 'unknown';
+  conclusion?: GithubCheckConclusion | null;
+  detail?: string | null;
+}
+
+export interface GithubReviewEvidence {
+  reviewer: string | null;
+  signal: 'approved' | 'pending' | 'findings' | 'commented' | 'unknown';
+  mechanism: 'reaction' | 'comment' | 'review-comment' | 'native-review' | 'unknown';
+  triaged?: boolean | null;
+  findings?: number | null;
+  detail?: string | null;
+}
+
+export interface GithubMergeEvidence {
+  merged: boolean;
+  method?: 'squash' | 'merge' | 'rebase' | 'unknown' | null;
+  commit: string | null;
+  mergedAt?: string | null;
+  branchDeleted?: boolean | null;
+  detail?: string | null;
+}
+
+export interface GithubEvidence {
+  prNumber?: number;
+  prUrl?: string;
+  checks?: GithubCheckEvidence[];
+  review?: GithubReviewEvidence;
+  merge?: GithubMergeEvidence;
+}
+
 export interface ChildResultEvidence {
   storyId?: string;
   finalStatus?: string;
@@ -102,6 +145,7 @@ export interface ChildResultEvidence {
   verification?: VerificationEvidence[];
   prePrReview?: unknown;
   prReview?: unknown;
+  github?: GithubEvidence;
   downgrades?: string[];
   profile?: {
     name: string;

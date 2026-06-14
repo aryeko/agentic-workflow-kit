@@ -49,7 +49,7 @@ describe('childResultEvidence', () => {
       { childResult: { storyId: 'DLD05' } },
       [
         'Opened https://github.com/aryeko/pathway/pull/108 for DLD05.',
-        'DLD05 was merged with squash commit abc1234.',
+        'DLD05 PR #108 was merged with squash commit abc1234.',
       ].join('\n'),
     );
 
@@ -157,7 +157,7 @@ describe('childResultEvidence', () => {
 
     expect(evidence.finalStatus).toBe('verified');
     expect(evidence.merged).toBe(false);
-    expect(evidence.mergeCommit).toBe('abc1234');
+    expect(evidence.mergeCommit).toBeUndefined();
     expect(evidence.verification).toEqual([{ command: 'pnpm check', status: 'passed', phase: 'final', detail: null }]);
   });
 
@@ -213,5 +213,93 @@ describe('childResultEvidence', () => {
         detail: 'pnpm check passed with no failed checks and no errors.',
       },
     ]);
+  });
+
+  it('preserves structured GitHub evidence and fills flat compatibility fields', () => {
+    const evidence = childResultEvidence(
+      {
+        childResult: {
+          github: {
+            prNumber: 108,
+            prUrl: 'https://github.com/aryeko/pathway/pull/108',
+            checks: [{ command: 'gh pr checks 108 --watch', status: 'passed', conclusion: 'success' }],
+            review: { reviewer: 'codex', mechanism: 'reaction', signal: 'approved', findings: 0, triaged: true },
+            merge: { merged: true, method: 'squash', commit: 'abc1234', branchDeleted: true },
+          },
+        },
+      },
+      '',
+    );
+
+    expect(evidence.prNumber).toBe(108);
+    expect(evidence.prUrl).toBe('https://github.com/aryeko/pathway/pull/108');
+    expect(evidence.merged).toBe(true);
+    expect(evidence.mergeCommit).toBe('abc1234');
+    expect(evidence.branchDeleted).toBe(true);
+    expect(evidence.github?.review?.signal).toBe('approved');
+    expect(evidence.github?.checks?.[0]).toMatchObject({ status: 'passed', conclusion: 'success' });
+  });
+
+  it('parses Codex pending review, check, merge, and cleanup text conservatively', () => {
+    const evidence = childResultEvidence(
+      {},
+      [
+        'Opened https://github.com/aryeko/pathway/pull/108 for DLD05.',
+        '`gh pr checks 108 --watch --fail-fast` passed with all checks green.',
+        'Codex eyes reaction observed on the PR body, review is pending.',
+        'DLD05 PR #108 was merged with squash commit abc1234.',
+        'Remote story branch was deleted.',
+      ].join('\n'),
+    );
+
+    expect(evidence.github?.checks?.[0]).toMatchObject({
+      command: 'gh pr checks 108 --watch --fail-fast',
+      status: 'passed',
+    });
+    expect(evidence.github?.review).toMatchObject({ reviewer: 'codex', signal: 'pending', mechanism: 'reaction' });
+    expect(evidence.github?.merge).toMatchObject({
+      merged: true,
+      method: 'squash',
+      commit: 'abc1234',
+      branchDeleted: true,
+    });
+  });
+
+  it('parses Codex findings as comments rather than approval', () => {
+    const evidence = childResultEvidence({}, 'Codex review comments: 2 findings; replied and resolved.');
+
+    expect(evidence.github?.review).toMatchObject({
+      reviewer: 'codex',
+      signal: 'findings',
+      mechanism: 'review-comment',
+      triaged: true,
+      findings: 2,
+    });
+  });
+
+  it('treats negated check progress as failed instead of passed', () => {
+    const evidence = childResultEvidence({}, '`gh pr checks 108 --watch` not passing yet.');
+
+    expect(evidence.github?.checks?.[0]).toMatchObject({
+      command: 'gh pr checks 108 --watch',
+      status: 'failed',
+    });
+  });
+
+  it('normalizes legacy prReview findings into structured findings evidence', () => {
+    const evidence = childResultEvidence(
+      {
+        childResult: {
+          prReview: { findings: 1, resolved: true },
+        },
+      },
+      '',
+    );
+
+    expect(evidence.github?.review).toMatchObject({
+      signal: 'findings',
+      triaged: true,
+      findings: 1,
+    });
   });
 });

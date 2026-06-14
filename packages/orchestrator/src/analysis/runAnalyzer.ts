@@ -1121,11 +1121,57 @@ function childEvidenceIssues(
     );
   }
 
-  const prNumber = readOptionalNumber(evidence.prNumber);
-  const merged = readOptionalBoolean(evidence.merged) === true;
-  const mergeCommit = readOptionalString(evidence.mergeCommit);
-  const mergedAt = readOptionalString(evidence.mergedAt);
-  const branchDeleted = readOptionalBoolean(evidence.branchDeleted) === true;
+  const github = readRecord(evidence.github);
+  const githubMerge = readRecord(github?.merge);
+  const prNumber = readOptionalNumber(evidence.prNumber) ?? readOptionalNumber(github?.prNumber);
+  const prUrl = readOptionalString(evidence.prUrl) ?? readOptionalString(github?.prUrl);
+  const merged = readOptionalBoolean(evidence.merged) === true || readOptionalBoolean(githubMerge?.merged) === true;
+  const mergeCommit = readOptionalString(evidence.mergeCommit) ?? readOptionalString(githubMerge?.commit);
+  const mergedAt = readOptionalString(evidence.mergedAt) ?? readOptionalString(githubMerge?.mergedAt);
+  const branchDeleted =
+    readOptionalBoolean(evidence.branchDeleted) === true || readOptionalBoolean(githubMerge?.branchDeleted) === true;
+  const checks = githubChecks(evidence);
+  const review = githubReview(evidence);
+
+  if (prCreate(config) && prNumber === null && prUrl === null) {
+    issues.push(`${storyId} PR evidence missing: configured PR creation requires PR number or URL`);
+  }
+
+  if (prCiWait(config)) {
+    if (checks.length === 0) {
+      issues.push(`${storyId} CI evidence missing: configured CI wait requires check evidence`);
+    }
+    for (const check of checks) {
+      const status = readOptionalString(check.status);
+      if (status === 'failed' || status === 'unknown') {
+        issues.push(
+          `${storyId} CI evidence ${status}: ${readOptionalString(check.command) ?? 'unknown check'}${
+            readOptionalString(check.detail) ? ` (${readOptionalString(check.detail)})` : ''
+          }`,
+        );
+      }
+    }
+  }
+
+  if (prReviewWait(config) === 'bot') {
+    const signal = readOptionalString(review?.signal);
+    const findings = readOptionalNumber(review?.findings);
+    const triaged = readOptionalBoolean(review?.triaged);
+    if (!review) {
+      issues.push(`${storyId} PR review evidence missing: configured bot review requires a review signal`);
+    } else if (signal === 'pending' || signal === 'unknown') {
+      issues.push(`${storyId} PR review evidence incomplete: bot review signal is ${signal}`);
+    } else if (
+      (signal === 'findings' || signal === 'commented') &&
+      prReviewTriageComments(config) &&
+      triaged !== true
+    ) {
+      issues.push(
+        `${storyId} PR review evidence incomplete: ${findings ?? 'unknown'} bot findings are not triaged or replied to`,
+      );
+    }
+  }
+
   if (completionAuthority === 'pr-policy-incomplete') {
     issues.push(`${storyId} PR policy incomplete: auto-merge policy has not produced merged evidence`);
   } else if (prMergeAuto(config) && prNumber !== null && finalStatus && isEvidenceComplete(finalStatus, config)) {
@@ -1164,7 +1210,76 @@ function childEvidenceIssues(
     );
   }
 
+  if (prMergeAuto(config) && finalStatus && isEvidenceComplete(finalStatus, config) && !merged && !mergeCommit) {
+    issues.push(`${storyId} merge evidence missing: configured auto-merge requires merged base evidence`);
+  }
+
+  if (prMergeDeleteBranch(config) && (merged || mergeCommit || mergedAt) && !branchDeleted) {
+    issues.push(`${storyId} branch cleanup evidence missing: configured policy requires branch deletion`);
+  }
+
   return issues;
+}
+
+function githubChecks(evidence: Record<string, unknown>): Record<string, unknown>[] {
+  const github = readRecord(evidence.github);
+  return [...recordArray(github?.checks), ...recordArray(evidence.checks), ...recordArray(evidence.ci)];
+}
+
+function githubReview(evidence: Record<string, unknown>): Record<string, unknown> | null {
+  const github = readRecord(evidence.github);
+  return (
+    readRecord(github?.review) ?? normalizeLegacyReview(readRecord(evidence.prReview) ?? readRecord(evidence.review))
+  );
+}
+
+function normalizeLegacyReview(review: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!review) return null;
+  const findings = readOptionalNumber(review.findings);
+  const resolved = readOptionalBoolean(review.resolved);
+  const signal =
+    readOptionalString(review.signal) ??
+    readOptionalString(review.status) ??
+    (findings !== null && findings > 0 ? 'findings' : null);
+  return {
+    ...review,
+    signal,
+    triaged: readOptionalBoolean(review.triaged) ?? resolved,
+  };
+}
+
+function recordArray(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) return value.filter(isRecord);
+  return isRecord(value) ? [value] : [];
+}
+
+function prCreate(config: Record<string, unknown> | null): boolean {
+  const pr = readRecord(config?.pr);
+  return readOptionalBoolean(pr?.create) === true;
+}
+
+function prCiWait(config: Record<string, unknown> | null): boolean {
+  const pr = readRecord(config?.pr);
+  const ci = readRecord(pr?.ci);
+  return readOptionalBoolean(ci?.wait) === true;
+}
+
+function prReviewWait(config: Record<string, unknown> | null): string | null {
+  const pr = readRecord(config?.pr);
+  const review = readRecord(pr?.review);
+  return readOptionalString(review?.wait);
+}
+
+function prReviewTriageComments(config: Record<string, unknown> | null): boolean {
+  const pr = readRecord(config?.pr);
+  const review = readRecord(pr?.review);
+  return readOptionalBoolean(review?.triageComments) === true;
+}
+
+function prMergeDeleteBranch(config: Record<string, unknown> | null): boolean {
+  const pr = readRecord(config?.pr);
+  const merge = readRecord(pr?.merge);
+  return readOptionalBoolean(merge?.deleteBranch) === true;
 }
 
 function prMergeAuto(config: Record<string, unknown> | null): boolean {
@@ -1196,13 +1311,15 @@ function childVerificationEvidence(evidence: Record<string, unknown> | null): Ch
 }
 
 function childMergeEvidence(evidence: Record<string, unknown> | null): ChildMergeEvidence {
+  const github = readRecord(evidence?.github);
+  const merge = readRecord(github?.merge);
   return {
-    merged: readOptionalBoolean(evidence?.merged) === true,
-    prNumber: readOptionalNumber(evidence?.prNumber),
-    prUrl: readOptionalString(evidence?.prUrl),
-    mergeCommit: readOptionalString(evidence?.mergeCommit),
-    mergedAt: readOptionalString(evidence?.mergedAt),
-    branchDeleted: readOptionalBoolean(evidence?.branchDeleted),
+    merged: readOptionalBoolean(evidence?.merged) === true || readOptionalBoolean(merge?.merged) === true,
+    prNumber: readOptionalNumber(evidence?.prNumber) ?? readOptionalNumber(github?.prNumber),
+    prUrl: readOptionalString(evidence?.prUrl) ?? readOptionalString(github?.prUrl),
+    mergeCommit: readOptionalString(evidence?.mergeCommit) ?? readOptionalString(merge?.commit),
+    mergedAt: readOptionalString(evidence?.mergedAt) ?? readOptionalString(merge?.mergedAt),
+    branchDeleted: readOptionalBoolean(evidence?.branchDeleted) ?? readOptionalBoolean(merge?.branchDeleted),
   };
 }
 
