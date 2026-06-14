@@ -360,7 +360,7 @@ export async function trackerMigrateHandler(
 
 export async function analyzeRunHandler(runPath: string, overrides: CliOverrides = {}): Promise<unknown> {
   return await analyzeWorkflowRun(path.resolve(runPath), {
-    sessionRoots: overrides.sessionRoot ? [path.resolve(overrides.sessionRoot)] : undefined,
+    sessionRoots: resolveSessionRoots(overrides),
   });
 }
 
@@ -368,7 +368,7 @@ export async function runReportHandler(input: WorkflowRunReportInput = {}): Prom
   const runDirectory = await resolveRunDirectory(input);
   await assertRunExists(runDirectory);
   const analysis = await analyzeWorkflowRun(runDirectory, {
-    sessionRoots: input.sessionRoot ? [path.resolve(input.sessionRoot)] : undefined,
+    sessionRoots: resolveSessionRoots(input),
   });
   const markdown = buildWorkflowRunReportMarkdown(analysis, runDirectory);
   const shouldWrite = input.write ?? true;
@@ -1196,6 +1196,11 @@ async function resolveRunDirectory(input: {
   const cwd = resolveInvocationCwd(input);
   const config = await loadResolvedConfig(input, cwd);
   return path.join(config.artifacts.runsDirAbs, runRef);
+}
+
+function resolveSessionRoots(input: CliOverrides): string[] | undefined {
+  if (!input.sessionRoot) return undefined;
+  return [path.resolve(resolveInvocationCwd(input), input.sessionRoot)];
 }
 
 async function assertRunExists(runDirectory: string): Promise<void> {

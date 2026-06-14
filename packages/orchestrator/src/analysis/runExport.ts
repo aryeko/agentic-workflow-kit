@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 export interface RunExportCopyResult {
@@ -32,6 +32,7 @@ export async function exportWorkflowRunArtifacts(input: {
 }): Promise<RunExportCopyResult[]> {
   const results: RunExportCopyResult[] = [];
   await mkdir(input.outDirectory, { recursive: true });
+  await clearKnownExportOutputs(input.outDirectory);
   for (const relativePath of ROOT_ARTIFACTS) {
     results.push(await copyApprovedArtifact(input.runDirectory, input.outDirectory, relativePath, input.include));
   }
@@ -58,6 +59,13 @@ export async function exportWorkflowRunArtifacts(input: {
     results.push(await copyApprovedArtifact(input.runDirectory, input.outDirectory, relativePath, input.include));
   }
   return results;
+}
+
+async function clearKnownExportOutputs(outDirectory: string): Promise<void> {
+  await Promise.all([
+    ...ROOT_ARTIFACTS.map((relativePath) => rm(path.join(outDirectory, relativePath), { force: true })),
+    rm(path.join(outDirectory, 'children'), { recursive: true, force: true }),
+  ]);
 }
 
 async function copyApprovedArtifact(
