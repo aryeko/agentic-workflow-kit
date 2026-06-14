@@ -64,14 +64,17 @@ export function renderStoryImplementerPrompt(
       ? '- Final evidence MUST include bot review evidence: reviewer/bot, mechanism, signal, findings count, and triage/reply status for findings.'
       : null,
     pr.merge.auto
-      ? '- Final evidence MUST include merge evidence: merge method, merge commit or merge timestamp, PR number/URL, and whether branch deletion was confirmed.'
+      ? '- Do not merge the PR or delete the remote branch yourself. The parent orchestrator verifies GitHub state and performs or authorizes irreversible merge/branch cleanup.'
+      : null,
+    pr.merge.auto
+      ? '- Final evidence MUST include pre-merge readiness evidence: PR number/URL, base freshness, CI/check status, review signal, and any blocker. Parent-side GitHub verification is completion authority.'
       : null,
     '- Final evidence MUST identify blockers such as missing review signal, auth failure, stale base, merge conflict, failed checks, failed verification, missing PR state, or inconsistent artifacts.',
     pr.merge.auto
-      ? `- Before merge, fetch the latest \`${git.baseBranch}\`, rebase or otherwise update the story branch onto \`${git.baseBranch}\`, and rerun the required verification after the base update.`
+      ? `- Before reporting pre-merge readiness, fetch the latest \`${git.baseBranch}\`, rebase or otherwise update the story branch onto \`${git.baseBranch}\`, and rerun the required verification after the base update.`
       : null,
     pr.merge.auto
-      ? '- If the base update conflicts or verification fails, stop and report the blocker instead of merging.'
+      ? '- If the base update conflicts or verification fails, stop and report the blocker instead of claiming readiness.'
       : null,
     '',
     'Implementation policy (from .workflow/config.yaml - follow exactly):',

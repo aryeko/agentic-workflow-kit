@@ -128,7 +128,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK12 | Plugin package compatibility | AWK09, AWK10, AWK11 | W6 | done | [brief](./stories/AWK12.md) | — | codex-2026-06-14T02-16-42Z | [#69](https://github.com/aryeko/agentic-workflow-kit/pull/69) |
 | AWK13 | Canonical docs consolidation | AWK12 | W7 | done | [brief](./stories/AWK13.md) | — | codex-2026-06-14T02-55-42Z | [#70](https://github.com/aryeko/agentic-workflow-kit/pull/70) |
 | AWK131 | AWK13.1 Provider-neutral driver boundary | AWK13 | W7.1 | done | [brief](./stories/AWK131.md) | — | codex-2026-06-14T05-01-48Z | [#72](https://github.com/aryeko/agentic-workflow-kit/pull/72) |
-| AWK132 | AWK13.2 GitHub verification and recovery | AWK131 | W7.2 | specced | [brief](./stories/AWK132.md) | — | — | — |
+| AWK132 | AWK13.2 GitHub verification and recovery | AWK131 | W7.2 | done | [brief](./stories/AWK132.md) | — | codex | — |
 | AWK133 | AWK13.3 Run-state durability and concurrency | AWK132 | W7.3 | specced | [brief](./stories/AWK133.md) | — | — | — |
 | AWK134 | AWK13.4 Conservative defaults and API fidelity | AWK131 | W7.2 | specced | [brief](./stories/AWK134.md) | — | — | — |
 | AWK135 | AWK13.5 Module decomposition | AWK132, AWK133, AWK134 | W7.4 | specced | [brief](./stories/AWK135.md) | — | — | — |

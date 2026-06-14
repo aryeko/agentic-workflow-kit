@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { CollaborationEvidence, CollaborationInspector } from '../src/collaboration/CollaborationInspector';
 import { resolveCwdOnlyConfig } from '../src/config/configLoader';
 import type { StoryRunner, StoryRunRequest, StoryRunResult } from '../src/drivers/StoryRunner';
 import type { GitInspector, StoryCommitEvidence } from '../src/git/GitInspector';
@@ -465,6 +466,14 @@ class FakeGitInspector implements GitInspector {
 
   async readFileFromRef(args: { ref: string; filePath: string }): Promise<string | null> {
     return this.filesByRef.get(`${args.ref}:${args.filePath}`) ?? null;
+  }
+}
+
+class FakeCollaborationInspector implements CollaborationInspector {
+  constructor(private readonly evidence: CollaborationEvidence) {}
+
+  async inspectPullRequest(): Promise<CollaborationEvidence> {
+    return this.evidence;
   }
 }
 
@@ -1045,6 +1054,58 @@ describe('WorkflowRunner', () => {
     expect(state.status).toBe('supervision_lost');
     expect(state.blockedReason).toBe('neutral driver lost supervision');
     expect(artifacts.events.map((event) => event.type)).toContain('child-supervision-lost');
+  });
+
+  it('feeds verified GitHub branch and PR state into recovery guard', async () => {
+    const artifacts = new MemoryArtifacts();
+    const activePrStory = {
+      ...story('A001'),
+      metadata: { ...story('A001').metadata, pr: '[PR #100](https://github.com/acme/repo/pull/100)' },
+    };
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: config(),
+      storySource: new MutableStorySource([[activePrStory]]),
+      storyRunner: new ClassifiedFailureRunner(),
+      collaborationInspector: new FakeCollaborationInspector({
+        available: true,
+        source: 'github',
+        verified: true,
+        pr: {
+          number: 100,
+          url: 'https://github.com/acme/repo/pull/100',
+          state: 'open',
+          headSha: 'head-sha',
+          mergeCommitSha: null,
+          mergedAt: null,
+        },
+        checks: [],
+        branch: { name: 't/a001-a001', exists: true },
+      }),
+      gitInspector: new FakeGitInspector({
+        committed: false,
+        branch: 't/a001-story',
+        isBaseBranch: false,
+        headSha: null,
+        baseSha: 'base',
+        uncommittedChanges: false,
+      }),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    await runner.runStory('A001');
+
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'parent_takeover_blocked',
+        decision: 'manual_recovery_required',
+        evidence: expect.arrayContaining(['remote branch t/a001-a001 still exists', 'PR #100 is open']),
+      }),
+    );
   });
 
   it('blocks duplicate active launch records before starting a child', async () => {
@@ -2183,6 +2244,21 @@ describe('WorkflowRunner', () => {
       config: { ...config(), pr: { ...config().pr, merge: { ...config().pr.merge, auto: true } } },
       storySource: new MutableStorySource([[story('WK001')], [story('WK001', 'implementing', false)]]),
       storyRunner: new FakeRunner(result),
+      collaborationInspector: new FakeCollaborationInspector({
+        available: true,
+        source: 'github',
+        verified: true,
+        pr: {
+          number: 100,
+          url: 'https://github.com/acme/repo/pull/100',
+          state: 'merged',
+          headSha: 'head-sha',
+          mergeCommitSha: 'merge-sha',
+          mergedAt: '2026-06-14T05:30:00Z',
+        },
+        checks: [{ command: 'gh pr checks', status: 'passed', conclusion: 'success' }],
+        branch: { name: 't/wk001-story', exists: false },
+      }),
       gitInspector,
       artifactStore: artifacts,
       logger,
@@ -2197,14 +2273,14 @@ describe('WorkflowRunner', () => {
     expect(state.completed[0]).toMatchObject({ storyId: 'WK001', returnedStatus: 'done', returnedComplete: true });
     expect(artifacts.json.get('children/WK001.json')).toMatchObject({
       storyId: 'WK001',
-      completionAuthority: 'merged-pr-on-base',
+      completionAuthority: 'verified-merged-pr-on-base',
       completionAuthoritySource: 'base-tracker',
     });
     expect(artifacts.events).toContainEqual(
       expect.objectContaining({
         type: 'completion_authority',
         storyId: 'WK001',
-        authority: 'merged-pr-on-base',
+        authority: 'verified-merged-pr-on-base',
         source: 'base-tracker',
       }),
     );

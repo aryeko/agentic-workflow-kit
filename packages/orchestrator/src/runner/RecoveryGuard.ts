@@ -73,6 +73,8 @@ export function evaluateRecoveryGuard(input: RecoveryGuardInput): RecoveryGuardR
     blockers.push(`PR #${input.pr.number} is open`);
   } else if (input.pr.state === 'merged' && input.pr.number !== null) {
     blockers.push(`PR #${input.pr.number} is merged`);
+  } else if (input.pr.state === 'closed' && input.pr.number !== null) {
+    blockers.push(`PR #${input.pr.number} is closed without merge`);
   } else {
     evidence.push('no open or merged PR is active');
   }

@@ -14,13 +14,16 @@ describe('codex MCP child prompt', () => {
     expect(prompt).toContain('Do not re-request review after a +1 reaction has been observed');
   });
 
-  it('requires base freshness and verification before auto-merge', () => {
+  it('requires base freshness and verification before parent-side auto-merge', () => {
     const prompt = buildGenericPrompt(story(), config());
 
-    expect(prompt).toContain('Before merge, fetch the latest `main`');
+    expect(prompt).toContain('Do not merge the PR or delete the remote branch yourself');
+    expect(prompt).toContain('parent orchestrator verifies GitHub state');
+    expect(prompt).toContain('Before reporting pre-merge readiness, fetch the latest `main`');
     expect(prompt).toContain('rebase or otherwise update the story branch onto `main`');
     expect(prompt).toContain('rerun the required verification after the base update');
     expect(prompt).toContain('If the base update conflicts or verification fails, stop and report the blocker');
+    expect(prompt).toContain('instead of claiming readiness');
   });
 });
 

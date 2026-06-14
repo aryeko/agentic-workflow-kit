@@ -8,6 +8,7 @@ import { buildWorkflowRunReportMarkdown } from '../analysis/runReport.js';
 import { FileArtifactStore } from '../artifacts/FileArtifactStore.js';
 import { resolveInvocationCwd } from '../cli/args.js';
 import { SystemClock } from '../clock/SystemClock.js';
+import { GhCollaborationInspector } from '../collaboration/CollaborationInspector.js';
 import { createRunId, loadResolvedConfig, resolveCwdOnlyConfig } from '../config/configLoader.js';
 import { CodexMcpStoryRunner, type CodexMcpStoryRunnerOptions } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
 import type { StoryRunner } from '../drivers/StoryRunner.js';
@@ -779,6 +780,7 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
       ...(options.createCodexMcpClient ? { createClient: options.createCodexMcpClient } : {}),
     }),
     gitInspector: new RealGitInspector(),
+    collaborationInspector: new GhCollaborationInspector(),
     artifactStore: new FileArtifactStore(runDirectory),
     logger,
     clock: new SystemClock(),

@@ -134,6 +134,8 @@ export interface WorkflowApiCapabilities {
   tokenTelemetryLive: boolean;
   structuredOutputEnforced: boolean;
   github: boolean;
+  githubVerificationConfigured: boolean;
+  githubVerificationAvailable: boolean | null;
 }
 
 export interface WorkflowRunPreviewInput extends CliOverrides {
@@ -566,6 +568,8 @@ function capabilitiesFromConfig(config: ResolvedWorkflowConfig): WorkflowApiCapa
     tokenTelemetryLive: false,
     structuredOutputEnforced: false,
     github: config.pr.create,
+    githubVerificationConfigured: config.pr.create,
+    githubVerificationAvailable: null,
   };
 }
 
