@@ -182,6 +182,21 @@ git:
     await expect(loadResolvedConfig({}, root)).rejects.toThrow(/git\.worktreeDir/);
   });
 
+  it('rejects configured repo-relative paths that escape the workspace', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-bad-paths-'));
+    await writeWorkflowConfig(root, 'version: 1\npaths:\n  tracksDir: ../../etc\n');
+
+    await expect(loadResolvedConfig({}, root)).rejects.toThrow(/paths\.tracksDir/);
+  });
+
+  it('rejects tracksDir overrides that escape the workspace', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-bad-override-'));
+    await writeWorkflowConfig(root, 'version: 1\n');
+
+    await expect(loadResolvedConfig({ tracksDir: '../../etc' }, root)).rejects.toThrow(/tracksDir/);
+    await expect(loadResolvedConfig({ tracksDir: 'C:tracks' }, root)).rejects.toThrow(/tracksDir/);
+  });
+
   it('applies documented defaults for missing optional keys', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-defaults-'));
     await writeWorkflowConfig(root, 'version: 1\n');

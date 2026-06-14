@@ -360,7 +360,7 @@ export async function trackerMigrateHandler(
   return { config, track: { id: input.track }, ...result };
 }
 
-export async function analyzeRunHandler(runPath: string, overrides: CliOverrides = {}): Promise<unknown> {
+export async function analyzeRunHandler(runPath: string, overrides: CliOverrides = {}): Promise<WorkflowRunAnalysis> {
   const resolvedRunPath = path.resolve(runPath);
   return await analyzeWorkflowRun(resolvedRunPath, {
     sessionRoots: await resolveSessionRoots(overrides, resolvedRunPath),
@@ -764,10 +764,27 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
   const stdout = options.stdout ?? console.log;
   const cwd = resolveInvocationCwd(command.overrides);
   const config = await loadResolvedConfig(command.overrides, cwd);
-  const tracks = await discoverTracks(config, command.overrides);
-  await assertTracksValidForDispatch(config, command.overrides, tracks);
   const runId = createRunId();
   const runDirectory = path.join(config.artifacts.runsDirAbs, runId);
+  if (command.overrides.dryRun !== true && command.overrides.confirmNonDryRun !== true) {
+    const now = new Date().toISOString();
+    return {
+      runId,
+      command: command.kind,
+      workspaceRoot: config.workspace.rootAbs,
+      artifactDir: runDirectory,
+      status: 'blocked',
+      maxParallel: command.overrides.maxParallel ?? config.orchestrator.maxParallel,
+      startedAt: now,
+      completedAt: now,
+      active: [],
+      completed: [],
+      blockedStoryId: null,
+      blockedReason: 'approval_required: set confirmNonDryRun/--yes to launch non-dry-run child sessions',
+    };
+  }
+  const tracks = await discoverTracks(config, command.overrides);
+  await assertTracksValidForDispatch(config, command.overrides, tracks);
   const storySource =
     command.kind === 'run-story'
       ? selectStorySourceForStory(config, tracks, command.storyId, command.overrides)

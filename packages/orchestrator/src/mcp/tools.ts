@@ -177,6 +177,10 @@ const runInputSchema = baseInputSchema.extend({
     .boolean()
     .optional()
     .describe('Defaults to true. Set false only when the user explicitly approves launching child sessions.'),
+  confirmNonDryRun: z
+    .boolean()
+    .optional()
+    .describe('Required with dryRun false to explicitly approve launching non-dry-run child sessions.'),
   force: z.boolean().optional().describe('Allow dispatch even when the selected story is not currently eligible.'),
   childTimeoutMs: z
     .number()
@@ -811,6 +815,7 @@ function toOverrides(input: {
   json?: boolean;
   requestId?: string;
   dryRun?: boolean;
+  confirmNonDryRun?: boolean;
   force?: boolean;
   watch?: boolean;
   wait?: boolean;
@@ -836,6 +841,7 @@ function toOverrides(input: {
   if (input.json === true) overrides.json = true;
   if (input.requestId !== undefined) overrides.requestId = input.requestId;
   if (input.dryRun === true) overrides.dryRun = true;
+  if (input.confirmNonDryRun === true) overrides.confirmNonDryRun = true;
   if (input.asyncLaunch === true) overrides.asyncLaunch = true;
   if (input.force === true) overrides.force = true;
   if (input.watch !== undefined) overrides.watch = input.watch;

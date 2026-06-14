@@ -31,11 +31,11 @@ describe('selectPreset', () => {
     expect(selectPreset({ requiresReview: true, hasCI: true })).toBe('push-only');
     expect(selectPreset({ requiresReview: true, hasCI: false })).toBe('push-only');
   });
-  it('chooses gated-automerge when CI exists and no required reviews', () => {
-    expect(selectPreset({ requiresReview: false, hasCI: true })).toBe('gated-automerge');
+  it('chooses push-only when CI exists and no required reviews', () => {
+    expect(selectPreset({ requiresReview: false, hasCI: true })).toBe('push-only');
   });
-  it('chooses push-and-merge when neither CI nor required reviews', () => {
-    expect(selectPreset({ requiresReview: false, hasCI: false })).toBe('push-and-merge');
+  it('chooses push-only when neither CI nor required reviews', () => {
+    expect(selectPreset({ requiresReview: false, hasCI: false })).toBe('push-only');
   });
 
   it.each([
@@ -57,11 +57,8 @@ describe('selectPreset', () => {
       table: ['no', 'no', 'no (open PR, stop)'],
       pr: { ci: { wait: false }, review: { wait: 'none' }, merge: { auto: false, method: 'squash' } },
     },
-  ] as const)('maps $name selection to the shipped preset file and README table', ({ signals, name, table, pr }) => {
-    const selected = selectPreset(signals);
-    expect(selected).toBe(name);
-
-    expect(loadPreset(selected).pr).toMatchObject(pr);
-    expect(readPresetTable().get(selected)?.slice(1, 4)).toEqual(table);
+  ] as const)('keeps explicit $name preset semantics and README table in sync', ({ name, table, pr }) => {
+    expect(loadPreset(name).pr).toMatchObject(pr);
+    expect(readPresetTable().get(name)?.slice(1, 4)).toEqual(table);
   });
 });

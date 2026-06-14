@@ -228,6 +228,34 @@ describe('orchestrator command handlers', () => {
     ).rejects.toThrow('tracker validation failed for linkly');
   });
 
+  it('blocks non-dry-run dispatch without explicit approval before launching a child', async () => {
+    const root = await createWorkspace();
+    let callCount = 0;
+
+    const result = await runWorkflowHandler(
+      { kind: 'run-story', storyId: 'LK02', overrides: { cwd: root, track: 'linkly', dryRun: false } },
+      {
+        logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
+        stdout: () => undefined,
+        createCodexMcpClient: () => {
+          callCount += 1;
+          throw new Error('child launch should not be attempted');
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: 'blocked',
+      active: [],
+      completed: [],
+      blockedStoryId: null,
+      blockedReason: expect.stringContaining('approval_required'),
+    });
+    expect(result.blockedReason).toContain('confirmNonDryRun');
+    expect(result.blockedReason).toContain('--yes');
+    expect(callCount).toBe(0);
+  });
+
   it('keeps analyze-run read-only while report generation writes report artifacts', async () => {
     const runPath = await createRunDirectory();
 

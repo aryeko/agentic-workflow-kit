@@ -14,27 +14,32 @@
         "tracksDir": {
           "default": "docs/tracks",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
         },
         "specsDir": {
           "default": "docs/specs",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
         },
         "plansDir": {
           "default": "docs/plans",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
         },
         "archiveDir": {
           "default": "docs/tracks/archive",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
         },
         "prdsDir": {
           "default": "docs/prds",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
         }
       },
       "additionalProperties": false
@@ -147,7 +152,8 @@
         "worktreeDir": {
           "default": ".worktrees",
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
         }
       },
       "additionalProperties": false

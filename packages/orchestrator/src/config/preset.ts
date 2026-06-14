@@ -10,12 +10,9 @@ export interface RepoSignals {
 /**
  * Choose the default PR/merge preset from detected repo signals.
  *
- * - Required reviews => humans gate the merge => open a PR and stop (push-only).
- * - CI but no required reviews => wait on CI + bot review, then auto-merge (gated-automerge).
- * - Neither => open a PR and auto-merge after best-effort local checks (push-and-merge).
+ * New and unknown repositories default to push-only. Auto-merge presets remain available only as an
+ * explicit opt-in choice.
  */
-export function selectPreset(signals: RepoSignals): PresetName {
-  if (signals.requiresReview) return 'push-only';
-  if (signals.hasCI) return 'gated-automerge';
-  return 'push-and-merge';
+export function selectPreset(_signals: RepoSignals): PresetName {
+  return 'push-only';
 }

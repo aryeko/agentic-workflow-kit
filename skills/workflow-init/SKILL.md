@@ -36,12 +36,14 @@ Run these, tolerating failures (a missing tool just means "unknown"):
 
 ## Step 2 — Choose a preset
 
-Apply this table (canonical encoding: `packages/orchestrator/src/config/preset.ts` in the
-agentic-workflow-kit source repo; packaged runtime behavior is owned by `@agentic-workflow-kit/orchestrator`):
+Default to `push-only` for new or unknown repos, regardless of detected CI or branch-protection
+signals. This is the conservative starter preset: open a PR and stop before merge. The auto-merge
+presets remain available only when the user explicitly opts into them:
+canonical encoding lives in `packages/orchestrator/src/config/preset.ts` in the
+agentic-workflow-kit source repo; packaged runtime behavior is owned by `@agentic-workflow-kit/orchestrator`.
 
-- Required reviews → `push-only` (humans gate the merge; open a PR and stop).
-- CI present, no required reviews → `gated-automerge` (wait on CI + bot review, then auto-merge).
-- Neither → `push-and-merge` (open a PR, best-effort local checks, auto-merge).
+- `gated-automerge` waits on CI + bot review, then auto-merges.
+- `push-and-merge` opens a PR, uses best-effort local checks, and auto-merges.
 
 State the chosen preset and the signals behind it, and let the user override before writing.
 

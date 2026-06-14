@@ -10,7 +10,7 @@ import type {
   ResolvedWorkflowConfig,
 } from '../types.js';
 import { loadConfig } from './resolve.js';
-import { ConfigSchema, type WorkflowConfig } from './schema.js';
+import { assertRepoRelativePath, ConfigSchema, type WorkflowConfig } from './schema.js';
 
 const SUPPORTED_DRIVERS = new Set<OrchestratorDriver>(['codex-mcp']);
 const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
@@ -39,6 +39,9 @@ export async function loadResolvedConfig(
 
   const driver = resolveDriver(config.orchestrator.driver);
   const tracksDir = overrides.tracksDir ?? config.paths.tracksDir;
+  if (overrides.tracksDir !== undefined) {
+    assertRepoRelativePath(overrides.tracksDir, 'tracksDir');
+  }
   const archiveDir = config.paths.archiveDir;
   const maxParallel = overrides.maxParallel ?? config.orchestrator.maxParallel;
   const childNoProgressTimeoutMs =
