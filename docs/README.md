@@ -8,13 +8,14 @@ Start here. This hub separates **using** agentic-workflow-kit from **developing*
 | --- | --- |
 | [../README.md](../README.md) | What it is, the architecture and end-to-end flow, presets, install |
 | [getting-started.md](./getting-started.md) | A guided walkthrough using the worked Linkly example |
-| [architecture.md](./architecture.md) | Architecture, story lifecycle, eligibility, package MCP runtime, standalone CLI, and orchestrator flow (with diagrams) |
+| [architecture.md](./architecture.md) | Architecture, story lifecycle, eligibility, profiles/budgets, package MCP runtime, standalone CLI, artifact model, and orchestrator flow (with diagrams) |
 | [../references/config-schema.md](../references/config-schema.md) | The `.workflow/config.yaml` reference (every field, default, meaning) |
 | [../references/tracker-contract.md](../references/tracker-contract.md) | The tracker format + status vocabulary + eligibility rule |
 | [../references/prd-contract.md](../references/prd-contract.md) | The PRD format consumed by `design-technical-solution` and `plan-delivery-track` |
 | [../references/technical-solution-contract.md](../references/technical-solution-contract.md) | The technical solution gate format consumed by `plan-delivery-track` for complex technical work |
 | [../references/story-brief-contract.md](../references/story-brief-contract.md) | The lightweight story brief format produced by `plan-delivery-track` |
 | [../references/detailed-story-spec-contract.md](../references/detailed-story-spec-contract.md) | The detailed technical story spec format created by `implement-next` before plans/code |
+| [../references/runtime-artifact-contract.md](../references/runtime-artifact-contract.md) | Runtime artifact files, metrics, budgets, transcript indexes, reports, and export boundaries |
 | [../examples/example-prd/README.md](../examples/example-prd/README.md) | A full worked PRD (Linkly) |
 | [../examples/example-tracker/README.md](../examples/example-tracker/README.md) | A worked tracker with a dependency graph |
 | [../presets/](../presets/) | The three starter `pr:` configs |
@@ -25,6 +26,7 @@ Start here. This hub separates **using** agentic-workflow-kit from **developing*
 | --- | --- |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to build, test, and contribute |
 | [../AGENTS.md](../AGENTS.md) | Guidance for AI agents working in the repo |
+| [test-plan/README.md](./test-plan/README.md) | Manual Claude/Codex plugin smoke plan and release evidence checklist |
 | [superpowers/README.md](./superpowers/README.md) | Per-story spec/plan lifecycle: transient working artifacts, consumed into canonical docs before merge |
 
 ## Conventions

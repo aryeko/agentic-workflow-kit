@@ -134,6 +134,7 @@ The package MCP server exposes these tools over the shared handlers:
 | `workflow_run_inspect` | Inspect a bounded run artifact, child/session, and PR-reference index without copying transcripts. |
 | `workflow_run_report` | Generate `analysis.json` and `report.md` for a run through an explicit post-run report operation. |
 | `workflow_run_export` | Create a bounded shareable run artifact bundle without copying host transcript contents. |
+| `workflow_run_control` | Append a durable run control request and apply supported run-level controls. V1 supports abort. |
 | `list_tracks` | Discover tracker directories and active tracks. |
 | `list_stories` | Parse stories for one track or all active tracks. |
 | `list_eligible` | Return stories dispatchable after status, owner, and dependency filtering. |
@@ -156,13 +157,13 @@ widened with `responseFormat: detailed`.
 The `workflow_*` product facade coexists with the legacy tool names. Facade calls return a shared
 envelope with `ok`, `operation`, `apiVersion`, `project`, `result`, `artifacts`, `warnings`, and
 `next` fields; failures use the same shape with `ok: false` and a structured error code. AWK01
-implemented this foundation for project inspection and run preview. The current product surface
-also includes run status, stream, control, and inspect operations without removing the
-0.5.13-compatible tools that current plugin workflows still use. Report and export operations remain
-future additions.
+implemented this foundation for project inspection and run preview. The current product surface also
+includes run status, stream, inspect, report, export, and control operations without removing the
+0.5.13-compatible tools that current plugin workflows still use.
 
 The matching CLI facade is `agentic-workflow-kit project inspect` and
-`agentic-workflow-kit run preview|status|stream|inspect`. These commands print the product envelope
+`agentic-workflow-kit run preview|status|stream|inspect|report|export`; abort controls are also
+available as `agentic-workflow-kit abort-run <runPath>`. These commands print the product envelope
 as JSON by default; `run stream --format ndjson` emits one normalized event per line followed by a
 final stream summary for automation.
 
@@ -184,10 +185,14 @@ is not already running from that repo.
 
 Both surfaces carry the config layer above. They wire concrete implementations into a `WorkflowRunner` that
 depends only on interfaces (`StoryRunner`, `StorySource`, `ArtifactStore`, `Logger`, `Clock`). The
-only shipped driver is `codex-mcp`; the driver boundary is reserved so new drivers can be added
-without touching the tracker/config contract. _Roadmap:_ a future
-`orchestrator.driver: claude-agent-sdk` can dispatch child sessions through the Claude Agent SDK over
-this same boundary; today's plugin-provided autopilot still uses the `codex-mcp` child driver. Every run
+runner resolves the configured `agents.bindings.implementStory` profile before launch, records the
+profile name/task type, prompt template, prompt hash, structured-output schema and required flag,
+and any driver capability downgrade in launch records and child result evidence. The only shipped
+driver is `codex-mcp`; the driver boundary is reserved so new drivers can be added without touching
+the tracker/config contract. _Roadmap:_ a future `orchestrator.driver: claude-agent-sdk` can
+dispatch child sessions through the Claude Agent SDK over this same boundary; today's
+plugin-provided autopilot still uses the `codex-mcp` child driver.
+
 Autonomous orchestrator runs write structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
 per-child JSON). These runtime artifacts are ignored for completion dirty checks so a run cannot
@@ -244,7 +249,9 @@ evaluations. The strongest action wins: `abort` outranks `checkpoint-stop`, whic
 `stop-new-launches`, which outranks `warn`. Warning budgets only add evidence. Stop budgets prevent
 new story launches regardless of `stopLaunchingOnBlocked`, while allowing active children to settle
 unless the selected action is `abort`; abort budgets also signal active child sessions through the
-driver abort signal. Budget stops are autonomy controls, not completion evidence: the completion
+driver abort signal. Wall-time, tool-call, and failed-tool-call dimensions can enforce controls when
+configured. Token totals are read from linked session logs when available; cost telemetry is
+reported as unavailable. Budget stops are autonomy controls, not completion evidence: the completion
 gate still accepts only tracker/GitHub-backed completion.
 
 For the Codex MCP driver, child liveness is observed through Codex custom `codex/event`
@@ -406,8 +413,9 @@ Adding a driver does not change the tracker or config contract — that is the p
 ## Where things live
 
 ```
-skills/                     instruction-first plugin skills (5 entry points)
-references/                 contracts: config schema (human + machine), tracker, PRD, templates
+skills/                     instruction-first plugin skills (6 entry points)
+references/                 contracts: config schema (human + machine), tracker, PRD, technical solution,
+                            story brief, detailed story spec, runtime artifacts, and templates
 presets/                    push-and-merge / gated-automerge / push-only
 examples/                   worked PRD + tracker (Linkly)
 packages/orchestrator/      the only TS package: config (Zod schema, loadConfig, presets, schema gen),

@@ -42,6 +42,13 @@ development fallback.
    - PASS: tracks/stories enumerate; eligibility matches the tracker (unowned + deps complete + eligible status).
 3. **Dry-run dispatch:** `wk run-eligible --dry-run`
    - PASS: prints the stories it *would* launch and writes a dry-run state; **no child session starts**.
+4. **Product facade reads:** after the dry-run or a live run artifact exists, cross-check the product CLI/MCP facade:
+   `wk run status <runPath> --json`, `wk run stream <runPath> --format ndjson`,
+   `wk run inspect <runPath> --json`, `wk run report <runPath> --format markdown`, and
+   `wk run export <runPath> --include summary --json`.
+   - PASS: these return bounded envelopes/artifacts, `run report` writes `analysis.json` and
+     `report.md` only through the explicit report operation, and export output does not copy host
+     transcript contents.
 
 ## Phase 2 — Authoring skills (pass criteria; invoke per your surface entry)
 
@@ -93,7 +100,9 @@ Deepest smoke — launches a real Codex child session. Keep it bounded.
    - PASS: a child session launches; the orchestrator **re-reads the tracker** as the completion
      authority; it **blocks** (non-zero exit, `status: blocked`) if the story returns without reaching
      a complete status; artifacts are written under `.codex/agentic-workflow-kit/runs/<runId>/`
-     (`events.ndjson`, `state.json`, `metrics.live.json`, `children/`).
+     (`events.ndjson`, `state.json`, `metrics.live.json`, `children/`). Runtime completion should
+     also write normalized `summary.json`, `rows.json`, `budgets.json`, and `transcripts.json`;
+     abort/control drills append `controls.ndjson`.
    - Note: `--sandbox workspace-write` is safe for worktree-strategy dispatch because the orchestrator
      automatically injects the workspace's `.git` and `.worktrees` directories as codex writable roots
      (D8 fix). The child can `git commit` and `git worktree add` without needing `danger-full-access`.
@@ -101,11 +110,12 @@ Deepest smoke — launches a real Codex child session. Keep it bounded.
    the Codex session logs and derives review, verification, merge, cleanup, and timeline summaries
    from `events.ndjson`. The same command also accepts compatible interactive `implement-next`
    journals when `state.json` contains `command: "implement-next"` and an `interactive` child record.
-   Confirm that pre-PR review execution blockers are separate from review findings, local fix
-   batches are counted against `implement.review.prePr.maxLoops`, PR review threads/fix batches are
-   reconstructed, child-session review subagent loops are summarized when explicit pre-PR events are
-   missing, per-child linkage/recovery/completion-authority details are reported, and the timeline
-   preserves journal order while exposing recorded/action times.
+   Confirm that resolved profile and budget data are visible, structured-output capability
+   downgrades are reported when applicable, pre-PR review execution blockers are separate from
+   review findings, local fix batches are counted against `implement.review.prePr.maxLoops`, PR
+   review threads/fix batches are reconstructed, child-session review subagent loops are summarized
+   when explicit pre-PR events are missing, per-child linkage/recovery/completion-authority details
+   are reported, and the timeline preserves journal order while exposing recorded/action times.
 4. For recovery drills, prove a child is stale before clearing or retrying anything.
    `startup_stale` requires an old launch request with no settled child result, session linkage,
    heartbeat, progress, or worktree activity. `supervision_lost` requires a previously acknowledged
