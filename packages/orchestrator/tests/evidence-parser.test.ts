@@ -276,4 +276,30 @@ describe('childResultEvidence', () => {
       findings: 2,
     });
   });
+
+  it('treats negated check progress as failed instead of passed', () => {
+    const evidence = childResultEvidence({}, '`gh pr checks 108 --watch` not passing yet.');
+
+    expect(evidence.github?.checks?.[0]).toMatchObject({
+      command: 'gh pr checks 108 --watch',
+      status: 'failed',
+    });
+  });
+
+  it('normalizes legacy prReview findings into structured findings evidence', () => {
+    const evidence = childResultEvidence(
+      {
+        childResult: {
+          prReview: { findings: 1, resolved: true },
+        },
+      },
+      '',
+    );
+
+    expect(evidence.github?.review).toMatchObject({
+      signal: 'findings',
+      triaged: true,
+      findings: 1,
+    });
+  });
 });

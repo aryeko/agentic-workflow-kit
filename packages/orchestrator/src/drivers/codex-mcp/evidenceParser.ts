@@ -150,7 +150,9 @@ function verificationStatus(line: string): VerificationEvidence['status'] | null
 }
 
 function hasFailureSignal(text: string): boolean {
-  return /\b(blocker|blocked|fail(?:ed|ing|s)?|not green|error)\b/i.test(stripNegatedFailurePhrases(text));
+  return /\b(blocker|blocked|fail(?:ed|ing|s)?|not green|not pass(?:ed|ing)?|error)\b/i.test(
+    stripNegatedFailurePhrases(text),
+  );
 }
 
 function stripNegatedFailurePhrases(text: string): string {
@@ -348,13 +350,17 @@ function readGithubChecks(value: unknown): GithubCheckEvidence[] | null {
 
 function readGithubReview(value: unknown): GithubReviewEvidence | null {
   if (!isRecord(value)) return null;
-  const signal = readGithubReviewSignal(value.signal) ?? readGithubReviewSignal(value.status) ?? 'unknown';
+  const findings = readNumber(value.findings);
+  const signal =
+    readGithubReviewSignal(value.signal) ??
+    readGithubReviewSignal(value.status) ??
+    (findings !== null && findings > 0 ? 'findings' : 'unknown');
   return {
     reviewer: readString(value.reviewer) ?? readString(value.bot),
     signal,
     mechanism: readGithubReviewMechanism(value.mechanism) ?? 'unknown',
     triaged: readBoolean(value.triaged) ?? readBoolean(value.resolved),
-    findings: readNumber(value.findings),
+    findings,
     detail: readString(value.detail) ?? readString(value.summary),
   };
 }

@@ -1305,4 +1305,47 @@ describe('analyzeWorkflowRun', () => {
       ]),
     );
   });
+
+  it('requires triage for commented bot review signals', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-commented-review-'));
+    const runDir = path.join(root, 'runs', 'run-commented-review');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-commented-review', status: 'blocked' }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        statuses: { eligible: ['specced'], complete: ['done'] },
+        pr: {
+          create: true,
+          ci: { wait: false },
+          review: { wait: 'bot', bot: 'codex', triageComments: true, rerequestAfterFix: false },
+          merge: { auto: false, deleteBranch: true },
+        },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'AWK11.json'),
+      JSON.stringify({
+        storyId: 'AWK11',
+        ok: true,
+        returnedStatus: 'done',
+        evidence: {
+          finalStatus: 'done',
+          prNumber: 66,
+          github: {
+            review: { reviewer: 'codex', mechanism: 'comment', signal: 'commented', findings: 1 },
+          },
+        },
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.issues).toContain(
+      'AWK11 PR review evidence incomplete: 1 bot findings are not triaged or replied to',
+    );
+  });
 });

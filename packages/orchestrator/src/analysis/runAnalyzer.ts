@@ -1161,7 +1161,11 @@ function childEvidenceIssues(
       issues.push(`${storyId} PR review evidence missing: configured bot review requires a review signal`);
     } else if (signal === 'pending' || signal === 'unknown') {
       issues.push(`${storyId} PR review evidence incomplete: bot review signal is ${signal}`);
-    } else if (signal === 'findings' && prReviewTriageComments(config) && triaged !== true) {
+    } else if (
+      (signal === 'findings' || signal === 'commented') &&
+      prReviewTriageComments(config) &&
+      triaged !== true
+    ) {
       issues.push(
         `${storyId} PR review evidence incomplete: ${findings ?? 'unknown'} bot findings are not triaged or replied to`,
       );
