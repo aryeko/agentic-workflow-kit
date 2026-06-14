@@ -102,7 +102,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK09 | Status and streaming API | AWK06, AWK07, AWK081 | W5 | done | [brief](./stories/AWK09.md) | — | codex-2026-06-13T23-54-50Z | [#67](https://github.com/aryeko/agentic-workflow-kit/pull/67) |
 | AWK10 | Analyzer and report bundle | AWK06, AWK09, AWK081 | W5 | done | [brief](./stories/AWK10.md) | — | codex-2026-06-14T01-45-49Z | [#68](https://github.com/aryeko/agentic-workflow-kit/pull/68) |
 | AWK11 | GitHub evidence hardening | AWK08 | W5 | done | [brief](./stories/AWK11.md) + [spec](../../superpowers/specs/2026-06-14-awk11-github-evidence-hardening-design.md) | [plan](../../superpowers/plans/2026-06-14-awk11-github-evidence-hardening.md) | codex-2026-06-13T23-54-50Z | [#66](https://github.com/aryeko/agentic-workflow-kit/pull/66) |
-| AWK12 | Plugin package compatibility | AWK09, AWK10, AWK11 | W6 | done | [brief](./stories/AWK12.md) + [spec](../../superpowers/specs/2026-06-14-awk12-plugin-package-compatibility-design.md) | [plan](../../superpowers/plans/2026-06-14-awk12-plugin-package-compatibility.md) | codex-2026-06-14T02-16-42Z | — |
+| AWK12 | Plugin package compatibility | AWK09, AWK10, AWK11 | W6 | done | [brief](./stories/AWK12.md) + [spec](../../superpowers/specs/2026-06-14-awk12-plugin-package-compatibility-design.md) | [plan](../../superpowers/plans/2026-06-14-awk12-plugin-package-compatibility.md) | codex-2026-06-14T02-16-42Z | [#69](https://github.com/aryeko/agentic-workflow-kit/pull/69) |
 | AWK13 | Canonical docs consolidation | AWK12 | W7 | deferred | [brief](./stories/AWK13.md) | — | — | — |
 | AWK14 | Changeset and release readiness | AWK13 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
