@@ -39,13 +39,19 @@ agentic-workflow-kit --help
 agentic-workflow-kit project inspect --cwd . --json
 agentic-workflow-kit run preview --cwd . --track product-foundation --mode eligible --json
 agentic-workflow-kit run preview --cwd . --track product-foundation --story WK001 --json
+agentic-workflow-kit run status .codex/agentic-workflow-kit/runs/<run-id> --json
+agentic-workflow-kit run stream .codex/agentic-workflow-kit/runs/<run-id> --format ndjson
+agentic-workflow-kit run inspect .codex/agentic-workflow-kit/runs/<run-id> --json
+agentic-workflow-kit run report .codex/agentic-workflow-kit/runs/<run-id> --format markdown
+agentic-workflow-kit run export .codex/agentic-workflow-kit/runs/<run-id> --include summary --json
 agentic-workflow-kit list-tracks --cwd .
 agentic-workflow-kit list-stories --cwd . --track product-foundation
 agentic-workflow-kit list-eligible --cwd . --track product-foundation
 agentic-workflow-kit run-story WK001 --cwd . --dry-run
 agentic-workflow-kit run-eligible --cwd . --track product-foundation --dry-run
-agentic-workflow-kit watch-run .workflow/runs/<run-id>
-agentic-workflow-kit analyze-run .workflow/runs/<run-id>
+agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id>
+agentic-workflow-kit analyze-run .codex/agentic-workflow-kit/runs/<run-id>
+agentic-workflow-kit abort-run .codex/agentic-workflow-kit/runs/<run-id> --reason "Wrong target branch" --json
 agentic-workflow-kit mcp check --cwd .
 ```
 
@@ -53,11 +59,12 @@ agentic-workflow-kit mcp check --cwd .
 MCP sessions, create branches or worktrees, edit files, run verification commands, and update
 tracker rows according to `.workflow/config.yaml`.
 
-`project inspect` and `run preview` are the product API facade commands. They emit the shared
+The `project`, `run`, and `tracker` command groups are the product API facade. They emit the shared
 WorkflowKit result envelope with `ok`, `operation`, `apiVersion`, `project`, `result`, `artifacts`,
 `warnings`, and `next` fields. `run preview` delegates to the existing dry-run runtime path, so it
 uses the same story and track selection behavior as `run-story --dry-run` and
-`run-eligible --dry-run` while exposing product nouns for future CLI/MCP parity.
+`run-eligible --dry-run` while exposing product nouns for CLI/MCP parity. The legacy commands remain
+available for current plugin workflows and existing automation.
 
 ## MCP Server
 
@@ -71,12 +78,25 @@ Available MCP tools:
 
 - `workflow_project_inspect`
 - `workflow_run_preview`
+- `workflow_run_status`
+- `workflow_run_stream`
+- `workflow_run_inspect`
+- `workflow_run_report`
+- `workflow_run_export`
+- `workflow_run_control`
+- `workflow_tracker_validate`
+- `workflow_tracker_migrate`
 - `list_tracks`
 - `list_stories`
 - `list_eligible`
-- `run_story`
 - `run_eligible`
+- `run_story`
 - `watch_run`
+- `watch_run_start`
+- `watch_run_poll`
+- `watch_run_stop`
+- `codex_reply`
+- `codex_interrupt`
 - `analyze_run`
 - `check_codex_mcp`
 
@@ -120,9 +140,14 @@ agentic-workflow-kit run-story WK001 --cwd .
 Inspect a run:
 
 ```bash
-agentic-workflow-kit watch-run .workflow/runs/<run-id> --json
-agentic-workflow-kit watch-run .workflow/runs/<run-id> --wait --interval-ms 300000 --timeout-ms 300000 --json
-agentic-workflow-kit analyze-run .workflow/runs/<run-id> --json
+agentic-workflow-kit run status .codex/agentic-workflow-kit/runs/<run-id> --json
+agentic-workflow-kit run stream .codex/agentic-workflow-kit/runs/<run-id> --format ndjson
+agentic-workflow-kit run inspect .codex/agentic-workflow-kit/runs/<run-id> --json
+agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id> --json
+agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id> --wait --interval-ms 300000 --timeout-ms 300000 --json
+agentic-workflow-kit analyze-run .codex/agentic-workflow-kit/runs/<run-id> --json
+agentic-workflow-kit run report .codex/agentic-workflow-kit/runs/<run-id> --format markdown
+agentic-workflow-kit run export .codex/agentic-workflow-kit/runs/<run-id> --include summary --json
 ```
 
 `watch-run` reads `orchestrator.watch` defaults from the run's `config.resolved.json`; CLI flags
@@ -132,7 +157,7 @@ configured wait default for a single watch call.
 Abort a running workflow:
 
 ```bash
-agentic-workflow-kit abort-run .workflow/runs/<run-id> --reason "Wrong target branch" --json
+agentic-workflow-kit abort-run .codex/agentic-workflow-kit/runs/<run-id> --reason "Wrong target branch" --json
 ```
 
 Abort requests are appended to `controls.ndjson`, reflected in `events.ndjson`, and return

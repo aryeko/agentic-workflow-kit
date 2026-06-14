@@ -24,7 +24,8 @@ codex plugin add agentic-workflow-kit@agentic-workflow-kit
 codex plugin list                      # confirm installed + skill prompts visible
 ```
 
-There is also an automated install + prompt-visibility check (not a runtime smoke):
+There is also an automated install, prompt-visibility, and package MCP startup check (not a full
+runtime smoke):
 
 ```bash
 ( cd ~/repos/agentic-workflow-kit && pnpm smoke:codex-plugin )
@@ -33,7 +34,8 @@ There is also an automated install + prompt-visibility check (not a runtime smok
 That smoke also covers the upgrade path that has caused stale-cache regressions: it installs a
 synthetic older local marketplace fixture, replaces it with the current fixture, reinstalls the
 plugin, and asserts the installed cache advances to the current version while the older cache copy is
-removed.
+removed. It starts the installed package MCP server from a non-plugin consumer cwd and verifies both
+the product `workflow_*` tools and the legacy compatibility tools are exposed by `tools/list`.
 
 Keep `CODEX_HOME` exported for the whole Codex session, and run that session with **cwd = `$SMOKE`**
 (the throwaway repo) so the skills act there.
