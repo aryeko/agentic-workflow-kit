@@ -194,6 +194,7 @@ git:
     await writeWorkflowConfig(root, 'version: 1\n');
 
     await expect(loadResolvedConfig({ tracksDir: '../../etc' }, root)).rejects.toThrow(/tracksDir/);
+    await expect(loadResolvedConfig({ tracksDir: 'C:tracks' }, root)).rejects.toThrow(/tracksDir/);
   });
 
   it('applies documented defaults for missing optional keys', async () => {

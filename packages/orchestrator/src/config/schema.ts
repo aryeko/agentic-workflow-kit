@@ -2,7 +2,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 const nonEmpty = z.string().min(1);
-const REPO_RELATIVE_PATH_PATTERN = /^(?!\/)(?![A-Za-z]:[\\/])(?!.*(?:^|[\\/])\.\.(?:[\\/]|$)).+$/;
+const REPO_RELATIVE_PATH_PATTERN = /^(?!\/)(?![A-Za-z]:)(?!.*(?:^|[\\/])\.\.(?:[\\/]|$)).+$/;
 const REPO_RELATIVE_PATH_MESSAGE = 'must be a repo-relative path that does not contain .. segments';
 
 export function isRepoRelativePath(value: string): boolean {
