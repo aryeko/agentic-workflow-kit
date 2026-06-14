@@ -127,7 +127,10 @@ export class RunJournal {
       .trimEnd()
       .split('\n')
       .filter(Boolean)
-      .map((line) => JSON.parse(line) as RunControlRequest);
+      .flatMap((line) => {
+        const parsed = parseJsonObject(line);
+        return isRunControlRequest(parsed) ? [parsed] : [];
+      });
   }
 
   async recordSettledChild(
@@ -186,6 +189,31 @@ export class RunJournal {
       type,
     });
   }
+}
+
+function parseJsonObject(line: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(line) as unknown;
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function isRunControlRequest(value: unknown): value is RunControlRequest {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === 'string' &&
+    typeof record.runId === 'string' &&
+    record.action === 'abort' &&
+    (typeof record.storyId === 'string' || record.storyId === null) &&
+    (typeof record.reason === 'string' || record.reason === null) &&
+    typeof record.requestedAt === 'string' &&
+    typeof record.requestedBy === 'string'
+  );
 }
 
 function buildSummary(state: RunState, metrics: LiveMetricsSnapshot): RunSummaryArtifact {

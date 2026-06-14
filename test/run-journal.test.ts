@@ -4,10 +4,15 @@ import type { ArtifactStore, RunEvent } from '../packages/orchestrator/src/types
 
 class MemoryArtifactStore implements ArtifactStore {
   readonly events: Record<string, unknown>[] = [];
+  text: Record<string, string> = {};
 
   async writeJson(): Promise<void> {}
 
   async writeText(): Promise<void> {}
+
+  async readText(relativePath: string): Promise<string | null> {
+    return this.text[relativePath] ?? null;
+  }
 
   async appendEvent(event: RunEvent): Promise<void> {
     this.events.push(event);
@@ -47,6 +52,34 @@ describe('run journal', () => {
         recordedAt: '2026-06-10T21:00:00.000Z',
         eventAt: '2026-06-10T20:58:00.000Z',
         type: 'caller_timestamp_ignored',
+      },
+    ]);
+  });
+
+  it('skips malformed control rows when reading controls', async () => {
+    const artifactStore = new MemoryArtifactStore();
+    artifactStore.text['controls.ndjson'] = [
+      '{"id":"ctrl_1","runId":"run-1","action":"abort","storyId":null,"reason":"stop","requestedAt":"2026-06-14T10:00:00.000Z","requestedBy":"test"}',
+      '{"id":',
+      '{"id":"ctrl_2","runId":"run-1","action":"pause","storyId":null,"reason":null,"requestedAt":"2026-06-14T10:00:01.000Z","requestedBy":"test"}',
+    ].join('\n');
+    const journal = new RunJournal({
+      artifactStore,
+      clock: {
+        now: () => '2026-06-10T21:00:00.000Z',
+        nowMs: () => 0,
+      },
+    });
+
+    await expect(journal.readControls()).resolves.toEqual([
+      {
+        id: 'ctrl_1',
+        runId: 'run-1',
+        action: 'abort',
+        storyId: null,
+        reason: 'stop',
+        requestedAt: '2026-06-14T10:00:00.000Z',
+        requestedBy: 'test',
       },
     ]);
   });

@@ -496,27 +496,12 @@ export async function abortRunHandler(input: AbortRunInput): Promise<RunControlR
   const hasActiveChildren = activeStoryIds.length > 0;
   const appliedAt = new Date().toISOString();
   const outcome = controlOutcomeForChildren(hasActiveChildren, childOutcomes);
-  const nextStatus = hasActiveChildren && outcome !== 'applied' ? 'aborting' : 'aborted';
-  const updatedState = {
-    ...state,
-    status: nextStatus,
-    blockedStoryId: nextStatus === 'aborted' ? null : readOptionalString(state.blockedStoryId),
-    blockedReason: nextStatus === 'aborted' ? null : (request.reason ?? 'abort requested'),
-    ...(nextStatus === 'aborted' ? { completedAt: appliedAt } : {}),
-  };
-  await writeJsonFile(statePath, updatedState);
   await appendRunEvent(runPath, 'control-applied', {
     controlId: request.id,
     action: request.action,
     outcome,
     childOutcomes,
   });
-  if (nextStatus === 'aborted') {
-    await appendRunEvent(runPath, 'run-aborted', {
-      controlId: request.id,
-      reason: request.reason,
-    });
-  }
   return {
     ok: true,
     runId: request.runId,
@@ -1058,10 +1043,11 @@ async function printNewEvents(
   }
   const lines = content.trimEnd().split('\n').filter(Boolean);
   for (const line of lines.slice(printed)) {
+    const event = parseJsonObject(line);
+    if (!event) continue;
     if (overrides.json) {
       stdout(line);
     } else {
-      const event = JSON.parse(line) as { type?: unknown; ts?: unknown; storyId?: unknown; status?: unknown };
       if (!isMeaningfulWatchEvent(event.type)) continue;
       const story = typeof event.storyId === 'string' ? ` ${event.storyId}` : '';
       const status = typeof event.status === 'string' ? ` ${event.status}` : '';
@@ -1260,7 +1246,10 @@ async function readControlsIfExists(runDirectory: string): Promise<RunControlReq
     .trimEnd()
     .split('\n')
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as RunControlRequest);
+    .flatMap((line) => {
+      const parsed = parseJsonObject(line);
+      return isRunControlRequest(parsed) ? [parsed] : [];
+    });
 }
 
 function runArtifactRefs(): Record<string, string> {
@@ -1308,8 +1297,8 @@ async function inspectChildren(runDirectory: string): Promise<WorkflowRunInspect
       const launchPath = path.join('children', `${storyId}.launch.json`);
       const resultPath = path.join('children', `${storyId}.json`);
       const [launch, result, launchStat, resultStat] = await Promise.all([
-        readJsonIfExists(path.join(runDirectory, launchPath)),
-        readJsonIfExists(path.join(runDirectory, resultPath)),
+        readTolerantJsonIfExists(path.join(runDirectory, launchPath)),
+        readTolerantJsonIfExists(path.join(runDirectory, resultPath)),
         statIfExists(path.join(runDirectory, launchPath)),
         statIfExists(path.join(runDirectory, resultPath)),
       ]);
@@ -1337,7 +1326,7 @@ async function readChildArtifacts(runDirectory: string): Promise<unknown[]> {
   return await Promise.all(
     entries
       .filter((entry) => entry.endsWith('.json') && !entry.endsWith('.raw.json') && !entry.endsWith('.metrics.json'))
-      .map((entry) => readJsonIfExists(path.join(childrenDirectory, entry))),
+      .map((entry) => readTolerantJsonIfExists(path.join(childrenDirectory, entry))),
   );
 }
 
@@ -1392,6 +1381,15 @@ async function readJsonIfExists(filePath: string): Promise<unknown | null> {
   }
 }
 
+async function readTolerantJsonIfExists(filePath: string): Promise<unknown | null> {
+  try {
+    return await readJsonIfExists(filePath);
+  } catch (error) {
+    if (error instanceof SyntaxError) return null;
+    throw error;
+  }
+}
+
 async function writeJsonFile(filePath: string, value: unknown): Promise<void> {
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
@@ -1425,7 +1423,9 @@ async function abortActiveChildren(
 ): Promise<RunControlChildOutcome[]> {
   const outcomes: RunControlChildOutcome[] = [];
   for (const storyId of activeStoryIds) {
-    const launch = await readJsonIfExists(path.join(runPath, 'children', `${safeRunFileName(storyId)}.launch.json`));
+    const launch = await readTolerantJsonIfExists(
+      path.join(runPath, 'children', `${safeRunFileName(storyId)}.launch.json`),
+    );
     const sessionId = isObject(launch) ? readOptionalString(launch.sessionId) : null;
     if (!sessionId) {
       outcomes.push({
@@ -1482,6 +1482,29 @@ function controlArtifactRefs(): RunControlResult['artifacts'] {
     events: 'events.ndjson',
     state: 'state.json',
   };
+}
+
+function parseJsonObject(line: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(line) as unknown;
+    return isObject(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function isRunControlRequest(value: unknown): value is RunControlRequest {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === 'string' &&
+    typeof record.runId === 'string' &&
+    record.action === 'abort' &&
+    (typeof record.storyId === 'string' || record.storyId === null) &&
+    (typeof record.reason === 'string' || record.reason === null) &&
+    typeof record.requestedAt === 'string' &&
+    typeof record.requestedBy === 'string'
+  );
 }
 
 function isTerminalRunStatus(status: string | null): boolean {

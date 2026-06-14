@@ -1,5 +1,15 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
+import { FileArtifactStore } from '../packages/orchestrator/src/artifacts/FileArtifactStore.js';
+
+const tempRoots: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(tempRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
 
 describe('planning artifact model', () => {
   it('example delivery tracker links story briefs under the track directory', () => {
@@ -48,6 +58,34 @@ describe('planning artifact model', () => {
     expect(contract).toContain('analysis.json');
     expect(contract).toContain('report.md');
     expect(contract).toContain('Existing run artifacts without these files');
+  });
+
+  it('serializes concurrent appends into complete NDJSON lines', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-artifacts-'));
+    tempRoots.push(root);
+    const store = new FileArtifactStore(root);
+
+    await Promise.all(
+      Array.from({ length: 100 }, async (_, index) => {
+        await store.appendEvent({
+          recordedAt: `2026-06-14T10:00:${String(index % 60).padStart(2, '0')}.000Z`,
+          eventAt: `2026-06-14T10:00:${String(index % 60).padStart(2, '0')}.000Z`,
+          type: 'concurrent-event',
+          index,
+          payload: 'x'.repeat(2048),
+        });
+      }),
+    );
+
+    const lines = (await readFile(path.join(root, 'events.ndjson'), 'utf8')).trimEnd().split('\n');
+
+    expect(lines).toHaveLength(100);
+    expect(
+      lines
+        .map((line) => JSON.parse(line))
+        .map((entry) => entry.index)
+        .sort((a, b) => a - b),
+    ).toEqual(Array.from({ length: 100 }, (_, index) => index));
   });
 });
 
