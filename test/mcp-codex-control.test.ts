@@ -3,6 +3,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { abortRunHandler } from '../packages/orchestrator/src/commands/handlers.js';
+import type {
+  ChildControlRequest,
+  ChildControlResult,
+  DriverToolStatus,
+  StoryRunner,
+  StoryRunRequest,
+  StoryRunResult,
+} from '../packages/orchestrator/src/drivers/StoryRunner.js';
 import {
   childReplyJournalFields,
   codexReplyJournalFields,
@@ -11,6 +19,30 @@ import {
 } from '../packages/orchestrator/src/mcp/codexControl.js';
 
 const tempRoots: string[] = [];
+
+class FakeControlRunner implements StoryRunner {
+  abortRequests: ChildControlRequest[] = [];
+
+  async runStory(_request: StoryRunRequest): Promise<StoryRunResult> {
+    throw new Error('not used');
+  }
+
+  async checkTools(): Promise<DriverToolStatus> {
+    return { ok: true, tools: ['fake'] };
+  }
+
+  async abort(request: ChildControlRequest): Promise<ChildControlResult> {
+    this.abortRequests.push(request);
+    return {
+      ok: true,
+      tool: 'fake_child_interrupt',
+      sessionId: request.sessionId ?? 'missing',
+      storyId: request.storyId ?? null,
+      runPath: request.runPath ?? null,
+      rawResult: {},
+    };
+  }
+}
 
 afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -129,6 +161,51 @@ describe('codex MCP control target resolution', () => {
       status: 'aborting',
       blockedReason: 'operator stop',
     });
+  });
+
+  it('aborts linked active children through the configured story runner contract', async () => {
+    const runPath = await mkdtemp(path.join(tmpdir(), 'awk-control-runner-'));
+    tempRoots.push(runPath);
+    await mkdir(path.join(runPath, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runPath, 'state.json'),
+      JSON.stringify({
+        runId: 'run-1',
+        status: 'running',
+        active: ['DLD07'],
+        completed: [],
+        blockedStoryId: null,
+        blockedReason: null,
+      }),
+    );
+    await writeFile(path.join(runPath, 'children/DLD07.launch.json'), JSON.stringify({ sessionId: '019e-child' }));
+    const controlRunner = new FakeControlRunner();
+
+    const result = await abortRunHandler({
+      runPath,
+      storyId: 'DLD07',
+      reason: 'operator stop',
+      requestedBy: 'test',
+      controlRunner,
+    });
+
+    expect(controlRunner.abortRequests).toEqual([
+      {
+        kind: 'interrupt',
+        sessionId: '019e-child',
+        storyId: 'DLD07',
+        runPath,
+        reason: 'operator stop',
+      },
+    ]);
+    expect(result.childOutcomes).toEqual([
+      {
+        storyId: 'DLD07',
+        sessionId: '019e-child',
+        outcome: 'requested',
+        detail: 'sent fake_child_interrupt',
+      },
+    ]);
   });
 
   it('does not abort active children when a targeted story is not active', async () => {

@@ -29,8 +29,10 @@ import {
   watchRunHandler,
 } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
+import { CodexMcpStoryRunner } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
+import type { ChildControlRequest, ChildControlResult } from '../drivers/StoryRunner.js';
 import type { CliOverrides, Logger, RunState } from '../types.js';
-import { sendChildInterrupt, sendChildReply, sendCodexInterrupt, sendCodexReply } from './codexControl.js';
+import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 
 export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_project_inspect',
@@ -618,7 +620,10 @@ export function registerOrchestratorTools(server: McpServer): void {
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
-    async (input) => handleTool('workflow_child_reply', input.responseFormat, () => sendChildReply(input)),
+    async (input) =>
+      handleTool('workflow_child_reply', input.responseFormat, () =>
+        controlConfiguredChild(input, { kind: 'reply', message: input.message }),
+      ),
   );
 
   server.registerTool(
@@ -630,7 +635,10 @@ export function registerOrchestratorTools(server: McpServer): void {
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
-    async (input) => handleTool('workflow_child_interrupt', input.responseFormat, () => sendChildInterrupt(input)),
+    async (input) =>
+      handleTool('workflow_child_interrupt', input.responseFormat, () =>
+        controlConfiguredChild(input, { kind: 'interrupt', reason: input.reason }),
+      ),
   );
 
   server.registerTool(
@@ -772,6 +780,23 @@ function assertWorkflowRepoContext(input: { cwd?: string; configPath?: string })
   throw new Error(
     `Target repo cwd is required for agentic-workflow-kit MCP tools when the session is not running from a workflow repo. Pass cwd as the target repository root. Checked: ${implicitCwd}`,
   );
+}
+
+async function controlConfiguredChild(
+  input: { cwd?: string; configPath?: string; sessionId?: string; runPath?: string; storyId?: string },
+  request: Pick<ChildControlRequest, 'kind' | 'message' | 'reason'>,
+): Promise<ChildControlResult> {
+  const cwd = resolveInvocationCwd(input);
+  const config = await loadResolvedConfig(toOverrides(input), cwd);
+  const runner = new CodexMcpStoryRunner(config);
+  const result = await runner.controlChild?.({
+    ...request,
+    sessionId: input.sessionId,
+    runPath: input.runPath,
+    storyId: input.storyId,
+  });
+  if (!result) throw new Error('configured child driver does not support child control');
+  return result;
 }
 
 function toOverrides(input: {

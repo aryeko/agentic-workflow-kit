@@ -1,7 +1,7 @@
 import path from 'node:path';
 import pLimit from 'p-limit';
 
-import { buildGenericPrompt } from '../drivers/codex-mcp/toolInput.js';
+import { renderStoryImplementerPrompt } from '../drivers/promptRenderer.js';
 import type {
   ChildLifecycleEvent,
   ChildProgressSource,
@@ -469,7 +469,7 @@ export class WorkflowRunner {
     this.metrics.start(story.id);
     const startedAt = this.dependencies.clock.now();
     const childCwd = preparedWorkspace.childCwdAbs;
-    const prompt = buildGenericPrompt(story, this.dependencies.config);
+    const prompt = renderStoryImplementerPrompt(story, this.dependencies.config);
     const profile = this.dependencies.config.agents.resolved.implementStory;
     const promptHash = hashPrompt(prompt);
     const promptMetadata: StoryPromptMetadata = {
