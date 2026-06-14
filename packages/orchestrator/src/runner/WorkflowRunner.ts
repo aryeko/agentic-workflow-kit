@@ -83,7 +83,7 @@ export class WorkflowRunner {
       git: dependencies.config.git,
       pr: dependencies.config.pr,
       tracker: dependencies.config.tracker,
-      childCwdAbs: dependencies.config.childSession.childSession.cwdAbs,
+      childCwdAbs: dependencies.config.childSession.cwdAbs,
     });
     this.state = {
       runId: dependencies.runId,
@@ -451,7 +451,7 @@ export class WorkflowRunner {
       preparedWorkspace = await workspacePreparer({
         story,
         workspaceRootAbs: this.dependencies.config.workspace.rootAbs,
-        fallbackCwdAbs: this.dependencies.config.childSession.childSession.cwdAbs,
+        fallbackCwdAbs: this.dependencies.config.childSession.cwdAbs,
         git: this.dependencies.config.git,
       });
     } catch (error) {

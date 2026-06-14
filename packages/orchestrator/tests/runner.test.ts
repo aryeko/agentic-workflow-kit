@@ -74,7 +74,7 @@ function config(): ResolvedWorkflowConfig {
       childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     },
-    childSession: { childSession: { cwdAbs: '/repo' } },
+    childSession: { cwdAbs: '/repo' },
     codex: { childSession: { cwdAbs: '/repo' } },
   };
 }
@@ -95,7 +95,7 @@ function configForWorkspace(workspaceRoot: string): ResolvedWorkflowConfig {
       rootDirAbs: path.join(workspaceRoot, '.codex/agentic-workflow-kit'),
       runsDirAbs: path.join(workspaceRoot, '.codex/agentic-workflow-kit/runs'),
     },
-    childSession: { childSession: { cwdAbs: workspaceRoot } },
+    childSession: { cwdAbs: workspaceRoot },
     codex: { childSession: { cwdAbs: workspaceRoot } },
   };
 }

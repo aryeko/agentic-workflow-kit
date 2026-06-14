@@ -71,8 +71,9 @@ top-level config block.
 | `config` | object | unset | Driver-specific raw config passed through to the child-session launcher. |
 
 `codex.childSession` remains accepted as a compatibility alias for existing configs. When both
-`childSession` and `codex.childSession` are present, `childSession` wins for shared fields. Resolved
-config exposes the same child-session object at both the neutral field and the Codex alias.
+`childSession` and `codex.childSession` are present, values merge per field with `childSession`
+winning for shared fields. Nested `config` values also merge per key with neutral values winning.
+Resolved config exposes the same child-session object at both the neutral field and the Codex alias.
 
 ## `codex.childSession`
 

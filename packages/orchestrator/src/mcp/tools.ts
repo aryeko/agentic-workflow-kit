@@ -241,26 +241,18 @@ const watchRunStopInputSchema = z.object({
     .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
 
-const codexReplyInputSchema = z.object({
-  sessionId: z.string().optional().describe('Direct Codex session/thread id to reply to.'),
+const childControlBaseInputSchema = productBaseInputSchema.extend({
+  sessionId: z.string().optional().describe('Direct child session/thread id to control.'),
   runPath: z.string().optional().describe('Run artifact directory used with storyId to resolve a child session.'),
   storyId: z.string().optional().describe('Story id used with runPath to resolve children/<story>.launch.json.'),
-  message: z.string().min(1).describe('Reply message to send to the live Codex child session.'),
-  responseFormat: z
-    .enum(['concise', 'detailed'])
-    .optional()
-    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
 
-const codexInterruptInputSchema = z.object({
-  sessionId: z.string().optional().describe('Direct Codex session/thread id to interrupt.'),
-  runPath: z.string().optional().describe('Run artifact directory used with storyId to resolve a child session.'),
-  storyId: z.string().optional().describe('Story id used with runPath to resolve children/<story>.launch.json.'),
+const codexReplyInputSchema = childControlBaseInputSchema.extend({
+  message: z.string().min(1).describe('Reply message to send to the live Codex child session.'),
+});
+
+const codexInterruptInputSchema = childControlBaseInputSchema.extend({
   reason: z.string().optional().describe('Optional operator-facing reason for interrupting the child session.'),
-  responseFormat: z
-    .enum(['concise', 'detailed'])
-    .optional()
-    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
 
 const outputSchema = z
@@ -786,7 +778,7 @@ async function controlConfiguredChild(
   input: { cwd?: string; configPath?: string; sessionId?: string; runPath?: string; storyId?: string },
   request: Pick<ChildControlRequest, 'kind' | 'message' | 'reason'>,
 ): Promise<ChildControlResult> {
-  const cwd = resolveInvocationCwd(input);
+  const cwd = resolveChildControlCwd(input);
   const config = await loadResolvedConfig(toOverrides(input), cwd);
   const runner = new CodexMcpStoryRunner(config);
   const result = await runner.controlChild?.({
@@ -797,6 +789,17 @@ async function controlConfiguredChild(
   });
   if (!result) throw new Error('configured child driver does not support child control');
   return result;
+}
+
+function resolveChildControlCwd(input: { cwd?: string; configPath?: string; runPath?: string }): string {
+  if (input.cwd !== undefined || input.configPath !== undefined) return resolveInvocationCwd(input);
+  if (input.runPath !== undefined) {
+    const runPath = path.resolve(input.runPath);
+    const marker = `${path.sep}.codex${path.sep}agentic-workflow-kit${path.sep}runs${path.sep}`;
+    const markerIndex = runPath.indexOf(marker);
+    if (markerIndex > 0) return runPath.slice(0, markerIndex);
+  }
+  return resolveInvocationCwd(input);
 }
 
 function toOverrides(input: {

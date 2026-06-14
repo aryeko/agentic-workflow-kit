@@ -54,7 +54,15 @@ export async function loadResolvedConfig(
     childSessionConfig.model_reasoning_effort = overrides.reasoning;
   }
   const agents = resolveAgentProfiles(config, overrides);
-  const configuredChildSession = config.childSession ?? config.codex.childSession ?? {};
+  const configuredChildSessionConfig = {
+    ...(config.codex.childSession?.config ?? {}),
+    ...(config.childSession?.config ?? {}),
+  };
+  const configuredChildSession = {
+    ...(config.codex.childSession ?? {}),
+    ...(config.childSession ?? {}),
+    ...(Object.keys(configuredChildSessionConfig).length > 0 ? { config: configuredChildSessionConfig } : {}),
+  };
   const resolvedChildSession = {
     cwdAbs: workspaceRoot,
     ...(configuredChildSession.model !== undefined ? { model: configuredChildSession.model } : {}),
@@ -106,7 +114,7 @@ export async function loadResolvedConfig(
       childStartupTimeoutMs,
       childMaxRuntimeMs,
     },
-    childSession: { childSession: resolvedChildSession },
+    childSession: resolvedChildSession,
     codex: { childSession: resolvedChildSession },
   };
 }
@@ -178,7 +186,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       childStartupTimeoutMs: DEFAULT_CHILD_STARTUP_TIMEOUT_MS,
       childMaxRuntimeMs: 7_200_000,
     },
-    childSession: { childSession: { cwdAbs: workspaceRoot } },
+    childSession: { cwdAbs: workspaceRoot },
     codex: { childSession: { cwdAbs: workspaceRoot } },
   };
 }

@@ -240,6 +240,13 @@ describe('agentic-workflow-kit MCP server', () => {
     expect(analyzeRun?.inputSchema.properties?.runPath).toMatchObject({
       description: expect.stringContaining('artifactDir returned by run_story or run_eligible'),
     });
+
+    const workflowChildReply = result.tools.find((tool) => tool.name === 'workflow_child_reply');
+    expect(workflowChildReply?.inputSchema.properties?.cwd).toMatchObject({
+      description: expect.stringContaining('Target repo root'),
+    });
+    expect(workflowChildReply?.inputSchema.properties?.configPath).toBeDefined();
+
     await client.close();
     await server.close();
   });

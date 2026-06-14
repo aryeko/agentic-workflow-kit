@@ -59,7 +59,7 @@ const config: ResolvedWorkflowConfig = {
     childStartupTimeoutMs: 60_000,
     childMaxRuntimeMs: 7_200_000,
   },
-  childSession: { childSession: { cwdAbs: '/repo' } },
+  childSession: { cwdAbs: '/repo' },
   codex: { childSession: { cwdAbs: '/repo' } },
 };
 
@@ -321,7 +321,7 @@ describe('buildCodexToolInput', () => {
       {
         ...config,
         workspace: { rootAbs: '/workspace/myproject' },
-        childSession: { childSession: { cwdAbs: '/workspace/myproject' } },
+        childSession: { cwdAbs: '/workspace/myproject' },
         codex: { childSession: { cwdAbs: '/workspace/myproject' } },
       },
       story,
