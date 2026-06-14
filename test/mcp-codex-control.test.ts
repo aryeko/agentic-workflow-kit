@@ -77,6 +77,17 @@ describe('codex MCP control target resolution', () => {
     );
   });
 
+  it('rejects a run-resolved target with malformed launch JSON as an unlinked session', async () => {
+    const runPath = await mkdtemp(path.join(tmpdir(), 'awk-control-malformed-'));
+    tempRoots.push(runPath);
+    await mkdir(path.join(runPath, 'children'), { recursive: true });
+    await writeFile(path.join(runPath, 'children/DLD07.launch.json'), '{"sessionId":');
+
+    await expect(resolveCodexControlTarget({ runPath, storyId: 'DLD07' })).rejects.toThrow(
+      'story DLD07 does not have a linked Codex session',
+    );
+  });
+
   it('does not include reply message previews in journal fields', () => {
     const fields = codexReplyJournalFields('secret token sk-live-123', 'codex_reply');
 
@@ -158,9 +169,39 @@ describe('codex MCP control target resolution', () => {
       },
     ]);
     expect(JSON.parse(await readFile(path.join(runPath, 'state.json'), 'utf8'))).toMatchObject({
-      status: 'aborting',
-      blockedReason: 'operator stop',
+      status: 'running',
+      blockedReason: null,
     });
+  });
+
+  it('classifies active children with malformed launch JSON as unsupported', async () => {
+    const runPath = await mkdtemp(path.join(tmpdir(), 'awk-control-malformed-active-'));
+    tempRoots.push(runPath);
+    await mkdir(path.join(runPath, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runPath, 'state.json'),
+      JSON.stringify({
+        runId: 'run-1',
+        status: 'running',
+        active: ['DLD07'],
+        completed: [],
+        blockedStoryId: null,
+        blockedReason: null,
+      }),
+    );
+    await writeFile(path.join(runPath, 'children/DLD07.launch.json'), '{"sessionId":');
+
+    const result = await abortRunHandler({ runPath, storyId: 'DLD07', reason: 'operator stop', requestedBy: 'test' });
+
+    expect(result.outcome).toBe('unsupported');
+    expect(result.childOutcomes).toEqual([
+      {
+        storyId: 'DLD07',
+        sessionId: null,
+        outcome: 'unsupported',
+        detail: 'active child has no linked child session',
+      },
+    ]);
   });
 
   it('aborts linked active children through the configured story runner contract', async () => {

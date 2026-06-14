@@ -34,6 +34,9 @@ report.md
 
 `controls.ndjson` contains durable operator control requests. V1 supports abort requests. Each row
 records the request id, action, target run/story when applicable, reason, requester, and timestamp.
+Malformed control rows are ignored by runtime readers. Out-of-process control handlers append
+control intent and journal evidence, but do not rewrite `state.json`; the active runner owns state
+transitions for abort reconciliation.
 
 `summary.json` has `schemaVersion: 1` and records run status, timing, blocker fields, active and
 completed story ids, aggregate metrics, artifact path refs, and explicit unavailable telemetry
@@ -86,6 +89,10 @@ Child launch and result artifacts may include:
   for auto-merge flows. Project inspection capabilities include `githubVerificationConfigured` and
   nullable `githubVerificationAvailable`; the latter is `null` when live auth/transport status has
   not been checked.
+
+Readers must tolerate malformed or partially written child launch/result artifacts. A malformed
+child JSON file is treated as unavailable for inspection, duplicate-launch checks, and control
+target lookup instead of crashing the run-status surface.
 
 When host telemetry cannot expose a metric, the field must be `null` with an explicit unavailable
 reason instead of omitted. Existing run artifacts without these files or without metric

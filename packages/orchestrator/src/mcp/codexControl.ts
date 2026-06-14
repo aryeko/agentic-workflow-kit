@@ -55,12 +55,21 @@ export async function resolveChildControlTarget(input: CodexControlTargetInput):
   const runPath = path.resolve(input.runPath);
   const storyId = input.storyId;
   const launchPath = path.join(runPath, 'children', `${safeName(storyId)}.launch.json`);
-  const launch = JSON.parse(await readFile(launchPath, 'utf8')) as unknown;
+  const launch = await readLaunchJson(launchPath);
   if (!isRecord(launch) || typeof launch.sessionId !== 'string' || launch.sessionId.length === 0) {
     throw new Error(`story ${storyId} does not have a linked Codex session`);
   }
 
   return { sessionId: launch.sessionId, storyId, runPath };
+}
+
+async function readLaunchJson(launchPath: string): Promise<unknown> {
+  try {
+    return JSON.parse(await readFile(launchPath, 'utf8')) as unknown;
+  } catch (error) {
+    if (error instanceof SyntaxError) return null;
+    throw error;
+  }
 }
 
 export const resolveCodexControlTarget = resolveChildControlTarget;

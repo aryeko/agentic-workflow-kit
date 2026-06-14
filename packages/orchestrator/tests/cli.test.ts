@@ -63,6 +63,7 @@ async function createRunWorkspace(): Promise<{ root: string; runPath: string }> 
     path.join(runPath, 'events.ndjson'),
     [
       JSON.stringify({ type: 'run-started', recordedAt: '2026-06-14T00:00:00.000Z' }),
+      '{"type":',
       JSON.stringify({ type: 'child-progress', storyId: 'LK02', message: 'testing' }),
     ].join('\n'),
   );

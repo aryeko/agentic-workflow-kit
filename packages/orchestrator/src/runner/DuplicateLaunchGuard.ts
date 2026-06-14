@@ -154,8 +154,13 @@ async function conflictFromRunArtifacts(args: {
 }
 
 async function readLaunchRecord(filePath: string): Promise<Record<string, unknown> | null> {
-  const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-  return isRecord(parsed) ? parsed : null;
+  try {
+    const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
+    return isRecord(parsed) ? parsed : null;
+  } catch (error) {
+    if (error instanceof SyntaxError) return null;
+    throw error;
+  }
 }
 
 async function settledResultExists(childrenDir: string, storyId: string): Promise<boolean> {

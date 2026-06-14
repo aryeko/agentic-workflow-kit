@@ -145,3 +145,11 @@ are mapped to the closest kit status when safe, otherwise to `specced` with a wa
 may be normalized to `tracker.idPattern`; dependencies are normalized through the same ID mapping.
 Users must review the draft tracker, generated story-brief links, and diagnostics before runtime
 execution.
+
+## Runtime claim safety
+
+For `git.strategy: branch`, runtime row claims update the markdown tracker in place. The
+orchestrator serializes each tracker file's read-modify-write claim operation with a local lock and
+then re-reads the row to verify the expected owner and in-progress status. This prevents concurrent
+claims in the same tracker from overwriting each other while preserving the tracker as the
+completion authority.

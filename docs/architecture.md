@@ -206,6 +206,10 @@ make its own completed story look uncommitted. `metrics.live.json`, `watch_run`,
 share Codex session-log parsing for command counts, subagent counts, and token totals by type when a
 child session log is linked. Interactive `implement-next` journals use the same run directory and can be analyzed when
 `state.json` contains `command: "implement-next"` plus an `interactive` child record.
+Artifact appends are serialized per artifact path in-process, and run artifact readers tolerate
+malformed NDJSON rows or malformed child JSON by skipping bad lines or treating unreadable child
+artifacts as unavailable. Control commands append intent to `controls.ndjson`; the live
+`WorkflowRunner` remains the only writer that turns abort intent into `state.json` status changes.
 Runtime completion writes normalized machine-readable artifacts such as `summary.json`,
 `rows.json`, `budgets.json`, and `transcripts.json`. Report generation is a separate explicit
 post-run operation: `workflow_run_report` / `agentic-workflow-kit run report` writes
@@ -219,7 +223,9 @@ For `git.strategy: worktree`, the parent orchestrator does not claim tracker row
 checkout. Child worktrees own story status and owner changes; the parent records
 `tracker-claim-skipped` and reserves launches through run artifacts, active child metadata,
 expected branch, expected worktree path, and stale-launch duplicate checks. Branch strategy keeps
-the parent tracker claim/release behavior because there is no separate child worktree owner.
+the parent tracker claim/release behavior because there is no separate child worktree owner; branch
+claims serialize tracker-file read-modify-write operations with a local lock so concurrent claims in
+one markdown tracker cannot overwrite each other.
 
 Watch output is intentionally summary-first. The default non-JSON watch stream suppresses
 supervisor polls and tiny progress events, while snapshots expose per-story state, latest progress,

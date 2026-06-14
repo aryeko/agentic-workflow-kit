@@ -571,7 +571,11 @@ describe('agentic-workflow-kit MCP server', () => {
       artifacts: { controls: 'controls.ndjson', events: 'events.ndjson', state: 'state.json' },
     });
     expect(await readFile(path.join(runPath, 'controls.ndjson'), 'utf8')).toContain('"action":"abort"');
-    expect(await readFile(path.join(runPath, 'events.ndjson'), 'utf8')).toContain('"type":"run-aborted"');
+    expect(await readFile(path.join(runPath, 'events.ndjson'), 'utf8')).toContain('"type":"control-applied"');
+    expect(JSON.parse(await readFile(path.join(runPath, 'state.json'), 'utf8'))).toMatchObject({
+      status: 'running',
+      blockedReason: null,
+    });
     await client.close();
     await server.close();
   });

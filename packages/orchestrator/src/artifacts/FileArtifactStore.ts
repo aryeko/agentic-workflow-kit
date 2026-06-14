@@ -4,6 +4,8 @@ import path from 'node:path';
 import type { ArtifactStore, RunEvent } from '../types.js';
 
 export class FileArtifactStore implements ArtifactStore {
+  private readonly appendQueues = new Map<string, Promise<void>>();
+
   constructor(private readonly root: string) {}
 
   async writeJson(relativePath: string, value: unknown): Promise<void> {
@@ -27,13 +29,30 @@ export class FileArtifactStore implements ArtifactStore {
 
   async appendText(relativePath: string, value: string): Promise<void> {
     const filePath = path.join(this.root, relativePath);
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await appendFile(filePath, value);
+    await this.enqueueAppend(filePath, async () => {
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await appendFile(filePath, value);
+    });
   }
 
   async appendEvent(event: RunEvent): Promise<void> {
     const filePath = path.join(this.root, 'events.ndjson');
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await appendFile(filePath, `${JSON.stringify(event)}\n`);
+    await this.enqueueAppend(filePath, async () => {
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await appendFile(filePath, `${JSON.stringify(event)}\n`);
+    });
+  }
+
+  private async enqueueAppend(filePath: string, write: () => Promise<void>): Promise<void> {
+    const previous = this.appendQueues.get(filePath) ?? Promise.resolve();
+    const current = previous.then(write, write);
+    this.appendQueues.set(filePath, current);
+    try {
+      await current;
+    } finally {
+      if (this.appendQueues.get(filePath) === current) {
+        this.appendQueues.delete(filePath);
+      }
+    }
   }
 }

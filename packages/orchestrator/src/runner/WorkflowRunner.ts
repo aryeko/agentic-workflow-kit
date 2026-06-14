@@ -306,7 +306,16 @@ export class WorkflowRunner {
           continue;
         }
 
-        stories = await this.dependencies.storySource.listStories();
+        try {
+          stories = await this.dependencies.storySource.listStories();
+        } catch (error) {
+          const reason = trackerRefreshFailureReason(error);
+          this.blockOnce(settled.storyId, reason);
+          await this.journal.record('tracker-refresh-failed', { storyId: settled.storyId, reason });
+          await this.recordSettledChild(settled);
+          stopLaunching = true;
+          continue;
+        }
         const evaluation = await this.processSettled(settled, stories);
 
         if (!evaluation.complete) {
@@ -818,7 +827,21 @@ export class WorkflowRunner {
   }
 
   private async processSettled(settled: SettledStoryRun, stories?: WorkflowStory[]): Promise<ReturnEvaluation> {
-    const returnedStories = stories ?? (await this.dependencies.storySource.listStories());
+    let returnedStories: WorkflowStory[];
+    try {
+      returnedStories = stories ?? (await this.dependencies.storySource.listStories());
+    } catch (error) {
+      const reason = trackerRefreshFailureReason(error);
+      await this.journal.record('tracker-refresh-failed', { storyId: settled.storyId, reason });
+      await this.recordSettledChild(settled);
+      return {
+        complete: false,
+        returnedStory: null,
+        reason,
+        authority: 'inspect-failed',
+        source: 'returned-tracker',
+      };
+    }
     await this.journal.writeStorySnapshot(`after-${settled.storyId}`, returnedStories);
     const evaluation = await this.completionGate.evaluate(settled, returnedStories);
     const settledWithEvidence = {
@@ -1209,6 +1232,10 @@ export class WorkflowRunner {
     }
     return null;
   }
+}
+
+function trackerRefreshFailureReason(error: unknown): string {
+  return `tracker refresh failed: ${error instanceof Error ? error.message : String(error)}`;
 }
 
 function heartbeatIntervalMs(timeoutMs: number): number {
