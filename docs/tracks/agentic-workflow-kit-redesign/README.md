@@ -103,7 +103,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK10 | Analyzer and report bundle | AWK06, AWK09, AWK081 | W5 | done | [brief](./stories/AWK10.md) | — | codex-2026-06-14T01-45-49Z | [#68](https://github.com/aryeko/agentic-workflow-kit/pull/68) |
 | AWK11 | GitHub evidence hardening | AWK08 | W5 | done | [brief](./stories/AWK11.md) | — | codex-2026-06-13T23-54-50Z | [#66](https://github.com/aryeko/agentic-workflow-kit/pull/66) |
 | AWK12 | Plugin package compatibility | AWK09, AWK10, AWK11 | W6 | done | [brief](./stories/AWK12.md) | — | codex-2026-06-14T02-16-42Z | [#69](https://github.com/aryeko/agentic-workflow-kit/pull/69) |
-| AWK13 | Canonical docs consolidation | AWK12 | W7 | implementing | [brief](./stories/AWK13.md) | — | codex-2026-06-14T02-55-42Z | — |
+| AWK13 | Canonical docs consolidation | AWK12 | W7 | done | [brief](./stories/AWK13.md) | — | codex-2026-06-14T02-55-42Z | — |
 | AWK14 | Changeset and release readiness | AWK13 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
