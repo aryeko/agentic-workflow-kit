@@ -259,6 +259,70 @@ git:
     expect(config.agents.profiles.storyImplementer.reasoning).toBe('medium');
   });
 
+  it('resolves neutral childSession and keeps codex as a compatibility alias', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-neutral-child-'));
+    await writeWorkflowConfig(
+      root,
+      `
+version: 1
+childSession:
+  model: gpt-5.2
+  approvalPolicy: on-request
+  sandbox: workspace-write
+  config:
+    model_reasoning_effort: high
+`,
+    );
+
+    const config = await loadResolvedConfig({}, root);
+
+    expect(config.childSession).toEqual({
+      cwdAbs: root,
+      model: 'gpt-5.2',
+      approvalPolicy: 'on-request',
+      sandbox: 'workspace-write',
+      config: { model_reasoning_effort: 'high' },
+    });
+    expect(config.codex.childSession).toBe(config.childSession);
+  });
+
+  it('accepts legacy codex childSession while preferring neutral childSession when both exist', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-child-alias-'));
+    await writeWorkflowConfig(
+      root,
+      `
+version: 1
+codex:
+  childSession:
+    model: legacy-model
+    approvalPolicy: never
+    sandbox: workspace-write
+    config:
+      raw: true
+      shared: legacy
+childSession:
+  model: neutral-model
+  approvalPolicy: on-request
+  config:
+    shared: neutral
+`,
+    );
+
+    const config = await loadResolvedConfig({}, root);
+
+    expect(config.childSession).toMatchObject({
+      cwdAbs: root,
+      model: 'neutral-model',
+      approvalPolicy: 'on-request',
+      sandbox: 'workspace-write',
+      config: {
+        raw: true,
+        shared: 'neutral',
+      },
+    });
+    expect(config.codex.childSession).toBe(config.childSession);
+  });
+
   it('resolves legacy childTimeoutMs as the no-progress timeout', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-legacy-timeout-'));
     await writeWorkflowConfig(

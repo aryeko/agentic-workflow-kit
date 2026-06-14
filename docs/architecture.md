@@ -135,6 +135,9 @@ The package MCP server exposes these tools over the shared handlers:
 | `workflow_run_report` | Generate `analysis.json` and `report.md` for a run through an explicit post-run report operation. |
 | `workflow_run_export` | Create a bounded shareable run artifact bundle without copying host transcript contents. |
 | `workflow_run_control` | Append a durable run control request and apply supported run-level controls. V1 supports abort. |
+| `workflow_child_reply` | Send an operator reply to a live child session through the configured driver. |
+| `workflow_child_interrupt` | Interrupt a live child session through the configured driver. |
+| `workflow_driver_check` | Validate the configured child-session driver schema before launching non-dry-run children. |
 | `list_tracks` | Discover tracker directories and active tracks. |
 | `list_stories` | Parse stories for one track or all active tracks. |
 | `list_eligible` | Return stories dispatchable after status, owner, and dependency filtering. |
@@ -144,10 +147,10 @@ The package MCP server exposes these tools over the shared handlers:
 | `watch_run_start` | Start nonblocking supervision and return the current summary plus a cursor. |
 | `watch_run_poll` | Poll with a previous cursor and return the latest summary plus changes since that cursor. |
 | `watch_run_stop` | Release a nonblocking watch id; cursor correctness remains client-side. |
-| `codex_reply` | Send an operator reply to a live Codex child by direct session id or `runPath` plus `storyId`. |
-| `codex_interrupt` | Interrupt a live Codex child by direct session id or `runPath` plus `storyId`. |
+| `codex_reply` | Compatibility alias for `workflow_child_reply` for the Codex MCP driver. |
+| `codex_interrupt` | Compatibility alias for `workflow_child_interrupt` for the Codex MCP driver. |
 | `analyze_run` | Analyze a completed run and its child session artifacts, including compatible interactive `implement-next` journals. |
-| `check_codex_mcp` | Validate the Codex child MCP server schema used by the `codex-mcp` driver. |
+| `check_codex_mcp` | Compatibility alias for `workflow_driver_check` for the Codex MCP driver. |
 
 `run_eligible` and `run_story` default to dry-run and never treat a child result, MCP success, or
 token metric as completion — the tracker row remains the only completion authority. Read tools are
@@ -174,8 +177,9 @@ The MCP server also returns concise server-level instructions during initializat
 instructions cover cross-tool workflow guidance: inspect tracks and eligibility before dispatch,
 operate on the target repo cwd, require explicit user approval before non-dry-run launches, treat
 tracker state as authoritative, use `watch_run_start` / `watch_run_poll` for long supervision, use
-`codex_reply` / `codex_interrupt` for deliberate live-child intervention, and inspect finished or
-blocked runs with `analyze_run`.
+`workflow_child_reply` / `workflow_child_interrupt` for deliberate live-child intervention
+(`codex_reply` / `codex_interrupt` remain compatibility aliases), and inspect finished or blocked
+runs with `analyze_run`.
 Tool-specific descriptions stay with the individual MCP tools. The Codex plugin uses
 `.codex-plugin/.mcp.json`; that `mcpServers` configuration starts
 `npx -y --package @agentic-workflow-kit/orchestrator@<exact-version> agentic-workflow-kit-mcp`.
@@ -187,11 +191,13 @@ Both surfaces carry the config layer above. They wire concrete implementations i
 depends only on interfaces (`StoryRunner`, `StorySource`, `ArtifactStore`, `Logger`, `Clock`). The
 runner resolves the configured `agents.bindings.implementStory` profile before launch, records the
 profile name/task type, prompt template, prompt hash, structured-output schema and required flag,
-and any driver capability downgrade in launch records and child result evidence. The only shipped
-driver is `codex-mcp`; the driver boundary is reserved so new drivers can be added without touching
-the tracker/config contract. _Roadmap:_ a future `orchestrator.driver: claude-agent-sdk` can
-dispatch child sessions through the Claude Agent SDK over this same boundary; today's
-plugin-provided autopilot still uses the `codex-mcp` child driver.
+and asks the driver for capability downgrades, child control, abort, error classification, and
+session-log discovery. The only shipped driver is `codex-mcp`; the driver boundary is reserved so
+new drivers can be added without touching the tracker/config contract. Child-session launch defaults
+live under neutral `childSession`; `codex.childSession` remains a compatibility alias for existing
+configs. _Roadmap:_ a future `orchestrator.driver: claude-agent-sdk` can dispatch child sessions
+through the Claude Agent SDK over this same boundary; today's plugin-provided autopilot still uses
+the `codex-mcp` child driver.
 
 Autonomous orchestrator runs write structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
@@ -218,9 +224,10 @@ the parent tracker claim/release behavior because there is no separate child wor
 Watch output is intentionally summary-first. The default non-JSON watch stream suppresses
 supervisor polls and tiny progress events, while snapshots expose per-story state, latest progress,
 session log path, branch/worktree expectations, command counts, subagent counts, and token totals.
-Raw event detail remains available in `events.ndjson` and JSON/debug output. `codex_reply` journals
-a message hash when run-targeted and omits the reply body; `codex_interrupt` journals the
-interruption metadata. Neither tool stores secret-bearing reply messages in run artifacts.
+Raw event detail remains available in `events.ndjson` and JSON/debug output. `workflow_child_reply`
+journals a message hash when run-targeted and omits the reply body; `workflow_child_interrupt`
+journals the interruption metadata. The Codex-named tools keep the same behavior as compatibility
+aliases. Neither tool stores secret-bearing reply messages in run artifacts.
 
 Child supervision is conservative. A launch-only child in a running parent is not considered
 `supervision_lost` while there is session linkage, a discoverable session log, recent observed child

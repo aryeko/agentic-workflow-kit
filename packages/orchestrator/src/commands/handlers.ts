@@ -10,9 +10,9 @@ import { resolveInvocationCwd } from '../cli/args.js';
 import { SystemClock } from '../clock/SystemClock.js';
 import { createRunId, loadResolvedConfig, resolveCwdOnlyConfig } from '../config/configLoader.js';
 import { CodexMcpStoryRunner, type CodexMcpStoryRunnerOptions } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
+import type { StoryRunner } from '../drivers/StoryRunner.js';
 import { RealGitInspector } from '../git/GitInspector.js';
 import { ConsoleLogger } from '../logging/ConsoleLogger.js';
-import { sendCodexInterrupt } from '../mcp/codexControl.js';
 import { WorkflowRunner } from '../runner/WorkflowRunner.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import {
@@ -136,6 +136,7 @@ export interface AbortRunInput {
   storyId?: string;
   reason?: string;
   requestedBy?: string;
+  controlRunner?: StoryRunner;
 }
 
 export type WorkflowRunEventTopic =
@@ -359,8 +360,9 @@ export async function trackerMigrateHandler(
 }
 
 export async function analyzeRunHandler(runPath: string, overrides: CliOverrides = {}): Promise<unknown> {
-  return await analyzeWorkflowRun(path.resolve(runPath), {
-    sessionRoots: resolveSessionRoots(overrides),
+  const resolvedRunPath = path.resolve(runPath);
+  return await analyzeWorkflowRun(resolvedRunPath, {
+    sessionRoots: await resolveSessionRoots(overrides, resolvedRunPath),
   });
 }
 
@@ -368,7 +370,7 @@ export async function runReportHandler(input: WorkflowRunReportInput = {}): Prom
   const runDirectory = await resolveRunDirectory(input);
   await assertRunExists(runDirectory);
   const analysis = await analyzeWorkflowRun(runDirectory, {
-    sessionRoots: resolveSessionRoots(input),
+    sessionRoots: await resolveSessionRoots(input, runDirectory),
   });
   const markdown = buildWorkflowRunReportMarkdown(analysis, runDirectory);
   const shouldWrite = input.write ?? true;
@@ -484,7 +486,12 @@ export async function abortRunHandler(input: AbortRunInput): Promise<RunControlR
     };
   }
 
-  const childOutcomes = await abortActiveChildren(runPath, activeStoryIds, request.reason);
+  const childOutcomes = await abortActiveChildren(
+    runPath,
+    activeStoryIds,
+    request.reason,
+    input.controlRunner ?? (await controlRunnerForRunPath(runPath)),
+  );
   const hasActiveChildren = activeStoryIds.length > 0;
   const appliedAt = new Date().toISOString();
   const outcome = controlOutcomeForChildren(hasActiveChildren, childOutcomes);
@@ -1198,9 +1205,20 @@ async function resolveRunDirectory(input: {
   return path.join(config.artifacts.runsDirAbs, runRef);
 }
 
-function resolveSessionRoots(input: CliOverrides): string[] | undefined {
-  if (!input.sessionRoot) return undefined;
-  return [path.resolve(resolveInvocationCwd(input), input.sessionRoot)];
+async function resolveSessionRoots(input: CliOverrides, runPath: string): Promise<string[] | undefined> {
+  if (input.sessionRoot) return [path.resolve(resolveInvocationCwd(input), input.sessionRoot)];
+  const workspaceRoot = await workspaceRootForRunPath(runPath);
+  return new CodexMcpStoryRunner(resolveCwdOnlyConfig(workspaceRoot)).discoverSessionLogs?.();
+}
+
+async function workspaceRootForRunPath(runPath: string): Promise<string> {
+  const runJson = await readJsonIfExists(path.join(runPath, 'run.json'));
+  const workspaceRoot = isObject(runJson) ? readOptionalString(runJson.workspaceRoot) : null;
+  if (workspaceRoot) return workspaceRoot;
+  const marker = `${path.sep}.codex${path.sep}agentic-workflow-kit${path.sep}runs${path.sep}`;
+  const index = runPath.indexOf(marker);
+  if (index > 0) return runPath.slice(0, index);
+  return process.cwd();
 }
 
 async function assertRunExists(runDirectory: string): Promise<void> {
@@ -1384,6 +1402,7 @@ async function abortActiveChildren(
   runPath: string,
   activeStoryIds: string[],
   reason: string | null,
+  controlRunner: StoryRunner,
 ): Promise<RunControlChildOutcome[]> {
   const outcomes: RunControlChildOutcome[] = [];
   for (const storyId of activeStoryIds) {
@@ -1394,12 +1413,16 @@ async function abortActiveChildren(
         storyId,
         sessionId: null,
         outcome: 'unsupported',
-        detail: 'active child has no linked Codex session',
+        detail: 'active child has no linked child session',
       });
       continue;
     }
     try {
-      const result = await sendCodexInterrupt({ sessionId, storyId, runPath, reason: reason ?? undefined });
+      const request = { kind: 'interrupt' as const, sessionId, storyId, runPath, reason: reason ?? undefined };
+      const result = controlRunner.abort
+        ? await controlRunner.abort(request)
+        : await controlRunner.controlChild?.(request);
+      if (!result) throw new Error('configured child driver does not support interrupt control');
       outcomes.push({
         storyId,
         sessionId,
@@ -1416,6 +1439,11 @@ async function abortActiveChildren(
     }
   }
   return outcomes;
+}
+
+async function controlRunnerForRunPath(runPath: string): Promise<StoryRunner> {
+  const workspaceRoot = await workspaceRootForRunPath(runPath);
+  return new CodexMcpStoryRunner(resolveCwdOnlyConfig(workspaceRoot));
 }
 
 function controlOutcomeForChildren(

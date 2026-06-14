@@ -4,6 +4,7 @@ import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
+import type { ChildControlRequest, ChildControlResult } from '../drivers/StoryRunner.js';
 import { isRecord, safeName } from '../internal/guards.js';
 
 const REPLY_TOOL_CANDIDATES = ['codex_reply', 'codex-reply', 'reply', 'codex_continue', 'continue'];
@@ -38,7 +39,7 @@ export interface CodexControlResult {
   rawResult: unknown;
 }
 
-export async function resolveCodexControlTarget(input: CodexControlTargetInput): Promise<CodexControlTarget> {
+export async function resolveChildControlTarget(input: CodexControlTargetInput): Promise<CodexControlTarget> {
   if (input.sessionId && input.sessionId.trim().length > 0) {
     return {
       sessionId: input.sessionId,
@@ -62,29 +63,42 @@ export async function resolveCodexControlTarget(input: CodexControlTargetInput):
   return { sessionId: launch.sessionId, storyId, runPath };
 }
 
-export async function sendCodexReply(input: CodexReplyInput): Promise<CodexControlResult> {
-  const target = await resolveCodexControlTarget(input);
+export const resolveCodexControlTarget = resolveChildControlTarget;
+
+export async function sendChildReply(input: CodexReplyInput): Promise<CodexControlResult> {
+  const target = await resolveChildControlTarget(input);
   const result = await callCodexControlTool(REPLY_TOOL_CANDIDATES, {
     sessionId: target.sessionId,
     threadId: target.sessionId,
     message: input.message,
   });
-  await journalControlEvent(target, 'codex-reply-sent', codexReplyJournalFields(input.message, result.tool));
+  await journalControlEvent(target, 'child-reply-sent', childReplyJournalFields(input.message, result.tool));
   return { ok: true, ...target, tool: result.tool, rawResult: result.rawResult };
 }
 
-export async function sendCodexInterrupt(input: CodexInterruptInput): Promise<CodexControlResult> {
-  const target = await resolveCodexControlTarget(input);
+export async function sendChildInterrupt(input: CodexInterruptInput): Promise<CodexControlResult> {
+  const target = await resolveChildControlTarget(input);
   const result = await callCodexControlTool(INTERRUPT_TOOL_CANDIDATES, {
     sessionId: target.sessionId,
     threadId: target.sessionId,
     reason: input.reason ?? null,
   });
-  await journalControlEvent(target, 'codex-interrupt-sent', {
+  await journalControlEvent(target, 'child-interrupt-sent', {
     reason: input.reason ?? null,
     tool: result.tool,
   });
   return { ok: true, ...target, tool: result.tool, rawResult: result.rawResult };
+}
+
+export const sendCodexReply = sendChildReply;
+export const sendCodexInterrupt = sendChildInterrupt;
+
+export async function controlChild(input: ChildControlRequest): Promise<ChildControlResult> {
+  if (input.kind === 'reply') {
+    if (!input.message) throw new Error('child reply requires message');
+    return await sendChildReply(input as CodexReplyInput);
+  }
+  return await sendChildInterrupt(input as CodexInterruptInput);
 }
 
 async function callCodexControlTool(
@@ -120,7 +134,7 @@ async function callCodexControlTool(
 
 async function journalControlEvent(
   target: CodexControlTarget,
-  type: 'codex-reply-sent' | 'codex-interrupt-sent',
+  type: 'child-reply-sent' | 'child-interrupt-sent',
   fields: Record<string, unknown>,
 ): Promise<void> {
   if (!target.runPath) return;
@@ -141,6 +155,10 @@ function sha256(value: string): string {
 }
 
 export function codexReplyJournalFields(message: string, tool: string): Record<string, unknown> {
+  return childReplyJournalFields(message, tool);
+}
+
+export function childReplyJournalFields(message: string, tool: string): Record<string, unknown> {
   return {
     messageSha256: sha256(message),
     tool,

@@ -9,6 +9,31 @@ import type {
 
 export type { ChildProgressSource } from '../types.js';
 
+export type ChildControlKind = 'reply' | 'interrupt';
+
+export interface ChildControlRequest {
+  kind: ChildControlKind;
+  sessionId?: string;
+  runPath?: string;
+  storyId?: string;
+  message?: string;
+  reason?: string;
+}
+
+export interface ChildControlResult {
+  ok: true;
+  tool: string;
+  sessionId: string;
+  storyId: string | null;
+  runPath: string | null;
+  rawResult: unknown;
+}
+
+export interface DriverErrorClassification {
+  supervisionLost: boolean;
+  recoverable: boolean;
+}
+
 export type ChildLifecycleEvent =
   | {
       type: 'session-linked';
@@ -62,4 +87,9 @@ export interface DriverToolStatus {
 export interface StoryRunner {
   runStory(request: StoryRunRequest): Promise<StoryRunResult>;
   checkTools(): Promise<DriverToolStatus>;
+  controlChild?(request: ChildControlRequest): Promise<ChildControlResult>;
+  abort?(request: ChildControlRequest): Promise<ChildControlResult>;
+  classifyError?(error: unknown): DriverErrorClassification;
+  describeCapabilityDowngrades?(promptMetadata?: StoryPromptMetadata): CapabilityDowngrade[];
+  discoverSessionLogs?(): Promise<string[]> | string[];
 }

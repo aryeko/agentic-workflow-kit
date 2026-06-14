@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveCwdOnlyConfig } from '../src/config/configLoader';
 import { buildCodexToolInput, buildGenericPrompt } from '../src/drivers/codex-mcp/toolInput';
+import { renderStoryImplementerPrompt } from '../src/drivers/promptRenderer';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../src/types';
 
 const config: ResolvedWorkflowConfig = {
@@ -58,11 +59,8 @@ const config: ResolvedWorkflowConfig = {
     childStartupTimeoutMs: 60_000,
     childMaxRuntimeMs: 7_200_000,
   },
-  codex: {
-    childSession: {
-      cwdAbs: '/repo',
-    },
-  },
+  childSession: { cwdAbs: '/repo' },
+  codex: { childSession: { cwdAbs: '/repo' } },
 };
 
 const story: WorkflowStory = {
@@ -85,6 +83,16 @@ const story: WorkflowStory = {
 };
 
 describe('buildGenericPrompt', () => {
+  it('uses the host-neutral story prompt renderer without Codex-only tool names', () => {
+    const prompt = renderStoryImplementerPrompt(story, config);
+
+    expect(buildGenericPrompt(story, config)).toBe(prompt);
+    expect(prompt).not.toContain('@codex');
+    expect(prompt).not.toContain('codex_reply');
+    expect(prompt).not.toContain('codex_interrupt');
+    expect(prompt).not.toContain('check_codex_mcp');
+  });
+
   it('builds a one-story prompt with tracker context and completion rules', () => {
     const prompt = buildGenericPrompt(story, config);
     expect(prompt).toContain('Implement exactly one workflow tracker story');
@@ -117,21 +125,21 @@ describe('buildGenericPrompt', () => {
     expect(prompt).toContain('Committing directly on `main` is allowed by this repo policy.');
   });
 
-  it('describes Codex bot review as reaction/comment based rather than native GitHub approval based', () => {
+  it('describes bot review as reaction/comment based rather than native GitHub approval based', () => {
     const prompt = buildGenericPrompt(story, config);
 
     expect(prompt).toContain('PR policy (from .workflow/config.yaml - follow exactly):');
     expect(prompt).toContain('- Review gate: wait for bot `codex`.');
-    expect(prompt).toContain('Codex review signal is reaction/comment based, not a native GitHub approval gate.');
+    expect(prompt).toContain('Bot review signal is reaction/comment based, not a native GitHub approval gate.');
     expect(prompt).toContain('Check PR body reactions, issue comments, and PR review comments');
     expect(prompt).toContain('A +1 reaction from bot `codex` means approval');
     expect(prompt).toContain('An eyes reaction from bot `codex` means review is pending');
     expect(prompt).toContain('PR review comments or PR comments are findings');
     expect(prompt).toContain(
-      'Do not require a GitHub PullRequestReview APPROVED or CHANGES_REQUESTED state from Codex.',
+      'Do not require a GitHub PullRequestReview APPROVED or CHANGES_REQUESTED state from the review bot.',
     );
-    expect(prompt).toContain('Do not re-request Codex review after a +1 reaction has been observed.');
-    expect(prompt).toContain('Do not mention @codex unless auto review failed to start or a manual retry is needed.');
+    expect(prompt).toContain('Do not re-request review after a +1 reaction has been observed.');
+    expect(prompt).not.toContain('@codex');
     expect(prompt).toContain('Final evidence MUST include the PR URL and PR number.');
     expect(prompt).toContain('Final evidence MUST include CI/check evidence');
     expect(prompt).toContain('Final evidence MUST include bot review evidence');
@@ -166,13 +174,13 @@ describe('buildGenericPrompt', () => {
     );
     expect(prompt).toContain('configured base branch');
     expect(prompt).not.toContain('needs-create/expected');
-    expect(prompt).toContain('Validate `spawn_agent` payloads before calling');
+    expect(prompt).toContain('Validate reviewer payloads before calling');
     expect(prompt).toContain('product docs, architecture docs, story brief, spec, and plan');
     expect(prompt).toContain('correctness, code quality, and spec compliance');
     expect(prompt).toContain('If Browser rendered verification is unavailable');
     expect(prompt).toContain('fall back to repo Playwright/e2e gates');
     expect(prompt).toContain('record the rendered-verification downgrade reason and evidence');
-    expect(prompt).toContain('Do not re-request Codex review after fix batches when rerequestAfterFix is false');
+    expect(prompt).toContain('Do not re-request review after fix batches when rerequestAfterFix is false');
   });
 });
 
@@ -313,6 +321,7 @@ describe('buildCodexToolInput', () => {
       {
         ...config,
         workspace: { rootAbs: '/workspace/myproject' },
+        childSession: { cwdAbs: '/workspace/myproject' },
         codex: { childSession: { cwdAbs: '/workspace/myproject' } },
       },
       story,

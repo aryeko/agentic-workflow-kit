@@ -29,6 +29,8 @@ import {
   watchRunHandler,
 } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
+import { CodexMcpStoryRunner } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
+import type { ChildControlRequest, ChildControlResult } from '../drivers/StoryRunner.js';
 import type { CliOverrides, Logger, RunState } from '../types.js';
 import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 
@@ -41,6 +43,9 @@ export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_run_report',
   'workflow_run_export',
   'workflow_run_control',
+  'workflow_child_reply',
+  'workflow_child_interrupt',
+  'workflow_driver_check',
   'workflow_tracker_validate',
   'workflow_tracker_migrate',
   'list_tracks',
@@ -236,26 +241,18 @@ const watchRunStopInputSchema = z.object({
     .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
 
-const codexReplyInputSchema = z.object({
-  sessionId: z.string().optional().describe('Direct Codex session/thread id to reply to.'),
+const childControlBaseInputSchema = productBaseInputSchema.extend({
+  sessionId: z.string().optional().describe('Direct child session/thread id to control.'),
   runPath: z.string().optional().describe('Run artifact directory used with storyId to resolve a child session.'),
   storyId: z.string().optional().describe('Story id used with runPath to resolve children/<story>.launch.json.'),
-  message: z.string().min(1).describe('Reply message to send to the live Codex child session.'),
-  responseFormat: z
-    .enum(['concise', 'detailed'])
-    .optional()
-    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
 
-const codexInterruptInputSchema = z.object({
-  sessionId: z.string().optional().describe('Direct Codex session/thread id to interrupt.'),
-  runPath: z.string().optional().describe('Run artifact directory used with storyId to resolve a child session.'),
-  storyId: z.string().optional().describe('Story id used with runPath to resolve children/<story>.launch.json.'),
+const codexReplyInputSchema = childControlBaseInputSchema.extend({
+  message: z.string().min(1).describe('Reply message to send to the live Codex child session.'),
+});
+
+const codexInterruptInputSchema = childControlBaseInputSchema.extend({
   reason: z.string().optional().describe('Optional operator-facing reason for interrupting the child session.'),
-  responseFormat: z
-    .enum(['concise', 'detailed'])
-    .optional()
-    .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
 });
 
 const outputSchema = z
@@ -607,6 +604,51 @@ export function registerOrchestratorTools(server: McpServer): void {
   );
 
   server.registerTool(
+    'workflow_child_reply',
+    {
+      description:
+        'Send an operator reply to a live child session through the configured driver. Target either sessionId directly or runPath plus storyId; run-targeted replies are journaled with a redacted preview and hash.',
+      inputSchema: codexReplyInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    async (input) =>
+      handleTool('workflow_child_reply', input.responseFormat, () =>
+        controlConfiguredChild(input, { kind: 'reply', message: input.message }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_child_interrupt',
+    {
+      description:
+        'Interrupt a live child session through the configured driver. Target either sessionId directly or runPath plus storyId; run-targeted interrupts are journaled.',
+      inputSchema: codexInterruptInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    async (input) =>
+      handleTool('workflow_child_interrupt', input.responseFormat, () =>
+        controlConfiguredChild(input, { kind: 'interrupt', reason: input.reason }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_driver_check',
+    {
+      description: 'Validate the configured child-session driver schema before launching non-dry-run children.',
+      inputSchema: baseInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_driver_check', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return mcpCheckHandler(toOverrides(input), { logger: nullLogger });
+      }),
+  );
+
+  server.registerTool(
     'codex_reply',
     {
       description:
@@ -730,6 +772,34 @@ function assertWorkflowRepoContext(input: { cwd?: string; configPath?: string })
   throw new Error(
     `Target repo cwd is required for agentic-workflow-kit MCP tools when the session is not running from a workflow repo. Pass cwd as the target repository root. Checked: ${implicitCwd}`,
   );
+}
+
+async function controlConfiguredChild(
+  input: { cwd?: string; configPath?: string; sessionId?: string; runPath?: string; storyId?: string },
+  request: Pick<ChildControlRequest, 'kind' | 'message' | 'reason'>,
+): Promise<ChildControlResult> {
+  const cwd = resolveChildControlCwd(input);
+  const config = await loadResolvedConfig(toOverrides(input), cwd);
+  const runner = new CodexMcpStoryRunner(config);
+  const result = await runner.controlChild?.({
+    ...request,
+    sessionId: input.sessionId,
+    runPath: input.runPath,
+    storyId: input.storyId,
+  });
+  if (!result) throw new Error('configured child driver does not support child control');
+  return result;
+}
+
+function resolveChildControlCwd(input: { cwd?: string; configPath?: string; runPath?: string }): string {
+  if (input.cwd !== undefined || input.configPath !== undefined) return resolveInvocationCwd(input);
+  if (input.runPath !== undefined) {
+    const runPath = path.resolve(input.runPath);
+    const marker = `${path.sep}.codex${path.sep}agentic-workflow-kit${path.sep}runs${path.sep}`;
+    const markerIndex = runPath.indexOf(marker);
+    if (markerIndex > 0) return runPath.slice(0, markerIndex);
+  }
+  return resolveInvocationCwd(input);
 }
 
 function toOverrides(input: {

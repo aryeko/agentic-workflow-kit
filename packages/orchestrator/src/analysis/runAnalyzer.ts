@@ -1,6 +1,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-
+import { defaultSessionLogRoots } from '../drivers/sessionLogs.js';
 import { isNodeError, isRecord } from '../internal/guards.js';
 import { addTokenTotals, emptyTokenTotals, mergeCounts } from '../metrics/aggregate.js';
 import {
@@ -1366,8 +1366,7 @@ function isStale(eventAt: string, now: string, staleThresholdMs: number): boolea
 }
 
 function defaultSessionRoots(): string[] {
-  const home = process.env.HOME;
-  return home ? [path.join(home, '.codex', 'sessions'), path.join(home, '.codex', 'archived_sessions')] : [];
+  return defaultSessionLogRoots();
 }
 
 async function readJsonObject(filePath: string): Promise<Record<string, unknown>> {

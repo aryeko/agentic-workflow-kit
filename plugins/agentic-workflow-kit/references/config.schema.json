@@ -393,6 +393,80 @@
       },
       "additionalProperties": false
     },
+    "childSession": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvalPolicy": {
+          "type": "string",
+          "enum": [
+            "never",
+            "on-failure",
+            "on-request",
+            "untrusted"
+          ]
+        },
+        "sandbox": {
+          "type": "string",
+          "enum": [
+            "danger-full-access",
+            "read-only",
+            "workspace-write"
+          ]
+        },
+        "config": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "codex": {
+      "type": "object",
+      "properties": {
+        "childSession": {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "approvalPolicy": {
+              "type": "string",
+              "enum": [
+                "never",
+                "on-failure",
+                "on-request",
+                "untrusted"
+              ]
+            },
+            "sandbox": {
+              "type": "string",
+              "enum": [
+                "danger-full-access",
+                "read-only",
+                "workspace-write"
+              ]
+            },
+            "config": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "agents": {
       "type": "object",
       "properties": {

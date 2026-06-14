@@ -5,10 +5,15 @@ import pRetry, { AbortError } from 'p-retry';
 import pTimeout from 'p-timeout';
 
 import { isRecord } from '../../internal/guards.js';
+import { controlChild } from '../../mcp/codexControl.js';
 import type { ChildResultEvidence, ResolvedWorkflowConfig } from '../../types.js';
 import type {
+  ChildControlRequest,
+  ChildControlResult,
   ChildProgressSource,
+  DriverErrorClassification,
   DriverToolStatus,
+  StoryPromptMetadata,
   StoryRunner,
   StoryRunRequest,
   StoryRunResult,
@@ -16,6 +21,7 @@ import type {
 import { codexProgressMessage, parseCodexEventNotification } from './codexEvents.js';
 import { childResultEvidence } from './evidenceParser.js';
 import { type McpTool, validateCodexToolSchemas } from './schemaValidation.js';
+import { codexSessionLogRoots } from './sessionLogs.js';
 import { buildCodexToolInput, codexDriverCapabilityDowngrades } from './toolInput.js';
 
 const VERSION = '0.1.0';
@@ -169,6 +175,32 @@ export class CodexMcpStoryRunner implements StoryRunner {
       validateCodexToolSchemas(tools);
       return { ok: true, tools: tools.map((tool) => tool.name) };
     });
+  }
+
+  async controlChild(request: ChildControlRequest): Promise<ChildControlResult> {
+    return await controlChild(request);
+  }
+
+  async abort(request: ChildControlRequest): Promise<ChildControlResult> {
+    return await controlChild({ ...request, kind: 'interrupt' });
+  }
+
+  classifyError(error: unknown): DriverErrorClassification {
+    const message = error instanceof Error ? error.message : String(error);
+    const supervisionLost = /child-(?:no-progress|max-runtime)-timeout|child-timeout|Codex MCP request timed out/i.test(
+      message,
+    );
+    return { supervisionLost, recoverable: supervisionLost };
+  }
+
+  describeCapabilityDowngrades(
+    promptMetadata?: StoryPromptMetadata,
+  ): ReturnType<typeof codexDriverCapabilityDowngrades> {
+    return codexDriverCapabilityDowngrades(promptMetadata);
+  }
+
+  discoverSessionLogs(): string[] {
+    return codexSessionLogRoots();
   }
 
   private async withClient<T>(operation: (client: Client) => Promise<T>): Promise<T> {
