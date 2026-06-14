@@ -38,13 +38,18 @@ not implementation-ready; create a detailed technical story spec before plan/cod
 | Dependency | Reason |
 | --- | --- |
 | AWK13 | Release notes and version handoff must reflect canonical docs after final consolidation. |
+| AWK13.6 | Release must not ship until the test-trust and coverage hardening lands. |
+| AWK13.7 | Release notes and docs must reflect the post-hardening behavior (approval default, GitHub verification) and corrected version/security facts. |
 
 ## Execution guidance
 
-- This story is intentionally deferred from autopilot. After AWK13 is complete, run AWK14 manually
-  by changing the tracker status back to `specced`/`plan-approved` or by force-running the story.
-- Do not start release-readiness work until AWK13 has produced verified canonical docs and consumed
-  or intentionally preserved transient specs/plans.
+- This story is intentionally deferred from autopilot. After AWK13.1–AWK13.7 are complete, run AWK14
+  manually by changing the tracker status back to `specced`/`plan-approved` or by force-running the
+  story.
+- Do not start release-readiness work until the release-hardening stories (AWK13.1–AWK13.7) have
+  landed and the release-readiness review's blockers are resolved.
+- The redesign now ships real code changes from AWK13.1–AWK13.7; reflect that in the changeset and
+  semver decision (likely a minor bump, confirm against actual API compatibility).
 
 ## Scope boundary
 

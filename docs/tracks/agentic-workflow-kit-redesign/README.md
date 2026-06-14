@@ -34,6 +34,12 @@ and canonical docs to be updated before release.
 This tracker covers story order, dependencies, and safe parallelism. Per-story delivery context
 lives in each story brief; detailed technical story specs and implementation plans come later.
 
+After AWK13, a deep [release-readiness review](./release-readiness-review.md) found that the track is
+not yet ready to ship. The remediation is sequenced as stories **AWK13.1–AWK13.7** (see the
+[release-hardening design](../../prds/agentic-workflow-kit-redesign/release-hardening-design.md)),
+inserted between AWK13 and AWK14; they **block AWK14**, which remains the final release-readiness
+story.
+
 ## Dependency graph
 
 ```mermaid
@@ -52,6 +58,13 @@ flowchart TD
   AWK11[AWK11 GitHub evidence hardening]
   AWK12[AWK12 Plugin package compatibility]
   AWK13[AWK13 Canonical docs consolidation]
+  AWK131[AWK13.1 Provider-neutral driver boundary]
+  AWK132[AWK13.2 GitHub verification and recovery]
+  AWK133[AWK13.3 Run-state durability and concurrency]
+  AWK134[AWK13.4 Conservative defaults and API fidelity]
+  AWK135[AWK13.5 Module decomposition]
+  AWK136[AWK13.6 Test trust and coverage ratchet]
+  AWK137[AWK13.7 Stale docs and DevX hygiene]
   AWK14[AWK14 Changeset and release readiness]
 
   AWK01 --> AWK02
@@ -75,7 +88,17 @@ flowchart TD
   AWK10 --> AWK12
   AWK11 --> AWK12
   AWK12 --> AWK13
-  AWK13 --> AWK14
+  AWK13 --> AWK131
+  AWK131 --> AWK132
+  AWK131 --> AWK134
+  AWK132 --> AWK133
+  AWK132 --> AWK135
+  AWK133 --> AWK135
+  AWK134 --> AWK135
+  AWK135 --> AWK136
+  AWK135 --> AWK137
+  AWK136 --> AWK14
+  AWK137 --> AWK14
 ```
 
 **Reading the graph:** every solid arrow is a hard dependency. The source story must be in a
@@ -104,7 +127,14 @@ Statuses come from `references/tracker-contract.md`:
 | AWK11 | GitHub evidence hardening | AWK08 | W5 | done | [brief](./stories/AWK11.md) | — | codex-2026-06-13T23-54-50Z | [#66](https://github.com/aryeko/agentic-workflow-kit/pull/66) |
 | AWK12 | Plugin package compatibility | AWK09, AWK10, AWK11 | W6 | done | [brief](./stories/AWK12.md) | — | codex-2026-06-14T02-16-42Z | [#69](https://github.com/aryeko/agentic-workflow-kit/pull/69) |
 | AWK13 | Canonical docs consolidation | AWK12 | W7 | done | [brief](./stories/AWK13.md) | — | codex-2026-06-14T02-55-42Z | [#70](https://github.com/aryeko/agentic-workflow-kit/pull/70) |
-| AWK14 | Changeset and release readiness | AWK13 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
+| AWK131 | AWK13.1 Provider-neutral driver boundary | AWK13 | W7.1 | specced | [brief](./stories/AWK131.md) | — | — | — |
+| AWK132 | AWK13.2 GitHub verification and recovery | AWK131 | W7.2 | specced | [brief](./stories/AWK132.md) | — | — | — |
+| AWK133 | AWK13.3 Run-state durability and concurrency | AWK132 | W7.3 | specced | [brief](./stories/AWK133.md) | — | — | — |
+| AWK134 | AWK13.4 Conservative defaults and API fidelity | AWK131 | W7.2 | specced | [brief](./stories/AWK134.md) | — | — | — |
+| AWK135 | AWK13.5 Module decomposition | AWK132, AWK133, AWK134 | W7.4 | specced | [brief](./stories/AWK135.md) | — | — | — |
+| AWK136 | AWK13.6 Test trust and coverage ratchet | AWK135 | W7.5 | specced | [brief](./stories/AWK136.md) | — | — | — |
+| AWK137 | AWK13.7 Stale docs and DevX hygiene | AWK135 | W7.5 | specced | [brief](./stories/AWK137.md) | — | — | — |
+| AWK14 | Changeset and release readiness | AWK136, AWK137 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
 plan after creating the detailed technical story spec. Each story maps to one or more PRD
@@ -145,10 +175,23 @@ AWK13 is intentionally `deferred` so autopilot does not launch it; run it manual
 after AWK12 is complete by changing its status back to `specced`/`plan-approved` or by force-running
 that story.
 
-**Wave 8 — Release readiness (sequential):** AWK14 runs last. It creates the consolidated changeset
-and release handoff after docs are canonical. AWK14 is intentionally `deferred` so autopilot cannot
-launch release-readiness work accidentally; run it manually after AWK13 is complete by changing its
-status back to `specced`/`plan-approved` or by force-running that story.
+**Waves 7.1–7.5 — Release hardening (mostly sequential):** AWK13.1–AWK13.7 remediate the gaps found
+in the [release-readiness review](./release-readiness-review.md); the fix design is in
+[release-hardening-design](../../prds/agentic-workflow-kit-redesign/release-hardening-design.md).
+These stories are `specced` (eligible), not `deferred` — they are the next real implementation work.
+W7.1: AWK13.1 (neutral driver boundary) lands first because later fixes ride its seams. W7.2: AWK13.2
+(GitHub verification) and AWK13.4 (safety defaults + API fidelity) both depend only on AWK13.1 and
+may run up to 2-way parallel, but both touch `WorkflowRunner`/handlers, so coordinate. W7.3: AWK13.3
+(run-state durability) follows AWK13.2 on the settled runner shape. W7.4: AWK13.5 (module
+decomposition) lands after the behavioral fixes so it reshapes their final form — run it alone.
+W7.5: AWK13.6 (test trust) and AWK13.7 (docs/DevX hygiene) depend on AWK13.5 and may run 2-way
+parallel; both gate AWK14.
+
+**Wave 8 — Release readiness (sequential):** AWK14 runs last and is blocked by AWK13.6 and AWK13.7.
+It creates the consolidated changeset and release handoff after docs are canonical and the hardening
+stories land. AWK14 is intentionally `deferred` so autopilot cannot launch release-readiness work
+accidentally; run it manually after AWK13.1–AWK13.7 are complete by changing its status back to
+`specced`/`plan-approved` or by force-running that story.
 
 ## ID-prefix registry
 
@@ -189,6 +232,8 @@ reused by another track.
 
 - [PRD](../../prds/agentic-workflow-kit-redesign/README.md)
 - [Technical solution](../../prds/agentic-workflow-kit-redesign/technical-solution.md)
+- [Release-readiness review](./release-readiness-review.md)
+- [Release-hardening design](../../prds/agentic-workflow-kit-redesign/release-hardening-design.md)
 - [Repo architecture](../../architecture.md)
 - [Repo instructions](../../../AGENTS.md)
 - `./stories/` — story briefs
