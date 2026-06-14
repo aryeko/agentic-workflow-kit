@@ -264,15 +264,22 @@ describe('agentic-workflow-kit MCP server', () => {
   it('exposes product run status, stream, and inspect tools', async () => {
     const { root, runPath } = await createProductRun();
     const { client, server } = await connectClient();
+    const progress: unknown[] = [];
 
     const status = await client.callTool({
       name: 'workflow_run_status',
       arguments: { cwd: root, runId: 'run-1', limit: 1 },
     });
-    const stream = await client.callTool({
-      name: 'workflow_run_stream',
-      arguments: { cwd: root, runId: 'run-1', limit: 2, timeoutMs: 1 },
-    });
+    const stream = await client.callTool(
+      {
+        name: 'workflow_run_stream',
+        arguments: { cwd: root, runId: 'run-1', limit: 2, timeoutMs: 1 },
+      },
+      undefined,
+      {
+        onprogress: (value) => progress.push(value),
+      },
+    );
     const inspect = await client.callTool({
       name: 'workflow_run_inspect',
       arguments: { runPath },
@@ -293,6 +300,10 @@ describe('agentic-workflow-kit MCP server', () => {
       operation: 'workflow_run_stream',
       result: { runId: 'run-1', terminal: true, eventsDelivered: 2 },
     });
+    expect(progress).toEqual(
+      expect.arrayContaining([expect.objectContaining({ message: expect.any(String), progress: expect.any(Number) })]),
+    );
+    expect(progress.at(-1)).toMatchObject({ progress: 2 });
     expect(inspect.structuredContent).toMatchObject({
       ok: true,
       operation: 'workflow_run_inspect',
@@ -306,6 +317,27 @@ describe('agentic-workflow-kit MCP server', () => {
     await server.close();
   });
 
+  it('returns RUN_NOT_FOUND envelopes for missing product run refs', async () => {
+    const root = await createWorkspace();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'workflow_run_status',
+      arguments: { cwd: root, runId: 'missing-run' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_status',
+      error: {
+        code: 'RUN_NOT_FOUND',
+        message: expect.stringContaining('run not found'),
+      },
+    });
+    await client.close();
+    await server.close();
+  });
+
   it('exposes bounded read-only workflow resources', async () => {
     const { root } = await createProductRun();
     const { client, server } = await connectClient();
@@ -313,6 +345,7 @@ describe('agentic-workflow-kit MCP server', () => {
 
     const resources = await client.listResources();
     const state = await client.readResource({ uri: 'workflow://runs/run-1/state' });
+    const config = await client.readResource({ uri: 'workflow://config/resolved' });
 
     expect(resources.resources.map((resource) => resource.uri)).toEqual(
       expect.arrayContaining(['workflow://project/context', 'workflow://config/resolved', 'workflow://tracks']),
@@ -322,6 +355,10 @@ describe('agentic-workflow-kit MCP server', () => {
       ok: true,
       operation: 'workflow_run_status',
       result: { runId: 'run-1' },
+    });
+    expect(JSON.parse('text' in config.contents[0] ? config.contents[0].text : '')).toMatchObject({
+      version: 1,
+      statuses: { inProgress: 'implementing' },
     });
     await client.close();
     await server.close();

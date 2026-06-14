@@ -12,6 +12,7 @@ import {
   trackerMigrateFacade,
   trackerValidateFacade,
 } from '../api/facade.js';
+import { resolveInvocationCwd } from '../cli/args.js';
 import {
   abortRunHandler,
   analyzeRunHandler,
@@ -25,6 +26,7 @@ import {
   stopWatchRunHandler,
   watchRunHandler,
 } from '../commands/handlers.js';
+import { loadResolvedConfig } from '../config/configLoader.js';
 import type { CliOverrides, Logger, RunState } from '../types.js';
 import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 
@@ -626,10 +628,7 @@ function registerWorkflowResources(server: McpServer): void {
     'workflow-config-resolved',
     'workflow://config/resolved',
     { mimeType: 'application/json', description: 'Resolved WorkflowKit config with defaults.' },
-    async (uri) => {
-      const project = await projectInspectFacade({});
-      return resourceJson(uri, project.ok ? project.project : project);
-    },
+    async (uri) => resourceJson(uri, await loadResolvedConfig({}, resolveInvocationCwd({}))),
   );
   server.registerResource(
     'workflow-tracks',

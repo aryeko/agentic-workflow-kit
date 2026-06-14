@@ -446,6 +446,7 @@ export async function abortRunHandler(input: AbortRunInput): Promise<RunControlR
 
 export async function runStatusHandler(input: WorkflowRunStatusInput = {}): Promise<WorkflowRunStatusResult> {
   const runDirectory = await resolveRunDirectory(input);
+  await assertRunExists(runDirectory);
   const [state, metrics, controls, events] = await Promise.all([
     readJsonIfExists(path.join(runDirectory, 'state.json')),
     readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
@@ -474,6 +475,7 @@ export async function runStatusHandler(input: WorkflowRunStatusInput = {}): Prom
 
 export async function runStreamHandler(input: WorkflowRunStreamInput = {}): Promise<WorkflowRunStreamResult> {
   const runDirectory = await resolveRunDirectory(input);
+  await assertRunExists(runDirectory);
   const subscription = input.subscription ?? {};
   const limit = boundedLimit(subscription.replay?.lastEvents ?? subscription.limit ?? input.limit ?? 20);
   const timeoutMs = positiveIntegerOrDefault(subscription.timeoutMs ?? input.timeoutMs, 300_000);
@@ -528,6 +530,7 @@ export async function runStreamHandler(input: WorkflowRunStreamInput = {}): Prom
 
 export async function runInspectHandler(input: WorkflowRunInspectInput = {}): Promise<WorkflowRunInspectResult> {
   const runDirectory = await resolveRunDirectory(input);
+  await assertRunExists(runDirectory);
   const [state, metrics, artifacts, children, events] = await Promise.all([
     readJsonIfExists(path.join(runDirectory, 'state.json')),
     readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
@@ -1112,6 +1115,14 @@ async function resolveRunDirectory(input: {
   const cwd = resolveInvocationCwd(input);
   const config = await loadResolvedConfig(input, cwd);
   return path.join(config.artifacts.runsDirAbs, runRef);
+}
+
+async function assertRunExists(runDirectory: string): Promise<void> {
+  const directory = await statIfExists(runDirectory);
+  const state = await statIfExists(path.join(runDirectory, 'state.json'));
+  if (directory === null || state === null) {
+    throw new Error(`run not found: ${runDirectory}`);
+  }
 }
 
 async function readControlsIfExists(runDirectory: string): Promise<RunControlRequest[]> {
