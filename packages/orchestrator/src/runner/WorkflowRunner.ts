@@ -1,6 +1,6 @@
 import path from 'node:path';
 import pLimit from 'p-limit';
-
+import type { CollaborationInspector } from '../collaboration/CollaborationInspector.js';
 import { renderStoryImplementerPrompt } from '../drivers/promptRenderer.js';
 import type {
   ChildLifecycleEvent,
@@ -41,6 +41,7 @@ export interface WorkflowRunnerDependencies {
   config: ResolvedWorkflowConfig;
   storySource: StorySource;
   storyRunner: StoryRunner;
+  collaborationInspector?: CollaborationInspector;
   gitInspector: GitInspector;
   artifactStore: ArtifactStore;
   logger: Logger;
@@ -84,6 +85,7 @@ export class WorkflowRunner {
       pr: dependencies.config.pr,
       tracker: dependencies.config.tracker,
       childCwdAbs: dependencies.config.childSession.cwdAbs,
+      collaborationInspector: dependencies.collaborationInspector,
     });
     this.state = {
       runId: dependencies.runId,
@@ -822,6 +824,7 @@ export class WorkflowRunner {
     const settledWithEvidence = {
       ...settled,
       ...(evaluation.commitEvidence ? { commitEvidence: evaluation.commitEvidence } : {}),
+      ...(evaluation.collaborationEvidence ? { collaborationEvidence: evaluation.collaborationEvidence } : {}),
       completionAuthority: evaluation.authority,
       completionAuthoritySource: evaluation.source,
     };
@@ -830,6 +833,9 @@ export class WorkflowRunner {
       authority: evaluation.authority,
       source: evaluation.source,
       complete: evaluation.complete,
+      collaborationVerified: evaluation.collaborationEvidence?.verified ?? false,
+      collaborationAvailable: evaluation.collaborationEvidence?.available ?? false,
+      collaborationMissingSignal: evaluation.collaborationEvidence?.missingSignal ?? null,
     });
     await this.recordSettledChild(settledWithEvidence, evaluation.returnedStory, evaluation.complete);
     return evaluation;
@@ -857,6 +863,7 @@ export class WorkflowRunner {
         cwdAbs: launch.childCwd,
         baseShaAtLaunch: launch.baseShaAtLaunch,
       });
+      const collaborationRecovery = await this.inspectRecoveryCollaboration(story, launch);
       const result = evaluateRecoveryGuard({
         storyId: story.id,
         now: this.dependencies.clock.now(),
@@ -867,11 +874,11 @@ export class WorkflowRunner {
         },
         git: {
           expectedBranch: launch.expectedBranch,
-          remoteBranchExists: null,
+          remoteBranchExists: collaborationRecovery.remoteBranchExists,
           latestCommitSha: evidence.headSha,
           worktreeClean: !evidence.uncommittedChanges,
         },
-        pr: prRecoveryState(story),
+        pr: collaborationRecovery.pr,
         trackerOnBase: {
           status: story.status,
           complete: this.dependencies.config.statuses.complete.includes(story.status),
@@ -893,6 +900,40 @@ export class WorkflowRunner {
         ],
       });
     }
+  }
+
+  private async inspectRecoveryCollaboration(
+    story: WorkflowStory,
+    launch: ChildLaunchRecord,
+  ): Promise<{
+    remoteBranchExists: boolean | null;
+    pr: {
+      state: 'none' | 'open' | 'merged' | 'closed' | 'unknown';
+      number: number | null;
+      mergedAt: string | null;
+    };
+  }> {
+    const fallback = { remoteBranchExists: null, pr: prRecoveryState(story) };
+    if (!this.dependencies.collaborationInspector) return fallback;
+    const identity = pullRequestIdentity(story);
+    if (!identity) return fallback;
+    const evidence = await this.dependencies.collaborationInspector.inspectPullRequest({
+      cwdAbs: launch.childCwd,
+      owner: identity.owner,
+      repo: identity.repo,
+      prNumber: identity.number,
+      branchName: launch.expectedBranch,
+      reviewBot: this.dependencies.config.pr.review.bot,
+    });
+    if (!evidence.available) return fallback;
+    return {
+      remoteBranchExists: evidence.branch?.exists ?? null,
+      pr: {
+        state: evidence.pr?.state ?? 'unknown',
+        number: evidence.pr?.number ?? identity.number,
+        mergedAt: evidence.pr?.mergedAt ?? null,
+      },
+    };
   }
 
   private async releaseStartupClaim(story: WorkflowStory, launch: PreparedChildLaunch): Promise<void> {
@@ -1190,6 +1231,14 @@ function prRecoveryState(story: WorkflowStory): {
   const value = story.metadata.pr;
   if (!value || value === '—') return { state: 'none', number: null, mergedAt: null };
   return { state: 'unknown', number: pullRequestNumber(value), mergedAt: null };
+}
+
+function pullRequestIdentity(story: WorkflowStory): { owner: string; repo: string; number: number } | null {
+  const value = story.metadata.pr;
+  const number = value ? pullRequestNumber(value) : null;
+  const match = value?.match(/github\.com\/([^/\s)]+)\/([^/\s)]+)\/pull\/(\d+)/);
+  if (!match || number === null) return null;
+  return { owner: match[1], repo: match[2], number };
 }
 
 function pullRequestNumber(value: string): number | null {

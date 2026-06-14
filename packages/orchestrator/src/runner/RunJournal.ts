@@ -1,4 +1,5 @@
 import path from 'node:path';
+import type { CollaborationEvidence } from '../collaboration/CollaborationInspector.js';
 import type { StoryCommitEvidence } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
 import { normalizeChildMetricsSnapshot, nullableMetric, UNAVAILABLE_REASONS } from '../metrics/availability.js';
@@ -34,6 +35,7 @@ export interface SettledStoryRun {
   metrics?: ChildMetricsSnapshot;
   evidence?: ChildResultEvidence;
   commitEvidence?: StoryCommitEvidence;
+  collaborationEvidence?: CollaborationEvidence;
   baseShaAtLaunch?: string | null;
   completionAuthority?: string;
   completionAuthoritySource?: string;

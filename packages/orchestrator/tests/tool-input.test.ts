@@ -143,7 +143,8 @@ describe('buildGenericPrompt', () => {
     expect(prompt).toContain('Final evidence MUST include the PR URL and PR number.');
     expect(prompt).toContain('Final evidence MUST include CI/check evidence');
     expect(prompt).toContain('Final evidence MUST include bot review evidence');
-    expect(prompt).toContain('Final evidence MUST include merge evidence');
+    expect(prompt).toContain('Do not merge the PR or delete the remote branch yourself.');
+    expect(prompt).toContain('Final evidence MUST include pre-merge readiness evidence');
     expect(prompt).toContain('Final evidence MUST identify blockers');
   });
 

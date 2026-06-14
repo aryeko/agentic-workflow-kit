@@ -69,4 +69,31 @@ describe('evaluateRecoveryGuard', () => {
     expect(result.decision).toBe('manual_recovery_required');
     expect(result.evidence).toContain('worktree is dirty');
   });
+
+  it.each([
+    ['failed verification', { state: 'closed' as const, number: 91, mergedAt: null }, 'PR #91 is closed without merge'],
+    ['stale base', { state: 'unknown' as const, number: 91, mergedAt: null }, 'PR #91 state was not verified'],
+    ['merge conflict', { state: 'open' as const, number: 91, mergedAt: null }, 'PR #91 is open'],
+    ['auth failure', { state: 'unknown' as const, number: null, mergedAt: null }, 'PR state was not verified'],
+    ['review uncertainty', { state: 'unknown' as const, number: 92, mergedAt: null }, 'PR #92 state was not verified'],
+    ['ambiguous child state', { state: 'merged' as const, number: 93, mergedAt: null }, 'PR #93 is merged'],
+  ])('requires manual recovery for RUN-6 state: %s', (_mode, pr, expectedEvidence) => {
+    const result = evaluateRecoveryGuard({
+      storyId: 'PLD12',
+      now: '2026-06-11T03:30:00.000Z',
+      staleAfterMs: 1_800_000,
+      session: { sessionId: null, lastHeartbeatAt: null },
+      git: {
+        expectedBranch: 'personalized-learning-dashboard/pld12-recovery',
+        remoteBranchExists: false,
+        latestCommitSha: null,
+        worktreeClean: true,
+      },
+      pr,
+      trackerOnBase: { status: 'implementing', complete: false },
+    });
+
+    expect(result.decision).toBe('manual_recovery_required');
+    expect(result.evidence).toContain(expectedEvidence);
+  });
 });

@@ -49,6 +49,16 @@ function repo(): string {
   return dir;
 }
 
+function repoWithOrigin(): { cwd: string; origin: string } {
+  const cwd = repo();
+  const origin = mkdtempSync(path.join(tmpdir(), 'wk-git-origin-'));
+  git(origin, ['init', '--bare']);
+  git(cwd, ['remote', 'add', 'origin', origin]);
+  git(cwd, ['push', '-u', 'origin', 'main']);
+  git(origin, ['symbolic-ref', 'HEAD', 'refs/heads/main']);
+  return { cwd, origin };
+}
+
 describe('RealGitInspector', () => {
   it('does not treat an unchanged clean base checkout as committed work', async () => {
     const cwd = repo();
@@ -239,5 +249,41 @@ describe('RealGitInspector', () => {
     // Lexically first: 'sample/wk001-first-attempt' < 'sample/wk001-retry'
     expect(evidence.branch).toBe('sample/wk001-first-attempt');
     expect(evidence.committed).toBe(true);
+  });
+
+  it('refreshes the base branch from origin before reading files from the remote ref', async () => {
+    const { cwd, origin } = repoWithOrigin();
+    const other = mkdtempSync(path.join(tmpdir(), 'wk-git-other-'));
+    git(other, ['clone', '--branch', 'main', origin, '.']);
+    git(other, ['config', 'user.email', 'test@example.com']);
+    git(other, ['config', 'user.name', 'Workflow Kit Test']);
+    writeFileSync(path.join(other, 'remote-only.txt'), 'from origin\n');
+    git(other, ['add', 'remote-only.txt']);
+    git(other, ['commit', '-m', 'remote update']);
+    git(other, ['push', 'origin', 'main']);
+
+    const inspector = new RealGitInspector();
+    await inspector.refreshBaseBranch({ git: gitPolicy, cwdAbs: cwd });
+
+    await expect(
+      inspector.readFileFromRef({ cwdAbs: cwd, ref: 'origin/main', filePath: 'remote-only.txt' }),
+    ).resolves.toBe('from origin');
+  });
+
+  it('checks whether a commit is reachable from a ref', async () => {
+    const cwd = repo();
+    const baseSha = git(cwd, ['rev-parse', 'main']);
+    git(cwd, ['checkout', '-b', 'sample/wk001-story-title']);
+    writeFileSync(path.join(cwd, 'story.txt'), 'done\n');
+    git(cwd, ['add', 'story.txt']);
+    git(cwd, ['commit', '-m', 'story commit']);
+    const storySha = git(cwd, ['rev-parse', 'HEAD']);
+
+    const inspector = new RealGitInspector();
+
+    await expect(inspector.isCommitReachableFromRef({ cwdAbs: cwd, commit: baseSha, ref: 'HEAD' })).resolves.toBe(true);
+    await expect(inspector.isCommitReachableFromRef({ cwdAbs: cwd, commit: storySha, ref: 'main' })).resolves.toBe(
+      false,
+    );
   });
 });

@@ -76,7 +76,16 @@ Child launch and result artifacts may include:
 - structured-output schema and required flag,
 - driver capability downgrades,
 - GitHub evidence with PR number/URL, checks, review signal, findings triage, merge evidence, and
-  branch deletion status.
+  branch deletion status,
+- `commitEvidence`, `completionAuthority`, and `completionAuthoritySource` from the parent
+  completion gate,
+- `collaborationEvidence` when the parent independently verified GitHub state. This object records
+  `available`, `verified`, `missingSignal` when unavailable, PR state, check conclusions, review
+  signal, PR head SHA used to pin parent-side merge, and remote branch existence. Child-reported
+  GitHub evidence under `evidence.github` is a compatibility hint and is not completion authority
+  for auto-merge flows. Project inspection capabilities include `githubVerificationConfigured` and
+  nullable `githubVerificationAvailable`; the latter is `null` when live auth/transport status has
+  not been checked.
 
 When host telemetry cannot expose a metric, the field must be `null` with an explicit unavailable
 reason instead of omitted. Existing run artifacts without these files or without metric
