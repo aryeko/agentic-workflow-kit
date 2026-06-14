@@ -5,9 +5,18 @@ import {
   discoverTracks,
   listEligibleHandler,
   listStoriesHandler,
+  runInspectHandler,
+  runStatusHandler,
+  runStreamHandler,
   type TrackerMigrateInput,
   trackerMigrateHandler,
   trackerValidateHandler,
+  type WorkflowRunInspectInput,
+  type WorkflowRunInspectResult,
+  type WorkflowRunStatusInput,
+  type WorkflowRunStatusResult,
+  type WorkflowRunStreamInput,
+  type WorkflowRunStreamResult,
 } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
@@ -17,6 +26,9 @@ import type { CliOverrides, ResolvedWorkflowConfig, RunStatus, WorkflowRunPrevie
 export type WorkflowApiOperation =
   | 'workflow_project_inspect'
   | 'workflow_run_preview'
+  | 'workflow_run_status'
+  | 'workflow_run_stream'
+  | 'workflow_run_inspect'
   | 'workflow_tracker_validate'
   | 'workflow_tracker_migrate';
 export type WorkflowApiErrorCode =
@@ -215,6 +227,107 @@ export async function runPreviewFacade(
   }
 }
 
+export async function runStatusFacade(
+  input: WorkflowRunStatusInput,
+): Promise<WorkflowApiEnvelope<WorkflowRunStatusResult>> {
+  const operation = 'workflow_run_status';
+  try {
+    const result = await runStatusHandler(input);
+    return await successRunReadEnvelope(operation, input, {
+      result,
+      artifacts: [{ kind: 'run', path: input.runPath ?? input.runId ?? result.runId, description: 'Run artifacts' }],
+      next: [
+        { label: 'Stream run', mcpTool: 'workflow_run_stream', cli: `agentic-workflow-kit run stream ${result.runId}` },
+        {
+          label: 'Inspect run',
+          mcpTool: 'workflow_run_inspect',
+          cli: `agentic-workflow-kit run inspect ${result.runId}`,
+        },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+export async function runStreamFacade(
+  input: WorkflowRunStreamInput,
+): Promise<WorkflowApiEnvelope<WorkflowRunStreamResult>> {
+  const operation = 'workflow_run_stream';
+  try {
+    const result = await runStreamHandler(input);
+    return await successRunReadEnvelope(operation, input, {
+      result,
+      artifacts: [{ kind: 'run', path: input.runPath ?? input.runId ?? result.runId, description: 'Run artifacts' }],
+      next: [
+        {
+          label: 'Inspect run',
+          mcpTool: 'workflow_run_inspect',
+          cli: `agentic-workflow-kit run inspect ${result.runId}`,
+        },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+export async function runInspectFacade(
+  input: WorkflowRunInspectInput,
+): Promise<WorkflowApiEnvelope<WorkflowRunInspectResult>> {
+  const operation = 'workflow_run_inspect';
+  try {
+    const result = await runInspectHandler(input);
+    return await successRunReadEnvelope(operation, input, {
+      result,
+      artifacts: result.artifacts
+        .filter((artifact) => artifact.exists)
+        .map((artifact) => ({ kind: artifact.kind, path: artifact.path })),
+      next: [
+        { label: 'Analyze run', mcpTool: 'analyze_run', cli: `agentic-workflow-kit analyze-run ${result.artifactDir}` },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+async function successRunReadEnvelope<T>(
+  operation: Extract<WorkflowApiOperation, 'workflow_run_status' | 'workflow_run_stream' | 'workflow_run_inspect'>,
+  input: Pick<CliOverrides, 'cwd' | 'configPath' | 'requestId'> & { runPath?: string; runId?: string },
+  content: { result: T; artifacts?: WorkflowArtifactRef[]; next?: WorkflowNextAction[] },
+): Promise<WorkflowApiSuccess<T>> {
+  try {
+    const config = await loadResolvedConfig(input, resolveInvocationCwd(input));
+    return successEnvelope(operation, config, input.requestId, content);
+  } catch (error) {
+    if (!input.runPath || !path.isAbsolute(input.runPath)) throw error;
+    return {
+      ok: true,
+      operation,
+      apiVersion: '1',
+      ...(input.requestId !== undefined ? { requestId: input.requestId } : {}),
+      project: {
+        repoRoot: path.dirname(input.runPath),
+        configPath: input.configPath ?? '.workflow/config.yaml',
+      },
+      result: content.result,
+      artifacts: content.artifacts ?? [],
+      warnings: [
+        {
+          code: 'CONFIG_UNAVAILABLE',
+          message: 'Run artifact was read from an explicit runPath without resolved repo config.',
+        },
+      ],
+      next: content.next ?? [],
+      response: {
+        include: 'summary',
+        bounded: true,
+      },
+    };
+  }
+}
+
 export async function trackerValidateFacade(
   input: CliOverrides = {},
 ): Promise<WorkflowApiEnvelope<WorkflowTrackerValidateResult>> {
@@ -392,7 +505,7 @@ function capabilitiesFromConfig(config: ResolvedWorkflowConfig): WorkflowApiCapa
     trackerMigration: false,
     runStory: true,
     runTrack: true,
-    streaming: false,
+    streaming: true,
     abort: true,
     tokenTelemetryLive: false,
     structuredOutputEnforced: false,

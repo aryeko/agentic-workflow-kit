@@ -39,6 +39,40 @@ class FakeClient {
   }
 }
 
+async function createRunWorkspace(): Promise<{ root: string; runPath: string }> {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-cli-run-surface-'));
+  const runPath = path.join(root, '.codex/agentic-workflow-kit/runs/run-1');
+  await mkdir(path.join(root, '.workflow'), { recursive: true });
+  await mkdir(path.join(root, 'docs/tracks/linkly'), { recursive: true });
+  await mkdir(path.join(runPath, 'children'), { recursive: true });
+  await writeFile(path.join(root, '.workflow/config.yaml'), 'version: 1\n');
+  await writeFile(path.join(root, 'docs/tracks/linkly/README.md'), '# Linkly\n');
+  await writeFile(
+    path.join(runPath, 'state.json'),
+    JSON.stringify({
+      runId: 'run-1',
+      status: 'complete',
+      active: [],
+      completed: [{ storyId: 'LK02', ok: true, sessionId: 'thread-1', completedAt: '2026-06-14T00:00:00.000Z' }],
+      blockedStoryId: null,
+      blockedReason: null,
+    }),
+  );
+  await writeFile(path.join(runPath, 'metrics.live.json'), JSON.stringify({ runId: 'run-1', status: 'complete' }));
+  await writeFile(
+    path.join(runPath, 'events.ndjson'),
+    [
+      JSON.stringify({ type: 'run-started', recordedAt: '2026-06-14T00:00:00.000Z' }),
+      JSON.stringify({ type: 'child-progress', storyId: 'LK02', message: 'testing' }),
+    ].join('\n'),
+  );
+  await writeFile(
+    path.join(runPath, 'children/LK02.json'),
+    JSON.stringify({ storyId: 'LK02', sessionId: 'thread-1', sessionLogPath: '/tmp/session.jsonl' }),
+  );
+  return { root, runPath };
+}
+
 describe('runCli', () => {
   it('runs mcp check with only a cwd when no workflow config exists', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-check-'));
@@ -95,6 +129,40 @@ describe('runCli', () => {
         ok: true,
         result: { report: { ok: false } },
       });
+    } finally {
+      process.exitCode = previousExitCode;
+    }
+  });
+
+  it('prints product run status, stream, and inspect outputs', async () => {
+    const previousExitCode = process.exitCode;
+    const { root, runPath } = await createRunWorkspace();
+    const statusStdout: string[] = [];
+    const streamStdout: string[] = [];
+    const inspectStdout: string[] = [];
+
+    try {
+      process.exitCode = undefined;
+      await runCli(['run', 'status', 'run-1', '--cwd', root], { stdout: (line) => statusStdout.push(line) });
+      await runCli(['run', 'stream', 'run-1', '--cwd', root, '--format', 'ndjson'], {
+        stdout: (line) => streamStdout.push(line),
+      });
+      await runCli(['run', 'inspect', runPath], { stdout: (line) => inspectStdout.push(line) });
+
+      expect(JSON.parse(statusStdout[0])).toMatchObject({
+        ok: true,
+        operation: 'workflow_run_status',
+        result: { runId: 'run-1', status: 'complete' },
+      });
+      expect(streamStdout.map((line) => JSON.parse(line))).toEqual(
+        expect.arrayContaining([expect.objectContaining({ type: 'child-progress', topic: 'child' })]),
+      );
+      expect(JSON.parse(inspectStdout[0])).toMatchObject({
+        ok: true,
+        operation: 'workflow_run_inspect',
+        result: { children: [expect.objectContaining({ storyId: 'LK02', sessionId: 'thread-1' })] },
+      });
+      expect(process.exitCode).toBeUndefined();
     } finally {
       process.exitCode = previousExitCode;
     }

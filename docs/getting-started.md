@@ -159,6 +159,18 @@ but needs operator input, and `codex_interrupt` only when the child should stop.
 target a direct `sessionId` or resolve the child from `runPath` plus `storyId`; run-targeted
 interventions are journaled in the run artifacts.
 
+The product CLI exposes the same artifact-backed status surfaces:
+
+```bash
+agentic-workflow-kit run status <run-id-or-path> --json
+agentic-workflow-kit run stream <run-id-or-path> --format ndjson
+agentic-workflow-kit run inspect <run-id-or-path> --json
+```
+
+Use `run status` for a bounded snapshot, `run stream` for a replayable normalized event tail with a
+terminal or timeout summary, and `run inspect` for artifact, child-session, transcript-path, and PR
+references. These reads are non-mutating and preserve `watch_run` as the polling fallback.
+
 Do not edit run artifacts or tracker rows by hand while a child may still be active. Session ids,
 session logs, observed child progress, worktree activity, or not-yet-stale launch timestamps mean
 the safe action is to wait or keep observing. Parent supervisor polls only prove the parent loop

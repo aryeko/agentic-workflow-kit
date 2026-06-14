@@ -318,6 +318,8 @@ export interface CliOverrides {
   sessionRoot?: string;
   storyId?: string;
   reason?: string;
+  limit?: number;
+  format?: 'json' | 'ndjson' | 'table' | 'markdown';
   cwd?: string;
   model?: string;
   reasoning?: string;
@@ -334,6 +336,9 @@ export type WorkflowCommand =
   | { kind: 'tracker-validate'; overrides: CliOverrides }
   | { kind: 'tracker-migrate'; from: string; track: string; overrides: CliOverrides }
   | { kind: 'run-preview'; target: WorkflowRunPreviewTarget; overrides: CliOverrides }
+  | { kind: 'run-status'; runRef: string; overrides: CliOverrides }
+  | { kind: 'run-stream'; runRef: string; overrides: CliOverrides }
+  | { kind: 'run-inspect'; runRef: string; overrides: CliOverrides }
   | { kind: 'run-story'; storyId: string; overrides: CliOverrides }
   | { kind: 'run-eligible'; overrides: CliOverrides }
   | { kind: 'watch-run'; runPath: string; overrides: CliOverrides }

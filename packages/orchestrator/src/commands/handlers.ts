@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { glob } from 'tinyglobby';
 
@@ -134,6 +134,105 @@ export interface AbortRunInput {
   storyId?: string;
   reason?: string;
   requestedBy?: string;
+}
+
+export type WorkflowRunEventTopic =
+  | 'run'
+  | 'tracker'
+  | 'story'
+  | 'child'
+  | 'review'
+  | 'pr'
+  | 'merge'
+  | 'budget'
+  | 'control'
+  | 'error'
+  | 'debug';
+export type WorkflowRunEventLevel = 'debug' | 'info' | 'warn' | 'error';
+
+export interface WorkflowRunEventQuery {
+  limit?: number;
+  topics?: WorkflowRunEventTopic[];
+  storyIds?: string[];
+  minLevel?: WorkflowRunEventLevel;
+}
+
+export interface WorkflowRunStreamSubscription extends WorkflowRunEventQuery {
+  replay?: { lastEvents?: number };
+  includeData?: 'none' | 'summary' | 'full-bounded';
+  throttleMs?: number;
+  pollIntervalMs?: number;
+  timeoutMs?: number;
+}
+
+export interface WorkflowRunStatusInput extends CliOverrides {
+  runId?: string;
+  runPath?: string;
+  events?: WorkflowRunEventQuery;
+}
+
+export interface WorkflowRunStreamInput extends CliOverrides {
+  runId?: string;
+  runPath?: string;
+  subscription?: WorkflowRunStreamSubscription;
+  onProgress?: (event: NormalizedRunEvent, delivered: number) => Promise<void> | void;
+}
+
+export interface WorkflowRunInspectInput extends CliOverrides {
+  runId?: string;
+  runPath?: string;
+  include?: 'summary' | 'artifacts' | 'children' | 'full-bounded';
+}
+
+export interface NormalizedRunEvent {
+  id: string;
+  recordedAt: string | null;
+  eventAt: string | null;
+  type: string;
+  topic: WorkflowRunEventTopic;
+  level: WorkflowRunEventLevel;
+  message: string;
+  storyId: string | null;
+  childId: string | null;
+  data?: Record<string, unknown>;
+}
+
+export interface WorkflowRunStatusResult {
+  runId: string;
+  status: string | null;
+  active: string[];
+  completedCount: number;
+  blockedStoryId: string | null;
+  blockedReason: string | null;
+  controls: RunControlRequest[];
+  artifacts: Record<string, string>;
+  metrics: unknown | null;
+  recentEvents: NormalizedRunEvent[];
+}
+
+export interface WorkflowRunStreamResult {
+  runId: string;
+  terminal: boolean;
+  status: string | null;
+  eventsDelivered: number;
+  timedOut: boolean;
+  events: NormalizedRunEvent[];
+}
+
+export interface WorkflowRunInspectResult {
+  runId: string;
+  status: string | null;
+  artifactDir: string;
+  artifacts: Array<{ kind: string; path: string; exists: boolean; sizeBytes: number | null }>;
+  children: Array<{
+    storyId: string;
+    launchPath: string | null;
+    resultPath: string | null;
+    sessionId: string | null;
+    sessionLogPath: string | null;
+  }>;
+  pr: { urls: string[]; numbers: number[] };
+  metrics: unknown | null;
 }
 
 type RunCommand = Extract<WorkflowCommand, { kind: 'run-story' | 'run-eligible' }>;
@@ -342,6 +441,114 @@ export async function abortRunHandler(input: AbortRunInput): Promise<RunControlR
     activeStoryIds,
     childOutcomes,
     artifacts: controlArtifactRefs(),
+  };
+}
+
+export async function runStatusHandler(input: WorkflowRunStatusInput = {}): Promise<WorkflowRunStatusResult> {
+  const runDirectory = await resolveRunDirectory(input);
+  await assertRunExists(runDirectory);
+  const [state, metrics, controls, events] = await Promise.all([
+    readJsonIfExists(path.join(runDirectory, 'state.json')),
+    readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
+    readControlsIfExists(runDirectory),
+    readNormalizedEvents(runDirectory, {
+      limit: input.events?.limit ?? input.limit ?? 25,
+      topics: input.events?.topics,
+      storyIds: input.events?.storyIds,
+      minLevel: input.events?.minLevel,
+    }),
+  ]);
+  const stateObject = isObject(state) ? state : {};
+  return {
+    runId: readOptionalString(stateObject.runId) ?? path.basename(runDirectory),
+    status: readOptionalString(stateObject.status),
+    active: readStringArray(stateObject.active),
+    completedCount: Array.isArray(stateObject.completed) ? stateObject.completed.length : 0,
+    blockedStoryId: readOptionalString(stateObject.blockedStoryId),
+    blockedReason: readOptionalString(stateObject.blockedReason),
+    controls,
+    artifacts: runArtifactRefs(),
+    metrics,
+    recentEvents: events,
+  };
+}
+
+export async function runStreamHandler(input: WorkflowRunStreamInput = {}): Promise<WorkflowRunStreamResult> {
+  const runDirectory = await resolveRunDirectory(input);
+  await assertRunExists(runDirectory);
+  const subscription = input.subscription ?? {};
+  const limit = boundedLimit(subscription.replay?.lastEvents ?? subscription.limit ?? input.limit ?? 20);
+  const timeoutMs = positiveIntegerOrDefault(subscription.timeoutMs ?? input.timeoutMs, 300_000);
+  const pollIntervalMs = positiveIntegerOrDefault(subscription.pollIntervalMs ?? input.intervalMs, 1000);
+  const startedAt = Date.now();
+  let delivered = 0;
+  let lastCount = 0;
+  let latestEvents: NormalizedRunEvent[] = [];
+  for (;;) {
+    const rawEvents = await readRunEvents(runDirectory);
+    const normalized = filterNormalizedEvents(
+      rawEvents.map((event, index) => normalizeRunEvent(event, index)),
+      {
+        limit,
+        topics: subscription.topics,
+        storyIds: subscription.storyIds,
+        minLevel: subscription.minLevel,
+      },
+      subscription.includeData ?? 'summary',
+    );
+    latestEvents = normalized;
+    const newEvents = normalized.slice(Math.max(0, normalized.length - Math.max(0, rawEvents.length - lastCount)));
+    for (const event of newEvents) {
+      delivered += 1;
+      await input.onProgress?.(event, delivered);
+    }
+    lastCount = rawEvents.length;
+    const state = await readJsonIfExists(path.join(runDirectory, 'state.json'));
+    if (!isRunningState(state)) {
+      return {
+        runId: readOptionalString(isObject(state) ? state.runId : undefined) ?? path.basename(runDirectory),
+        terminal: true,
+        status: readOptionalString(isObject(state) ? state.status : undefined),
+        eventsDelivered: delivered || latestEvents.length,
+        timedOut: false,
+        events: latestEvents,
+      };
+    }
+    if (Date.now() - startedAt >= timeoutMs) {
+      return {
+        runId: readOptionalString(isObject(state) ? state.runId : undefined) ?? path.basename(runDirectory),
+        terminal: false,
+        status: readOptionalString(isObject(state) ? state.status : undefined),
+        eventsDelivered: delivered || latestEvents.length,
+        timedOut: true,
+        events: latestEvents,
+      };
+    }
+    await delay(Math.min(pollIntervalMs, Math.max(0, timeoutMs - (Date.now() - startedAt))));
+  }
+}
+
+export async function runInspectHandler(input: WorkflowRunInspectInput = {}): Promise<WorkflowRunInspectResult> {
+  const runDirectory = await resolveRunDirectory(input);
+  await assertRunExists(runDirectory);
+  const [state, metrics, artifacts, children, childArtifacts, events] = await Promise.all([
+    readJsonIfExists(path.join(runDirectory, 'state.json')),
+    readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
+    inspectArtifacts(runDirectory),
+    inspectChildren(runDirectory),
+    readChildArtifacts(runDirectory),
+    readRunEvents(runDirectory),
+  ]);
+  const stateObject = isObject(state) ? state : {};
+  const pr = collectPrRefs([...events, ...childArtifacts]);
+  return {
+    runId: readOptionalString(stateObject.runId) ?? path.basename(runDirectory),
+    status: readOptionalString(stateObject.status),
+    artifactDir: runDirectory,
+    artifacts,
+    children,
+    pr,
+    metrics,
   };
 }
 
@@ -785,6 +992,266 @@ async function readRunEvents(runDirectory: string): Promise<unknown[]> {
         return { raw: line };
       }
     });
+}
+
+async function readNormalizedEvents(
+  runDirectory: string,
+  query: WorkflowRunEventQuery,
+  includeData: WorkflowRunStreamSubscription['includeData'] = 'summary',
+): Promise<NormalizedRunEvent[]> {
+  const events = await readRunEvents(runDirectory);
+  return filterNormalizedEvents(
+    events.map((event, index) => normalizeRunEvent(event, index)),
+    query,
+    includeData,
+  );
+}
+
+function filterNormalizedEvents(
+  events: NormalizedRunEvent[],
+  query: WorkflowRunEventQuery,
+  includeData: WorkflowRunStreamSubscription['includeData'],
+): NormalizedRunEvent[] {
+  const topics = query.topics ? new Set(query.topics) : null;
+  const storyIds = query.storyIds ? new Set(query.storyIds) : null;
+  const minLevel = query.minLevel ?? 'debug';
+  const filtered = events.filter((event) => {
+    if (topics && !topics.has(event.topic)) return false;
+    if (storyIds && event.storyId !== null && !storyIds.has(event.storyId)) return false;
+    return levelRank(event.level) >= levelRank(minLevel);
+  });
+  return filtered.slice(-boundedLimit(query.limit)).map((event) => boundEventData(event, includeData));
+}
+
+function normalizeRunEvent(value: unknown, index: number): NormalizedRunEvent {
+  const event = isObject(value) ? value : {};
+  const type = readOptionalString(event.type) ?? 'event';
+  const recordedAt = readOptionalString(event.recordedAt) ?? readOptionalString(event.ts);
+  const eventAt = readOptionalString(event.eventAt) ?? recordedAt;
+  const storyId = readOptionalString(event.storyId);
+  const childId = readOptionalString(event.childId) ?? storyId;
+  const topic = topicForEvent(type);
+  const level = levelForEvent(type, event);
+  const message = readOptionalString(event.message) ?? readOptionalString(event.reason) ?? type.replace(/[-_]/g, ' ');
+  const data = Object.fromEntries(
+    Object.entries(event).filter(
+      ([key]) => !['recordedAt', 'eventAt', 'ts', 'type', 'storyId', 'childId', 'message'].includes(key),
+    ),
+  );
+  return {
+    id: readOptionalString(event.id) ?? `evt_${String(index + 1).padStart(6, '0')}`,
+    recordedAt,
+    eventAt,
+    type,
+    topic,
+    level,
+    message,
+    storyId,
+    childId,
+    ...(Object.keys(data).length > 0 ? { data } : {}),
+  };
+}
+
+function topicForEvent(type: string): WorkflowRunEventTopic {
+  const normalized = type.replace(/_/g, '-');
+  if (normalized.includes('error') || normalized.includes('failed') || normalized.includes('blocked')) return 'error';
+  if (normalized.startsWith('tracker-') || normalized === 'claimed' || normalized.endsWith('-written'))
+    return 'tracker';
+  if (normalized.startsWith('story-') || normalized === 'story-selected') return 'story';
+  if (normalized.startsWith('child-') || normalized.startsWith('session-') || normalized.startsWith('codex-'))
+    return 'child';
+  if (normalized.startsWith('pre-pr-review')) return 'review';
+  if (normalized.startsWith('pr-') || normalized.startsWith('pr-review') || normalized.startsWith('pr-checks'))
+    return 'pr';
+  if (normalized.startsWith('merge-') || normalized === 'pr-merged' || normalized === 'cleanup-complete')
+    return 'merge';
+  if (normalized.startsWith('budget-') || normalized === 'tokens-observed') return 'budget';
+  if (normalized.startsWith('control-')) return 'control';
+  if (normalized.includes('debug')) return 'debug';
+  return 'run';
+}
+
+function levelForEvent(type: string, event: Record<string, unknown>): WorkflowRunEventLevel {
+  const explicit = readOptionalString(event.level);
+  if (explicit === 'debug' || explicit === 'info' || explicit === 'warn' || explicit === 'error') return explicit;
+  const normalized = type.toLowerCase();
+  if (normalized.includes('error') || normalized.includes('failed') || normalized.includes('blocked')) return 'error';
+  if (normalized.includes('warning') || normalized.includes('warn') || normalized.includes('downgraded')) return 'warn';
+  if (normalized.includes('debug')) return 'debug';
+  return 'info';
+}
+
+function levelRank(level: WorkflowRunEventLevel): number {
+  return { debug: 0, info: 1, warn: 2, error: 3 }[level];
+}
+
+function boundEventData(
+  event: NormalizedRunEvent,
+  includeData: WorkflowRunStreamSubscription['includeData'],
+): NormalizedRunEvent {
+  if (includeData === 'none') {
+    const { data: _data, ...rest } = event;
+    return rest;
+  }
+  if (includeData !== 'full-bounded' || event.data === undefined) return event;
+  const serialized = JSON.stringify(event.data);
+  if (serialized.length <= 20_000) return event;
+  return { ...event, data: { truncated: true, preview: `${serialized.slice(0, 20_000)}...` } };
+}
+
+function boundedLimit(limit: unknown): number {
+  if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1) return 25;
+  return Math.min(limit, 200);
+}
+
+async function resolveRunDirectory(input: {
+  runId?: string;
+  runPath?: string;
+  cwd?: string;
+  configPath?: string;
+}): Promise<string> {
+  const runRef = input.runPath ?? input.runId;
+  if (!runRef) throw new Error('run not found: pass runId or runPath');
+  if (path.isAbsolute(runRef) || runRef.includes(path.sep)) return path.resolve(runRef);
+  const cwd = resolveInvocationCwd(input);
+  const config = await loadResolvedConfig(input, cwd);
+  return path.join(config.artifacts.runsDirAbs, runRef);
+}
+
+async function assertRunExists(runDirectory: string): Promise<void> {
+  const directory = await statIfExists(runDirectory);
+  const state = await statIfExists(path.join(runDirectory, 'state.json'));
+  if (directory === null || state === null) {
+    throw new Error(`run not found: ${runDirectory}`);
+  }
+}
+
+async function readControlsIfExists(runDirectory: string): Promise<RunControlRequest[]> {
+  let content: string;
+  try {
+    content = await readFile(path.join(runDirectory, 'controls.ndjson'), 'utf8');
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return content
+    .trimEnd()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as RunControlRequest);
+}
+
+function runArtifactRefs(): Record<string, string> {
+  return {
+    state: 'state.json',
+    metrics: 'metrics.live.json',
+    events: 'events.ndjson',
+    controls: 'controls.ndjson',
+    summary: 'summary.json',
+    rows: 'rows.json',
+    budgets: 'budgets.json',
+    transcripts: 'transcripts.json',
+  };
+}
+
+async function inspectArtifacts(
+  runDirectory: string,
+): Promise<Array<{ kind: string; path: string; exists: boolean; sizeBytes: number | null }>> {
+  return await Promise.all(
+    Object.entries(runArtifactRefs()).map(async ([kind, relativePath]) => {
+      const stats = await statIfExists(path.join(runDirectory, relativePath));
+      return { kind, path: relativePath, exists: stats !== null, sizeBytes: stats?.size ?? null };
+    }),
+  );
+}
+
+async function inspectChildren(runDirectory: string): Promise<WorkflowRunInspectResult['children']> {
+  const childrenDirectory = path.join(runDirectory, 'children');
+  let entries: string[];
+  try {
+    entries = await readdir(childrenDirectory);
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return [];
+    throw error;
+  }
+  const storyIds = new Set(
+    entries
+      .filter((entry) => !entry.endsWith('.raw.json') && !entry.endsWith('.metrics.json'))
+      .map((entry) => entry.replace(/(?:\.launch)?\.json$/, '')),
+  );
+  return await Promise.all(
+    [...storyIds].sort().map(async (storyId) => {
+      const launchPath = path.join('children', `${storyId}.launch.json`);
+      const resultPath = path.join('children', `${storyId}.json`);
+      const [launch, result, launchStat, resultStat] = await Promise.all([
+        readJsonIfExists(path.join(runDirectory, launchPath)),
+        readJsonIfExists(path.join(runDirectory, resultPath)),
+        statIfExists(path.join(runDirectory, launchPath)),
+        statIfExists(path.join(runDirectory, resultPath)),
+      ]);
+      const source = isObject(result) ? result : isObject(launch) ? launch : {};
+      return {
+        storyId,
+        launchPath: launchStat ? launchPath : null,
+        resultPath: resultStat ? resultPath : null,
+        sessionId: readOptionalString(source.sessionId),
+        sessionLogPath: readOptionalString(source.sessionLogPath),
+      };
+    }),
+  );
+}
+
+async function readChildArtifacts(runDirectory: string): Promise<unknown[]> {
+  const childrenDirectory = path.join(runDirectory, 'children');
+  let entries: string[];
+  try {
+    entries = await readdir(childrenDirectory);
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return await Promise.all(
+    entries
+      .filter((entry) => entry.endsWith('.json') && !entry.endsWith('.raw.json') && !entry.endsWith('.metrics.json'))
+      .map((entry) => readJsonIfExists(path.join(childrenDirectory, entry))),
+  );
+}
+
+function collectPrRefs(values: unknown[]): { urls: string[]; numbers: number[] } {
+  const urls = new Set<string>();
+  const numbers = new Set<number>();
+  const visit = (value: unknown): void => {
+    if (typeof value === 'string') {
+      const matches = value.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/g) ?? [];
+      for (const match of matches) {
+        urls.add(match);
+        const number = Number(match.match(/\/pull\/(\d+)/)?.[1]);
+        if (Number.isInteger(number)) numbers.add(number);
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item);
+      return;
+    }
+    if (!isObject(value)) return;
+    const prUrl = readOptionalString(value.prUrl);
+    if (prUrl) urls.add(prUrl);
+    const prNumber = typeof value.prNumber === 'number' ? value.prNumber : null;
+    if (prNumber !== null) numbers.add(prNumber);
+    for (const item of Object.values(value)) visit(item);
+  };
+  for (const value of values) visit(value);
+  return { urls: [...urls].sort(), numbers: [...numbers].sort((a, b) => a - b) };
+}
+
+async function statIfExists(filePath: string): Promise<{ size: number } | null> {
+  try {
+    return await stat(filePath);
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
+    throw error;
+  }
 }
 
 function boundedEventOffset(offset: number, eventCount: number): number {
