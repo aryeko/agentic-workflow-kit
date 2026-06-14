@@ -57,6 +57,34 @@ Commands used as gates. Auto-detected from the package manager when unset (`null
 | `commitOnBase` | `forbid` \| `allow` | `forbid` | Whether committing on the base branch is allowed. |
 | `worktreeDir` | string | `.worktrees` | Repo-relative, non-escaping directory for orchestrator-managed story worktrees. |
 
+## `childSession`
+
+Neutral child-session launch defaults used by the configured story driver. The Codex driver is the
+only shipped V1 driver, but this namespace is host-neutral so future drivers do not need a new
+top-level config block.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `model` | string | unset | Optional model override for launched child sessions. |
+| `approvalPolicy` | `never` \| `on-failure` \| `on-request` \| `untrusted` | unset | Optional child-session approval policy. |
+| `sandbox` | `danger-full-access` \| `read-only` \| `workspace-write` | unset | Optional child-session filesystem sandbox. |
+| `config` | object | unset | Driver-specific raw config passed through to the child-session launcher. |
+
+`codex.childSession` remains accepted as a compatibility alias for existing configs. When both
+`childSession` and `codex.childSession` are present, `childSession` wins for shared fields. Resolved
+config exposes the same child-session object at both the neutral field and the Codex alias.
+
+## `codex.childSession`
+
+Compatibility alias for `childSession`. Prefer `childSession` for new configs.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `model` | string | unset | Optional model override for launched child sessions. |
+| `approvalPolicy` | `never` \| `on-failure` \| `on-request` \| `untrusted` | unset | Optional child-session approval policy. |
+| `sandbox` | `danger-full-access` \| `read-only` \| `workspace-write` | unset | Optional child-session filesystem sandbox. |
+| `config` | object | unset | Driver-specific raw config passed through to the child-session launcher. |
+
 ## `pr` — PR + merge policy (the headline knob)
 
 The only block that differs between a push-and-merge repo and a gated-automerge repo.

@@ -74,6 +74,7 @@ function config(): ResolvedWorkflowConfig {
       childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     },
+    childSession: { childSession: { cwdAbs: '/repo' } },
     codex: { childSession: { cwdAbs: '/repo' } },
   };
 }
@@ -94,6 +95,7 @@ function configForWorkspace(workspaceRoot: string): ResolvedWorkflowConfig {
       rootDirAbs: path.join(workspaceRoot, '.codex/agentic-workflow-kit'),
       runsDirAbs: path.join(workspaceRoot, '.codex/agentic-workflow-kit/runs'),
     },
+    childSession: { childSession: { cwdAbs: workspaceRoot } },
     codex: { childSession: { cwdAbs: workspaceRoot } },
   };
 }
@@ -136,6 +138,23 @@ class FakeRunner implements StoryRunner {
   }
   async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
     return { ok: true, tools: ['codex'] };
+  }
+}
+
+class ClassifiedFailureRunner implements StoryRunner {
+  requests: StoryRunRequest[] = [];
+  async runStory(request: StoryRunRequest): Promise<StoryRunResult> {
+    this.requests.push(request);
+    throw new Error('neutral driver lost supervision');
+  }
+  async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
+    return { ok: true, tools: ['neutral-driver'] };
+  }
+  classifyError(error: unknown): { supervisionLost: boolean; recoverable: boolean } {
+    return {
+      supervisionLost: error instanceof Error && error.message === 'neutral driver lost supervision',
+      recoverable: true,
+    };
   }
 }
 
@@ -945,13 +964,7 @@ describe('WorkflowRunner', () => {
       promptHash: expect.any(String),
       structuredOutputSchema: 'built-in/child-run-result',
       structuredOutputRequired: true,
-      capabilityDowngrades: [
-        {
-          capability: 'structured-output-enforcement',
-          source: 'driver',
-          severity: 'warning',
-        },
-      ],
+      capabilityDowngrades: [],
     });
     expect(artifacts.events).toContainEqual(
       expect.objectContaining({
@@ -1010,6 +1023,28 @@ describe('WorkflowRunner', () => {
 
     expect(state.status).toBe('blocked');
     expect(state.blockedReason).toBe('driver failed');
+  });
+
+  it('uses driver error classification for provider-neutral supervision loss', async () => {
+    const artifacts = new MemoryArtifacts();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: config(),
+      storySource: new MutableStorySource([[story('A001')]]),
+      storyRunner: new ClassifiedFailureRunner(),
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const state = await runner.runStory('A001');
+
+    expect(state.status).toBe('supervision_lost');
+    expect(state.blockedReason).toBe('neutral driver lost supervision');
+    expect(artifacts.events.map((event) => event.type)).toContain('child-supervision-lost');
   });
 
   it('blocks duplicate active launch records before starting a child', async () => {

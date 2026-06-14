@@ -67,6 +67,15 @@ const AgentProfileSchema = z
   })
   .strict();
 
+const ChildSessionSchema = z
+  .object({
+    model: nonEmpty.optional(),
+    approvalPolicy: z.enum(['never', 'on-failure', 'on-request', 'untrusted']).optional(),
+    sandbox: z.enum(['danger-full-access', 'read-only', 'workspace-write']).optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
+
 const DEFAULT_AGENT_PROFILES = {
   storyImplementer: {
     driver: 'codex-mcp',
@@ -298,6 +307,13 @@ export const ConfigSchema = z
         childNoProgressTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS),
         childStartupTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_STARTUP_TIMEOUT_MS),
         childMaxRuntimeMs: z.number().int().min(1).default(DEFAULT_CHILD_MAX_RUNTIME_MS),
+      })
+      .strict()
+      .prefault({}),
+    childSession: ChildSessionSchema.optional(),
+    codex: z
+      .object({
+        childSession: ChildSessionSchema.optional(),
       })
       .strict()
       .prefault({}),

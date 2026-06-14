@@ -11,7 +11,7 @@ describe('codex MCP child prompt', () => {
     expect(prompt).toContain('PR review comments');
     expect(prompt).toContain('A +1 reaction from bot `codex` means approval');
     expect(prompt).toContain('An eyes reaction from bot `codex` means review is pending');
-    expect(prompt).toContain('Do not re-request Codex review after a +1 reaction has been observed');
+    expect(prompt).toContain('Do not re-request review after a +1 reaction has been observed');
   });
 
   it('requires base freshness and verification before auto-merge', () => {

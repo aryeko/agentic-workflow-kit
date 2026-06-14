@@ -95,10 +95,11 @@ Available MCP tools:
 - `watch_run_start`
 - `watch_run_poll`
 - `watch_run_stop`
-- `codex_reply`
-- `codex_interrupt`
+- `workflow_child_reply`
+- `workflow_child_interrupt`
 - `analyze_run`
-- `check_codex_mcp`
+- `workflow_driver_check`
+- `codex_reply` / `codex_interrupt` / `check_codex_mcp` compatibility aliases
 
 The MCP tools operate on the target repository. If the MCP session is not already running from a
 workflow repo, pass `cwd` as the target repo root in tool input.

@@ -30,7 +30,7 @@ import {
 } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
 import type { CliOverrides, Logger, RunState } from '../types.js';
-import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
+import { sendChildInterrupt, sendChildReply, sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 
 export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_project_inspect',
@@ -41,6 +41,9 @@ export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_run_report',
   'workflow_run_export',
   'workflow_run_control',
+  'workflow_child_reply',
+  'workflow_child_interrupt',
+  'workflow_driver_check',
   'workflow_tracker_validate',
   'workflow_tracker_migrate',
   'list_tracks',
@@ -604,6 +607,45 @@ export function registerOrchestratorTools(server: McpServer): void {
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     },
     async (input) => handleTool('watch_run_stop', input.responseFormat, () => stopWatchRunHandler(input.watchId)),
+  );
+
+  server.registerTool(
+    'workflow_child_reply',
+    {
+      description:
+        'Send an operator reply to a live child session through the configured driver. Target either sessionId directly or runPath plus storyId; run-targeted replies are journaled with a redacted preview and hash.',
+      inputSchema: codexReplyInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    async (input) => handleTool('workflow_child_reply', input.responseFormat, () => sendChildReply(input)),
+  );
+
+  server.registerTool(
+    'workflow_child_interrupt',
+    {
+      description:
+        'Interrupt a live child session through the configured driver. Target either sessionId directly or runPath plus storyId; run-targeted interrupts are journaled.',
+      inputSchema: codexInterruptInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    async (input) => handleTool('workflow_child_interrupt', input.responseFormat, () => sendChildInterrupt(input)),
+  );
+
+  server.registerTool(
+    'workflow_driver_check',
+    {
+      description: 'Validate the configured child-session driver schema before launching non-dry-run children.',
+      inputSchema: baseInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_driver_check', input.responseFormat, () => {
+        assertWorkflowRepoContext(input);
+        return mcpCheckHandler(toOverrides(input), { logger: nullLogger });
+      }),
   );
 
   server.registerTool(

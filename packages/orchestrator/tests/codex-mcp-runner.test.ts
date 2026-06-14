@@ -60,6 +60,7 @@ function config(): ResolvedWorkflowConfig {
       childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     },
+    childSession: { childSession: { cwdAbs: '/repo' } },
     codex: { childSession: { cwdAbs: '/repo' } },
   };
 }
@@ -139,6 +140,40 @@ function request(overrides: Partial<StoryRunRequest> = {}): StoryRunRequest {
 }
 
 describe('CodexMcpStoryRunner', () => {
+  it('classifies Codex request timeouts as recoverable supervision loss', () => {
+    const runner = new CodexMcpStoryRunner(config());
+
+    expect(runner.classifyError(new Error('Codex MCP request timed out'))).toEqual({
+      supervisionLost: true,
+      recoverable: true,
+    });
+    expect(runner.classifyError(new Error('validation failed'))).toEqual({
+      supervisionLost: false,
+      recoverable: false,
+    });
+  });
+
+  it('describes Codex structured-output downgrade through the driver contract', () => {
+    const runner = new CodexMcpStoryRunner(config());
+    const profile = config().agents.resolved.implementStory;
+
+    expect(
+      runner.describeCapabilityDowngrades({
+        template: profile.prompt.template,
+        promptHash: 'hash-a001',
+        structuredOutputSchema: profile.structuredOutput.schema,
+        structuredOutputRequired: true,
+      }),
+    ).toEqual([
+      {
+        capability: 'structured-output-enforcement',
+        reason: 'Codex MCP V1 records structured-output intent but does not expose a stable schema-enforcement knob.',
+        severity: 'warning',
+        source: 'driver',
+      },
+    ]);
+  });
+
   it('retries transient connection errors and then succeeds', async () => {
     const clients = [
       new FakeClient({

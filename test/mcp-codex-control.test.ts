@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { abortRunHandler } from '../packages/orchestrator/src/commands/handlers.js';
-import { codexReplyJournalFields, resolveCodexControlTarget } from '../packages/orchestrator/src/mcp/codexControl.js';
+import {
+  childReplyJournalFields,
+  codexReplyJournalFields,
+  resolveChildControlTarget,
+  resolveCodexControlTarget,
+} from '../packages/orchestrator/src/mcp/codexControl.js';
 
 const tempRoots: string[] = [];
 
@@ -49,6 +54,23 @@ describe('codex MCP control target resolution', () => {
     });
     expect(JSON.stringify(fields)).not.toContain('secret');
     expect(JSON.stringify(fields)).not.toContain('sk-live');
+  });
+
+  it('exposes neutral child-control aliases with the same target and redaction behavior', async () => {
+    const runPath = await mkdtemp(path.join(tmpdir(), 'awk-child-control-'));
+    tempRoots.push(runPath);
+    await mkdir(path.join(runPath, 'children'), { recursive: true });
+    await writeFile(path.join(runPath, 'children/DLD07.launch.json'), JSON.stringify({ sessionId: '019e-child' }));
+
+    await expect(resolveChildControlTarget({ runPath, storyId: 'DLD07' })).resolves.toEqual({
+      sessionId: '019e-child',
+      storyId: 'DLD07',
+      runPath,
+    });
+    expect(childReplyJournalFields('secret token sk-live-123', 'workflow_child_reply')).toEqual({
+      messageSha256: '3fb49f5289846a39350df3f09b5f9e64e06473dc56143fdbe82d68ca6c850a6a',
+      tool: 'workflow_child_reply',
+    });
   });
 
   it('classifies abort requests for terminal runs as already terminal', async () => {
@@ -100,7 +122,7 @@ describe('codex MCP control target resolution', () => {
         storyId: 'DLD07',
         sessionId: null,
         outcome: 'unsupported',
-        detail: 'active child has no linked Codex session',
+        detail: 'active child has no linked child session',
       },
     ]);
     expect(JSON.parse(await readFile(path.join(runPath, 'state.json'), 'utf8'))).toMatchObject({

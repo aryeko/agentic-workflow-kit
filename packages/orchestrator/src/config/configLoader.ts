@@ -54,6 +54,22 @@ export async function loadResolvedConfig(
     childSessionConfig.model_reasoning_effort = overrides.reasoning;
   }
   const agents = resolveAgentProfiles(config, overrides);
+  const configuredChildSession = config.childSession ?? config.codex.childSession ?? {};
+  const resolvedChildSession = {
+    cwdAbs: workspaceRoot,
+    ...(configuredChildSession.model !== undefined ? { model: configuredChildSession.model } : {}),
+    ...(configuredChildSession.approvalPolicy !== undefined
+      ? { approvalPolicy: configuredChildSession.approvalPolicy }
+      : {}),
+    ...(configuredChildSession.sandbox !== undefined ? { sandbox: configuredChildSession.sandbox } : {}),
+    ...(configuredChildSession.config !== undefined ? { config: configuredChildSession.config } : {}),
+    ...(overrides.model !== undefined ? { model: overrides.model } : {}),
+    ...(overrides.approvalPolicy !== undefined ? { approvalPolicy: overrides.approvalPolicy } : {}),
+    ...(overrides.sandbox !== undefined ? { sandbox: overrides.sandbox } : {}),
+    ...(Object.keys(childSessionConfig).length > 0
+      ? { config: { ...(configuredChildSession.config ?? {}), ...childSessionConfig } }
+      : {}),
+  };
 
   return {
     version: 1,
@@ -90,15 +106,8 @@ export async function loadResolvedConfig(
       childStartupTimeoutMs,
       childMaxRuntimeMs,
     },
-    codex: {
-      childSession: {
-        cwdAbs: workspaceRoot,
-        ...(overrides.model !== undefined ? { model: overrides.model } : {}),
-        ...(overrides.approvalPolicy !== undefined ? { approvalPolicy: overrides.approvalPolicy } : {}),
-        ...(overrides.sandbox !== undefined ? { sandbox: overrides.sandbox } : {}),
-        ...(Object.keys(childSessionConfig).length > 0 ? { config: childSessionConfig } : {}),
-      },
-    },
+    childSession: { childSession: resolvedChildSession },
+    codex: { childSession: resolvedChildSession },
   };
 }
 
@@ -169,9 +178,8 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       childStartupTimeoutMs: DEFAULT_CHILD_STARTUP_TIMEOUT_MS,
       childMaxRuntimeMs: 7_200_000,
     },
-    codex: {
-      childSession: { cwdAbs: workspaceRoot },
-    },
+    childSession: { childSession: { cwdAbs: workspaceRoot } },
+    codex: { childSession: { cwdAbs: workspaceRoot } },
   };
 }
 

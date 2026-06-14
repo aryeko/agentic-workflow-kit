@@ -328,6 +328,9 @@ export interface ResolvedWorkflowConfig {
     childStartupTimeoutMs: number;
     childMaxRuntimeMs: number;
   };
+  childSession: {
+    childSession: ResolvedChildSessionConfig;
+  };
   codex: {
     childSession: ResolvedChildSessionConfig;
   };

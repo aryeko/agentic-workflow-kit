@@ -154,10 +154,11 @@ watch_run_poll({ runPath, cursor })
 watch_run_stop({ watchId })
 ```
 
-Use `watch_run` for an immediate snapshot. Use `codex_reply` when a linked child session is alive
-but needs operator input, and `codex_interrupt` only when the child should stop. Both tools can
-target a direct `sessionId` or resolve the child from `runPath` plus `storyId`; run-targeted
-interventions are journaled in the run artifacts.
+Use `watch_run` for an immediate snapshot. Use `workflow_child_reply` when a linked child session is
+alive but needs operator input, and `workflow_child_interrupt` only when the child should stop. The
+Codex-named tools remain compatibility aliases. Both tool pairs can target a direct `sessionId` or
+resolve the child from `runPath` plus `storyId`; run-targeted interventions are journaled in the run
+artifacts.
 
 The product CLI exposes the same artifact-backed status surfaces:
 

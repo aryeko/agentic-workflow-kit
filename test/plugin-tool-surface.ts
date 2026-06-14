@@ -9,6 +9,9 @@ export const PRODUCT_MCP_TOOLS = [
   'workflow_run_report',
   'workflow_run_export',
   'workflow_run_control',
+  'workflow_child_reply',
+  'workflow_child_interrupt',
+  'workflow_driver_check',
   'workflow_tracker_validate',
   'workflow_tracker_migrate',
 ] as const;

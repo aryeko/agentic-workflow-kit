@@ -12,7 +12,7 @@ import { createRunId, loadResolvedConfig, resolveCwdOnlyConfig } from '../config
 import { CodexMcpStoryRunner, type CodexMcpStoryRunnerOptions } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
 import { RealGitInspector } from '../git/GitInspector.js';
 import { ConsoleLogger } from '../logging/ConsoleLogger.js';
-import { sendCodexInterrupt } from '../mcp/codexControl.js';
+import { sendChildInterrupt } from '../mcp/codexControl.js';
 import { WorkflowRunner } from '../runner/WorkflowRunner.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import {
@@ -1394,12 +1394,12 @@ async function abortActiveChildren(
         storyId,
         sessionId: null,
         outcome: 'unsupported',
-        detail: 'active child has no linked Codex session',
+        detail: 'active child has no linked child session',
       });
       continue;
     }
     try {
-      const result = await sendCodexInterrupt({ sessionId, storyId, runPath, reason: reason ?? undefined });
+      const result = await sendChildInterrupt({ sessionId, storyId, runPath, reason: reason ?? undefined });
       outcomes.push({
         storyId,
         sessionId,

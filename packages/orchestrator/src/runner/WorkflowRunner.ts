@@ -15,7 +15,6 @@ import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import { claimTrackerRow, releaseTrackerClaim, trackerFileExists } from '../tracks/trackerClaimer.js';
 import type {
   ArtifactStore,
-  CapabilityDowngrade,
   ChildLaunchRecord,
   Clock,
   Logger,
@@ -84,7 +83,7 @@ export class WorkflowRunner {
       git: dependencies.config.git,
       pr: dependencies.config.pr,
       tracker: dependencies.config.tracker,
-      childCwdAbs: dependencies.config.codex.childSession.cwdAbs,
+      childCwdAbs: dependencies.config.childSession.childSession.cwdAbs,
     });
     this.state = {
       runId: dependencies.runId,
@@ -452,7 +451,7 @@ export class WorkflowRunner {
       preparedWorkspace = await workspacePreparer({
         story,
         workspaceRootAbs: this.dependencies.config.workspace.rootAbs,
-        fallbackCwdAbs: this.dependencies.config.codex.childSession.cwdAbs,
+        fallbackCwdAbs: this.dependencies.config.childSession.childSession.cwdAbs,
         git: this.dependencies.config.git,
       });
     } catch (error) {
@@ -479,7 +478,7 @@ export class WorkflowRunner {
       structuredOutputSchema: profile.structuredOutput.schema,
       structuredOutputRequired: profile.structuredOutput.required,
     };
-    const capabilityDowngrades = driverCapabilityDowngrades(promptMetadata);
+    const capabilityDowngrades = this.dependencies.storyRunner.describeCapabilityDowngrades?.(promptMetadata) ?? [];
     const baseShaAtLaunch =
       (await this.dependencies.gitInspector.snapshotBaseSha?.({
         git: this.dependencies.config.git,
@@ -759,8 +758,12 @@ export class WorkflowRunner {
     } catch (error) {
       const completedAt = this.metrics.complete(story.id);
       const message = error instanceof Error ? error.message : String(error);
-      const isStartupFailure = !startupSettled || message === 'child-startup-timeout';
-      const isSupervisionLost = isSupervisionLostError(message);
+      const classification = this.dependencies.storyRunner.classifyError?.(error) ?? {
+        supervisionLost: isSupervisionLostError(message),
+        recoverable: isSupervisionLostError(message),
+      };
+      const isSupervisionLost = classification.supervisionLost;
+      const isStartupFailure = !isSupervisionLost && (!startupSettled || message === 'child-startup-timeout');
       if (heartbeatHandle !== undefined) timer.clearInterval(heartbeatHandle);
       heartbeatHandle = undefined;
       await supervisorPollWrite;
@@ -1172,7 +1175,7 @@ function heartbeatIntervalMs(timeoutMs: number): number {
 }
 
 function isSupervisionLostError(message: string): boolean {
-  return /child-(?:no-progress|max-runtime)-timeout|child-timeout|Codex MCP request timed out/i.test(message);
+  return /child-(?:no-progress|max-runtime)-timeout|child-timeout/i.test(message);
 }
 
 function recoveryEventType(decision: string): 'parent_takeover_allowed' | 'parent_takeover_blocked' {
@@ -1194,18 +1197,6 @@ function pullRequestNumber(value: string): number | null {
   if (!match) return null;
   const parsed = Number(match[1]);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-}
-
-function driverCapabilityDowngrades(promptMetadata: StoryPromptMetadata): CapabilityDowngrade[] {
-  if (!promptMetadata.structuredOutputRequired) return [];
-  return [
-    {
-      capability: 'structured-output-enforcement',
-      reason: 'Codex MCP V1 records structured-output intent but does not expose a stable schema-enforcement knob.',
-      severity: 'warning',
-      source: 'driver',
-    },
-  ];
 }
 
 interface PreparedChildLaunch {
