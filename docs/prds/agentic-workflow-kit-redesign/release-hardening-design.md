@@ -53,10 +53,12 @@ flowchart LR
 1. **Compatibility-first.** Preserve existing artifact names, config keys, CLI/MCP tool names, and
    result envelopes. New config fields are optional with safe defaults. Old run artifacts stay
    readable. This mirrors the original technical solution's rollout rules.
-2. **Verify, do not trust prose.** Any decision that mutates a remote (merge, branch delete) or
-   reports an outcome metric must be backed by an independently observable signal, not by regex over
-   child output. Where a signal is unavailable, mark it explicitly unavailable rather than assume
-   success.
+2. **Verify before acting, do not trust prose.** Any decision that mutates a remote (merge, branch
+   delete) or reports an outcome metric must be backed by an independently observable signal, not by
+   regex over child output. Verification must gate the irreversible action *before* it happens: the
+   parent authorizes or performs merge and branch deletion only after independent verification, and
+   never relies on confirming an auto-merge the child already executed. Where a signal is
+   unavailable, fail closed and mark it explicitly unavailable rather than assume success.
 3. **Fail closed on ambiguity.** New gates default to the safe action (stop / require approval) when
    evidence is missing or conflicting.
 4. **Push host specifics behind the driver contract.** Nothing outside the driver package may branch
@@ -115,6 +117,12 @@ state and can never automate takeover.
   what is its state; what are the required-check conclusions; is it merged and at which commit; was
   the branch deleted; what is the review decision. Authentication and availability are detected and
   reported, never assumed.
+- **Gate the irreversible action before it happens.** When auto-merge is enabled, the child must not
+  merge on its own judgment. Either the parent performs the merge after verifying required-check
+  conclusions and the review decision (parent-side merge), or merge authority is withheld from the
+  child until the parent emits an explicit pre-merge authorization that follows verification. The same
+  applies to branch deletion. After-the-fact verification is defense-in-depth, not the primary control
+  for an irreversible action.
 - Make the completion gate consume verified evidence as the authority. Child prose is downgraded to a
   hint that must be confirmed. The existing git-ancestry merge check stays as a second, independent
   proof. If verification is unavailable (no `gh`, no auth, offline), the gate fails closed: do not
@@ -126,14 +134,19 @@ state and can never automate takeover.
 - Capability flags: expose whether GitHub verification is available so MCP/CLI consumers and reports
   can distinguish "verified" from "child-reported" evidence (satisfies Q-5's "independently verify").
 
-**Decisions.** GitHub work stays child-executed in V1 (the child still opens/merges); the parent's
-new job is to **verify**, not to perform. `gh` is the V1 transport (already a documented dependency);
-Octokit is an acceptable alternative if token handling is cleaner.
+**Decisions.** The child opens the PR and pushes fixes; the **irreversible steps (merge, branch
+delete) are gated by parent verification** — prefer parent-side merge, or, if the child performs the
+merge mechanics, only after an explicit parent authorization that follows verification. After-the-fact
+completion-gate verification stays as defense-in-depth. `gh` is the V1 transport (already a documented
+dependency); Octokit is an acceptable alternative if token handling is cleaner.
 
-**Acceptance.** A run cannot reach `merged`/complete on the basis of prose alone: an integration test
-with a child that claims a fake merge / green CI but where GitHub state disagrees produces a
-recoverable stopped state. When `gh` is unavailable the gate fails closed with a named missing
-signal. RecoveryGuard returns `safe_to_take_over` for a verified-clean fixture.
+**Acceptance.** A child cannot merge before verification: with auto-merge enabled and CI/review
+unverified or failing, no merge or branch deletion occurs (the merge is withheld) — not merely that
+the run is marked incomplete after the child already merged. A run cannot reach `merged`/complete on
+the basis of prose alone: an integration test with a child that claims a fake merge / green CI but
+where GitHub state disagrees produces a recoverable stopped state. When `gh` is unavailable the gate
+fails closed with a named missing signal. RecoveryGuard returns `safe_to_take_over` for a
+verified-clean fixture.
 
 **Affected surfaces.** new `git`/collaboration inspector module, `runner/CompletionGate.ts`,
 `runner/RecoveryGuard.ts`, `runner/WorkflowRunner.ts`, `drivers/codex-mcp/evidenceParser.ts`
@@ -212,10 +225,13 @@ change): `handlers.ts` → run-dispatch, run-control, event-normalization, run-i
 modules; `runAnalyzer.ts` → parse / metrics-extraction / synthesis; `WorkflowRunner.ts` → extract a
 `ChildSupervisor` for the `executeChild` timeout/heartbeat state machine; `markdownTracker.ts` →
 parse / validate / render. Target 200–400 lines per file, 800 hard max; functions under ~50 lines.
+**Characterization tests come first:** before splitting a module, confirm its current behavior is
+covered and add any missing tests as the first step of this story, so the refactor is protected by an
+existing safety net — it does not rely on a later test story.
 
-**Acceptance.** No source file over 800 lines; `executeChild` decomposed; full suite green with no
-behavior change (this story is a pure refactor and lands after the behavioral fixes so it reshapes
-their final form).
+**Acceptance.** No source file over 800 lines; `executeChild` decomposed; the characterization tests
+(added here where missing) are green before and after the split, with no behavior change. This story
+is a pure refactor on a tested base and does not depend on AWK13.6.
 
 **Affected surfaces.** `commands/handlers.ts`, `analysis/runAnalyzer.ts`, `runner/WorkflowRunner.ts`,
 `tracks/markdownTracker.ts` and new sibling modules.
@@ -229,11 +245,13 @@ the project's own target; there is no end-to-end story run.
 
 **Design direction.**
 
-- Add the missing negative-path tests: merge gate rejecting a non-ancestor merge
-  (`isCommitReachableFromRef === false`); real-git adapter tests for `isCommitReachableFromRef` /
-  `readFileFromRef` / `refreshBaseBranch` using temp repos (harness already exists); malformed NDJSON
-  readers; concurrent tracker-claim race; operator-abort interrupting a live child; one test per
-  RUN-6 recoverable state.
+- Sweep for any safety-critical negative-path gap and close it. The per-behavior negative-path tests
+  land with the stories that change the code — non-ancestor merge rejection and the real-git adapter
+  (`isCommitReachableFromRef` / `readFileFromRef` / `refreshBaseBranch`, temp-repo harness already
+  exists) plus one test per RUN-6 recoverable state in AWK13.2; malformed-NDJSON tolerance and the
+  concurrent tracker-claim race in AWK13.3; operator-abort interrupting a live child in
+  AWK13.1/AWK13.3; characterization tests for the split modules in AWK13.5. This story verifies the
+  full set exists and adds whatever is still missing.
 - Add an end-to-end story-run smoke against the fake driver that exercises
   implement → verify → (mocked) collaboration verification → completion, so the orchestration path is
   covered without a real agent.
@@ -287,13 +305,15 @@ unavailable, so it never makes a passing run fail spuriously without naming the 
 | Completion/recovery | non-ancestor merge rejection, verification-unavailable fail-closed, RUN-6 states, RecoveryGuard safe-path |
 | Durability | concurrent append integrity, malformed-line tolerance, claim race, abort-state single-writer |
 | Safety/API | approval gate refusal, conservative init preset, capability flags, path-traversal rejection |
-| Refactor | full suite green with no behavior change |
+| Refactor | characterization tests added before the split; full suite green with no behavior change |
 | Coverage | thresholds ratcheted toward 90; end-to-end story-run smoke |
 
 ## Sequencing
 
 AWK13.1 first (neutral seams). AWK13.2 builds on it (the collaboration inspector is host-neutral but
 the recovery/error wiring rides the neutral classifier). AWK13.3 and AWK13.4 can proceed in parallel
-with care (both touch `WorkflowRunner`/`handlers`; prefer ≤2-way parallel and coordinate). AWK13.5
-(decomposition) lands after the behavioral fixes so it reshapes their final form. AWK13.6 (tests) and
-AWK13.7 (docs) land after decomposition and gate AWK14 (release).
+with care (both touch `WorkflowRunner`/`handlers`; prefer ≤2-way parallel and coordinate). **Tests
+land with the behavior they cover**, so each behavioral story ships its own negative-path tests.
+AWK13.5 (decomposition) adds characterization tests before splitting and therefore refactors on a
+tested base — it does not depend on later test work. AWK13.6 (coverage ratchet + end-to-end smoke +
+completeness sweep) and AWK13.7 (docs) come last and gate AWK14 (release).
