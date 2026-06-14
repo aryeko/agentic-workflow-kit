@@ -164,6 +164,25 @@ Abort requests are appended to `controls.ndjson`, reflected in `events.ndjson`, 
 `applied`, `requested`, `unsupported`, or `already-terminal` depending on current run and child
 session state.
 
+## Policy and artifacts
+
+Runtime policy comes from `.workflow/config.yaml`. In addition to paths, statuses, git strategy, and
+PR behavior, configs can define named `agents.profiles` and `agents.bindings` for story
+implementation, pre-PR review, planning, analysis, recovery, and tracker migration. Resolved launch
+artifacts include the selected profile, prompt template/hash, structured-output intent, and driver
+capability downgrades. Codex MCP currently records structured-output enforcement intent in
+WorkflowKit evidence rather than sending unsupported host config keys.
+
+Runs write local artifacts under `.codex/agentic-workflow-kit/runs/<runId>/`: compatibility files
+(`run.json`, `state.json`, `events.ndjson`, `metrics.live.json`, `children/`) plus normalized
+`summary.json`, `rows.json`, `budgets.json`, `transcripts.json`, and optional explicit
+`analysis.json` / `report.md`. Export commands create bounded bundles from approved run artifacts,
+skip raw child payloads, and do not follow transcript paths by default.
+
+GitHub evidence is structured when available: PR number/URL, checks, Codex reaction/comment review
+signal, findings triage, merge method/commit, and branch deletion. Analyzer and completion gates use
+that evidence together with tracker state; they do not accept child prose alone as completion.
+
 ## Troubleshooting
 
 - If the MCP server cannot start from a plugin install, check package resolution first: exact version,

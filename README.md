@@ -122,6 +122,29 @@ Codex's GitHub reaction/comment signal: eyes means started or pending, thumbs-up
 findings, and Codex PR review comments or PR comments are findings to triage when
 `triageComments: true`. It does not require Codex to submit a native GitHub approval.
 
+## Runtime policy and artifacts
+
+`.workflow/config.yaml` also controls runtime execution details beyond PR policy:
+
+- `agents.profiles` defines named launch profiles for story implementation, pre-PR review,
+  planning, analysis, recovery, and tracker migration. Profiles carry driver, model, reasoning,
+  prompt template, structured-output contract, sandbox, approval policy, host settings, and budget
+  policy.
+- `agents.bindings` maps logical task types to those profiles, so a repo can change runtime policy
+  without editing generated prompts.
+- Budget outcomes are written to `budgets.json`; wall-time and tool-call dimensions can drive
+  warnings, stop-new-launches, checkpoint stops, or aborts, while unavailable telemetry is reported
+  explicitly instead of as zero.
+- Launch artifacts record the resolved profile, prompt template/hash, structured-output intent, and
+  any capability downgrade such as Codex MCP structured-output enforcement being recorded rather
+  than host-enforced.
+- Run artifacts live under `.codex/agentic-workflow-kit/runs/<runId>/` and can be inspected,
+  reported, exported, or controlled through the product CLI/MCP facade. Report/export operations
+  are explicit and do not copy host transcript contents by default.
+- GitHub collaboration evidence is structured: PR number/URL, checks, Codex reaction/comment review
+  signal, findings triage, merge method/commit, and branch deletion are captured for analyzer and
+  completion-gate decisions.
+
 ## Documentation
 
 - [docs/README.md](docs/README.md) — documentation hub (using vs developing)
@@ -133,6 +156,7 @@ findings, and Codex PR review comments or PR comments are findings to triage whe
 - [references/technical-solution-contract.md](references/technical-solution-contract.md) — the technical solution gate format
 - [references/story-brief-contract.md](references/story-brief-contract.md) — the lightweight story brief format
 - [references/detailed-story-spec-contract.md](references/detailed-story-spec-contract.md) — the pre-code detailed story spec format
+- [references/runtime-artifact-contract.md](references/runtime-artifact-contract.md) — runtime artifact, metric, budget, transcript, report, and export shape
 - [examples/](examples/) — a worked PRD and tracker (Linkly)
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to develop and contribute
 - [docs/brand.md](docs/brand.md) — the visual identity (logo, color, type, social/SEO kit)

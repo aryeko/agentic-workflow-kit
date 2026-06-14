@@ -184,9 +184,10 @@ Default profiles:
 
 Budget dimensions are `wallMs`, `tokens`, `toolCalls`, `failedToolCalls`, and `costUsd`. Each
 dimension has `limit` (`number | null`), `warnAtPercent` (`1..100 | null`), and `action`
-(`warn` | `stop-new-launches` | `checkpoint-stop` | `abort`). Token and cost budgets are accepted
-for forward-compatible policy configuration, but current resolved config marks them unenforceable
-until live telemetry and budget enforcement land in the runtime.
+(`warn` | `stop-new-launches` | `checkpoint-stop` | `abort`). Wall-time, tool-call, and
+failed-tool-call dimensions can enforce runtime controls when telemetry is available. Token and cost
+budgets are accepted for forward-compatible policy configuration; the current resolved config marks
+token and cost dimensions unenforceable for live control when host telemetry is unavailable.
 
 Every binding must reference an existing profile. `loadResolvedConfig` exposes the source profiles,
 task bindings, and effective task profiles so `config.resolved.json` artifacts include the selected

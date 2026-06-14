@@ -23,6 +23,7 @@ The V1 normalized runtime artifact model adds these files without changing the m
 files:
 
 ```text
+controls.ndjson
 summary.json
 rows.json
 budgets.json
@@ -30,6 +31,9 @@ transcripts.json
 analysis.json
 report.md
 ```
+
+`controls.ndjson` contains durable operator control requests. V1 supports abort requests. Each row
+records the request id, action, target run/story when applicable, reason, requester, and timestamp.
 
 `summary.json` has `schemaVersion: 1` and records run status, timing, blocker fields, active and
 completed story ids, aggregate metrics, artifact path refs, and explicit unavailable telemetry
@@ -64,6 +68,15 @@ reasons, but must not inline host transcript content.
 
 Bounded export bundles may copy approved run artifacts and child JSON evidence, but must skip raw
 child payloads and must not follow transcript paths to copy host transcript files by default.
+
+Child launch and result artifacts may include:
+
+- resolved profile name and task type,
+- prompt template and prompt hash,
+- structured-output schema and required flag,
+- driver capability downgrades,
+- GitHub evidence with PR number/URL, checks, review signal, findings triage, merge evidence, and
+  branch deletion status.
 
 When host telemetry cannot expose a metric, the field must be `null` with an explicit unavailable
 reason instead of omitted. Existing run artifacts without these files or without metric

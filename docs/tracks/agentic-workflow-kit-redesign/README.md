@@ -91,19 +91,19 @@ Statuses come from `references/tracker-contract.md`:
 | ID | Name | Depends on | Wave | Status | Spec | Plan | Owner | PR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | AWK01 | API facade foundation | — | W1 | done | [brief](./stories/AWK01.md) | — | codex | [#56](https://github.com/aryeko/agentic-workflow-kit/pull/56) |
-| AWK02 | Agent profiles and budgets | AWK01 | W2 | done | [brief](./stories/AWK02.md) + [spec](../../superpowers/specs/2026-06-13-awk02-agent-profiles-and-budgets-design.md) | [plan](../../superpowers/plans/2026-06-13-awk02-agent-profiles-and-budgets.md) | codex | [#58](https://github.com/aryeko/agentic-workflow-kit/pull/58) |
+| AWK02 | Agent profiles and budgets | AWK01 | W2 | done | [brief](./stories/AWK02.md) | — | codex | [#58](https://github.com/aryeko/agentic-workflow-kit/pull/58) |
 | AWK03 | Tracker validation and migration | AWK01 | W2 | done | [brief](./stories/AWK03.md) | — | codex | [#57](https://github.com/aryeko/agentic-workflow-kit/pull/57) |
 | AWK04 | Workflow authoring independence | AWK01 | W2 | done | [brief](./stories/AWK04.md) | — | codex | [#59](https://github.com/aryeko/agentic-workflow-kit/pull/59) |
-| AWK05 | Driver contract and Codex profile launch | AWK02 | W3 | done | [brief](./stories/AWK05.md) + [spec](../../superpowers/specs/2026-06-14-awk05-driver-contract-and-codex-profile-launch-design.md) | [plan](../../superpowers/plans/2026-06-14-awk05-driver-contract-and-codex-profile-launch.md) | codex | [#61](https://github.com/aryeko/agentic-workflow-kit/pull/61) |
+| AWK05 | Driver contract and Codex profile launch | AWK02 | W3 | done | [brief](./stories/AWK05.md) | — | codex | [#61](https://github.com/aryeko/agentic-workflow-kit/pull/61) |
 | AWK06 | Runtime event and artifact model | AWK02 | W3 | done | [brief](./stories/AWK06.md) + [contract](../../../references/runtime-artifact-contract.md) | — | codex | [#60](https://github.com/aryeko/agentic-workflow-kit/pull/60) |
 | AWK07 | Run control and abort | AWK06 | W4 | done | [brief](./stories/AWK07.md) | — | codex | [#63](https://github.com/aryeko/agentic-workflow-kit/pull/63) |
 | AWK08 | Story and track autopilot policy | AWK03, AWK05, AWK06 | W4 | done | [brief](./stories/AWK08.md) | — | codex-2026-06-13T22-51-49Z | [#62](https://github.com/aryeko/agentic-workflow-kit/pull/62) |
 | AWK081 | AWK08.1 Review continuity policy | AWK08 | W4.5 | done | [brief](./stories/AWK081.md) | — | codex-2026-06-13T23-29-42Z | [#65](https://github.com/aryeko/agentic-workflow-kit/pull/65) |
 | AWK09 | Status and streaming API | AWK06, AWK07, AWK081 | W5 | done | [brief](./stories/AWK09.md) | — | codex-2026-06-13T23-54-50Z | [#67](https://github.com/aryeko/agentic-workflow-kit/pull/67) |
 | AWK10 | Analyzer and report bundle | AWK06, AWK09, AWK081 | W5 | done | [brief](./stories/AWK10.md) | — | codex-2026-06-14T01-45-49Z | [#68](https://github.com/aryeko/agentic-workflow-kit/pull/68) |
-| AWK11 | GitHub evidence hardening | AWK08 | W5 | done | [brief](./stories/AWK11.md) + [spec](../../superpowers/specs/2026-06-14-awk11-github-evidence-hardening-design.md) | [plan](../../superpowers/plans/2026-06-14-awk11-github-evidence-hardening.md) | codex-2026-06-13T23-54-50Z | [#66](https://github.com/aryeko/agentic-workflow-kit/pull/66) |
+| AWK11 | GitHub evidence hardening | AWK08 | W5 | done | [brief](./stories/AWK11.md) | — | codex-2026-06-13T23-54-50Z | [#66](https://github.com/aryeko/agentic-workflow-kit/pull/66) |
 | AWK12 | Plugin package compatibility | AWK09, AWK10, AWK11 | W6 | done | [brief](./stories/AWK12.md) | — | codex-2026-06-14T02-16-42Z | [#69](https://github.com/aryeko/agentic-workflow-kit/pull/69) |
-| AWK13 | Canonical docs consolidation | AWK12 | W7 | implementing | [brief](./stories/AWK13.md) + [spec](../../superpowers/specs/2026-06-14-awk13-canonical-docs-consolidation-design.md) | [plan](../../superpowers/plans/2026-06-14-awk13-canonical-docs-consolidation.md) | codex-2026-06-14T02-55-42Z | — |
+| AWK13 | Canonical docs consolidation | AWK12 | W7 | implementing | [brief](./stories/AWK13.md) | — | codex-2026-06-14T02-55-42Z | — |
 | AWK14 | Changeset and release readiness | AWK13 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
