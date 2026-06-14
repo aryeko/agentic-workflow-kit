@@ -667,6 +667,51 @@ describe('agentic-workflow-kit MCP server', () => {
     await server.close();
   });
 
+  it('generates run reports through workflow_run_report', async () => {
+    const { runPath, sessionRoot } = await createAnalyzableRun();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'workflow_run_report',
+      arguments: { runPath, sessionRoot, format: 'markdown' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_report',
+      result: {
+        runId: 'run-1',
+        artifacts: {
+          analysis: 'analysis.json',
+          report: 'report.md',
+        },
+      },
+    });
+    await client.close();
+    await server.close();
+  });
+
+  it('exports bounded run bundles through workflow_run_export', async () => {
+    const { runPath, sessionRoot } = await createAnalyzableRun();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'workflow_run_export',
+      arguments: { runPath, sessionRoot, include: 'full-bounded' },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_export',
+      result: {
+        runId: 'run-1',
+        include: 'full-bounded',
+      },
+    });
+    await client.close();
+    await server.close();
+  });
+
   it('waits in watch_run until timeout when a run stays running', async () => {
     const runPath = await createWatchRun('running');
     const { client, server } = await connectClient();

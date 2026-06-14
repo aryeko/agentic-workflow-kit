@@ -138,9 +138,12 @@ Add or formalize:
   budgets.json                 configured vs observed budget outcomes
 ```
 
-Retention is repo-local. Runtime artifacts remain ignored by completion dirty checks. Transcript
-files stay in host session storage and are referenced by path unless a future export mode copies
-them into the run bundle.
+Retention is repo-local. Runtime artifacts remain ignored by completion dirty checks. Runtime
+completion writes execution artifacts such as summary, rows, budgets, and transcript indexes.
+Report artifacts are written only by explicit report/export operations: `analyze-run` stays
+read-only, while report generation writes `analysis.json` and `report.md` deterministically from
+current run artifacts. Transcript files stay in host session storage and are referenced by path;
+bounded exports do not follow those paths or copy transcript contents by default.
 
 ## Metrics fields
 

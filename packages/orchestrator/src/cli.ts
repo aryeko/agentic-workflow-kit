@@ -6,8 +6,10 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import {
   projectInspectFacade,
+  runExportFacade,
   runInspectFacade,
   runPreviewFacade,
+  runReportFacade,
   runStatusFacade,
   runStreamFacade,
   trackerMigrateFacade,
@@ -159,6 +161,30 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
   if (command.kind === 'run-inspect') {
     const input = runRefInput(command.runRef, command.overrides);
     const envelope = await runInspectFacade({ ...command.overrides, ...input });
+    stdout(JSON.stringify(envelope, null, 2));
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command.kind === 'run-report') {
+    const input = runRefInput(command.runRef, command.overrides);
+    const envelope = await runReportFacade({ ...command.overrides, ...input });
+    if (command.overrides.format === 'markdown' && envelope.ok) {
+      stdout(envelope.result.markdown);
+    } else {
+      stdout(JSON.stringify(envelope, null, 2));
+    }
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command.kind === 'run-export') {
+    const input = runRefInput(command.runRef, command.overrides);
+    const envelope = await runExportFacade({
+      ...command.overrides,
+      ...input,
+      include: command.overrides.exportInclude,
+    });
     stdout(JSON.stringify(envelope, null, 2));
     if (!envelope.ok) process.exitCode = 1;
     return;

@@ -103,11 +103,16 @@ future evaluation:
 | `tokens-observed` | metric event | Record token fields when host telemetry or transcript parsing makes them available. | Metrics, budget policy |
 | `summary.json` | artifact | Stable machine-readable run summary. | CLI/MCP, future UI/eval |
 | `rows.json` | artifact | Child/session rows for analysis and reports. | Analyzer, future eval |
+| `analysis.json` | artifact | Stable machine-readable analyzer result written by explicit report/export operations. | Reports, future UI/eval |
 | `report.md` | artifact | Human-readable run explanation. | User, reviewer |
 
 Realtime CLI/MCP status reads from `state.json`, `metrics.live.json`, `events.ndjson`, and control
 state. Streaming/subscription follows the normalized run event stream and applies config/tool-call
 filters for topic, level, story id, and data inclusion.
+`analyze-run` remains a read-only reconstruction command. `run report` / `workflow_run_report`
+writes `analysis.json` and `report.md` only when explicitly invoked, and `run export` /
+`workflow_run_export` creates bounded bundles without copying raw child payloads or host transcript
+contents by default.
 
 Local pre-PR review events should include review-loop continuity fields when available:
 `loop`, `agentId`, `previousAgentId`, and `continuityMode`. Supported continuity modes are

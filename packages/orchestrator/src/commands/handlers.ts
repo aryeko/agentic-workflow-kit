@@ -1,8 +1,10 @@
 import { appendFile, mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { glob } from 'tinyglobby';
-
+import type { WorkflowRunAnalysis } from '../analysis/runAnalyzer.js';
 import { analyzeWorkflowRun } from '../analysis/runAnalyzer.js';
+import { exportWorkflowRunArtifacts, type RunExportCopyResult } from '../analysis/runExport.js';
+import { buildWorkflowRunReportMarkdown } from '../analysis/runReport.js';
 import { FileArtifactStore } from '../artifacts/FileArtifactStore.js';
 import { resolveInvocationCwd } from '../cli/args.js';
 import { SystemClock } from '../clock/SystemClock.js';
@@ -235,6 +237,40 @@ export interface WorkflowRunInspectResult {
   metrics: unknown | null;
 }
 
+export interface WorkflowRunReportInput extends CliOverrides {
+  runId?: string;
+  runPath?: string;
+  write?: boolean;
+}
+
+export interface WorkflowRunReportResult {
+  runId: string;
+  artifactDir: string;
+  format: 'json' | 'markdown';
+  analysis: WorkflowRunAnalysis;
+  markdown: string;
+  artifacts: {
+    analysis: string;
+    report: string;
+  };
+  written: boolean;
+}
+
+export interface WorkflowRunExportInput extends CliOverrides {
+  runId?: string;
+  runPath?: string;
+  out?: string;
+  include?: 'summary' | 'full-bounded';
+}
+
+export interface WorkflowRunExportResult {
+  runId: string;
+  artifactDir: string;
+  bundleDir: string;
+  include: 'summary' | 'full-bounded';
+  files: RunExportCopyResult[];
+}
+
 type RunCommand = Extract<WorkflowCommand, { kind: 'run-story' | 'run-eligible' }>;
 type WatchOptions = ResolvedWorkflowConfig['orchestrator']['watch'];
 
@@ -326,6 +362,50 @@ export async function analyzeRunHandler(runPath: string, overrides: CliOverrides
   return await analyzeWorkflowRun(path.resolve(runPath), {
     sessionRoots: overrides.sessionRoot ? [path.resolve(overrides.sessionRoot)] : undefined,
   });
+}
+
+export async function runReportHandler(input: WorkflowRunReportInput = {}): Promise<WorkflowRunReportResult> {
+  const runDirectory = await resolveRunDirectory(input);
+  await assertRunExists(runDirectory);
+  const analysis = await analyzeWorkflowRun(runDirectory, {
+    sessionRoots: input.sessionRoot ? [path.resolve(input.sessionRoot)] : undefined,
+  });
+  const markdown = buildWorkflowRunReportMarkdown(analysis, runDirectory);
+  const shouldWrite = input.write ?? true;
+  if (shouldWrite) {
+    await writeJsonFile(path.join(runDirectory, 'analysis.json'), analysis);
+    await writeTextFile(path.join(runDirectory, 'report.md'), markdown);
+  }
+  return {
+    runId: analysis.runId,
+    artifactDir: runDirectory,
+    format: input.format === 'markdown' ? 'markdown' : 'json',
+    analysis,
+    markdown,
+    artifacts: {
+      analysis: 'analysis.json',
+      report: 'report.md',
+    },
+    written: shouldWrite,
+  };
+}
+
+export async function runExportHandler(input: WorkflowRunExportInput = {}): Promise<WorkflowRunExportResult> {
+  const runDirectory = await resolveRunDirectory(input);
+  await assertRunExists(runDirectory);
+  const report = await runReportHandler({ ...input, runPath: runDirectory, write: true });
+  const outDirectory = input.out
+    ? path.resolve(resolveInvocationCwd(input), input.out)
+    : path.join(runDirectory, 'exports', 'latest');
+  const include = input.include ?? 'summary';
+  const files = await exportWorkflowRunArtifacts({ runDirectory, outDirectory, include });
+  return {
+    runId: report.runId,
+    artifactDir: runDirectory,
+    bundleDir: outDirectory,
+    include,
+    files,
+  };
 }
 
 export async function abortRunHandler(input: AbortRunInput): Promise<RunControlResult> {
@@ -1151,6 +1231,8 @@ function runArtifactRefs(): Record<string, string> {
     rows: 'rows.json',
     budgets: 'budgets.json',
     transcripts: 'transcripts.json',
+    analysis: 'analysis.json',
+    report: 'report.md',
   };
 }
 
@@ -1271,6 +1353,11 @@ async function readJsonIfExists(filePath: string): Promise<unknown | null> {
 async function writeJsonFile(filePath: string, value: unknown): Promise<void> {
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function writeTextFile(filePath: string, value: string): Promise<void> {
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, value);
 }
 
 async function appendNdjson(filePath: string, value: unknown): Promise<void> {

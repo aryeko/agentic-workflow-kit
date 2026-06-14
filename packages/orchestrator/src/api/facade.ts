@@ -5,14 +5,20 @@ import {
   discoverTracks,
   listEligibleHandler,
   listStoriesHandler,
+  runExportHandler,
   runInspectHandler,
+  runReportHandler,
   runStatusHandler,
   runStreamHandler,
   type TrackerMigrateInput,
   trackerMigrateHandler,
   trackerValidateHandler,
+  type WorkflowRunExportInput,
+  type WorkflowRunExportResult,
   type WorkflowRunInspectInput,
   type WorkflowRunInspectResult,
+  type WorkflowRunReportInput,
+  type WorkflowRunReportResult,
   type WorkflowRunStatusInput,
   type WorkflowRunStatusResult,
   type WorkflowRunStreamInput,
@@ -29,6 +35,8 @@ export type WorkflowApiOperation =
   | 'workflow_run_status'
   | 'workflow_run_stream'
   | 'workflow_run_inspect'
+  | 'workflow_run_report'
+  | 'workflow_run_export'
   | 'workflow_tracker_validate'
   | 'workflow_tracker_migrate';
 export type WorkflowApiErrorCode =
@@ -292,8 +300,56 @@ export async function runInspectFacade(
   }
 }
 
+export async function runReportFacade(
+  input: WorkflowRunReportInput,
+): Promise<WorkflowApiEnvelope<WorkflowRunReportResult>> {
+  const operation = 'workflow_run_report';
+  try {
+    const result = await runReportHandler(input);
+    return await successRunReadEnvelope(operation, input, {
+      result,
+      artifacts: [
+        { kind: 'analysis', path: result.artifacts.analysis },
+        { kind: 'report', path: result.artifacts.report },
+      ],
+      next: [
+        {
+          label: 'Export run',
+          mcpTool: 'workflow_run_export',
+          cli: `agentic-workflow-kit run export ${result.runId}`,
+        },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+export async function runExportFacade(
+  input: WorkflowRunExportInput,
+): Promise<WorkflowApiEnvelope<WorkflowRunExportResult>> {
+  const operation = 'workflow_run_export';
+  try {
+    const result = await runExportHandler(input);
+    return await successRunReadEnvelope(operation, input, {
+      result,
+      artifacts: [{ kind: 'export', path: result.bundleDir }],
+      next: [],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
 async function successRunReadEnvelope<T>(
-  operation: Extract<WorkflowApiOperation, 'workflow_run_status' | 'workflow_run_stream' | 'workflow_run_inspect'>,
+  operation: Extract<
+    WorkflowApiOperation,
+    | 'workflow_run_status'
+    | 'workflow_run_stream'
+    | 'workflow_run_inspect'
+    | 'workflow_run_report'
+    | 'workflow_run_export'
+  >,
   input: Pick<CliOverrides, 'cwd' | 'configPath' | 'requestId'> & { runPath?: string; runId?: string },
   content: { result: T; artifacts?: WorkflowArtifactRef[]; next?: WorkflowNextAction[] },
 ): Promise<WorkflowApiSuccess<T>> {

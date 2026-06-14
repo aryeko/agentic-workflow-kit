@@ -221,6 +221,8 @@ function buildSummary(state: RunState, metrics: LiveMetricsSnapshot): RunSummary
       rows: 'rows.json',
       budgets: 'budgets.json',
       transcripts: 'transcripts.json',
+      analysis: 'analysis.json',
+      report: 'report.md',
     },
     aggregate: metrics.aggregate,
     unavailable,
