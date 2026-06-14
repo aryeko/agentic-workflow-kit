@@ -144,8 +144,8 @@ Command map:
 | `workflow-kit run stream RUN_ID --topics run,story,child,error` | Stream normalized events as table or NDJSON. | no |
 | `workflow-kit abort-run RUN_PATH --reason TEXT` | Request abort and return applied/unsupported/terminal outcome. | yes |
 | `workflow-kit run inspect RUN_ID` | Show artifact tree, child sessions, transcripts, PR links, metrics. | no |
-| `workflow-kit run report RUN_ID --format markdown|json` | Build or read run report. | optional |
-| `workflow-kit run export RUN_ID --out PATH` | Produce a shareable bounded artifact bundle. | yes |
+| `workflow-kit run report RUN_ID --format markdown|json` | Build `analysis.json` and `report.md` from bounded run artifacts. | yes |
+| `workflow-kit run export RUN_ID --out PATH` | Produce a shareable bounded artifact bundle without transcript contents. | yes |
 
 Example:
 
@@ -179,8 +179,8 @@ prefixed with `workflow_` to avoid collisions.
 | `workflow_run_stream` | `run stream` | Long-lived request that subscribes to filtered normalized events. |
 | `workflow_run_control` | `run control` | Request abort or future controls. |
 | `workflow_run_inspect` | `run inspect` | Return artifact/session/PR/metrics index. |
-| `workflow_run_report` | `run report` | Produce or read report outputs. |
-| `workflow_run_export` | `run export` | Produce a bounded bundle for sharing/future UI. |
+| `workflow_run_report` | `run report` | Produce report outputs through an explicit post-run write operation. |
+| `workflow_run_export` | `run export` | Produce a bounded bundle for sharing/future UI without copying host transcript contents. |
 
 ## MCP resources and prompts
 
@@ -197,7 +197,7 @@ inspect context without triggering runtime behavior.
 | `workflow://tracks/{trackId}/stories/{storyId}` | One story summary with dependencies, status, brief refs, latest run refs. |
 | `workflow://runs/{runId}/state` | Current run state, active children, controls, budgets, and artifact refs. |
 | `workflow://runs/{runId}/events` | Bounded event tail, filterable through query params where supported. |
-| `workflow://runs/{runId}/report` | Latest report artifact or report generation status. |
+| `workflow://runs/{runId}/report` | Latest report envelope generated from bounded run artifacts. |
 
 Prompt exposure should be conservative:
 

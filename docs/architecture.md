@@ -132,6 +132,8 @@ The package MCP server exposes these tools over the shared handlers:
 | `workflow_run_status` | Read a bounded product status snapshot from `state.json`, `metrics.live.json`, `controls.ndjson`, and recent normalized events. |
 | `workflow_run_stream` | Replay a bounded event tail, optionally send standard MCP progress notifications, and return a terminal or timeout stream summary. |
 | `workflow_run_inspect` | Inspect a bounded run artifact, child/session, and PR-reference index without copying transcripts. |
+| `workflow_run_report` | Generate `analysis.json` and `report.md` for a run through an explicit post-run report operation. |
+| `workflow_run_export` | Create a bounded shareable run artifact bundle without copying host transcript contents. |
 | `list_tracks` | Discover tracker directories and active tracks. |
 | `list_stories` | Parse stories for one track or all active tracks. |
 | `list_eligible` | Return stories dispatchable after status, owner, and dependency filtering. |
@@ -193,6 +195,14 @@ make its own completed story look uncommitted. `metrics.live.json`, `watch_run`,
 share Codex session-log parsing for command counts, subagent counts, and token totals by type when a
 child session log is linked. Interactive `implement-next` journals use the same run directory and can be analyzed when
 `state.json` contains `command: "implement-next"` plus an `interactive` child record.
+Runtime completion writes normalized machine-readable artifacts such as `summary.json`,
+`rows.json`, `budgets.json`, and `transcripts.json`. Report generation is a separate explicit
+post-run operation: `workflow_run_report` / `agentic-workflow-kit run report` writes
+`analysis.json` plus deterministic `report.md`, while `analyze-run` remains read-only for
+compatibility. Export generation is also explicit: `workflow_run_export` /
+`agentic-workflow-kit run export` creates a bounded bundle of approved run artifacts and child JSON
+evidence, skips raw child payloads, and never follows transcript paths to copy host transcript
+contents by default.
 
 For `git.strategy: worktree`, the parent orchestrator does not claim tracker rows in the parent
 checkout. Child worktrees own story status and owner changes; the parent records

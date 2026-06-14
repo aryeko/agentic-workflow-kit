@@ -99,6 +99,16 @@ describe('parseCommand', () => {
       runRef: '/tmp/run-1',
       overrides: {},
     });
+    expect(parseCommand(['run', 'report', '/tmp/run-1', '--format', 'markdown'])).toEqual({
+      kind: 'run-report',
+      runRef: '/tmp/run-1',
+      overrides: { format: 'markdown' },
+    });
+    expect(parseCommand(['run', 'export', '/tmp/run-1', '--out', '/tmp/export', '--include', 'full-bounded'])).toEqual({
+      kind: 'run-export',
+      runRef: '/tmp/run-1',
+      overrides: { out: '/tmp/export', exportInclude: 'full-bounded' },
+    });
     expect(parseCommand(['tracker', 'validate', '--track', 'linkly', '--json'])).toEqual({
       kind: 'tracker-validate',
       overrides: { track: 'linkly', json: true },

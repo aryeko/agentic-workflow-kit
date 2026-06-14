@@ -23,8 +23,8 @@ export function parseCommand(argv: string[]): WorkflowCommand {
   if (args[0] === 'project' && args[1] !== 'inspect') {
     throw new Error('Expected `project inspect`');
   }
-  if (args[0] === 'run' && !['preview', 'status', 'stream', 'inspect'].includes(args[1] ?? '')) {
-    throw new Error('Expected `run preview`, `run status`, `run stream`, or `run inspect`');
+  if (args[0] === 'run' && !['preview', 'status', 'stream', 'inspect', 'report', 'export'].includes(args[1] ?? '')) {
+    throw new Error('Expected `run preview`, `run status`, `run stream`, `run inspect`, `run report`, or `run export`');
   }
   if (args[0] === 'run-story' && (!args[1] || args[1].startsWith('-'))) {
     throw new Error('run-story requires a story id');
@@ -95,6 +95,12 @@ function buildProgram(setParsed: (command: WorkflowCommand) => void): Command {
   withOptions(run.command('inspect').argument('<runRef>')).action((runRef: string, options: CommanderOptions) => {
     setParsed({ kind: 'run-inspect', runRef, overrides: toProductOverrides(options) });
   });
+  withOptions(run.command('report').argument('<runRef>')).action((runRef: string, options: CommanderOptions) => {
+    setParsed({ kind: 'run-report', runRef, overrides: toProductOverrides(options) });
+  });
+  withOptions(run.command('export').argument('<runRef>')).action((runRef: string, options: CommanderOptions) => {
+    setParsed({ kind: 'run-export', runRef, overrides: toProductOverrides(options) });
+  });
   const tracker = program.command('tracker').allowExcessArguments(false);
   withOptions(tracker.command('validate')).action((options: CommanderOptions) => {
     setParsed({ kind: 'tracker-validate', overrides: toOverrides(options) });
@@ -161,6 +167,8 @@ function withOptions(command: Command): Command {
     .option('--tracks-dir <path>')
     .option('--reason <text>')
     .option('--from <path>')
+    .option('--out <path>')
+    .addOption(new Option('--include <mode>').choices(['summary', 'full-bounded']))
     .addOption(new Option('--limit <n>').argParser((value) => parsePositiveIntegerFlag(value, '--limit')))
     .addOption(new Option('--format <format>').choices(['table', 'json', 'ndjson', 'markdown']))
     .option('--model <model>')
@@ -194,6 +202,8 @@ interface CommanderOptions {
   reason?: string;
   mode?: 'eligible';
   from?: string;
+  out?: string;
+  include?: 'summary' | 'full-bounded';
   limit?: number;
   format?: 'table' | 'json' | 'ndjson' | 'markdown';
 }
@@ -220,6 +230,8 @@ function toOverrides(options: CommanderOptions): CliOverrides {
   if (options.sessionRoot !== undefined) overrides.sessionRoot = options.sessionRoot;
   if (options.story !== undefined) overrides.storyId = options.story;
   if (options.reason !== undefined) overrides.reason = options.reason;
+  if (options.out !== undefined) overrides.out = options.out;
+  if (options.include !== undefined) overrides.exportInclude = options.include;
   if (options.limit !== undefined) overrides.limit = options.limit;
   if (options.format !== undefined) overrides.format = options.format;
   return overrides;

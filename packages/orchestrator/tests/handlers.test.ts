@@ -1,11 +1,14 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  analyzeRunHandler,
   listEligibleHandler,
   listTracksHandler,
+  runExportHandler,
+  runReportHandler,
   runWorkflowHandler,
   trackerMigrateHandler,
   trackerValidateHandler,
@@ -43,6 +46,87 @@ async function createWorkspace(): Promise<string> {
   await writeFile(path.join(root, '.workflow/config.yaml'), 'version: 1\n');
   await writeFile(path.join(root, 'docs/tracks/linkly/README.md'), trackerMarkdown);
   return root;
+}
+
+async function createRunDirectory(): Promise<string> {
+  const runPath = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-report-'));
+  await mkdir(path.join(runPath, 'children'), { recursive: true });
+  await writeFile(
+    path.join(runPath, 'state.json'),
+    JSON.stringify({
+      runId: 'run-1',
+      command: 'run-story',
+      workspaceRoot: '/repo',
+      artifactDir: runPath,
+      status: 'complete',
+      maxParallel: 1,
+      startedAt: '2026-06-14T00:00:00.000Z',
+      completedAt: '2026-06-14T00:01:00.000Z',
+      active: [],
+      completed: [{ storyId: 'LK02', ok: true, sessionId: 'session-1', completedAt: '2026-06-14T00:01:00.000Z' }],
+      blockedStoryId: null,
+      blockedReason: null,
+    }),
+  );
+  await writeFile(
+    path.join(runPath, 'events.ndjson'),
+    `${JSON.stringify({
+      recordedAt: '2026-06-14T00:00:30.000Z',
+      eventAt: '2026-06-14T00:00:30.000Z',
+      type: 'verification_passed',
+      command: 'pnpm check',
+      phase: 'final',
+    })}\n`,
+  );
+  await writeFile(
+    path.join(runPath, 'summary.json'),
+    JSON.stringify({ schemaVersion: 1, artifactPaths: { summary: 'summary.json' }, unavailable: {} }),
+  );
+  await writeFile(path.join(runPath, 'rows.json'), JSON.stringify({ schemaVersion: 1, rows: [{ storyId: 'LK02' }] }));
+  await writeFile(path.join(runPath, 'budgets.json'), JSON.stringify({ schemaVersion: 1, evaluations: [] }));
+  await writeFile(
+    path.join(runPath, 'transcripts.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      transcripts: [
+        {
+          storyId: 'LK02',
+          sessionId: 'session-1',
+          sessionLogPath: '/sensitive/session.jsonl',
+          status: 'missing',
+          unavailableReason: 'session log path is missing',
+        },
+      ],
+    }),
+  );
+  await writeFile(
+    path.join(runPath, 'children', 'LK02.json'),
+    JSON.stringify({ storyId: 'LK02', ok: true, sessionId: 'session-1', completedAt: '2026-06-14T00:01:00.000Z' }),
+  );
+  await writeFile(path.join(runPath, 'children', 'LK02.raw.json'), JSON.stringify({ secret: 'do not copy' }));
+  await mkdir(path.join(runPath, 'sessions'), { recursive: true });
+  await writeFile(
+    path.join(runPath, 'sessions', 'session-1.jsonl'),
+    [
+      JSON.stringify({ type: 'session_meta', payload: { id: 'session-1' } }),
+      JSON.stringify({
+        type: 'event_msg',
+        payload: {
+          type: 'token_count',
+          info: {
+            total_token_usage: {
+              input_tokens: 1,
+              cached_input_tokens: 0,
+              output_tokens: 2,
+              reasoning_output_tokens: 0,
+              total_tokens: 3,
+            },
+          },
+        },
+      }),
+    ].join('\n'),
+  );
+  return runPath;
 }
 
 describe('orchestrator command handlers', () => {
@@ -142,5 +226,74 @@ describe('orchestrator command handlers', () => {
         { stdout: () => undefined },
       ),
     ).rejects.toThrow('tracker validation failed for linkly');
+  });
+
+  it('keeps analyze-run read-only while report generation writes report artifacts', async () => {
+    const runPath = await createRunDirectory();
+
+    await analyzeRunHandler(runPath, { sessionRoot: path.join(runPath, 'sessions') });
+
+    await expect(readFile(path.join(runPath, 'analysis.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(readFile(path.join(runPath, 'report.md'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+
+    const report = await runReportHandler({ runPath, format: 'markdown', sessionRoot: path.join(runPath, 'sessions') });
+
+    expect(report.written).toBe(true);
+    expect(report.markdown).toContain('# WorkflowKit run report: run-1');
+    expect(report.markdown).toContain('Transcript artifacts are path-only');
+    expect(await readFile(path.join(runPath, 'analysis.json'), 'utf8')).toContain('"runId": "run-1"');
+    expect(await readFile(path.join(runPath, 'report.md'), 'utf8')).toContain('WorkflowKit run report: run-1');
+  });
+
+  it('resolves relative report session roots against the invocation cwd', async () => {
+    const runPath = await createRunDirectory();
+
+    const report = await runReportHandler({ runPath, cwd: runPath, sessionRoot: 'sessions' });
+
+    expect(report.analysis.children[0]).toMatchObject({
+      storyId: 'LK02',
+      metricsStatus: 'available',
+    });
+    expect(report.analysis.tokenTotals).toMatchObject({ totalTokens: 3 });
+  });
+
+  it('exports a bounded run bundle without raw child payloads or transcript contents', async () => {
+    const runPath = await createRunDirectory();
+    const out = path.join(runPath, 'exports', 'test');
+
+    const result = await runExportHandler({
+      runPath,
+      out,
+      include: 'full-bounded',
+      sessionRoot: path.join(runPath, 'sessions'),
+    });
+
+    expect(result.files).toContainEqual(expect.objectContaining({ source: 'children/LK02.json', status: 'copied' }));
+    expect(result.files).toContainEqual(
+      expect.objectContaining({ source: 'children/LK02.raw.json', status: 'skipped' }),
+    );
+    await expect(readFile(path.join(out, 'children', 'LK02.raw.json'), 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+    expect(await readFile(path.join(out, 'transcripts.json'), 'utf8')).toContain('/sensitive/session.jsonl');
+    await expect(readFile('/sensitive/session.jsonl', 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('clears stale files before writing a new export bundle', async () => {
+    const runPath = await createRunDirectory();
+    const out = path.join(runPath, 'exports', 'latest');
+
+    await runExportHandler({ runPath, out, include: 'full-bounded', sessionRoot: path.join(runPath, 'sessions') });
+    expect(await readFile(path.join(out, 'events.ndjson'), 'utf8')).toContain('verification_passed');
+
+    const summary = await runExportHandler({
+      runPath,
+      out,
+      include: 'summary',
+      sessionRoot: path.join(runPath, 'sessions'),
+    });
+
+    expect(summary.files).toContainEqual(expect.objectContaining({ source: 'events.ndjson', status: 'skipped' }));
+    await expect(readFile(path.join(out, 'events.ndjson'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });

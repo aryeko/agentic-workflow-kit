@@ -45,6 +45,8 @@ describe('planning artifact model', () => {
     expect(contract).toContain('rows.json');
     expect(contract).toContain('budgets.json');
     expect(contract).toContain('transcripts.json');
+    expect(contract).toContain('analysis.json');
+    expect(contract).toContain('report.md');
     expect(contract).toContain('Existing run artifacts without these files');
   });
 });

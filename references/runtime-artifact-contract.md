@@ -27,6 +27,8 @@ summary.json
 rows.json
 budgets.json
 transcripts.json
+analysis.json
+report.md
 ```
 
 `summary.json` has `schemaVersion: 1` and records run status, timing, blocker fields, active and
@@ -51,6 +53,17 @@ evaluations distinguish `not-configured`, `within-limit`, `warning`, `limit-reac
 
 `transcripts.json` has `schemaVersion: 1` and indexes session ids and transcript paths. It never
 copies transcript contents into the run bundle by default.
+
+`analysis.json` is written by explicit report generation commands and contains the stable
+machine-readable analyzer result for a run. `analyze-run` remains read-only for compatibility and
+does not create this file by itself.
+
+`report.md` is written by explicit report generation commands and contains a deterministic
+human-readable run report. Reports may display transcript ids, paths, statuses, and unavailable
+reasons, but must not inline host transcript content.
+
+Bounded export bundles may copy approved run artifacts and child JSON evidence, but must skip raw
+child payloads and must not follow transcript paths to copy host transcript files by default.
 
 When host telemetry cannot expose a metric, the field must be `null` with an explicit unavailable
 reason instead of omitted. Existing run artifacts without these files or without metric

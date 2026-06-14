@@ -5,8 +5,10 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import {
   projectInspectFacade,
+  runExportFacade,
   runInspectFacade,
   runPreviewFacade,
+  runReportFacade,
   runStatusFacade,
   runStreamFacade,
   trackerMigrateFacade,
@@ -36,6 +38,8 @@ export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_run_status',
   'workflow_run_stream',
   'workflow_run_inspect',
+  'workflow_run_report',
+  'workflow_run_export',
   'workflow_run_control',
   'workflow_tracker_validate',
   'workflow_tracker_migrate',
@@ -111,6 +115,23 @@ const workflowRunStreamInputSchema = workflowRunReadInputSchema.extend({
     .optional()
     .describe('Maximum stream duration before returning a timeout summary.'),
   intervalMs: z.number().int().positive().optional().describe('Polling interval while waiting for new run events.'),
+});
+
+const workflowRunReportInputSchema = workflowRunReadInputSchema.extend({
+  format: z.enum(['json', 'markdown']).optional().describe('Report output format.'),
+  sessionRoot: z.string().optional().describe('Override root for child session artifacts when analyzing a run.'),
+});
+
+const workflowRunExportInputSchema = workflowRunReadInputSchema.extend({
+  out: z.string().optional().describe('Output directory for the bounded export bundle.'),
+  include: z
+    .enum(['summary', 'full-bounded'])
+    .optional()
+    .describe('Export mode. summary omits the event log; full-bounded includes approved artifacts with byte ceilings.'),
+  sessionRoot: z
+    .string()
+    .optional()
+    .describe('Override root for child session artifacts when generating report files.'),
 });
 
 const workflowTrackerValidateInputSchema = baseProductTrackerInputSchema();
@@ -351,6 +372,36 @@ export function registerOrchestratorTools(server: McpServer): void {
     async (input) =>
       handleTool('workflow_run_inspect', input.responseFormat, () =>
         runInspectFacade({ ...toOverrides(input), runId: input.runId, runPath: input.runPath }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_run_report',
+    {
+      description:
+        'Generate or read a human-readable and machine-readable run report. Writes analysis.json and report.md only when this explicit report operation is called.',
+      inputSchema: workflowRunReportInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_run_report', input.responseFormat, () =>
+        runReportFacade({ ...toOverrides(input), runId: input.runId, runPath: input.runPath }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_run_export',
+    {
+      description:
+        'Create a bounded shareable run artifact bundle. Host transcript paths stay path-only and transcript contents are not copied.',
+      inputSchema: workflowRunExportInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (input) =>
+      handleTool('workflow_run_export', input.responseFormat, () =>
+        runExportFacade({ ...toOverrides(input), runId: input.runId, runPath: input.runPath, include: input.include }),
       ),
   );
 
@@ -649,6 +700,13 @@ function registerWorkflowResources(server: McpServer): void {
     async (uri, variables) =>
       resourceJson(uri, await runStatusFacade({ runId: String(variables.runId), events: { limit: 50 } })),
   );
+  server.registerResource(
+    'workflow-run-report',
+    new ResourceTemplate('workflow://runs/{runId}/report', { list: undefined }),
+    { mimeType: 'application/json', description: 'WorkflowKit run report envelope.' },
+    async (uri, variables) =>
+      resourceJson(uri, await runReportFacade({ runId: String(variables.runId), write: false })),
+  );
 }
 
 function resourceJson(uri: URL, value: unknown) {
@@ -695,6 +753,8 @@ function toOverrides(input: {
   approvalPolicy?: CliOverrides['approvalPolicy'];
   sandbox?: CliOverrides['sandbox'];
   sessionRoot?: string;
+  format?: CliOverrides['format'];
+  out?: string;
   responseFormat?: 'concise' | 'detailed';
 }): CliOverrides {
   const overrides: CliOverrides = {};
@@ -718,6 +778,8 @@ function toOverrides(input: {
   if (input.approvalPolicy !== undefined) overrides.approvalPolicy = input.approvalPolicy;
   if (input.sandbox !== undefined) overrides.sandbox = input.sandbox;
   if (input.sessionRoot !== undefined) overrides.sessionRoot = input.sessionRoot;
+  if (input.format !== undefined) overrides.format = input.format;
+  if (input.out !== undefined) overrides.out = input.out;
   return overrides;
 }
 

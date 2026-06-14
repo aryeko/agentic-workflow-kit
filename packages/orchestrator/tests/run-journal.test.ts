@@ -105,6 +105,8 @@ describe('RunJournal', () => {
         rows: 'rows.json',
         budgets: 'budgets.json',
         transcripts: 'transcripts.json',
+        analysis: 'analysis.json',
+        report: 'report.md',
       },
     });
     expect(artifacts.json.get('rows.json')).toMatchObject({
