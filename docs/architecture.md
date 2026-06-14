@@ -413,8 +413,9 @@ Adding a driver does not change the tracker or config contract — that is the p
 ## Where things live
 
 ```
-skills/                     instruction-first plugin skills (5 entry points)
-references/                 contracts: config schema (human + machine), tracker, PRD, templates
+skills/                     instruction-first plugin skills (6 entry points)
+references/                 contracts: config schema (human + machine), tracker, PRD, technical solution,
+                            story brief, detailed story spec, runtime artifacts, and templates
 presets/                    push-and-merge / gated-automerge / push-only
 examples/                   worked PRD + tracker (Linkly)
 packages/orchestrator/      the only TS package: config (Zod schema, loadConfig, presets, schema gen),
