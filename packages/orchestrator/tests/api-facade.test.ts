@@ -72,6 +72,8 @@ describe('workflow API facade', () => {
           tracks: [{ id: 'linkly', title: 'Linkly tracker' }],
         },
         capabilities: {
+          authoring: true,
+          trackerMigration: true,
           runStory: true,
           runTrack: true,
           streaming: true,

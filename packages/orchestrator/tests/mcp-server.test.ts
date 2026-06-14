@@ -525,6 +525,24 @@ describe('agentic-workflow-kit MCP server', () => {
     await server.close();
   });
 
+  it('blocks run_story non-dry-run without confirmNonDryRun', async () => {
+    const root = await createWorkspace();
+    const { client, server } = await connectClient();
+
+    const result = await client.callTool({
+      name: 'run_story',
+      arguments: { cwd: root, track: 'linkly', storyId: 'LK02', dryRun: false },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      status: 'blocked',
+      blockedReason: expect.stringContaining('approval_required'),
+    });
+    expect((result.structuredContent as { blockedReason?: string }).blockedReason).toContain('confirmNonDryRun');
+    await client.close();
+    await server.close();
+  });
+
   it('exposes workflow_run_control and appends abort artifacts', async () => {
     const runPath = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-control-'));
     await writeFile(

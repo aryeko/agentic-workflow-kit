@@ -186,6 +186,14 @@ describe('config.schema.json', () => {
   it('rejects an unknown paths key', () => {
     expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, bogusDir: 'x' } })).toBe(false);
   });
+  it('rejects repo-relative path fields that are absolute or contain parent segments', () => {
+    expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, tracksDir: '/tmp/tracks' } })).toBe(false);
+    expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, specsDir: '../specs' } })).toBe(false);
+    expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, plansDir: 'nested/../plans' } })).toBe(false);
+    expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, archiveDir: '../archive' } })).toBe(false);
+    expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, prdsDir: '../prds' } })).toBe(false);
+    expect(validate({ ...goodConfig, git: { ...goodConfig.git, worktreeDir: '../worktrees' } })).toBe(false);
+  });
   it('rejects invalid pre-PR review modes, including the old disabled mode', () => {
     expect(
       validate({

@@ -22,6 +22,8 @@ Where work lives.
 | `archiveDir` | string | `docs/tracks/archive` | Finished trackers. |
 | `prdsDir` | string | `docs/prds` | PRD directories at `<prdsDir>/<slug>/` (written by `define-product`). |
 
+All `paths` values must be repo-relative paths. Absolute paths and `..` path segments are rejected.
+
 ## `statuses`
 
 The automation-significant buckets of the status vocabulary (see `tracker-contract.md`).
@@ -88,7 +90,8 @@ Compatibility alias for `childSession`. Prefer `childSession` for new configs.
 
 ## `pr` — PR + merge policy (the headline knob)
 
-The only block that differs between a push-and-merge repo and a gated-automerge repo.
+The headline block that differs between presets. `workflow-init` defaults new and unknown repos to
+the conservative `push-only` preset; auto-merge presets are explicit opt-in choices.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |

@@ -37,6 +37,11 @@ describe('parseCommand', () => {
       kind: 'run-eligible',
       overrides: { track: 'linkly', dryRun: true, watch: true },
     });
+    expect(parseCommand(['run-story', 'L002', '--yes'])).toEqual({
+      kind: 'run-story',
+      storyId: 'L002',
+      overrides: { confirmNonDryRun: true },
+    });
     expect(
       parseCommand([
         'run-eligible',
@@ -208,6 +213,9 @@ describe('parseCommand', () => {
     );
     expect(() => parseCommand(['run-eligible', '--sandbox=none'])).toThrow(
       '--sandbox must be one of read-only, workspace-write, danger-full-access',
+    );
+    expect(() => parseCommand(['run-eligible', '--tracks-dir', '../../etc'])).toThrow(
+      '--tracks-dir must be a repo-relative path that does not contain .. segments',
     );
   });
 });

@@ -560,7 +560,7 @@ function relativeToRepo(config: ResolvedWorkflowConfig, filePath: string): strin
 function capabilitiesFromConfig(config: ResolvedWorkflowConfig): WorkflowApiCapabilities {
   return {
     authoring: true,
-    trackerMigration: false,
+    trackerMigration: true,
     runStory: true,
     runTrack: true,
     streaming: true,

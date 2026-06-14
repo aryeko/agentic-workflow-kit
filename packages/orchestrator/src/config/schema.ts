@@ -2,8 +2,21 @@ import path from 'node:path';
 import { z } from 'zod';
 
 const nonEmpty = z.string().min(1);
-const repoRelativePath = nonEmpty.refine((value) => !path.isAbsolute(value) && !value.split(/[\\/]+/).includes('..'), {
-  message: 'must be a repo-relative path that does not contain .. segments',
+const REPO_RELATIVE_PATH_PATTERN = /^(?!\/)(?![A-Za-z]:[\\/])(?!.*(?:^|[\\/])\.\.(?:[\\/]|$)).+$/;
+const REPO_RELATIVE_PATH_MESSAGE = 'must be a repo-relative path that does not contain .. segments';
+
+export function isRepoRelativePath(value: string): boolean {
+  return !path.isAbsolute(value) && REPO_RELATIVE_PATH_PATTERN.test(value);
+}
+
+export function assertRepoRelativePath(value: string, label: string): void {
+  if (!isRepoRelativePath(value)) {
+    throw new Error(`${label} ${REPO_RELATIVE_PATH_MESSAGE}`);
+  }
+}
+
+const repoRelativePath = nonEmpty.regex(REPO_RELATIVE_PATH_PATTERN, {
+  message: REPO_RELATIVE_PATH_MESSAGE,
 });
 const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
 const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
@@ -192,11 +205,11 @@ export const ConfigSchema = z
     version: z.literal(1),
     paths: z
       .object({
-        tracksDir: nonEmpty.default('docs/tracks'),
-        specsDir: nonEmpty.default('docs/specs'),
-        plansDir: nonEmpty.default('docs/plans'),
-        archiveDir: nonEmpty.default('docs/tracks/archive'),
-        prdsDir: nonEmpty.default('docs/prds'),
+        tracksDir: repoRelativePath.default('docs/tracks'),
+        specsDir: repoRelativePath.default('docs/specs'),
+        plansDir: repoRelativePath.default('docs/plans'),
+        archiveDir: repoRelativePath.default('docs/tracks/archive'),
+        prdsDir: repoRelativePath.default('docs/prds'),
       })
       .strict()
       .prefault({}),

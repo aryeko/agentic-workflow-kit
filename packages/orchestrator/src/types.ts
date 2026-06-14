@@ -355,6 +355,7 @@ export interface CliOverrides {
   track?: string;
   tracksDir?: string;
   dryRun?: boolean;
+  confirmNonDryRun?: boolean;
   asyncLaunch?: boolean;
   watch?: boolean;
   wait?: boolean;

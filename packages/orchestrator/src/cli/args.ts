@@ -1,6 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
 import { Command, CommanderError, InvalidArgumentError, Option } from 'commander';
+import { assertRepoRelativePath } from '../config/schema.js';
 import type { ApprovalPolicy, CliOverrides, SandboxMode, WorkflowCommand, WorkflowRunPreviewTarget } from '../types.js';
 
 const APPROVAL_POLICIES = new Set<ApprovalPolicy>(['untrusted', 'on-failure', 'on-request', 'never']);
@@ -155,6 +156,7 @@ function withOptions(command: Command): Command {
     .option('--json')
     .option('--force')
     .option('--dry-run')
+    .option('--yes')
     .option('--watch')
     .option('--no-watch')
     .option('--wait')
@@ -164,7 +166,7 @@ function withOptions(command: Command): Command {
     .addOption(new Option('--interval-ms <n>').argParser((value) => parsePositiveIntegerFlag(value, '--interval-ms')))
     .addOption(new Option('--timeout-ms <n>').argParser((value) => parsePositiveIntegerFlag(value, '--timeout-ms')))
     .option('--track <id>')
-    .option('--tracks-dir <path>')
+    .addOption(new Option('--tracks-dir <path>').argParser(parseRepoRelativePathFlag('--tracks-dir')))
     .option('--reason <text>')
     .option('--from <path>')
     .option('--out <path>')
@@ -184,6 +186,7 @@ interface CommanderOptions {
   json?: boolean;
   force?: boolean;
   dryRun?: boolean;
+  yes?: boolean;
   watch?: boolean;
   wait?: boolean;
   intervalMs?: number;
@@ -214,6 +217,7 @@ function toOverrides(options: CommanderOptions): CliOverrides {
   if (options.json) overrides.json = true;
   if (options.force) overrides.force = true;
   if (options.dryRun) overrides.dryRun = true;
+  if (options.yes) overrides.confirmNonDryRun = true;
   if (options.watch !== undefined) overrides.watch = options.watch;
   if (options.wait !== undefined) overrides.wait = options.wait;
   if (options.intervalMs !== undefined) overrides.intervalMs = options.intervalMs;
@@ -268,6 +272,17 @@ function parseSandbox(value: string): SandboxMode {
     throw new InvalidArgumentError('--sandbox must be one of read-only, workspace-write, danger-full-access');
   }
   return value as SandboxMode;
+}
+
+function parseRepoRelativePathFlag(flag: string): (value: string) => string {
+  return (value: string) => {
+    try {
+      assertRepoRelativePath(value, flag);
+      return value;
+    } catch (error) {
+      throw new InvalidArgumentError(error instanceof Error ? error.message : String(error));
+    }
+  };
 }
 
 function parsePositiveInteger(value: string): number {
