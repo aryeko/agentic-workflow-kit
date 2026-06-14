@@ -107,6 +107,17 @@ async function conflictFromRunArtifacts(args: {
 
     for (const childName of childNames.filter((name) => name.endsWith('.launch.json')).sort()) {
       const launch = await readLaunchRecord(path.join(childrenDir, childName));
+      if (launch.malformed) {
+        return {
+          conflict: {
+            reason: `unreadable active launch reservation for ${args.story.id}`,
+            storyId: launch.storyId,
+            expectedBranch: args.expectedBranch,
+            expectedWorktreePath: args.expectedWorktreePath,
+          },
+          ignored,
+        };
+      }
       if (launch?.status !== 'launched' && launch?.status !== 'requested') continue;
       const launchStoryId = typeof launch.storyId === 'string' ? launch.storyId : null;
       if (launchStoryId && (await settledResultExists(childrenDir, launchStoryId))) continue;
@@ -153,12 +164,16 @@ async function conflictFromRunArtifacts(args: {
   return { conflict: null, ignored };
 }
 
-async function readLaunchRecord(filePath: string): Promise<Record<string, unknown> | null> {
+async function readLaunchRecord(
+  filePath: string,
+): Promise<(Record<string, unknown> & { malformed?: false }) | { malformed: true; storyId: string }> {
   try {
     const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-    return isRecord(parsed) ? parsed : null;
+    return isRecord(parsed) ? parsed : {};
   } catch (error) {
-    if (error instanceof SyntaxError) return null;
+    if (error instanceof SyntaxError) {
+      return { malformed: true, storyId: path.basename(filePath).replace(/\.launch\.json$/, '') };
+    }
     throw error;
   }
 }

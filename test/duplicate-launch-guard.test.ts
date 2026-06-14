@@ -12,7 +12,7 @@ afterEach(async () => {
 });
 
 describe('duplicate launch guard', () => {
-  it('ignores malformed launch records instead of throwing', async () => {
+  it('fails closed on malformed launch reservations instead of throwing', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'awk-duplicate-'));
     tempRoots.push(root);
     const runDir = path.join(root, 'runs/run-1/children');
@@ -26,7 +26,15 @@ describe('duplicate launch guard', () => {
         activeChildren: [],
         now: '2026-06-14T10:00:00.000Z',
       }),
-    ).resolves.toEqual({ conflict: null, ignored: [] });
+    ).resolves.toEqual({
+      conflict: {
+        reason: 'unreadable active launch reservation for AWK01',
+        storyId: 'AWK01',
+        expectedBranch: 'track/awk01-example',
+        expectedWorktreePath: null,
+      },
+      ignored: [],
+    });
   });
 });
 

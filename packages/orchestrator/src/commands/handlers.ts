@@ -1297,8 +1297,8 @@ async function inspectChildren(runDirectory: string): Promise<WorkflowRunInspect
       const launchPath = path.join('children', `${storyId}.launch.json`);
       const resultPath = path.join('children', `${storyId}.json`);
       const [launch, result, launchStat, resultStat] = await Promise.all([
-        readJsonIfExists(path.join(runDirectory, launchPath)),
-        readJsonIfExists(path.join(runDirectory, resultPath)),
+        readTolerantJsonIfExists(path.join(runDirectory, launchPath)),
+        readTolerantJsonIfExists(path.join(runDirectory, resultPath)),
         statIfExists(path.join(runDirectory, launchPath)),
         statIfExists(path.join(runDirectory, resultPath)),
       ]);
@@ -1326,7 +1326,7 @@ async function readChildArtifacts(runDirectory: string): Promise<unknown[]> {
   return await Promise.all(
     entries
       .filter((entry) => entry.endsWith('.json') && !entry.endsWith('.raw.json') && !entry.endsWith('.metrics.json'))
-      .map((entry) => readJsonIfExists(path.join(childrenDirectory, entry))),
+      .map((entry) => readTolerantJsonIfExists(path.join(childrenDirectory, entry))),
   );
 }
 
@@ -1377,6 +1377,14 @@ async function readJsonIfExists(filePath: string): Promise<unknown | null> {
     return JSON.parse(await readFile(filePath, 'utf8')) as unknown;
   } catch (error) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+async function readTolerantJsonIfExists(filePath: string): Promise<unknown | null> {
+  try {
+    return await readJsonIfExists(filePath);
+  } catch (error) {
     if (error instanceof SyntaxError) return null;
     throw error;
   }
@@ -1415,7 +1423,9 @@ async function abortActiveChildren(
 ): Promise<RunControlChildOutcome[]> {
   const outcomes: RunControlChildOutcome[] = [];
   for (const storyId of activeStoryIds) {
-    const launch = await readJsonIfExists(path.join(runPath, 'children', `${safeRunFileName(storyId)}.launch.json`));
+    const launch = await readTolerantJsonIfExists(
+      path.join(runPath, 'children', `${safeRunFileName(storyId)}.launch.json`),
+    );
     const sessionId = isObject(launch) ? readOptionalString(launch.sessionId) : null;
     if (!sessionId) {
       outcomes.push({
