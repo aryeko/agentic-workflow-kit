@@ -220,11 +220,40 @@ function lineMentionsDifferentPrOrStory(
 
 function mergeEvidence(left: ChildResultEvidence, right: ChildResultEvidence | null): ChildResultEvidence {
   if (!right) return normalizeEvidence(left);
-  return normalizeEvidence({
+  const github = mergeGithubEvidence(left.github, right.github);
+  const merged: ChildResultEvidence = {
     ...left,
     ...right,
-    github: mergeGithubEvidence(left.github, right.github),
-  });
+    github,
+  };
+  if (structuredEvidenceSaysNotMerged(right)) {
+    delete merged.mergeCommit;
+    delete merged.mergedAt;
+    merged.merged = false;
+    if (merged.github?.merge) {
+      merged.github = {
+        ...merged.github,
+        merge: {
+          ...merged.github.merge,
+          merged: false,
+          commit: null,
+          mergedAt: null,
+        },
+      };
+    }
+  }
+  return normalizeEvidence(merged);
+}
+
+function structuredEvidenceSaysNotMerged(evidence: ChildResultEvidence): boolean {
+  const saysNotMerged = evidence.merged === false || evidence.github?.merge?.merged === false;
+  if (!saysNotMerged) return false;
+  return (
+    typeof evidence.mergeCommit !== 'string' &&
+    typeof evidence.mergedAt !== 'string' &&
+    typeof evidence.github?.merge?.commit !== 'string' &&
+    typeof evidence.github?.merge?.mergedAt !== 'string'
+  );
 }
 
 function normalizeEvidence(evidence: ChildResultEvidence): ChildResultEvidence {

@@ -1131,7 +1131,7 @@ function childEvidenceIssues(
   const branchDeleted =
     readOptionalBoolean(evidence.branchDeleted) === true || readOptionalBoolean(githubMerge?.branchDeleted) === true;
   const checks = githubChecks(evidence);
-  const review = readRecord(github?.review);
+  const review = githubReview(evidence);
 
   if (prCreate(config) && prNumber === null && prUrl === null) {
     issues.push(`${storyId} PR evidence missing: configured PR creation requires PR number or URL`);
@@ -1219,8 +1219,34 @@ function childEvidenceIssues(
 
 function githubChecks(evidence: Record<string, unknown>): Record<string, unknown>[] {
   const github = readRecord(evidence.github);
-  const checks = github?.checks;
-  return Array.isArray(checks) ? checks.filter(isRecord) : [];
+  return [...recordArray(github?.checks), ...recordArray(evidence.checks), ...recordArray(evidence.ci)];
+}
+
+function githubReview(evidence: Record<string, unknown>): Record<string, unknown> | null {
+  const github = readRecord(evidence.github);
+  return (
+    readRecord(github?.review) ?? normalizeLegacyReview(readRecord(evidence.prReview) ?? readRecord(evidence.review))
+  );
+}
+
+function normalizeLegacyReview(review: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!review) return null;
+  const findings = readOptionalNumber(review.findings);
+  const resolved = readOptionalBoolean(review.resolved);
+  const signal =
+    readOptionalString(review.signal) ??
+    readOptionalString(review.status) ??
+    (findings !== null && findings > 0 ? 'findings' : null);
+  return {
+    ...review,
+    signal,
+    triaged: readOptionalBoolean(review.triaged) ?? resolved,
+  };
+}
+
+function recordArray(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) return value.filter(isRecord);
+  return isRecord(value) ? [value] : [];
 }
 
 function prCreate(config: Record<string, unknown> | null): boolean {

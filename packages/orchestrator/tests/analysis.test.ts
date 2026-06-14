@@ -1255,4 +1255,54 @@ describe('analyzeWorkflowRun', () => {
       branchDeleted: true,
     });
   });
+
+  it('accepts legacy check and PR review aliases for policy diagnostics', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-analysis-github-aliases-'));
+    const runDir = path.join(root, 'runs', 'run-github-aliases');
+    await mkdir(path.join(runDir, 'children'), { recursive: true });
+    await writeFile(
+      path.join(runDir, 'state.json'),
+      JSON.stringify({ runId: 'run-github-aliases', status: 'complete' }),
+    );
+    await writeFile(
+      path.join(runDir, 'config.resolved.json'),
+      JSON.stringify({
+        statuses: { eligible: ['specced'], complete: ['done'] },
+        pr: {
+          create: true,
+          ci: { wait: true },
+          review: { wait: 'bot', bot: 'codex', triageComments: true, rerequestAfterFix: false },
+          merge: { auto: true, deleteBranch: true },
+        },
+      }),
+    );
+    await writeFile(
+      path.join(runDir, 'children', 'AWK11.json'),
+      JSON.stringify({
+        storyId: 'AWK11',
+        ok: true,
+        returnedStatus: 'done',
+        evidence: {
+          finalStatus: 'done',
+          prNumber: 66,
+          prUrl: 'https://github.com/aryeko/agentic-workflow-kit/pull/66',
+          ci: [{ command: 'gh pr checks 66 --watch --fail-fast', status: 'passed' }],
+          prReview: { findings: 1, resolved: true },
+          merged: true,
+          mergeCommit: 'abc1234',
+          branchDeleted: true,
+        },
+      }),
+    );
+
+    const analysis = await analyzeWorkflowRun(runDir, { sessionRoots: [] });
+
+    expect(analysis.issues).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('CI evidence missing'),
+        expect.stringContaining('PR review evidence missing'),
+        expect.stringContaining('findings are not triaged'),
+      ]),
+    );
+  });
 });

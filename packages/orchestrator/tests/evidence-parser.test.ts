@@ -157,7 +157,7 @@ describe('childResultEvidence', () => {
 
     expect(evidence.finalStatus).toBe('verified');
     expect(evidence.merged).toBe(false);
-    expect(evidence.mergeCommit).toBe('abc1234');
+    expect(evidence.mergeCommit).toBeUndefined();
     expect(evidence.verification).toEqual([{ command: 'pnpm check', status: 'passed', phase: 'final', detail: null }]);
   });
 
