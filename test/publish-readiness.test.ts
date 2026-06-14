@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { expectWorkflowKitMcpTools } from './plugin-tool-surface.js';
+
 const repoRoot = process.cwd();
 const orchestratorDist = path.join(repoRoot, 'packages/orchestrator/dist');
 const orchestratorVersion = JSON.parse(
@@ -72,7 +74,7 @@ describe.sequential('publish readiness smoke', () => {
         params: {},
       });
 
-      expect(readToolNames(result)).toEqual(expect.arrayContaining(['list_eligible', 'run_story']));
+      expectWorkflowKitMcpTools(readToolNames(result));
     } finally {
       server.kill();
     }

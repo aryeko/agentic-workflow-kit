@@ -36,6 +36,11 @@ describe('current-state documentation', () => {
     expect(readme).toContain('agentic-workflow-kit-mcp');
     expect(readme).toContain('npx -y --package @agentic-workflow-kit/orchestrator@<exact-version>');
     expect(readme).toContain('Available MCP tools');
+    expect(readme).toContain('workflow_run_export');
+    expect(readme).toContain('workflow_run_control');
+    expect(readme).toContain('legacy tools remain available');
+    expect(readme).toContain('.codex/agentic-workflow-kit/runs/<run-id>');
+    expect(readme).not.toContain('.workflow/runs/<run-id>');
     expect(readme).toContain('Tracker state is authoritative');
   });
 

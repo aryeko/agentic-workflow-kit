@@ -15,6 +15,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { expectWorkflowKitMcpTools } from './plugin-tool-surface.js';
+
 const repoRoot = process.cwd();
 const pluginVersion = JSON.parse(readFileSync(path.join(repoRoot, '.codex-plugin/plugin.json'), 'utf8')).version;
 const MCP_TIMEOUT_MS = 60_000;
@@ -195,8 +197,7 @@ describe('codex local plugin smoke', () => {
       });
       const toolNames = readToolNames(result);
 
-      expect(toolNames).toContain('list_eligible');
-      expect(toolNames).toContain('run_story');
+      expectWorkflowKitMcpTools(toolNames);
     } finally {
       server.kill();
       await registry.close();
