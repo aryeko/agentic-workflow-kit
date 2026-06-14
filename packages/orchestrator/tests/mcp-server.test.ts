@@ -164,14 +164,19 @@ async function createProductRun(): Promise<{ root: string; runPath: string }> {
         type: 'child-session-linked',
         storyId: 'LK02',
         sessionId: 'thread-1',
-        prUrl: 'https://github.com/aryeko/example/pull/12',
       }),
     ].join('\n'),
   );
   await writeFile(
     path.join(runPath, 'children/LK02.json'),
-    JSON.stringify({ storyId: 'LK02', sessionId: 'thread-1', sessionLogPath: '/tmp/session.jsonl', prNumber: 12 }),
+    JSON.stringify({
+      storyId: 'LK02',
+      sessionId: 'thread-1',
+      sessionLogPath: '/tmp/session.jsonl',
+      evidence: { prNumber: 12, prUrl: 'https://github.com/aryeko/example/pull/12' },
+    }),
   );
+  await writeFile(path.join(runPath, 'children/LK02.metrics.json'), JSON.stringify({ storyId: 'LK02' }));
   return { root, runPath };
 }
 
@@ -310,9 +315,10 @@ describe('agentic-workflow-kit MCP server', () => {
       result: {
         artifactDir: runPath,
         children: [expect.objectContaining({ storyId: 'LK02', sessionId: 'thread-1' })],
-        pr: { numbers: [12] },
+        pr: { numbers: [12], urls: ['https://github.com/aryeko/example/pull/12'] },
       },
     });
+    expect((inspect.structuredContent as { result?: { children?: unknown[] } }).result?.children).toHaveLength(1);
     await client.close();
     await server.close();
   });

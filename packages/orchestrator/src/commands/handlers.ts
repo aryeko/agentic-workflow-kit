@@ -531,15 +531,16 @@ export async function runStreamHandler(input: WorkflowRunStreamInput = {}): Prom
 export async function runInspectHandler(input: WorkflowRunInspectInput = {}): Promise<WorkflowRunInspectResult> {
   const runDirectory = await resolveRunDirectory(input);
   await assertRunExists(runDirectory);
-  const [state, metrics, artifacts, children, events] = await Promise.all([
+  const [state, metrics, artifacts, children, childArtifacts, events] = await Promise.all([
     readJsonIfExists(path.join(runDirectory, 'state.json')),
     readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
     inspectArtifacts(runDirectory),
     inspectChildren(runDirectory),
+    readChildArtifacts(runDirectory),
     readRunEvents(runDirectory),
   ]);
   const stateObject = isObject(state) ? state : {};
-  const pr = collectPrRefs([...events, ...children]);
+  const pr = collectPrRefs([...events, ...childArtifacts]);
   return {
     runId: readOptionalString(stateObject.runId) ?? path.basename(runDirectory),
     status: readOptionalString(stateObject.status),
@@ -1174,7 +1175,9 @@ async function inspectChildren(runDirectory: string): Promise<WorkflowRunInspect
     throw error;
   }
   const storyIds = new Set(
-    entries.map((entry) => entry.replace(/(?:\.launch)?\.json$/, '')).filter((entry) => !entry.endsWith('.raw')),
+    entries
+      .filter((entry) => !entry.endsWith('.raw.json') && !entry.endsWith('.metrics.json'))
+      .map((entry) => entry.replace(/(?:\.launch)?\.json$/, '')),
   );
   return await Promise.all(
     [...storyIds].sort().map(async (storyId) => {
@@ -1195,6 +1198,22 @@ async function inspectChildren(runDirectory: string): Promise<WorkflowRunInspect
         sessionLogPath: readOptionalString(source.sessionLogPath),
       };
     }),
+  );
+}
+
+async function readChildArtifacts(runDirectory: string): Promise<unknown[]> {
+  const childrenDirectory = path.join(runDirectory, 'children');
+  let entries: string[];
+  try {
+    entries = await readdir(childrenDirectory);
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return await Promise.all(
+    entries
+      .filter((entry) => entry.endsWith('.json') && !entry.endsWith('.raw.json') && !entry.endsWith('.metrics.json'))
+      .map((entry) => readJsonIfExists(path.join(childrenDirectory, entry))),
   );
 }
 
