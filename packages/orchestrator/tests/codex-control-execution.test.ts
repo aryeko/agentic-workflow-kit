@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -69,6 +69,42 @@ async function readEvents(runPath: string): Promise<Array<Record<string, unknown
 }
 
 describe('Codex child-control execution', () => {
+  it('resolves a target from child launch metadata when a session id is not provided', async () => {
+    const { resolveChildControlTarget } = await import('../src/drivers/codex-mcp/control');
+    const runPath = await tempRunPath();
+    await writeFile(path.join(runPath, 'children', 'WK001.launch.json'), JSON.stringify({ sessionId: '019e-linked' }));
+
+    await expect(resolveChildControlTarget({ sessionId: '   ', runPath, storyId: 'WK001' })).resolves.toEqual({
+      sessionId: '019e-linked',
+      storyId: 'WK001',
+      runPath,
+    });
+  });
+
+  it('rejects control targets without a direct session id or run story reference', async () => {
+    const { resolveChildControlTarget } = await import('../src/drivers/codex-mcp/control');
+
+    await expect(resolveChildControlTarget({})).rejects.toThrow(
+      'codex control requires either sessionId or runPath plus storyId',
+    );
+  });
+
+  it('rejects launch metadata that does not link a Codex session', async () => {
+    const { resolveChildControlTarget } = await import('../src/drivers/codex-mcp/control');
+    const runPath = await tempRunPath();
+    await writeFile(path.join(runPath, 'children', 'WK001.launch.json'), '{not json');
+
+    await expect(resolveChildControlTarget({ runPath, storyId: 'WK001' })).rejects.toThrow(
+      'story WK001 does not have a linked Codex session',
+    );
+
+    await writeFile(path.join(runPath, 'children', 'WK001.launch.json'), JSON.stringify({ sessionId: '' }));
+
+    await expect(resolveChildControlTarget({ runPath, storyId: 'WK001' })).rejects.toThrow(
+      'story WK001 does not have a linked Codex session',
+    );
+  });
+
   it('sends replies through an available Codex MCP tool and journals only a message hash', async () => {
     const { sendChildReply } = await import('../src/drivers/codex-mcp/control');
     const runPath = await tempRunPath();

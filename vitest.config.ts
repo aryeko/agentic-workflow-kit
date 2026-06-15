@@ -8,10 +8,10 @@ export default defineConfig({
       provider: 'v8',
       // AWK1311 ratchet: one combined gate for root and orchestrator package suites.
       thresholds: {
-        lines: 88,
-        statements: 84,
-        functions: 89,
-        branches: 75,
+        lines: 88.5,
+        statements: 85,
+        functions: 90,
+        branches: 76,
       },
     },
   },

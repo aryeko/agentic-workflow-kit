@@ -27,6 +27,7 @@
   "scripts": {
     "agentic-workflow-kit": "pnpm --filter @agentic-workflow-kit/orchestrator agentic-workflow-kit",
     "lint": "biome check .",
+    "pretest": "node scripts/clean-coverage.mjs",
     "test": "vitest run && pnpm --filter @agentic-workflow-kit/orchestrator test",
     "typecheck": "tsc --noEmit && pnpm --filter @agentic-workflow-kit/orchestrator typecheck",
     "check": "pnpm lint && pnpm typecheck && pnpm test",

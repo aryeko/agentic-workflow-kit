@@ -110,9 +110,11 @@ describe('session log metrics', () => {
     const day = path.join(root, '2026/06/13');
     await mkdir(day, { recursive: true });
     const logPath = path.join(day, 'rollout.jsonl');
+    const duplicatePath = path.join(day, 'duplicate.jsonl');
     await writeFile(logPath, JSON.stringify({ type: 'session_meta', payload: { id: '019e-child' } }));
+    await writeFile(duplicatePath, JSON.stringify({ type: 'session_meta', payload: { id: '019e-child' } }));
 
-    const map = await mapSessionLogsByThread([logPath]);
+    const map = await mapSessionLogsByThread([logPath, duplicatePath]);
 
     expect(map.get('019e-child')).toBe(logPath);
   });
@@ -180,6 +182,136 @@ describe('session log metrics', () => {
         status: 'passed',
         findings: 0,
         agentId: 'reviewer-1',
+        previousAgentId: null,
+        continuityMode: null,
+      },
+    ]);
+  });
+
+  it('handles malformed rows, failed review spawns, finding bullets, and duplicate review results', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-session-review-branches-'));
+    tempRoots.push(root);
+    const logPath = path.join(root, 'session.jsonl');
+    const reviewText = ['Review findings', '- Missing coverage', '- Missing cleanup evidence', 'Summary'].join('\n');
+    await writeFile(
+      logPath,
+      [
+        '',
+        '{not json',
+        JSON.stringify({ type: 'response_item', payload: { type: 'function_call_output', call_id: 'missing-call' } }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'custom_tool_call', name: 'apply_patch', call_id: 'custom-1' },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'custom_tool_call_output', call_id: 'custom-1', output: JSON.stringify({ ok: false }) },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'spawn_agent',
+            call_id: 'spawn-failed',
+            arguments: JSON.stringify({ message: 'pre-pr review' }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'spawn-failed',
+            output: 'error: provide either message or prompt',
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'wait_agent',
+            call_id: 'wait-findings',
+            arguments: JSON.stringify({ target: 'reviewer-2' }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'wait-findings',
+            output: JSON.stringify({ completed: reviewText }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'wait-findings',
+            output: JSON.stringify({ completed: reviewText }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call',
+            name: 'close_agent',
+            call_id: 'close-findings',
+            arguments: JSON.stringify({ targets: ['reviewer-2', 123] }),
+          },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: {
+            type: 'function_call_output',
+            call_id: 'close-findings',
+            output: JSON.stringify({ previous_status: { 'reviewer-2': { completed: 'PASS: no findings' } } }),
+          },
+        }),
+        JSON.stringify({
+          type: 'event_msg',
+          payload: {
+            type: 'token_count',
+            info: {
+              total_token_usage: {
+                input_tokens: 'unknown',
+                cached_input_tokens: 1,
+                output_tokens: null,
+                reasoning_output_tokens: 2,
+                total_tokens: Number.NaN,
+              },
+            },
+          },
+        }),
+      ].join('\n'),
+    );
+
+    const metrics = await analyzeSessionLogMetrics(logPath);
+
+    expect(metrics.commandCounts).toEqual({ apply_patch: 1, spawn_agent: 1, wait_agent: 1, close_agent: 1 });
+    expect(metrics.failedToolCalls).toBe(1);
+    expect(metrics.failedSpawnAgentAttempts).toBe(1);
+    expect(metrics.tokenTotals).toEqual({
+      inputTokens: 0,
+      cachedInputTokens: 1,
+      outputTokens: 0,
+      reasoningOutputTokens: 2,
+      totalTokens: 0,
+    });
+    expect(metrics.reviewLoops).toEqual([
+      {
+        loop: 1,
+        mode: 'subagent',
+        status: 'findings',
+        findings: 2,
+        agentId: 'reviewer-2',
+        previousAgentId: null,
+        continuityMode: null,
+      },
+      {
+        loop: 2,
+        mode: 'subagent',
+        status: 'passed',
+        findings: 0,
+        agentId: 'reviewer-2',
         previousAgentId: null,
         continuityMode: null,
       },
