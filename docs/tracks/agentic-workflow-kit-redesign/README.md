@@ -179,7 +179,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK1313 | AWK13.13 Runner type-safety and supervisor decomposition | AWK1311, AWK1312 | W7.9 | done | [brief](./stories/AWK1313.md) | — | codex-2026-06-15T21-31-13Z | [#88](https://github.com/aryeko/agentic-workflow-kit/pull/88) |
 | AWK1314 | AWK13.14 Budget and telemetry fidelity | AWK1313 | W7.10 | done | [brief](./stories/AWK1314.md) | — | codex-2026-06-15T21-53-48-3NZ | [#89](https://github.com/aryeko/agentic-workflow-kit/pull/89) |
 | AWK1315 | AWK13.15 Coverage headroom and test DevX | AWK1313, AWK1314 | W7.11 | done | [brief](./stories/AWK1315.md) | — | codex-2026-06-15T22-12-57Z | [#90](https://github.com/aryeko/agentic-workflow-kit/pull/90) |
-| AWK1316 | AWK13.16 Codex child-session speed policy | AWK1315 | W7.12 | implementing | [brief](./stories/AWK1316.md) + [spec](../../superpowers/specs/2026-06-16-awk1316-codex-child-session-speed-policy-design.md) | [plan](../../superpowers/plans/2026-06-16-awk1316-codex-child-session-speed-policy.md) | codex-2026-06-15T22-47-03Z | — |
+| AWK1316 | AWK13.16 Codex child-session speed policy | AWK1315 | W7.12 | done | [brief](./stories/AWK1316.md) | — | codex-2026-06-15T22-47-03Z | — |
 | AWK14 | Changeset and release readiness | AWK1316 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
