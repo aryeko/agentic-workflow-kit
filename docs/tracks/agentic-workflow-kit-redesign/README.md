@@ -40,6 +40,12 @@ not yet ready to ship. The remediation is sequenced as stories **AWK13.1–AWK13
 inserted between AWK13 and AWK14; they **block AWK14**, which remains the final release-readiness
 story.
 
+After AWK13.1–AWK13.7 landed, a second [release-readiness review (round 2)](./release-readiness-review-2.md)
+confirmed all round-1 blockers are genuinely fixed but surfaced a bounded set of remaining gaps. The
+round-2 remediation is sequenced as stories **AWK13.8–AWK13.12** (see the
+[release-hardening design 2](../../prds/agentic-workflow-kit-redesign/release-hardening-design-2.md)),
+inserted between AWK13.7 and AWK14; they **also block AWK14**.
+
 ## Dependency graph
 
 ```mermaid
@@ -65,6 +71,11 @@ flowchart TD
   AWK135[AWK13.5 Module decomposition]
   AWK136[AWK13.6 Test trust and coverage ratchet]
   AWK137[AWK13.7 Stale docs and DevX hygiene]
+  AWK138[AWK13.8 Provider-neutral wiring]
+  AWK139[AWK13.9 Run-state write atomicity]
+  AWK1310[AWK13.10 API error fidelity]
+  AWK1311[AWK13.11 Test trust round 2]
+  AWK1312[AWK13.12 DevX/docs hygiene round 2]
   AWK14[AWK14 Changeset and release readiness]
 
   AWK01 --> AWK02
@@ -97,8 +108,15 @@ flowchart TD
   AWK134 --> AWK135
   AWK135 --> AWK136
   AWK135 --> AWK137
-  AWK136 --> AWK14
-  AWK137 --> AWK14
+  AWK136 --> AWK138
+  AWK137 --> AWK138
+  AWK138 --> AWK139
+  AWK138 --> AWK1310
+  AWK138 --> AWK1312
+  AWK139 --> AWK1311
+  AWK1310 --> AWK1311
+  AWK1311 --> AWK14
+  AWK1312 --> AWK14
 ```
 
 **Reading the graph:** every solid arrow is a hard dependency. The source story must be in a
@@ -134,7 +152,12 @@ Statuses come from `references/tracker-contract.md`:
 | AWK135 | AWK13.5 Module decomposition | AWK132, AWK133, AWK134 | W7.4 | done | [brief](./stories/AWK135.md) | — | codex-2026-06-15T09-38-02Z | [#78](https://github.com/aryeko/agentic-workflow-kit/pull/78) |
 | AWK136 | AWK13.6 Test trust and coverage ratchet | AWK135 | W7.5 | done | [brief](./stories/AWK136.md) | — | codex-2026-06-15T16-51-16Z | [#79](https://github.com/aryeko/agentic-workflow-kit/pull/79) |
 | AWK137 | AWK13.7 Stale docs and DevX hygiene | AWK135 | W7.5 | done | [brief](./stories/AWK137.md) | — | codex-2026-06-15T17-04-23Z | [#80](https://github.com/aryeko/agentic-workflow-kit/pull/80) |
-| AWK14 | Changeset and release readiness | AWK136, AWK137 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
+| AWK138 | AWK13.8 Provider-neutral wiring | AWK136, AWK137 | W7.6 | specced | [brief](./stories/AWK138.md) | — | — | — |
+| AWK139 | AWK13.9 Run-state write atomicity | AWK138 | W7.7 | specced | [brief](./stories/AWK139.md) | — | — | — |
+| AWK1310 | AWK13.10 API error fidelity | AWK138 | W7.7 | specced | [brief](./stories/AWK1310.md) | — | — | — |
+| AWK1311 | AWK13.11 Test trust round 2 | AWK139, AWK1310 | W7.8 | specced | [brief](./stories/AWK1311.md) | — | — | — |
+| AWK1312 | AWK13.12 DevX/docs hygiene round 2 | AWK138 | W7.8 | specced | [brief](./stories/AWK1312.md) | — | — | — |
+| AWK14 | Changeset and release readiness | AWK1311, AWK1312 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
 plan after creating the detailed technical story spec. Each story maps to one or more PRD
@@ -187,10 +210,22 @@ decomposition) lands after the behavioral fixes so it reshapes their final form 
 W7.5: AWK13.6 (test trust) and AWK13.7 (docs/DevX hygiene) depend on AWK13.5 and may run 2-way
 parallel; both gate AWK14.
 
-**Wave 8 — Release readiness (sequential):** AWK14 runs last and is blocked by AWK13.6 and AWK13.7.
-It creates the consolidated changeset and release handoff after docs are canonical and the hardening
-stories land. AWK14 is intentionally `deferred` so autopilot cannot launch release-readiness work
-accidentally; run it manually after AWK13.1–AWK13.7 are complete by changing its status back to
+**Waves 7.6–7.8 — Release hardening round 2 (mostly sequential):** AWK13.8–AWK13.12 remediate the
+gaps found in the [round-2 release-readiness review](./release-readiness-review-2.md); the fix design
+is in [release-hardening-design-2](../../prds/agentic-workflow-kit-redesign/release-hardening-design-2.md).
+These stories are `specced` (eligible), not `deferred` — they are the next real implementation work
+and block AWK14. W7.6: AWK13.8 (provider-neutral wiring) lands first because the later fixes ride its
+seams (control routing, driver factory, artifact-dir derivation). W7.7: AWK13.9 (run-state
+atomicity) and AWK13.10 (API error fidelity) depend only on AWK13.8 and may run up to 2-way parallel
+on disjoint surfaces (artifacts/runner vs `api/facade`); coordinate only if both touch
+`commands/handlers.ts`. W7.8: AWK13.11 (test trust) depends on AWK13.9 and AWK13.10 so coverage
+reflects final shapes; AWK13.12 (docs/DevX hygiene) depends only on AWK13.8. Both gate AWK14 and may
+run 2-way parallel.
+
+**Wave 8 — Release readiness (sequential):** AWK14 runs last and is blocked by AWK13.11 and AWK13.12.
+It creates the consolidated changeset and release handoff after docs are canonical and both hardening
+rounds land. AWK14 is intentionally `deferred` so autopilot cannot launch release-readiness work
+accidentally; run it manually after AWK13.1–AWK13.12 are complete by changing its status back to
 `specced`/`plan-approved` or by force-running that story.
 
 ## ID-prefix registry
@@ -233,7 +268,9 @@ reused by another track.
 - [PRD](../../prds/agentic-workflow-kit-redesign/README.md)
 - [Technical solution](../../prds/agentic-workflow-kit-redesign/technical-solution.md)
 - [Release-readiness review](./release-readiness-review.md)
+- [Release-readiness review (round 2)](./release-readiness-review-2.md)
 - [Release-hardening design](../../prds/agentic-workflow-kit-redesign/release-hardening-design.md)
+- [Release-hardening design 2](../../prds/agentic-workflow-kit-redesign/release-hardening-design-2.md)
 - [Repo architecture](../../architecture.md)
 - [Repo instructions](../../../AGENTS.md)
 - `./stories/` — story briefs
