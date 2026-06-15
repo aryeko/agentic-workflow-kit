@@ -7,6 +7,7 @@ import {
   analyzeRunHandler,
   listEligibleHandler,
   listTracksHandler,
+  mcpCheckHandler,
   runExportHandler,
   runReportHandler,
   runWorkflowHandler,
@@ -141,6 +142,30 @@ describe('orchestrator command handlers', () => {
       title: 'Linkly tracker',
       relativePath: 'docs/tracks/linkly/README.md',
     });
+  });
+
+  it('checks the driver from the resolved workflow config', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-driver-check-'));
+    await mkdir(path.join(root, '.workflow'), { recursive: true });
+    await writeFile(path.join(root, '.workflow/config.yaml'), 'version: 1\norchestrator:\n  driver: other-mcp\n');
+
+    await expect(
+      mcpCheckHandler(
+        { cwd: root },
+        {
+          createCodexMcpClient: () =>
+            ({
+              client: {
+                connect: async () => undefined,
+                listTools: async () => ({ tools: [] }),
+                callTool: async () => ({}),
+                close: async () => undefined,
+              },
+              transport: {},
+            }) as never,
+        },
+      ),
+    ).rejects.toThrow('Unsupported orchestrator.driver "other-mcp". Supported drivers: codex-mcp.');
   });
 
   it('lists only eligible stories after dependency and owner filtering', async () => {

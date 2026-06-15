@@ -24,7 +24,6 @@ import {
   stopWatchRunHandler,
   watchRunHandler,
 } from '../commands/handlers.js';
-import { sendCodexInterrupt, sendCodexReply } from './codexControl.js';
 import {
   assertWorkflowRepoContext,
   conciseAnalysisContent,
@@ -665,7 +664,10 @@ export function registerOrchestratorTools(server: McpServer): void {
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
-    async (input) => handleTool('codex_reply', input.responseFormat, () => sendCodexReply(input)),
+    async (input) =>
+      handleTool('codex_reply', input.responseFormat, () =>
+        controlConfiguredChild(input, { kind: 'reply', message: input.message }),
+      ),
   );
 
   server.registerTool(
@@ -677,7 +679,10 @@ export function registerOrchestratorTools(server: McpServer): void {
       outputSchema,
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
-    async (input) => handleTool('codex_interrupt', input.responseFormat, () => sendCodexInterrupt(input)),
+    async (input) =>
+      handleTool('codex_interrupt', input.responseFormat, () =>
+        controlConfiguredChild(input, { kind: 'interrupt', reason: input.reason }),
+      ),
   );
 
   server.registerTool(

@@ -17,6 +17,7 @@ import {
   resolveChildControlTarget,
   resolveCodexControlTarget,
 } from '../packages/orchestrator/src/mcp/codexControl.js';
+import { loadChildControlConfig } from '../packages/orchestrator/src/mcp/toolHelpers.js';
 
 const tempRoots: string[] = [];
 
@@ -49,6 +50,26 @@ afterEach(async () => {
 });
 
 describe('codex MCP control target resolution', () => {
+  it('keeps Codex alias MCP tools routed through configured child control', async () => {
+    const toolsSource = await readFile(path.join(process.cwd(), 'packages/orchestrator/src/mcp/tools.ts'), 'utf8');
+
+    expect(toolsSource).not.toContain('sendCodexReply');
+    expect(toolsSource).not.toContain('sendCodexInterrupt');
+    expect(toolsSource).toMatch(/'codex_reply'[\s\S]*controlConfiguredChild\(input, \{ kind: 'reply'/);
+    expect(toolsSource).toMatch(/'codex_interrupt'[\s\S]*controlConfiguredChild\(input, \{ kind: 'interrupt'/);
+  });
+
+  it('uses cwd-only defaults for direct session control without repo config', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'awk-control-no-config-'));
+    tempRoots.push(cwd);
+
+    const config = await loadChildControlConfig({ cwd, sessionId: '019e-child' });
+
+    expect(config.configPath).toBe(path.join(cwd, '.workflow/config.yaml'));
+    expect(config.workspace.rootAbs).toBe(cwd);
+    expect(config.orchestrator.driver).toBe('codex-mcp');
+  });
+
   it('resolves a child session from runPath and storyId', async () => {
     const runPath = await mkdtemp(path.join(tmpdir(), 'awk-control-'));
     tempRoots.push(runPath);

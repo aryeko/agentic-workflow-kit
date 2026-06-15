@@ -5,7 +5,6 @@ import pRetry, { AbortError } from 'p-retry';
 import pTimeout from 'p-timeout';
 
 import { isRecord } from '../../internal/guards.js';
-import { controlChild } from '../../mcp/codexControl.js';
 import type { ChildResultEvidence, ResolvedWorkflowConfig } from '../../types.js';
 import type {
   ChildControlRequest,
@@ -19,6 +18,7 @@ import type {
   StoryRunResult,
 } from '../StoryRunner.js';
 import { codexProgressMessage, parseCodexEventNotification } from './codexEvents.js';
+import { controlChild } from './control.js';
 import { childResultEvidence } from './evidenceParser.js';
 import { type McpTool, validateCodexToolSchemas } from './schemaValidation.js';
 import { codexSessionLogRoots } from './sessionLogs.js';
@@ -35,6 +35,7 @@ export interface CodexMcpStoryRunnerOptions {
   requestTimeoutMs?: number;
   retries?: number;
   createClient?: () => { client: CodexMcpClient; transport: StdioClientTransport };
+  controlChild?: (request: ChildControlRequest) => Promise<ChildControlResult>;
 }
 
 export class CodexMcpStoryRunner implements StoryRunner {
@@ -178,11 +179,12 @@ export class CodexMcpStoryRunner implements StoryRunner {
   }
 
   async controlChild(request: ChildControlRequest): Promise<ChildControlResult> {
+    if (this.options.controlChild) return await this.options.controlChild(request);
     return await controlChild(request);
   }
 
   async abort(request: ChildControlRequest): Promise<ChildControlResult> {
-    return await controlChild({ ...request, kind: 'interrupt' });
+    return await this.controlChild({ ...request, kind: 'interrupt' });
   }
 
   classifyError(error: unknown): DriverErrorClassification {

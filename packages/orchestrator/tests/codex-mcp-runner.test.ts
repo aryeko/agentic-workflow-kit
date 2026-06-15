@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveCwdOnlyConfig } from '../src/config/configLoader';
 import { CodexMcpStoryRunner } from '../src/drivers/codex-mcp/CodexMcpStoryRunner';
-import type { StoryRunRequest } from '../src/drivers/StoryRunner';
+import type { ChildControlRequest, StoryRunRequest } from '../src/drivers/StoryRunner';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../src/types';
 
 function config(): ResolvedWorkflowConfig {
@@ -171,6 +171,35 @@ describe('CodexMcpStoryRunner', () => {
         severity: 'warning',
         source: 'driver',
       },
+    ]);
+  });
+
+  it('routes child control and abort through the StoryRunner control contract', async () => {
+    const requests: ChildControlRequest[] = [];
+    const runner = new CodexMcpStoryRunner(config(), {
+      controlChild: async (controlRequest) => {
+        requests.push(controlRequest);
+        return {
+          ok: true,
+          tool: controlRequest.kind === 'reply' ? 'codex_reply' : 'codex_interrupt',
+          sessionId: controlRequest.sessionId ?? 'thread-a001',
+          storyId: controlRequest.storyId ?? null,
+          runPath: controlRequest.runPath ?? null,
+          rawResult: {},
+        };
+      },
+    });
+
+    await expect(
+      runner.controlChild({ kind: 'reply', sessionId: 'thread-a001', message: 'continue' }),
+    ).resolves.toMatchObject({ tool: 'codex_reply', sessionId: 'thread-a001' });
+    await expect(
+      runner.abort({ kind: 'reply', sessionId: 'thread-a001', message: 'ignored', reason: 'stop' }),
+    ).resolves.toMatchObject({ tool: 'codex_interrupt', sessionId: 'thread-a001' });
+
+    expect(requests).toEqual([
+      { kind: 'reply', sessionId: 'thread-a001', message: 'continue' },
+      { kind: 'interrupt', sessionId: 'thread-a001', message: 'ignored', reason: 'stop' },
     ]);
   });
 

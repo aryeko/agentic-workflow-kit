@@ -2,7 +2,7 @@ import { appendFile, mkdir, readdir, readFile, stat, writeFile } from 'node:fs/p
 import path from 'node:path';
 import { resolveInvocationCwd } from '../cli/args.js';
 import { loadResolvedConfig, resolveCwdOnlyConfig } from '../config/configLoader.js';
-import { CodexMcpStoryRunner } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
+import { createStoryRunner, discoverSessionLogsForDriver } from '../drivers/registry.js';
 import type { StoryRunner } from '../drivers/StoryRunner.js';
 import type {
   CliOverrides,
@@ -231,7 +231,7 @@ export async function resolveRunDirectory(input: {
 export async function resolveSessionRoots(input: CliOverrides, runPath: string): Promise<string[] | undefined> {
   if (input.sessionRoot) return [path.resolve(resolveInvocationCwd(input), input.sessionRoot)];
   const workspaceRoot = await workspaceRootForRunPath(runPath);
-  return new CodexMcpStoryRunner(resolveCwdOnlyConfig(workspaceRoot)).discoverSessionLogs?.();
+  return await discoverSessionLogsForDriver(resolveCwdOnlyConfig(workspaceRoot));
 }
 
 export async function workspaceRootForRunPath(runPath: string): Promise<string> {
@@ -480,7 +480,7 @@ export async function abortActiveChildren(
 
 export async function controlRunnerForRunPath(runPath: string): Promise<StoryRunner> {
   const workspaceRoot = await workspaceRootForRunPath(runPath);
-  return new CodexMcpStoryRunner(resolveCwdOnlyConfig(workspaceRoot));
+  return createStoryRunner(resolveCwdOnlyConfig(workspaceRoot));
 }
 
 export function controlOutcomeForChildren(
