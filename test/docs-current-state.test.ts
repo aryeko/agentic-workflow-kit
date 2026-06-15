@@ -51,6 +51,9 @@ describe('current-state documentation', () => {
     expect(gettingStarted).not.toContain('Install commands are planned');
     expect(gettingStarted).toContain('package-backed MCP runtime');
     expect(gettingStarted).toContain('explicit approval before any non-dry-run autonomous launch');
+    expect(gettingStarted).toContain(
+      'pnpm agentic-workflow-kit -- run-eligible --yes --tracks-dir examples --config presets/push-only.yaml',
+    );
     expect(gettingStarted).toContain('GitHub verification is unavailable or ambiguous, the run fails closed');
     expect(gettingStarted).toContain('pnpm agentic-workflow-kit -- run status <run-id-or-path> --json');
     expect(gettingStarted).toContain('pnpm agentic-workflow-kit -- run stream <run-id-or-path> --format ndjson');

@@ -129,7 +129,7 @@ outside a plugin session:
 ```bash
 pnpm agentic-workflow-kit -- mcp check                 # verify the Codex MCP tool schema
 pnpm agentic-workflow-kit -- run-eligible --dry-run --tracks-dir examples --config presets/push-only.yaml    # show what would dispatch, no side effects
-pnpm agentic-workflow-kit -- run-eligible --tracks-dir examples --config presets/push-only.yaml              # launch child sessions (needs the Codex CLI)
+pnpm agentic-workflow-kit -- run-eligible --yes --tracks-dir examples --config presets/push-only.yaml       # launch child sessions (needs the Codex CLI)
 ```
 
 Autonomous dispatch requires explicit approval before any non-dry-run autonomous launch. Dry-run
