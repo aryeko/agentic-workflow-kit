@@ -1,17 +1,20 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
 import { selectPreset } from '../src/config/preset';
 
 type PresetName = 'push-and-merge' | 'gated-automerge' | 'push-only';
 
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+
 function loadPreset(name: PresetName): { pr: unknown } {
-  return parseYaml(readFileSync(path.resolve('../..', `presets/${name}.yaml`), 'utf8')) as { pr: unknown };
+  return parseYaml(readFileSync(path.join(repoRoot, `presets/${name}.yaml`), 'utf8')) as { pr: unknown };
 }
 
 function readPresetTable(): Map<PresetName, string[]> {
-  const readme = readFileSync(path.resolve('../..', 'README.md'), 'utf8');
+  const readme = readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
   const rows = new Map<PresetName, string[]>();
 
   for (const line of readme.split('\n')) {

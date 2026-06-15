@@ -1,10 +1,13 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
 import { loadConfig } from '../src/config/resolve';
 import { ConfigSchema } from '../src/config/schema';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 function tmpRepo(yaml: string): string {
   const dir = mkdtempSync(path.join(tmpdir(), 'wk-core-'));
@@ -199,7 +202,7 @@ describe('loadConfig', () => {
     'gated-automerge',
     'push-only',
   ])('loads the %s preset through the runtime config path', async (name) => {
-    const yaml = readFileSync(path.resolve('../..', `presets/${name}.yaml`), 'utf8');
+    const yaml = readFileSync(path.join(repoRoot, `presets/${name}.yaml`), 'utf8');
     expect(() => ConfigSchema.parse(parseYaml(yaml))).not.toThrow();
 
     const cwd = tmpRepo(yaml);
