@@ -95,13 +95,14 @@ export async function loadChildControlConfig(
   input: { cwd?: string; configPath?: string; sessionId?: string; runPath?: string; storyId?: string },
   cwd = resolveChildControlCwd(input),
 ) {
-  if (
-    input.sessionId !== undefined &&
-    input.cwd === undefined &&
-    input.configPath === undefined &&
-    input.runPath === undefined
-  ) {
-    return resolveCwdOnlyConfig(cwd);
+  if (input.sessionId !== undefined && input.configPath === undefined && input.runPath === undefined) {
+    try {
+      return await loadResolvedConfig(toOverrides(input), cwd);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.startsWith('Missing .workflow/config.yaml.')) return resolveCwdOnlyConfig(cwd);
+      throw error;
+    }
   }
   return await loadResolvedConfig(toOverrides(input), cwd);
 }

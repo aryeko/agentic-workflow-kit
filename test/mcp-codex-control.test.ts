@@ -63,7 +63,7 @@ describe('codex MCP control target resolution', () => {
     const cwd = await mkdtemp(path.join(tmpdir(), 'awk-control-no-config-'));
     tempRoots.push(cwd);
 
-    const config = await loadChildControlConfig({ sessionId: '019e-child' }, cwd);
+    const config = await loadChildControlConfig({ cwd, sessionId: '019e-child' });
 
     expect(config.configPath).toBe(path.join(cwd, '.workflow/config.yaml'));
     expect(config.workspace.rootAbs).toBe(cwd);
