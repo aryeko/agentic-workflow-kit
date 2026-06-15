@@ -5,7 +5,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { projectInspectFacade, runReportFacade, runStatusFacade } from '../api/facade.js';
 import { resolveInvocationCwd } from '../cli/args.js';
 import { listTracksHandler } from '../commands/handlers.js';
-import { loadResolvedConfig } from '../config/configLoader.js';
+import { loadResolvedConfig, resolveCwdOnlyConfig } from '../config/configLoader.js';
 import { createStoryRunner } from '../drivers/registry.js';
 import type { ChildControlRequest, ChildControlResult } from '../drivers/StoryRunner.js';
 import type { CliOverrides, Logger, RunState } from '../types.js';
@@ -79,7 +79,7 @@ export async function controlConfiguredChild(
   request: Pick<ChildControlRequest, 'kind' | 'message' | 'reason'>,
 ): Promise<ChildControlResult> {
   const cwd = resolveChildControlCwd(input);
-  const config = await loadResolvedConfig(toOverrides(input), cwd);
+  const config = await loadChildControlConfig(input, cwd);
   const runner = createStoryRunner(config);
   const result = await runner.controlChild?.({
     ...request,
@@ -89,6 +89,21 @@ export async function controlConfiguredChild(
   });
   if (!result) throw new Error('configured child driver does not support child control');
   return result;
+}
+
+export async function loadChildControlConfig(
+  input: { cwd?: string; configPath?: string; sessionId?: string; runPath?: string; storyId?: string },
+  cwd = resolveChildControlCwd(input),
+) {
+  if (
+    input.sessionId !== undefined &&
+    input.cwd === undefined &&
+    input.configPath === undefined &&
+    input.runPath === undefined
+  ) {
+    return resolveCwdOnlyConfig(cwd);
+  }
+  return await loadResolvedConfig(toOverrides(input), cwd);
 }
 
 export function resolveChildControlCwd(input: { cwd?: string; configPath?: string; runPath?: string }): string {

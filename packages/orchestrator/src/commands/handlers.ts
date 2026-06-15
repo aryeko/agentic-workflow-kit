@@ -445,10 +445,21 @@ export async function mcpCheckHandler(
   options: CommandHandlerOptions = {},
 ): Promise<{ ok: boolean; tools: string[] }> {
   const cwd = resolveInvocationCwd(overrides);
-  const storyRunner = createStoryRunner(resolveCwdOnlyConfig(cwd), {
+  const config = await loadResolvedConfigOrCwdOnly(overrides, cwd);
+  const storyRunner = createStoryRunner(config, {
     ...(options.createCodexMcpClient ? { createCodexMcpClient: options.createCodexMcpClient } : {}),
   });
   return await storyRunner.checkTools();
+}
+
+async function loadResolvedConfigOrCwdOnly(overrides: CliOverrides, cwd: string): Promise<ResolvedWorkflowConfig> {
+  try {
+    return await loadResolvedConfig(overrides, cwd);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith('Missing .workflow/config.yaml.')) return resolveCwdOnlyConfig(cwd);
+    throw error;
+  }
 }
 
 export async function runWorkflowHandler(command: RunCommand, options: CommandHandlerOptions = {}): Promise<RunState> {
