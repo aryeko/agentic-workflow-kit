@@ -79,14 +79,11 @@ function countFailedToolCalls(metrics: LiveMetricsSnapshot): {
   value: number | null;
   unavailableReason: string | null;
 } {
-  if (typeof metrics.aggregate.failedToolCalls === 'number') {
-    return { value: metrics.aggregate.failedToolCalls, unavailableReason: null };
-  }
-  const hasObservedChild = Object.values(metrics.children).some(
-    (child) => child.availability?.failedToolCalls?.status === 'available',
-  );
-  if (hasObservedChild) return { value: 0, unavailableReason: null };
-  return { value: null, unavailableReason: UNAVAILABLE_REASONS.failedToolCalls };
+  const children = Object.values(metrics.children);
+  if (children.length === 0) return { value: null, unavailableReason: UNAVAILABLE_REASONS.failedToolCalls };
+  const hasUnavailableChild = children.some((child) => child.availability?.failedToolCalls?.status !== 'available');
+  if (hasUnavailableChild) return { value: null, unavailableReason: UNAVAILABLE_REASONS.failedToolCalls };
+  return { value: metrics.aggregate.failedToolCalls ?? 0, unavailableReason: null };
 }
 
 function budgetStatus(

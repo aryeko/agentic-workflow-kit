@@ -259,6 +259,58 @@ describe('RunJournal', () => {
     });
   });
 
+  it('keeps failed-tool-call budgets unavailable when any child lacks failed-call telemetry', async () => {
+    const artifacts = new MemoryArtifacts();
+    const runState = { ...state(), active: ['A001', 'A002'] };
+    const journal = new RunJournal({ artifactStore: artifacts, clock });
+    const config: ResolvedWorkflowConfig = structuredClone(resolveCwdOnlyConfig('/repo'));
+    config.agents.profiles.storyImplementer.budget.failedToolCalls.limit = 1;
+    config.agents.resolved.implementStory.budget.failedToolCalls.limit = 1;
+    config.agents.resolved.implementStory.budgetSupport.failedToolCalls.enforceable = true;
+
+    const live = await journal.writeLiveMetrics(runState, {
+      A001: {
+        storyId: 'A001',
+        toolCounts: {},
+        failedToolCalls: 0,
+        subagentCounts: {},
+        tokenTotals: null,
+        latestProgress: 'linked',
+        sessionLogPath: '/sessions/a001.jsonl',
+        availability: {
+          toolCounts: { status: 'available', unavailableReason: null },
+          failedToolCalls: { status: 'available', unavailableReason: null },
+          subagentCounts: { status: 'available', unavailableReason: null },
+          tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
+          sessionLog: { status: 'available', unavailableReason: null },
+        },
+      },
+      A002: {
+        storyId: 'A002',
+        toolCounts: {},
+        failedToolCalls: null,
+        subagentCounts: {},
+        tokenTotals: null,
+        latestProgress: 'session not linked',
+        sessionLogPath: null,
+      },
+    });
+    await journal.writeRuntimeArtifacts(runState, config, live);
+
+    expect(live.aggregate.failedToolCalls).toBe(0);
+    expect(artifacts.json.get('budgets.json')).toMatchObject({
+      evaluations: expect.arrayContaining([
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'failedToolCalls',
+          observed: null,
+          status: 'unavailable',
+          unavailableReason: 'failed tool-call telemetry is unavailable',
+        }),
+      ]),
+    });
+  });
+
   it('writes launch records before settled child results', async () => {
     const artifacts = new MemoryArtifacts();
     const journal = new RunJournal({ artifactStore: artifacts, clock });
