@@ -5,12 +5,12 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      // TODO: ratchet to 90 as test coverage improves
+      // AWK136 ratchet: keep moving toward 90 without blocking on long-tail files.
       thresholds: {
-        lines: 78,
-        statements: 77,
-        functions: 77,
-        branches: 68,
+        lines: 85,
+        statements: 81,
+        functions: 85,
+        branches: 72,
       },
     },
   },

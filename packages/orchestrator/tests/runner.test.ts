@@ -203,7 +203,10 @@ class MetricsRunner implements StoryRunner {
 
 class CompletingTrackerRunner implements StoryRunner {
   requests: StoryRunRequest[] = [];
-  constructor(private readonly trackerPath: string) {}
+  constructor(
+    private readonly trackerPath: string,
+    private readonly evidence: StoryRunResult['evidence'] = undefined,
+  ) {}
   runStory(request: StoryRunRequest): Promise<StoryRunResult> {
     this.requests.push(request);
     writeFileSync(this.trackerPath, trackerMarkdown('done'));
@@ -213,6 +216,7 @@ class CompletingTrackerRunner implements StoryRunner {
       content: 'updated tracker',
       rawResult: {},
       invocation: {},
+      evidence: this.evidence,
     });
   }
   async checkTools(): Promise<{ ok: boolean; tools: string[] }> {
@@ -439,6 +443,8 @@ class CodexEventLifecycleRunner implements StoryRunner {
 class FakeGitInspector implements GitInspector {
   calls: Array<{ storyId: string; cwdAbs: string }> = [];
   filesByRef = new Map<string, string>();
+  reachableCommits = new Set<string>();
+  refreshCalls: string[] = [];
 
   constructor(
     private evidence: StoryCommitEvidence = {
@@ -464,16 +470,44 @@ class FakeGitInspector implements GitInspector {
     return this.evidence;
   }
 
+  async refreshBaseBranch(args: { git: ResolvedWorkflowConfig['git']; cwdAbs: string }): Promise<void> {
+    this.refreshCalls.push(`origin/${args.git.baseBranch}:${args.cwdAbs}`);
+  }
+
   async readFileFromRef(args: { ref: string; filePath: string }): Promise<string | null> {
     return this.filesByRef.get(`${args.ref}:${args.filePath}`) ?? null;
+  }
+
+  async isCommitReachableFromRef(args: { commit: string }): Promise<boolean> {
+    return this.reachableCommits.has(args.commit);
   }
 }
 
 class FakeCollaborationInspector implements CollaborationInspector {
-  constructor(private readonly evidence: CollaborationEvidence) {}
+  mergeCalls: Array<{ prNumber: number; method: string; deleteBranch: boolean; expectedHeadSha: string }> = [];
+
+  constructor(
+    private readonly evidence: CollaborationEvidence,
+    private readonly mergedEvidence: CollaborationEvidence = evidence,
+  ) {}
 
   async inspectPullRequest(): Promise<CollaborationEvidence> {
     return this.evidence;
+  }
+
+  async mergePullRequest(args: {
+    prNumber: number;
+    method: 'squash' | 'merge' | 'rebase';
+    deleteBranch: boolean;
+    expectedHeadSha: string;
+  }): Promise<CollaborationEvidence> {
+    this.mergeCalls.push({
+      prNumber: args.prNumber,
+      method: args.method,
+      deleteBranch: args.deleteBranch,
+      expectedHeadSha: args.expectedHeadSha,
+    });
+    return this.mergedEvidence;
   }
 }
 
@@ -2282,6 +2316,7 @@ describe('WorkflowRunner', () => {
       uncommittedChanges: false,
       mergedPullRequest: { number: 100, url: 'https://github.com/acme/repo/pull/100', mergeCommitSha: 'merge-sha' },
     });
+    gitInspector.reachableCommits.add('merge-sha');
     gitInspector.filesByRef.set(
       'origin/main:docs/tracks/t/README.md',
       trackerMarkdown('done').replace('| — | — |', '| — | [PR #100](https://github.com/acme/repo/pull/100) |'),
@@ -2659,6 +2694,134 @@ describe('WorkflowRunner', () => {
     });
     expect(state.status).toBe('complete');
     expect(state.completed[0]).toMatchObject({ storyId: 'WK001', returnedStatus: 'done', returnedComplete: true });
+  });
+
+  it('runs a fake-driver story smoke through verification, parent merge, and completion', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-smoke-'));
+    const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
+    mkdirSync(path.dirname(trackerPath), { recursive: true });
+    writeFileSync(trackerPath, trackerMarkdown('specced'));
+
+    const resolvedConfig = {
+      ...configForWorkspace(workspaceRoot),
+      pr: {
+        create: true,
+        ci: { wait: true, command: 'gh pr checks --watch --fail-fast' },
+        review: {
+          wait: 'bot' as const,
+          bot: 'codex',
+          triageComments: true,
+          maxFixBatches: 1,
+          rerequestAfterFix: false,
+          waitTimeoutMinutes: 30,
+        },
+        merge: { auto: true, method: 'squash' as const, deleteBranch: true },
+      },
+    };
+    const storySource: StorySource = {
+      async listStories() {
+        const tracks = await discoverMarkdownTracks({
+          workspaceRoot,
+          tracksDir: resolvedConfig.paths.tracksDir,
+          archiveDir: resolvedConfig.paths.archiveDir,
+          completeStatuses: resolvedConfig.statuses.complete,
+          eligibleStatuses: resolvedConfig.statuses.eligible,
+          idPattern: resolvedConfig.tracker.idPattern,
+        });
+        return tracks.flatMap((track) => track.stories);
+      },
+    };
+    const storyRunner = new CompletingTrackerRunner(trackerPath, {
+      prNumber: 88,
+      prUrl: 'https://github.com/aryeko/agentic-workflow-kit/pull/88',
+    });
+    const gitInspector = new FakeGitInspector({
+      committed: true,
+      branch: 'sample/wk001-story',
+      isBaseBranch: false,
+      headSha: 'head-sha',
+      baseSha: 'base-sha',
+      uncommittedChanges: false,
+    });
+    gitInspector.reachableCommits.add('merge-sha');
+    gitInspector.filesByRef.set(
+      'origin/main:docs/tracks/sample/README.md',
+      trackerMarkdown('done').replace(
+        '| — | — |\n',
+        '| — | [#88](https://github.com/aryeko/agentic-workflow-kit/pull/88) |\n',
+      ),
+    );
+    const collaborationInspector = new FakeCollaborationInspector(
+      {
+        available: true,
+        source: 'github',
+        verified: true,
+        pr: {
+          number: 88,
+          url: 'https://github.com/aryeko/agentic-workflow-kit/pull/88',
+          state: 'open',
+          headSha: 'head-sha',
+          mergeCommitSha: null,
+          mergedAt: null,
+        },
+        checks: [{ command: 'gh pr checks', status: 'passed', conclusion: 'success' }],
+        review: { reviewer: 'codex', signal: 'approved', mechanism: 'reaction' },
+        branch: { name: 'sample/wk001-story', exists: true },
+      },
+      {
+        available: true,
+        source: 'github',
+        verified: true,
+        pr: {
+          number: 88,
+          url: 'https://github.com/aryeko/agentic-workflow-kit/pull/88',
+          state: 'merged',
+          headSha: 'head-sha',
+          mergeCommitSha: 'merge-sha',
+          mergedAt: '2026-06-15T00:00:00Z',
+        },
+        checks: [{ command: 'gh pr checks', status: 'passed', conclusion: 'success' }],
+        review: { reviewer: 'codex', signal: 'approved', mechanism: 'reaction' },
+        branch: { name: 'sample/wk001-story', exists: false },
+      },
+    );
+    const artifacts = new MemoryArtifacts();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: resolvedConfig,
+      storySource,
+      storyRunner,
+      collaborationInspector,
+      gitInspector,
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: noopChildWorkspacePreparer,
+    });
+
+    const state = await runner.runStory('WK001');
+
+    expect(state.status, state.blockedReason ?? '').toBe('complete');
+    expect(state.completed[0]).toMatchObject({ storyId: 'WK001', returnedStatus: 'done', returnedComplete: true });
+    expect(collaborationInspector.mergeCalls).toEqual([
+      { prNumber: 88, method: 'squash', deleteBranch: true, expectedHeadSha: 'head-sha' },
+    ]);
+    expect(gitInspector.refreshCalls).toEqual([`origin/main:${workspaceRoot}`]);
+    expect(artifacts.json.get('children/WK001.json')).toMatchObject({
+      storyId: 'WK001',
+      completionAuthority: 'verified-merged-pr-on-base',
+      completionAuthoritySource: 'base-tracker',
+      collaborationEvidence: { verified: true, pr: { state: 'merged', mergeCommitSha: 'merge-sha' } },
+    });
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'completion_authority',
+        storyId: 'WK001',
+        authority: 'verified-merged-pr-on-base',
+        source: 'base-tracker',
+      }),
+    );
   });
 
   it('blocks stale launch records before claiming a real tracker row', async () => {
