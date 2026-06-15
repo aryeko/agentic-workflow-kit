@@ -1,5 +1,6 @@
 import { renderStoryImplementerPrompt } from '../drivers/promptRenderer.js';
 import type { StoryPromptMetadata, StoryRunner } from '../drivers/StoryRunner.js';
+import { releaseTrackerClaim } from '../tracks/trackerClaimer.js';
 import type {
   ActiveChildRun,
   ArtifactStore,
@@ -47,7 +48,7 @@ interface ChildLaunchRunner {
   journal: Pick<RunJournal, 'record' | 'recordChildLaunch'>;
   metrics: Pick<MetricsCollector, 'start'>;
   blockOnce(storyId: string, reason: string): void;
-  releaseUnlaunchedClaim(claim: ClaimedWorkflowStory, reason: string): Promise<void>;
+  trackerClaims: Map<string, ClaimedWorkflowStory>;
   writeState(): Promise<void>;
   writeLiveMetrics(): Promise<void>;
 }
@@ -74,7 +75,7 @@ export async function recordChildLaunchWithWorkspace(
       storyId: story.id,
       reason,
     });
-    await self.releaseUnlaunchedClaim(claim, reason);
+    await releaseUnlaunchedClaim(self, claim, reason);
     await self.writeState();
     await self.writeLiveMetrics();
     return null;
@@ -157,6 +158,43 @@ export async function recordChildLaunchWithWorkspace(
     startup: startup.promise,
     resolveStartup: startup.resolve,
   };
+}
+
+async function releaseUnlaunchedClaim(
+  self: ChildLaunchRunner,
+  claim: ClaimedWorkflowStory,
+  reason: string,
+): Promise<void> {
+  if (!claim.trackerClaimed) return;
+  try {
+    const result = await releaseTrackerClaim({
+      config: self.dependencies.config,
+      story: claim.story,
+      owner: claim.owner,
+      previousStatus: claim.previousStatus,
+    });
+    if (result.ok) {
+      await self.journal.record('tracker-claim-released', {
+        storyId: claim.story.id,
+        fromStatus: result.fromStatus,
+        toStatus: result.toStatus,
+        owner: claim.owner,
+        reason,
+      });
+    } else {
+      await self.journal.record('tracker-claim-release-skipped', {
+        storyId: claim.story.id,
+        reason: result.reason,
+      });
+    }
+  } catch (error) {
+    await self.journal.record('tracker-claim-release-skipped', {
+      storyId: claim.story.id,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  } finally {
+    self.trackerClaims.delete(claim.story.id);
+  }
 }
 
 function startupSignal(): {

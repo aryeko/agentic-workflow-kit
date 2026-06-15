@@ -1749,6 +1749,69 @@ describe('WorkflowRunner', () => {
     );
   });
 
+  it('releases the tracker claim when child workspace preparation fails', async () => {
+    const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-workspace-prepare-release-'));
+    const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
+    mkdirSync(path.dirname(trackerPath), { recursive: true });
+    writeFileSync(trackerPath, trackerMarkdown('specced'));
+    const resolvedConfig = branchConfigForWorkspace(workspaceRoot);
+    const storySource: StorySource = {
+      async listStories() {
+        const tracks = await discoverMarkdownTracks({
+          workspaceRoot,
+          tracksDir: resolvedConfig.paths.tracksDir,
+          archiveDir: resolvedConfig.paths.archiveDir,
+          completeStatuses: resolvedConfig.statuses.complete,
+          eligibleStatuses: resolvedConfig.statuses.eligible,
+          idPattern: resolvedConfig.tracker.idPattern,
+        });
+        return tracks.flatMap((track) => track.stories);
+      },
+    };
+    const artifacts = new MemoryArtifacts();
+    const storyRunner = new SyncRunner();
+    const runner = new WorkflowRunner({
+      command: 'run-story',
+      config: resolvedConfig,
+      storySource,
+      storyRunner,
+      gitInspector: new FakeGitInspector(),
+      artifactStore: artifacts,
+      logger,
+      clock,
+      runId: 'run-1',
+      childWorkspacePreparer: async () => {
+        throw new Error('worktree prepare failed');
+      },
+    });
+
+    const state = await runner.runStory('WK001');
+
+    expect(state.status).toBe('blocked');
+    expect(state.blockedReason).toBe('worktree prepare failed');
+    expect(storyRunner.requests).toHaveLength(0);
+    expect(readFileSync(trackerPath, 'utf8')).toContain(
+      '| WK001 | Wire parser to runner | — | 1 | specced | [spec](../../specs/WK001.md) | — | — | — |',
+    );
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'child-workspace-prepare-failed',
+        storyId: 'WK001',
+        reason: 'worktree prepare failed',
+      }),
+    );
+    expect(artifacts.events).toContainEqual(
+      expect.objectContaining({
+        type: 'tracker-claim-released',
+        storyId: 'WK001',
+        fromStatus: 'implementing',
+        toStatus: 'specced',
+        owner: 'awk:run-1:WK001',
+        reason: 'worktree prepare failed',
+      }),
+    );
+  });
+
   it('does not claim the parent tracker before launching a worktree child', async () => {
     const workspaceRoot = mkdtempSync(path.join(tmpdir(), 'wk-runner-worktree-skip-parent-claim-'));
     const trackerPath = path.join(workspaceRoot, 'docs/tracks/sample/README.md');
