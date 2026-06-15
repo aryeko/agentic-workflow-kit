@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, utimes, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -155,6 +155,30 @@ describe('claimTrackerRow', () => {
       ok: true,
       story: { id: 'L002', status: 'implementing', owner: 'awk:run-1:L002' },
     });
+  });
+
+  it('serializes concurrent stale-lock reclaim attempts', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-claim-stale-concurrent-'));
+    const trackerPath = path.join(root, 'docs/tracks/linkly/README.md');
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown);
+    await writeFile(
+      claimLockPath(trackerPath),
+      JSON.stringify({
+        owner: 'crashed-owner',
+        pid: 999_999,
+        createdAt: '2026-06-15T19:00:00.000Z',
+        token: 'crashed-token',
+      }),
+    );
+
+    const results = await Promise.all([
+      claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-1:L002' }),
+      claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-2:L002' }),
+    ]);
+
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    await expect(access(`${claimLockPath(trackerPath)}.reclaim`)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('reclaims a stale legacy text claim lock by file age', async () => {
