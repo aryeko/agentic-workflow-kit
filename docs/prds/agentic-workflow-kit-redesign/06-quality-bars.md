@@ -7,7 +7,7 @@
 | Q-1 | Workflow contracts are documented, validated, and stable enough for downstream automation. | Config, PRDs, HLDs, tracks, artifacts |
 | Q-2 | Runtime state is durable across parent session timeout, process restart, and user interruption. | Runs, child sessions, artifacts |
 | Q-3 | The runtime stops safely on ambiguous state instead of silently relaunching, merging, or deleting branches. | Autopilot, recovery, GitHub gates |
-| Q-4 | Each agent profile can declare prompt/template defaults, model, reasoning effort, structured output contract, permissions, and budget policy. | Implementer, reviewer, planner, analyzer, recovery agent |
+| Q-4 | Agent launch policy can declare prompt/template defaults, model, reasoning effort, child-session speed/service-tier policy, structured output contract, permissions, and budget policy. | Implementer, reviewer, planner, analyzer, recovery agent |
 | Q-5 | Observability captures enough raw and derived data to independently verify time, token, tool, and outcome metrics. | Run artifacts, reports, MCP tools |
 | Q-6 | CLI/MCP status and control surfaces remain usable during long-running runs. | Watch, subscribe, abort, inspect |
 | Q-7 | GitHub integration handles PR checks, review comments, reactions, merge policy, and branch cleanup predictably. | V1 collaboration flow |

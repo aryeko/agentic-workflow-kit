@@ -18,14 +18,15 @@ related:
 
 **Source review:**
 [release-readiness-review-3.md](../../tracks/agentic-workflow-kit-redesign/release-readiness-review-3.md)
-**PRD criteria addressed:** OBS-4, POL-4, Q-2, Q-3, Q-5, Q-9
+**PRD criteria addressed:** OBS-4, POL-3, POL-4, Q-2, Q-3, Q-4, Q-5, Q-9, HC-1, HC-2
 
 This is the round-3 remediation design for the residuals found after round 2 (AWK13.8–13.12) landed and
 was independently re-verified as fixed at commit `d7c90b8`. It owns *high-level how*; each workstream
 becomes a tracker story (AWK13.13–AWK13.15) whose detailed technical story spec and implementation plan
-are created by `implement-next` before code. The round-1 and round-2 design principles still hold —
-compatibility-first, durability over speed, contracts not prose at boundaries, host specifics behind the
-driver contract — and this round must not regress them.
+are created by `implement-next` before code. A later operator review added AWK13.16 as a narrow
+pre-release speed-policy hardening story after AWK13.15. The round-1 and round-2 design principles still
+hold — compatibility-first, durability over speed, contracts not prose at boundaries, host specifics
+behind the driver contract — and this round must not regress them.
 
 The residuals are lighter than round 2's (the HIGH durability/neutrality/prose-trust blockers already
 landed). The decision recorded here: **close the one advertised-but-inert budget dimension and the
@@ -39,13 +40,15 @@ flowchart LR
   S["AWK13.13 Runner type-safety + supervisor decomposition"]
   M["AWK13.14 Budget/telemetry fidelity"]
   C["AWK13.15 Coverage headroom + test DevX"]
+  P["AWK13.16 Child-session speed policy"]
   R["AWK14 Release"]
 
   Review --> S
   S --> M
   S --> C
   M --> C
-  C --> R
+  C --> P
+  P --> R
 ```
 
 ## Design principles for the remediation
@@ -158,11 +161,39 @@ looks like a test failure.
 
 ---
 
+## AWK13.16 — Child-session speed policy (POL-3, Q-4, HC-1, HC-2)
+
+**Problem.** Codex now has a user-visible Standard/Fast speed choice, but WorkflowKit only exposes raw
+`childSession.config` pass-through. That lets advanced users set `service_tier: fast`, but it does not
+give product-level config a clear way to express `derive`, `fast`, or `standard`, especially the
+important case of forcing Standard when the user's global Codex config defaults to Fast.
+
+**Design direction.** Add a normalized launch-policy field instead of leaking Codex's service-tier
+quirks into product concepts.
+
+- Default to `derive`, preserving existing configs and user/global Codex defaults.
+- Map `fast` to Codex Fast-mode config.
+- Map `standard` to the Codex explicit clear/null plus `notice.fast_default_opt_out: true`; do not use a
+  literal `"standard"` service-tier value.
+- Keep raw `childSession.config` for advanced settings, but reject or clearly resolve conflicts with the
+  normalized speed policy.
+
+**Acceptance.** `derive`, `fast`, and `standard` are schema-valid, documented, and tested through
+resolved config and Codex tool input. Existing raw `childSession.config.service_tier` configs still work
+when no normalized speed policy is set, and ambiguous conflicts are covered by validation.
+
+**Affected surfaces.** `config/schema.ts`, `config/configLoader.ts`, `drivers/codex-mcp/toolInput.ts`,
+`types.ts`, `references/config-schema.md`, generated schema, presets/examples as needed, package docs,
+and plugin fixture copies.
+
+---
+
 ## Sequencing
 
 AWK13.13 lands first (it reshapes runner internals the others ride). AWK13.14 follows because
-`RunJournal` lives in `runner/`. AWK13.15 lands last so the re-baselined ratchet reflects final shapes.
-All three gate AWK14. Detailed wave rules live in the
+`RunJournal` lives in `runner/`. AWK13.15 lands before public config additions so the re-baselined
+ratchet reflects the post-AWK13.13/13.14 shapes. AWK13.16 follows as the final pre-release config
+hardening story. All four gate AWK14. Detailed wave rules live in the
 [tracker README](../../tracks/agentic-workflow-kit-redesign/README.md).
 
 ## Release-note carry-forward for AWK14

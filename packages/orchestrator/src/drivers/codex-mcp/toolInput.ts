@@ -1,5 +1,12 @@
 import path from 'node:path';
-import type { CapabilityDowngrade, ResolvedAgentProfile, ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
+import type {
+  CapabilityDowngrade,
+  ChildSessionSpeed,
+  ResolvedAgentProfile,
+  ResolvedChildSessionConfig,
+  ResolvedWorkflowConfig,
+  WorkflowStory,
+} from '../../types.js';
 import { renderStoryImplementerPrompt } from '../promptRenderer.js';
 import type { StoryPromptMetadata } from '../StoryRunner.js';
 
@@ -61,10 +68,29 @@ export function buildCodexToolInput(
       : profile?.effectiveReasoning
         ? { model_reasoning_effort: profile.effectiveReasoning }
         : {}),
+    ...codexSpeedConfig(childSession),
     ...writableRootsEntry,
   };
 
   return input;
+}
+
+function codexSpeedConfig(childSession: ResolvedChildSessionConfig): Record<string, unknown> {
+  const speed: ChildSessionSpeed = childSession.speed ?? 'derive';
+  if (speed === 'derive') return {};
+  if (speed === 'fast') return { service_tier: 'fast' };
+
+  return {
+    service_tier: null,
+    notice: {
+      ...noticeObject(childSession.config?.notice),
+      fast_default_opt_out: true,
+    },
+  };
+}
+
+function noticeObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
 export function codexDriverCapabilityDowngrades(promptMetadata?: StoryPromptMetadata): CapabilityDowngrade[] {

@@ -194,10 +194,10 @@ profile name/task type, prompt template, prompt hash, structured-output schema a
 and asks the driver for capability downgrades, child control, abort, error classification, and
 session-log discovery. The only shipped driver is `codex-mcp`; the driver boundary is reserved so
 new drivers can be added without touching the tracker/config contract. Child-session launch defaults
-live under neutral `childSession`; `codex.childSession` remains a compatibility alias for existing
-configs. _Roadmap:_ a future `orchestrator.driver: claude-agent-sdk` can dispatch child sessions
-through the Claude Agent SDK over this same boundary; today's plugin-provided autopilot still uses
-the `codex-mcp` child driver.
+live under neutral `childSession`, including speed policy (`derive`, `fast`, or `standard`);
+`codex.childSession` remains a compatibility alias for existing configs. _Roadmap:_ a future
+`orchestrator.driver: claude-agent-sdk` can dispatch child sessions through the Claude Agent SDK over
+this same boundary; today's plugin-provided autopilot still uses the `codex-mcp` child driver.
 
 Autonomous orchestrator runs write structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,

@@ -38,18 +38,18 @@ not implementation-ready; create a detailed technical story spec before plan/cod
 | Dependency | Reason |
 | --- | --- |
 | AWK13 | Release notes and version handoff must reflect canonical docs after final consolidation. |
-| AWK13.15 | Direct blocker: release must not ship until all three hardening rounds (AWK13.1–AWK13.15) land. AWK13.15 is the last and depends transitively on the rest. |
+| AWK13.16 | Direct blocker: release must not ship until all hardening and speed-policy work (AWK13.1–AWK13.16) lands. AWK13.16 is the last and depends transitively on the rest. |
 | AWK13.6 / AWK13.11 / AWK13.15 | Release must not ship until the test-trust and coverage hardening across all rounds lands. |
 | AWK13.7 / AWK13.12 | Release notes and docs must reflect post-hardening behavior (approval default, GitHub verification, provider-neutral wiring) and corrected version/security facts. |
 
 ## Execution guidance
 
-- This story is intentionally deferred from autopilot. After AWK13.1–AWK13.15 are complete, run AWK14
+- This story is intentionally deferred from autopilot. After AWK13.1–AWK13.16 are complete, run AWK14
   manually by changing the tracker status back to `specced`/`plan-approved` or by force-running the
   story.
-- Do not start release-readiness work until the release-hardening stories (AWK13.1–AWK13.15, across all
-  three rounds) have landed and the release-readiness reviews' blockers are resolved.
-- The redesign now ships real code changes from AWK13.1–AWK13.15; reflect that in the changeset and
+- Do not start release-readiness work until the release-hardening and speed-policy stories
+  (AWK13.1–AWK13.16) have landed and the release-readiness reviews' blockers are resolved.
+- The redesign now ships real code changes from AWK13.1–AWK13.16; reflect that in the changeset and
   semver decision (likely a minor bump, confirm against actual API compatibility).
 - Record the honest, intentional limitations in the release notes (see release-hardening-design-3
   "Release-note carry-forward"): live token telemetry is off (`tokenTelemetryLive: false`) and the

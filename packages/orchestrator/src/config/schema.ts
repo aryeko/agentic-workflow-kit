@@ -32,6 +32,7 @@ const AGENT_TASK_TYPES = [
   'migrateTracker',
 ] as const;
 const BUDGET_ACTIONS = ['warn', 'stop-new-launches', 'checkpoint-stop', 'abort'] as const;
+const CHILD_SESSION_SPEEDS = ['derive', 'fast', 'standard'] as const;
 
 function agentBudgetDimensionSchema(defaultAction: (typeof BUDGET_ACTIONS)[number]) {
   return z
@@ -82,12 +83,20 @@ const AgentProfileSchema = z
 
 const ChildSessionSchema = z
   .object({
+    speed: z.enum(CHILD_SESSION_SPEEDS).optional(),
     model: nonEmpty.optional(),
     approvalPolicy: z.enum(['never', 'on-failure', 'on-request', 'untrusted']).optional(),
     sandbox: z.enum(['danger-full-access', 'read-only', 'workspace-write']).optional(),
     config: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
+
+type ChildSessionInput = z.infer<typeof ChildSessionSchema>;
+
+function hasRawServiceTier(childSession: ChildSessionInput | undefined): boolean {
+  const rawConfig = childSession?.config;
+  return !!rawConfig && Object.hasOwn(rawConfig, 'service_tier');
+}
 
 const DEFAULT_AGENT_PROFILES = {
   storyImplementer: {
@@ -359,6 +368,18 @@ export const ConfigSchema = z
         }
       }),
   })
-  .strict();
+  .strict()
+  .superRefine((config, context) => {
+    const speed = config.childSession?.speed ?? config.codex.childSession?.speed;
+    if (!speed || speed === 'derive') return;
+    if (!hasRawServiceTier(config.childSession) && !hasRawServiceTier(config.codex.childSession)) return;
+
+    context.addIssue({
+      code: 'custom',
+      path: ['childSession', 'speed'],
+      message:
+        'childSession.speed conflicts with raw childSession.config.service_tier; remove service_tier or set speed to derive',
+    });
+  });
 
 export type WorkflowConfig = z.infer<typeof ConfigSchema>;

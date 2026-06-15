@@ -42,6 +42,9 @@ This round surfaces a **bounded set of lighter residuals** — one MEDIUM teleme
 cluster of maintainability/DevX items. None are safety- or correctness-critical; they are the right
 scope for a final hardening pass (AWK13.13–AWK13.15) before cutting V1.
 
+Follow-up note: a later operator review identified a separate child-session speed/service-tier config
+gap. That work is tracked as AWK13.16 after AWK13.15 and also gates AWK14.
+
 ## Ground truth
 
 | Gate | Result |
@@ -127,9 +130,11 @@ inserted between AWK13.12 and AWK14; they **gate AWK14**.
    stories ride.
 2. **AWK13.14 / R3-1** — wire `failedToolCalls` from session-log metrics, or retire the dimension and
    document the limitation. Follows AWK13.13 since `RunJournal` lives in `runner/`.
-3. **AWK13.15 / R3-3** — widen coverage headroom and fix the stale-`coverage/` local footgun. Lands last
-   so the re-baselined ratchet reflects the final shapes; gates AWK14.
-4. Then **AWK14**: consolidated changeset, release handoff, and a release note recording the honest
+3. **AWK13.15 / R3-3** — widen coverage headroom and fix the stale-`coverage/` local footgun. Lands after
+   the round-3 behavior fixes so the re-baselined ratchet reflects the final shapes.
+4. **AWK13.16** — child-session speed/service-tier policy discovered in a later operator review; gates
+   AWK14.
+5. Then **AWK14**: consolidated changeset, release handoff, and a release note recording the honest
    telemetry/structured-output limitations.
 
 ## Method

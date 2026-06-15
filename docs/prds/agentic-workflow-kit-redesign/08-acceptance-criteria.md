@@ -38,7 +38,7 @@
 | --- | --- | --- |
 | **POL-1** | New repos default to conservative behavior with dry-run/preflight and explicit approval before non-dry-run launch. | **[ship blocker]** |
 | **POL-2** | Presets encode PR creation, CI wait, review wait, merge behavior, branch cleanup, and stop conditions. | **[ship blocker]** |
-| **POL-3** | Users can configure named agent profiles with prompt/template defaults, model, reasoning effort, structured output contract, sandbox, approval policy, and host-specific settings. | **[ship blocker]** |
+| **POL-3** | Users can configure named agent profiles with prompt/template defaults, model, reasoning effort, structured output contract, sandbox, approval policy, and host-specific settings, plus child-session speed/service-tier policy. | **[ship blocker]** |
 | **POL-4** | Users can configure policy-based budgets per agent profile for wall time, tokens, tool calls, failed tool calls, and cost when available. | **[ship blocker]** |
 | **POL-5** | Budget policies can warn, stop launching new work, stop at the next checkpoint, or abort immediately. | **[ship blocker]** |
 | **POL-6** | Budget configuration and actual usage are visible in run artifacts and status tools. | **[ship blocker]** |

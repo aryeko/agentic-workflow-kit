@@ -170,6 +170,12 @@ describe('config.schema.json', () => {
       }),
     ).toBe(true);
   });
+  it('accepts child-session speed policy values in the generated schema', () => {
+    for (const speed of ['derive', 'fast', 'standard']) {
+      expect(validateConfigContract({ version: 1, childSession: { speed } })).toBe(true);
+      expect(validateConfigContract({ version: 1, codex: { childSession: { speed } } })).toBe(true);
+    }
+  });
   it('requires version', () => {
     const { version, ...noVersion } = goodConfig;
     expect(validate(noVersion)).toBe(false);
@@ -185,6 +191,10 @@ describe('config.schema.json', () => {
   });
   it('rejects an unknown paths key', () => {
     expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, bogusDir: 'x' } })).toBe(false);
+  });
+  it('rejects invalid child-session speed values in the generated schema', () => {
+    expect(validate({ ...goodConfig, childSession: { speed: 'turbo' } })).toBe(false);
+    expect(validate({ ...goodConfig, codex: { childSession: { speed: 'turbo' } } })).toBe(false);
   });
   it('rejects repo-relative path fields that are absolute or contain parent segments', () => {
     expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, tracksDir: '/tmp/tracks' } })).toBe(false);

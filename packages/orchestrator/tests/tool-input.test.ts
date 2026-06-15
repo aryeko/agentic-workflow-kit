@@ -59,8 +59,8 @@ const config: ResolvedWorkflowConfig = {
     childStartupTimeoutMs: 60_000,
     childMaxRuntimeMs: 7_200_000,
   },
-  childSession: { cwdAbs: '/repo' },
-  codex: { childSession: { cwdAbs: '/repo' } },
+  childSession: { cwdAbs: '/repo', speed: 'derive' },
+  codex: { childSession: { cwdAbs: '/repo', speed: 'derive' } },
 };
 
 const story: WorkflowStory = {
@@ -208,6 +208,7 @@ describe('buildCodexToolInput', () => {
           codex: {
             childSession: {
               cwdAbs: '/repo',
+              speed: 'derive',
               model: 'gpt-5.5',
               approvalPolicy: 'on-request',
               sandbox: 'workspace-write',
@@ -231,6 +232,72 @@ describe('buildCodexToolInput', () => {
     });
   });
 
+  it('does not send a Codex service-tier override when speed derives from user defaults', () => {
+    const result = buildCodexToolInput(
+      {
+        ...config,
+        codex: {
+          childSession: {
+            cwdAbs: '/repo',
+            speed: 'derive',
+          },
+        },
+      },
+      story,
+      'custom prompt',
+    );
+
+    expect(result.config).not.toHaveProperty('service_tier');
+    expect(result.config).not.toHaveProperty('notice');
+  });
+
+  it('requests Codex Fast mode for child sessions when speed is fast', () => {
+    const result = buildCodexToolInput(
+      {
+        ...config,
+        codex: {
+          childSession: {
+            cwdAbs: '/repo',
+            speed: 'fast',
+          },
+        },
+      },
+      story,
+      'custom prompt',
+    );
+
+    expect(result.config).toMatchObject({
+      service_tier: 'fast',
+    });
+  });
+
+  it('clears Codex Fast mode for child sessions when speed is standard', () => {
+    const result = buildCodexToolInput(
+      {
+        ...config,
+        codex: {
+          childSession: {
+            cwdAbs: '/repo',
+            speed: 'standard',
+            config: {
+              notice: { existing: true },
+            },
+          },
+        },
+      },
+      story,
+      'custom prompt',
+    );
+
+    expect(result.config).toMatchObject({
+      service_tier: null,
+      notice: {
+        existing: true,
+        fast_default_opt_out: true,
+      },
+    });
+  });
+
   it('prefers resolved implementStory profile launch policy without sending WorkflowKit metadata as Codex config', () => {
     const profile = {
       ...config.agents.resolved.implementStory,
@@ -251,6 +318,7 @@ describe('buildCodexToolInput', () => {
         codex: {
           childSession: {
             cwdAbs: '/repo',
+            speed: 'derive',
             model: 'legacy-model',
             approvalPolicy: 'on-request',
             sandbox: 'danger-full-access',
@@ -299,6 +367,7 @@ describe('buildCodexToolInput', () => {
         codex: {
           childSession: {
             cwdAbs: '/repo',
+            speed: 'derive',
             config: { model_reasoning_effort: 'high' },
           },
         },
@@ -322,8 +391,8 @@ describe('buildCodexToolInput', () => {
       {
         ...config,
         workspace: { rootAbs: '/workspace/myproject' },
-        childSession: { cwdAbs: '/workspace/myproject' },
-        codex: { childSession: { cwdAbs: '/workspace/myproject' } },
+        childSession: { cwdAbs: '/workspace/myproject', speed: 'derive' },
+        codex: { childSession: { cwdAbs: '/workspace/myproject', speed: 'derive' } },
       },
       story,
       'p',

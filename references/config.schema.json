@@ -402,6 +402,14 @@
     "childSession": {
       "type": "object",
       "properties": {
+        "speed": {
+          "type": "string",
+          "enum": [
+            "derive",
+            "fast",
+            "standard"
+          ]
+        },
         "model": {
           "type": "string",
           "minLength": 1
@@ -439,6 +447,14 @@
         "childSession": {
           "type": "object",
           "properties": {
+            "speed": {
+              "type": "string",
+              "enum": [
+                "derive",
+                "fast",
+                "standard"
+              ]
+            },
             "model": {
               "type": "string",
               "minLength": 1

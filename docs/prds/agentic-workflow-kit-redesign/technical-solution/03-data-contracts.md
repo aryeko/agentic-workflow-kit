@@ -29,12 +29,15 @@ Extend `.workflow/config.yaml` and the generated `references/config.schema.json`
 blocks:
 
 ```yaml
+childSession:
+  speed: derive # derive | fast | standard
 agents:
   profiles:
     storyImplementer:
       driver: codex-mcp
       model: null
       reasoning: medium
+      speed: derive
       approvalPolicy: never
       sandbox: workspace-write
       prompt:
@@ -58,6 +61,7 @@ agents:
       driver: codex-mcp
       model: null
       reasoning: medium
+      speed: derive
       prompt:
         template: built-in/pre-pr-reviewer
       structuredOutput:
@@ -108,7 +112,12 @@ observability:
 
 Exact field names can change during implementation, but the model must support named agent
 profiles, built-in defaults, task bindings, per-run overrides, prompt/template selection,
-structured-output contracts, budget actions, and stream/report policy.
+speed/service-tier policy, structured-output contracts, budget actions, and stream/report policy.
+For the Codex driver, the normalized speed policy maps to host config without exposing Codex's raw
+service-tier quirks as product concepts: `derive` passes no override, `fast` requests Codex Fast
+mode, and `standard` explicitly clears any inherited Fast choice and records the Codex opt-out marker.
+Raw `childSession.config` remains available for advanced driver-specific settings, but normalized
+speed policy should reject or otherwise make conflicts with raw service-tier keys unambiguous.
 
 ## Run artifact shape
 

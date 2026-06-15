@@ -60,8 +60,8 @@ function config(): ResolvedWorkflowConfig {
       childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     },
-    childSession: { cwdAbs: '/repo' },
-    codex: { childSession: { cwdAbs: '/repo' } },
+    childSession: { cwdAbs: '/repo', speed: 'derive' },
+    codex: { childSession: { cwdAbs: '/repo', speed: 'derive' } },
   };
 }
 

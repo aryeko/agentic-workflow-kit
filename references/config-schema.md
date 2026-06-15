@@ -67,10 +67,15 @@ top-level config block.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
+| `speed` | `derive` \| `fast` \| `standard` | `derive` | Child-session speed policy. `derive` sends no Codex service-tier override and preserves the user's global Codex setting; `fast` requests Codex Fast mode; `standard` explicitly clears inherited Fast mode for the child session. |
 | `model` | string | unset | Optional model override for launched child sessions. |
 | `approvalPolicy` | `never` \| `on-failure` \| `on-request` \| `untrusted` | unset | Optional child-session approval policy. |
 | `sandbox` | `danger-full-access` \| `read-only` \| `workspace-write` | unset | Optional child-session filesystem sandbox. |
 | `config` | object | unset | Driver-specific raw config passed through to the child-session launcher. |
+
+When `speed` is `fast` or `standard`, do not also set raw `config.service_tier`; validation rejects
+that ambiguous combination. Existing raw `config.service_tier` pass-through remains accepted when
+`speed` is unset or `derive`.
 
 `codex.childSession` remains accepted as a compatibility alias for existing configs. When both
 `childSession` and `codex.childSession` are present, values merge per field with `childSession`
@@ -83,6 +88,7 @@ Compatibility alias for `childSession`. Prefer `childSession` for new configs.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
+| `speed` | `derive` \| `fast` \| `standard` | `derive` | Compatibility alias for `childSession.speed`. |
 | `model` | string | unset | Optional model override for launched child sessions. |
 | `approvalPolicy` | `never` \| `on-failure` \| `on-request` \| `untrusted` | unset | Optional child-session approval policy. |
 | `sandbox` | `danger-full-access` \| `read-only` \| `workspace-write` | unset | Optional child-session filesystem sandbox. |

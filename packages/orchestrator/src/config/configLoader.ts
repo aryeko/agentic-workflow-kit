@@ -68,6 +68,7 @@ export async function loadResolvedConfig(
   };
   const resolvedChildSession = {
     cwdAbs: workspaceRoot,
+    speed: configuredChildSession.speed ?? 'derive',
     ...(configuredChildSession.model !== undefined ? { model: configuredChildSession.model } : {}),
     ...(configuredChildSession.approvalPolicy !== undefined
       ? { approvalPolicy: configuredChildSession.approvalPolicy }
@@ -127,7 +128,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
   const config = ConfigSchema.parse({ version: 1 });
   const driver: OrchestratorDriver = 'codex-mcp';
   const artifactRootDir = artifactRootDirForDriver(driver);
-  const resolvedChildSession = { cwdAbs: workspaceRoot };
+  const resolvedChildSession = { cwdAbs: workspaceRoot, speed: 'derive' as const };
   return {
     version: 1,
     configPath: path.resolve(workspaceRoot, '.workflow/config.yaml'),
