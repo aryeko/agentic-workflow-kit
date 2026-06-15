@@ -196,6 +196,30 @@ describe('config.schema.json', () => {
     expect(validate({ ...goodConfig, childSession: { speed: 'turbo' } })).toBe(false);
     expect(validate({ ...goodConfig, codex: { childSession: { speed: 'turbo' } } })).toBe(false);
   });
+  it('rejects explicit child-session speed plus raw service_tier in the generated schema', () => {
+    const conflicts = [
+      { childSession: { speed: 'fast', config: { service_tier: 'fast' } } },
+      { childSession: { speed: 'standard' }, codex: { childSession: { config: { service_tier: 'fast' } } } },
+      { childSession: { config: { service_tier: 'fast' } }, codex: { childSession: { speed: 'fast' } } },
+      { codex: { childSession: { speed: 'standard', config: { service_tier: 'fast' } } } },
+    ];
+
+    for (const conflict of conflicts) {
+      expect(validate({ version: 1, ...conflict })).toBe(false);
+    }
+  });
+  it('accepts raw service_tier when child-session speed derives', () => {
+    expect(
+      validateConfigContract({ version: 1, childSession: { speed: 'derive', config: { service_tier: 'fast' } } }),
+    ).toBe(true);
+    expect(
+      validateConfigContract({
+        version: 1,
+        childSession: { speed: 'derive' },
+        codex: { childSession: { speed: 'fast', config: { service_tier: 'fast' } } },
+      }),
+    ).toBe(true);
+  });
   it('rejects repo-relative path fields that are absolute or contain parent segments', () => {
     expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, tracksDir: '/tmp/tracks' } })).toBe(false);
     expect(validate({ ...goodConfig, paths: { ...goodConfig.paths, specsDir: '../specs' } })).toBe(false);

@@ -856,5 +856,243 @@
     "version"
   ],
   "additionalProperties": false,
+  "allOf": [
+    {
+      "not": {
+        "allOf": [
+          {
+            "required": [
+              "childSession"
+            ],
+            "properties": {
+              "childSession": {
+                "required": [
+                  "speed"
+                ],
+                "properties": {
+                  "speed": {
+                    "enum": [
+                      "fast",
+                      "standard"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "required": [
+              "childSession"
+            ],
+            "properties": {
+              "childSession": {
+                "required": [
+                  "config"
+                ],
+                "properties": {
+                  "config": {
+                    "required": [
+                      "service_tier"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "not": {
+        "allOf": [
+          {
+            "required": [
+              "childSession"
+            ],
+            "properties": {
+              "childSession": {
+                "required": [
+                  "speed"
+                ],
+                "properties": {
+                  "speed": {
+                    "enum": [
+                      "fast",
+                      "standard"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "required": [
+              "codex"
+            ],
+            "properties": {
+              "codex": {
+                "required": [
+                  "childSession"
+                ],
+                "properties": {
+                  "childSession": {
+                    "required": [
+                      "config"
+                    ],
+                    "properties": {
+                      "config": {
+                        "required": [
+                          "service_tier"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "not": {
+        "allOf": [
+          {
+            "not": {
+              "required": [
+                "childSession"
+              ],
+              "properties": {
+                "childSession": {
+                  "required": [
+                    "speed"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "required": [
+              "codex"
+            ],
+            "properties": {
+              "codex": {
+                "required": [
+                  "childSession"
+                ],
+                "properties": {
+                  "childSession": {
+                    "required": [
+                      "speed"
+                    ],
+                    "properties": {
+                      "speed": {
+                        "enum": [
+                          "fast",
+                          "standard"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "required": [
+              "childSession"
+            ],
+            "properties": {
+              "childSession": {
+                "required": [
+                  "config"
+                ],
+                "properties": {
+                  "config": {
+                    "required": [
+                      "service_tier"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "not": {
+        "allOf": [
+          {
+            "not": {
+              "required": [
+                "childSession"
+              ],
+              "properties": {
+                "childSession": {
+                  "required": [
+                    "speed"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "required": [
+              "codex"
+            ],
+            "properties": {
+              "codex": {
+                "required": [
+                  "childSession"
+                ],
+                "properties": {
+                  "childSession": {
+                    "required": [
+                      "speed"
+                    ],
+                    "properties": {
+                      "speed": {
+                        "enum": [
+                          "fast",
+                          "standard"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "required": [
+              "codex"
+            ],
+            "properties": {
+              "codex": {
+                "required": [
+                  "childSession"
+                ],
+                "properties": {
+                  "childSession": {
+                    "required": [
+                      "config"
+                    ],
+                    "properties": {
+                      "config": {
+                        "required": [
+                          "service_tier"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
   "$comment": "Runtime validation: every agents.bindings value must reference a key in agents.profiles."
 }
