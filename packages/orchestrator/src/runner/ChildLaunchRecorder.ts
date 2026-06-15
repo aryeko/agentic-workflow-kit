@@ -15,14 +15,14 @@ import { buildLaunchId, hashPrompt } from './launchMetadata.js';
 import type { MetricsCollector } from './MetricsCollector.js';
 import type { RunJournal } from './RunJournal.js';
 
-interface ClaimedWorkflowStory {
+export interface ClaimedWorkflowStory {
   story: WorkflowStory;
   owner: string;
   previousStatus: string;
   trackerClaimed: boolean;
 }
 
-interface PreparedChildLaunch {
+export interface PreparedChildLaunch {
   record: ChildLaunchRecord;
   prompt: string;
   profile: ResolvedAgentProfile;

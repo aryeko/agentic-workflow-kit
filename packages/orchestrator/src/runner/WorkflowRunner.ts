@@ -1,12 +1,11 @@
 import path from 'node:path';
 import type { CollaborationInspector } from '../collaboration/CollaborationInspector.js';
-import type { StoryPromptMetadata, StoryRunner } from '../drivers/StoryRunner.js';
+import type { StoryRunner } from '../drivers/StoryRunner.js';
 import type { GitInspector } from '../git/GitInspector.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import { claimTrackerRow, releaseTrackerClaim, trackerFileExists } from '../tracks/trackerClaimer.js';
 import type {
   ArtifactStore,
-  ChildLaunchRecord,
   Clock,
   Logger,
   ResolvedWorkflowConfig,
@@ -15,8 +14,12 @@ import type {
   WorkflowStory,
 } from '../types.js';
 import { type BudgetControlDecision, isStrongerBudgetControl, selectBudgetControlDecision } from './BudgetControl.js';
-import { recordChildLaunchWithWorkspace } from './ChildLaunchRecorder.js';
-import { executeChildWithSupervisor } from './ChildSupervisor.js';
+import {
+  type ClaimedWorkflowStory,
+  type PreparedChildLaunch,
+  recordChildLaunchWithWorkspace,
+} from './ChildLaunchRecorder.js';
+import { executeChildWithSupervisor, isSupervisionLostError } from './ChildSupervisor.js';
 import type { PrepareChildWorkspaceArgs, PreparedChildWorkspace } from './ChildWorkspacePreparer.js';
 import { CompletionGate, type ReturnEvaluation } from './CompletionGate.js';
 import { findDuplicateLaunch } from './DuplicateLaunchGuard.js';
@@ -45,13 +48,6 @@ export interface ChildTimer {
   setInterval(callback: () => void, ms: number): unknown;
   clearInterval(handle: unknown): void;
 }
-
-const _defaultChildTimer: ChildTimer = {
-  setTimeout: (callback, ms) => globalThis.setTimeout(callback, ms),
-  clearTimeout: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>),
-  setInterval: (callback, ms) => globalThis.setInterval(callback, ms),
-  clearInterval: (handle) => globalThis.clearInterval(handle as ReturnType<typeof globalThis.setInterval>),
-};
 
 export class WorkflowRunner {
   private state: RunState;
@@ -518,68 +514,4 @@ export class WorkflowRunner {
 
 function trackerRefreshFailureReason(error: unknown): string {
   return `tracker refresh failed: ${error instanceof Error ? error.message : String(error)}`;
-}
-
-function _heartbeatIntervalMs(timeoutMs: number): number {
-  return Math.max(1, Math.floor(timeoutMs / 4));
-}
-
-function isSupervisionLostError(message: string): boolean {
-  return /child-(?:no-progress|max-runtime)-timeout|child-timeout/i.test(message);
-}
-
-function _recoveryEventType(decision: string): 'parent_takeover_allowed' | 'parent_takeover_blocked' {
-  return decision === 'safe_to_take_over' ? 'parent_takeover_allowed' : 'parent_takeover_blocked';
-}
-
-function _prRecoveryState(story: WorkflowStory): {
-  state: 'none' | 'unknown';
-  number: number | null;
-  mergedAt: null;
-} {
-  const value = story.metadata.pr;
-  if (!value || value === '—') return { state: 'none', number: null, mergedAt: null };
-  return { state: 'unknown', number: pullRequestNumber(value), mergedAt: null };
-}
-
-function _pullRequestIdentity(story: WorkflowStory): { owner: string; repo: string; number: number } | null {
-  const value = story.metadata.pr;
-  const number = value ? pullRequestNumber(value) : null;
-  const match = value?.match(/github\.com\/([^/\s)]+)\/([^/\s)]+)\/pull\/(\d+)/);
-  if (!match || number === null) return null;
-  return { owner: match[1], repo: match[2], number };
-}
-
-function pullRequestNumber(value: string): number | null {
-  const match = value.match(/(?:pull\/|#|PR\s*#)(\d+)/i);
-  if (!match) return null;
-  const parsed = Number(match[1]);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-}
-
-interface PreparedChildLaunch {
-  record: ChildLaunchRecord;
-  prompt: string;
-  profile: ResolvedWorkflowConfig['agents']['resolved']['implementStory'];
-  promptMetadata: StoryPromptMetadata;
-  claim: ClaimedWorkflowStory;
-  startup: Promise<StartupOutcome>;
-  resolveStartup: (outcome: StartupOutcome) => void;
-}
-
-interface ClaimedWorkflowStory {
-  story: WorkflowStory;
-  owner: string;
-  previousStatus: string;
-  trackerClaimed: boolean;
-}
-
-type StartupOutcome = 'acknowledged' | 'failed';
-
-function _startupSignal(): { promise: Promise<StartupOutcome>; resolve: (outcome: StartupOutcome) => void } {
-  let resolveStartup: (outcome: StartupOutcome) => void = () => undefined;
-  const promise = new Promise<StartupOutcome>((resolve) => {
-    resolveStartup = resolve;
-  });
-  return { promise, resolve: resolveStartup };
 }

@@ -1,11 +1,5 @@
 import type { CollaborationInspector } from '../collaboration/CollaborationInspector.js';
-import type {
-  ChildLifecycleEvent,
-  ChildProgressSource,
-  StoryPromptMetadata,
-  StoryRunner,
-  StoryRunResult,
-} from '../drivers/StoryRunner.js';
+import type { ChildLifecycleEvent, ChildProgressSource, StoryRunner, StoryRunResult } from '../drivers/StoryRunner.js';
 import type { GitInspector } from '../git/GitInspector.js';
 import { safeName } from '../internal/guards.js';
 import { releaseTrackerClaim } from '../tracks/trackerClaimer.js';
@@ -13,31 +7,14 @@ import type {
   ArtifactStore,
   ChildLaunchRecord,
   Clock,
-  ResolvedAgentProfile,
   ResolvedWorkflowConfig,
   RunState,
   WorkflowStory,
 } from '../types.js';
+import type { ClaimedWorkflowStory, PreparedChildLaunch } from './ChildLaunchRecorder.js';
 import type { MetricsCollector } from './MetricsCollector.js';
 import { evaluateRecoveryGuard } from './RecoveryGuard.js';
 import type { RunJournal, SettledStoryRun } from './RunJournal.js';
-
-interface ClaimedWorkflowStory {
-  story: WorkflowStory;
-  owner: string;
-  previousStatus: string;
-  trackerClaimed: boolean;
-}
-
-interface PreparedChildLaunch {
-  record: ChildLaunchRecord;
-  prompt: string;
-  profile: ResolvedAgentProfile;
-  promptMetadata: StoryPromptMetadata;
-  claim: ClaimedWorkflowStory;
-  startup: Promise<'acknowledged' | 'failed'>;
-  resolveStartup: (outcome: 'acknowledged' | 'failed') => void;
-}
 
 interface ChildSupervisorRunner {
   state: RunState;
@@ -350,7 +327,7 @@ function heartbeatIntervalMs(timeoutMs: number): number {
   return Math.max(1, Math.floor(timeoutMs / 4));
 }
 
-function isSupervisionLostError(message: string): boolean {
+export function isSupervisionLostError(message: string): boolean {
   return /child-(?:no-progress|max-runtime)-timeout|child-timeout/i.test(message);
 }
 
