@@ -274,6 +274,24 @@ describe('workflow API facade', () => {
     });
   });
 
+  it('does not mask corrupt run artifacts as missing runs', async () => {
+    const root = await createWorkspace();
+    const runDir = path.join(root, '.codex', 'agentic-workflow-kit', 'runs', 'run-corrupt');
+    await mkdir(runDir, { recursive: true });
+    await writeFile(path.join(runDir, 'state.json'), '{');
+
+    const envelope = await runStatusFacade({ cwd: root, runId: 'run-corrupt' });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_status',
+      error: {
+        code: 'INTERNAL_ERROR',
+        retryable: false,
+      },
+    });
+  });
+
   it('keeps config failures typed before tracker validation', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-api-facade-tracker-no-config-'));
 

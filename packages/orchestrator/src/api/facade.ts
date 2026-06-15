@@ -583,15 +583,14 @@ async function listEligibleForFacade(input: CliOverrides): Promise<Awaited<Retur
 }
 
 async function runReadErrorForFacade(input: CliOverrides & { runPath?: string; runId?: string }, error: unknown) {
-  if (input.runPath && (path.isAbsolute(input.runPath) || input.runPath.includes(path.sep))) {
-    return workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND');
-  }
+  const explicitRunPath = input.runPath && (path.isAbsolute(input.runPath) || input.runPath.includes(path.sep));
+  if (explicitRunPath) return workflowKitErrorFromUnknown(error);
   try {
     await loadConfigForFacade(input);
   } catch (configError) {
     return workflowKitErrorFromUnknown(configError, 'CONFIG_INVALID');
   }
-  return workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND');
+  return workflowKitErrorFromUnknown(error);
 }
 
 function projectRef(config: ResolvedWorkflowConfig): WorkflowProjectRef {
