@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -58,6 +58,83 @@ describe('tracker claimer', () => {
       owner: 'owner-b',
     });
   });
+
+  it('reclaims an abandoned claim lock before claiming the row', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-claimer-'));
+    tempRoots.push(root);
+    const trackerPath = path.join(root, 'docs/tracks/track/README.md');
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown());
+    await writeFile(
+      claimLockPath(trackerPath),
+      JSON.stringify({ owner: 'crashed-owner', pid: 999_999, createdAt: '2026-06-15T19:00:00.000Z' }),
+    );
+    const config = resolvedConfig(root);
+
+    const result = await claimTrackerRow({
+      config,
+      story: firstStory(await readFile(trackerPath, 'utf8')),
+      owner: 'owner-a',
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(firstStory(await readFile(trackerPath, 'utf8'))).toMatchObject({
+      status: 'implementing',
+      owner: 'owner-a',
+    });
+  });
+
+  it('reclaims a stale legacy text claim lock by file age', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-claimer-'));
+    tempRoots.push(root);
+    const trackerPath = path.join(root, 'docs/tracks/track/README.md');
+    const lockPath = claimLockPath(trackerPath);
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown());
+    await writeFile(lockPath, 'legacy-owner\n');
+    await utimes(lockPath, new Date('2026-06-15T19:00:00.000Z'), new Date('2026-06-15T19:00:00.000Z'));
+    const config = resolvedConfig(root);
+
+    const result = await claimTrackerRow({
+      config,
+      story: firstStory(await readFile(trackerPath, 'utf8')),
+      owner: 'owner-a',
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(firstStory(await readFile(trackerPath, 'utf8'))).toMatchObject({
+      status: 'implementing',
+      owner: 'owner-a',
+    });
+  });
+
+  it('respects a recent live claim lock', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-claimer-'));
+    tempRoots.push(root);
+    const trackerPath = path.join(root, 'docs/tracks/track/README.md');
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown());
+    await writeFile(
+      claimLockPath(trackerPath),
+      JSON.stringify({ owner: 'live-owner', pid: process.pid, createdAt: new Date().toISOString() }),
+    );
+    const config = resolvedConfig(root);
+
+    const result = await claimTrackerRow({
+      config,
+      story: firstStory(await readFile(trackerPath, 'utf8')),
+      owner: 'owner-a',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'tracker docs/tracks/track/README.md claim lock timed out',
+    });
+    expect(firstStory(await readFile(trackerPath, 'utf8'))).toMatchObject({
+      status: 'specced',
+      owner: null,
+    });
+  }, 10000);
 });
 
 function resolvedConfig(root: string): ResolvedWorkflowConfig {
@@ -103,4 +180,8 @@ function trackerMarkdown(): string {
 | AWK01 | Example | — | W1 | specced | [brief](./stories/AWK01.md) | — | — | — |
 | AWK02 | Next | — | W1 | specced | [brief](./stories/AWK02.md) | — | — | — |
 `;
+}
+
+function claimLockPath(trackerPath: string): string {
+  return `${trackerPath}.claim-README.md.lock`;
 }

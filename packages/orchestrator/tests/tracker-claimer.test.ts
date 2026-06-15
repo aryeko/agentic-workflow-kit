@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -133,4 +133,61 @@ describe('claimTrackerRow', () => {
 
     expect(result).toMatchObject({ ok: false, reason: 'owner is arye' });
   });
+
+  it('reclaims a stale claim lock before claiming the row', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-claim-stale-'));
+    const trackerPath = path.join(root, 'docs/tracks/linkly/README.md');
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown);
+    await writeFile(
+      claimLockPath(trackerPath),
+      JSON.stringify({ owner: 'crashed-owner', pid: 999_999, createdAt: '2026-06-15T19:00:00.000Z' }),
+    );
+
+    const result = await claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-1:L002' });
+
+    expect(result).toMatchObject({
+      ok: true,
+      story: { id: 'L002', status: 'implementing', owner: 'awk:run-1:L002' },
+    });
+  });
+
+  it('reclaims a stale legacy text claim lock by file age', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-claim-legacy-stale-'));
+    const trackerPath = path.join(root, 'docs/tracks/linkly/README.md');
+    const lockPath = claimLockPath(trackerPath);
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown);
+    await writeFile(lockPath, 'legacy-owner\n');
+    await utimes(lockPath, new Date('2026-06-15T19:00:00.000Z'), new Date('2026-06-15T19:00:00.000Z'));
+
+    const result = await claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-1:L002' });
+
+    expect(result).toMatchObject({
+      ok: true,
+      story: { id: 'L002', status: 'implementing', owner: 'awk:run-1:L002' },
+    });
+  });
+
+  it('respects a recent live claim lock', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-claim-live-'));
+    const trackerPath = path.join(root, 'docs/tracks/linkly/README.md');
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown);
+    await writeFile(
+      claimLockPath(trackerPath),
+      JSON.stringify({ owner: 'live-owner', pid: process.pid, createdAt: new Date().toISOString() }),
+    );
+
+    const result = await claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-1:L002' });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'tracker docs/tracks/linkly/README.md claim lock timed out',
+    });
+  }, 10000);
 });
+
+function claimLockPath(trackerPath: string): string {
+  return `${trackerPath}.claim-README.md.lock`;
+}

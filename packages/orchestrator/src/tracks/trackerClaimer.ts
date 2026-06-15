@@ -1,8 +1,8 @@
 import { constants } from 'node:fs';
-import { access, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { access, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { isNodeError, safeName } from '../internal/guards.js';
+import { isNodeError, isRecord, safeName } from '../internal/guards.js';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../types.js';
 import { parseTrackerStories, updateTrackerStoryRow } from './markdownTracker.js';
 
@@ -13,6 +13,15 @@ export type TrackerClaimResult =
 export type TrackerReleaseResult =
   | { ok: true; fromStatus: string; toStatus: string }
   | { ok: false; reason: string; story?: WorkflowStory };
+
+const CLAIM_LOCK_TIMEOUT_MS = 5000;
+const CLAIM_LOCK_STALE_AFTER_MS = 5 * 60 * 1000;
+
+interface ClaimLockMetadata {
+  owner: string;
+  pid: number;
+  createdAt: string;
+}
 
 export async function trackerFileExists(config: ResolvedWorkflowConfig, story: WorkflowStory): Promise<boolean> {
   try {
@@ -124,13 +133,14 @@ function claimLockPath(filePath: string): string {
 }
 
 async function acquireClaimLock(lockPath: string, owner: string): Promise<boolean> {
-  const deadline = Date.now() + 5000;
+  const deadline = Date.now() + CLAIM_LOCK_TIMEOUT_MS;
   for (;;) {
     try {
-      await writeFile(lockPath, `${owner}\n`, { flag: 'wx' });
+      await writeFile(lockPath, `${JSON.stringify(buildClaimLockMetadata(owner), null, 2)}\n`, { flag: 'wx' });
       return true;
     } catch (error) {
       if (!isNodeError(error) || error.code !== 'EEXIST') throw error;
+      if (await reclaimStaleClaimLock(lockPath)) continue;
       if (Date.now() >= deadline) return false;
       await delay(25);
     }
@@ -148,4 +158,68 @@ async function releaseClaimLock(lockPath: string): Promise<void> {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function buildClaimLockMetadata(owner: string): ClaimLockMetadata {
+  return {
+    owner,
+    pid: process.pid,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+async function reclaimStaleClaimLock(lockPath: string): Promise<boolean> {
+  const inspected = await inspectClaimLock(lockPath);
+  if (inspected === null) return true;
+  if (!inspected.reclaimable) return false;
+  try {
+    await unlink(lockPath);
+    return true;
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') return true;
+    throw error;
+  }
+}
+
+async function inspectClaimLock(lockPath: string): Promise<{ reclaimable: boolean } | null> {
+  let content: string;
+  let modifiedAtMs: number;
+  try {
+    const [fileContent, fileStats] = await Promise.all([readFile(lockPath, 'utf8'), stat(lockPath)]);
+    content = fileContent;
+    modifiedAtMs = fileStats.mtimeMs;
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') return null;
+    throw error;
+  }
+
+  const metadata = parseClaimLockMetadata(content);
+  if (metadata && isProcessDead(metadata.pid)) return { reclaimable: true };
+
+  const createdAtMs = metadata ? Date.parse(metadata.createdAt) : Number.NaN;
+  const ageStartedAtMs = Number.isFinite(createdAtMs) ? createdAtMs : modifiedAtMs;
+  return { reclaimable: Date.now() - ageStartedAtMs > CLAIM_LOCK_STALE_AFTER_MS };
+}
+
+function parseClaimLockMetadata(content: string): ClaimLockMetadata | null {
+  try {
+    const value = JSON.parse(content);
+    if (!isRecord(value)) return null;
+    if (typeof value.owner !== 'string') return null;
+    if (typeof value.pid !== 'number' || !Number.isInteger(value.pid) || value.pid <= 0) return null;
+    if (typeof value.createdAt !== 'string') return null;
+    return { owner: value.owner, pid: value.pid, createdAt: value.createdAt };
+  } catch {
+    return null;
+  }
+}
+
+function isProcessDead(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return false;
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ESRCH') return true;
+    return false;
+  }
 }

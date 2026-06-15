@@ -1,4 +1,5 @@
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { appendFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { ArtifactStore, RunEvent } from '../types.js';
@@ -14,8 +15,19 @@ export class FileArtifactStore implements ArtifactStore {
 
   async writeText(relativePath: string, value: string): Promise<void> {
     const filePath = path.join(this.root, relativePath);
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, value);
+    const directory = path.dirname(filePath);
+    await mkdir(directory, { recursive: true });
+    const tempPath = path.join(
+      directory,
+      `.${path.basename(filePath)}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`,
+    );
+    try {
+      await writeFile(tempPath, value);
+      await rename(tempPath, filePath);
+    } catch (error) {
+      await unlink(tempPath).catch(() => undefined);
+      throw error;
+    }
   }
 
   async readText(relativePath: string): Promise<string | null> {

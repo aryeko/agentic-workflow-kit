@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -26,5 +26,22 @@ describe('FileArtifactStore', () => {
     expect(JSON.parse(await readFile(path.join(root, 'state.json'), 'utf8'))).toEqual({ status: 'running' });
     expect(await readFile(path.join(root, 'logs/output.txt'), 'utf8')).toBe('hello');
     expect((await readFile(path.join(root, 'events.ndjson'), 'utf8')).trim().split('\n')).toHaveLength(2);
+  });
+
+  it('returns null for missing text artifacts', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-artifacts-'));
+    const store = new FileArtifactStore(root);
+
+    await expect(store.readText('missing.json')).resolves.toBeNull();
+  });
+
+  it('cleans up atomic temp files when replacement fails', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-artifacts-'));
+    await mkdir(path.join(root, 'state.json'));
+    const store = new FileArtifactStore(root);
+
+    await expect(store.writeText('state.json', '{"status":"new"}\n')).rejects.toThrow();
+
+    expect((await readdir(root)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
   });
 });
