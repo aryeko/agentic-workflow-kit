@@ -156,7 +156,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK139 | AWK13.9 Run-state write atomicity | AWK138 | W7.7 | specced | [brief](./stories/AWK139.md) | — | — | — |
 | AWK1310 | AWK13.10 API error fidelity | AWK138 | W7.7 | done | [brief](./stories/AWK1310.md) | — | codex-2026-06-15T19-40-45Z | [#83](https://github.com/aryeko/agentic-workflow-kit/pull/83) |
 | AWK1311 | AWK13.11 Test trust round 2 | AWK139, AWK1310 | W7.8 | specced | [brief](./stories/AWK1311.md) | — | — | — |
-| AWK1312 | AWK13.12 DevX/docs hygiene round 2 | AWK138 | W7.8 | implementing | [brief](./stories/AWK1312.md) | — | codex-2026-06-15T20-06-34Z | — |
+| AWK1312 | AWK13.12 DevX/docs hygiene round 2 | AWK138 | W7.8 | implementing | [brief](./stories/AWK1312.md) + [spec](../../superpowers/specs/2026-06-15-awk1312-devx-docs-hygiene-round-2-design.md) | — | codex-2026-06-15T20-06-34Z | — |
 | AWK14 | Changeset and release readiness | AWK1311, AWK1312 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
