@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { access, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -21,6 +22,7 @@ interface ClaimLockMetadata {
   owner: string;
   pid: number;
   createdAt: string;
+  token: string;
 }
 
 export async function trackerFileExists(config: ResolvedWorkflowConfig, story: WorkflowStory): Promise<boolean> {
@@ -80,7 +82,7 @@ export async function claimTrackerRow(args: {
     }
     return { ok: true, story: claimed };
   } finally {
-    await releaseClaimLock(lockPath);
+    await releaseClaimLock(lockPath, lockAcquired);
   }
 }
 
@@ -132,22 +134,27 @@ function claimLockPath(filePath: string): string {
   return `${filePath}.claim-${safeName(path.basename(filePath))}.lock`;
 }
 
-async function acquireClaimLock(lockPath: string, owner: string): Promise<boolean> {
+async function acquireClaimLock(lockPath: string, owner: string): Promise<ClaimLockMetadata | null> {
   const deadline = Date.now() + CLAIM_LOCK_TIMEOUT_MS;
+  const metadata = buildClaimLockMetadata(owner);
   for (;;) {
     try {
-      await writeFile(lockPath, `${JSON.stringify(buildClaimLockMetadata(owner), null, 2)}\n`, { flag: 'wx' });
-      return true;
+      await writeFile(lockPath, `${JSON.stringify(metadata, null, 2)}\n`, { flag: 'wx' });
+      return metadata;
     } catch (error) {
       if (!isNodeError(error) || error.code !== 'EEXIST') throw error;
       if (await reclaimStaleClaimLock(lockPath)) continue;
-      if (Date.now() >= deadline) return false;
+      if (Date.now() >= deadline) return null;
       await delay(25);
     }
   }
 }
 
-async function releaseClaimLock(lockPath: string): Promise<void> {
+async function releaseClaimLock(lockPath: string, metadata: ClaimLockMetadata): Promise<void> {
+  const current = await readClaimLockContent(lockPath);
+  if (current === null) return;
+  const currentMetadata = parseClaimLockMetadata(current);
+  if (currentMetadata?.token !== metadata.token) return;
   try {
     await unlink(lockPath);
   } catch (error) {
@@ -165,6 +172,7 @@ function buildClaimLockMetadata(owner: string): ClaimLockMetadata {
     owner,
     pid: process.pid,
     createdAt: new Date().toISOString(),
+    token: randomUUID(),
   };
 }
 
@@ -172,6 +180,9 @@ async function reclaimStaleClaimLock(lockPath: string): Promise<boolean> {
   const inspected = await inspectClaimLock(lockPath);
   if (inspected === null) return true;
   if (!inspected.reclaimable) return false;
+  const current = await readClaimLockContent(lockPath);
+  if (current === null) return true;
+  if (current !== inspected.content) return false;
   try {
     await unlink(lockPath);
     return true;
@@ -181,7 +192,7 @@ async function reclaimStaleClaimLock(lockPath: string): Promise<boolean> {
   }
 }
 
-async function inspectClaimLock(lockPath: string): Promise<{ reclaimable: boolean } | null> {
+async function inspectClaimLock(lockPath: string): Promise<{ reclaimable: boolean; content: string } | null> {
   let content: string;
   let modifiedAtMs: number;
   try {
@@ -194,11 +205,15 @@ async function inspectClaimLock(lockPath: string): Promise<{ reclaimable: boolea
   }
 
   const metadata = parseClaimLockMetadata(content);
-  if (metadata && isProcessDead(metadata.pid)) return { reclaimable: true };
+  if (metadata) {
+    const status = processStatus(metadata.pid);
+    if (status === 'dead') return { reclaimable: true, content };
+    if (status === 'alive') return { reclaimable: false, content };
+  }
 
   const createdAtMs = metadata ? Date.parse(metadata.createdAt) : Number.NaN;
   const ageStartedAtMs = Number.isFinite(createdAtMs) ? createdAtMs : modifiedAtMs;
-  return { reclaimable: Date.now() - ageStartedAtMs > CLAIM_LOCK_STALE_AFTER_MS };
+  return { reclaimable: Date.now() - ageStartedAtMs > CLAIM_LOCK_STALE_AFTER_MS, content };
 }
 
 function parseClaimLockMetadata(content: string): ClaimLockMetadata | null {
@@ -208,18 +223,29 @@ function parseClaimLockMetadata(content: string): ClaimLockMetadata | null {
     if (typeof value.owner !== 'string') return null;
     if (typeof value.pid !== 'number' || !Number.isInteger(value.pid) || value.pid <= 0) return null;
     if (typeof value.createdAt !== 'string') return null;
-    return { owner: value.owner, pid: value.pid, createdAt: value.createdAt };
+    if (typeof value.token !== 'string') return null;
+    return { owner: value.owner, pid: value.pid, createdAt: value.createdAt, token: value.token };
   } catch {
     return null;
   }
 }
 
-function isProcessDead(pid: number): boolean {
+async function readClaimLockContent(lockPath: string): Promise<string | null> {
+  try {
+    return await readFile(lockPath, 'utf8');
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+function processStatus(pid: number): 'alive' | 'dead' | 'unknown' {
   try {
     process.kill(pid, 0);
-    return false;
+    return 'alive';
   } catch (error) {
-    if (isNodeError(error) && error.code === 'ESRCH') return true;
-    return false;
+    if (isNodeError(error) && error.code === 'ESRCH') return 'dead';
+    if (isNodeError(error) && error.code === 'EPERM') return 'alive';
+    return 'unknown';
   }
 }

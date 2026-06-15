@@ -141,7 +141,12 @@ describe('claimTrackerRow', () => {
     await writeFile(trackerPath, trackerMarkdown);
     await writeFile(
       claimLockPath(trackerPath),
-      JSON.stringify({ owner: 'crashed-owner', pid: 999_999, createdAt: '2026-06-15T19:00:00.000Z' }),
+      JSON.stringify({
+        owner: 'crashed-owner',
+        pid: 999_999,
+        createdAt: '2026-06-15T19:00:00.000Z',
+        token: 'crashed-token',
+      }),
     );
 
     const result = await claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-1:L002' });
@@ -176,7 +181,35 @@ describe('claimTrackerRow', () => {
     await writeFile(trackerPath, trackerMarkdown);
     await writeFile(
       claimLockPath(trackerPath),
-      JSON.stringify({ owner: 'live-owner', pid: process.pid, createdAt: new Date().toISOString() }),
+      JSON.stringify({
+        owner: 'live-owner',
+        pid: process.pid,
+        createdAt: new Date().toISOString(),
+        token: 'live-token',
+      }),
+    );
+
+    const result = await claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-1:L002' });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'tracker docs/tracks/linkly/README.md claim lock timed out',
+    });
+  }, 10000);
+
+  it('respects an old live claim lock', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-claim-old-live-'));
+    const trackerPath = path.join(root, 'docs/tracks/linkly/README.md');
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown);
+    await writeFile(
+      claimLockPath(trackerPath),
+      JSON.stringify({
+        owner: 'live-owner',
+        pid: process.pid,
+        createdAt: '1970-01-01T00:00:00.000Z',
+        token: 'old-live-token',
+      }),
     );
 
     const result = await claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-1:L002' });

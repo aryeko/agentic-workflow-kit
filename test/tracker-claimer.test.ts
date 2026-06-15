@@ -67,7 +67,12 @@ describe('tracker claimer', () => {
     await writeFile(trackerPath, trackerMarkdown());
     await writeFile(
       claimLockPath(trackerPath),
-      JSON.stringify({ owner: 'crashed-owner', pid: 999_999, createdAt: '2026-06-15T19:00:00.000Z' }),
+      JSON.stringify({
+        owner: 'crashed-owner',
+        pid: 999_999,
+        createdAt: '2026-06-15T19:00:00.000Z',
+        token: 'crashed-token',
+      }),
     );
     const config = resolvedConfig(root);
 
@@ -116,7 +121,45 @@ describe('tracker claimer', () => {
     await writeFile(trackerPath, trackerMarkdown());
     await writeFile(
       claimLockPath(trackerPath),
-      JSON.stringify({ owner: 'live-owner', pid: process.pid, createdAt: new Date().toISOString() }),
+      JSON.stringify({
+        owner: 'live-owner',
+        pid: process.pid,
+        createdAt: new Date().toISOString(),
+        token: 'live-token',
+      }),
+    );
+    const config = resolvedConfig(root);
+
+    const result = await claimTrackerRow({
+      config,
+      story: firstStory(await readFile(trackerPath, 'utf8')),
+      owner: 'owner-a',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'tracker docs/tracks/track/README.md claim lock timed out',
+    });
+    expect(firstStory(await readFile(trackerPath, 'utf8'))).toMatchObject({
+      status: 'specced',
+      owner: null,
+    });
+  }, 10000);
+
+  it('respects an old live claim lock', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-claimer-'));
+    tempRoots.push(root);
+    const trackerPath = path.join(root, 'docs/tracks/track/README.md');
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown());
+    await writeFile(
+      claimLockPath(trackerPath),
+      JSON.stringify({
+        owner: 'live-owner',
+        pid: process.pid,
+        createdAt: '1970-01-01T00:00:00.000Z',
+        token: 'old-live-token',
+      }),
     );
     const config = resolvedConfig(root);
 
