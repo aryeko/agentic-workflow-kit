@@ -46,6 +46,14 @@ round-2 remediation is sequenced as stories **AWK13.8–AWK13.12** (see the
 [release-hardening design 2](../../prds/agentic-workflow-kit-redesign/release-hardening-design-2.md)),
 inserted between AWK13.7 and AWK14; they **also block AWK14**.
 
+After AWK13.8–AWK13.12 landed, a third [release-readiness review (round 3)](./release-readiness-review-3.md)
+re-verified all round-2 blockers as fixed at commit `d7c90b8` and surfaced a bounded set of lighter
+residuals (one inert budget dimension, one runtime type-safety hole plus an oversized supervisor
+function, and razor-thin coverage headroom with a local coverage-dir footgun). The round-3 remediation
+is sequenced as stories **AWK13.13–AWK13.15** (see the
+[release-hardening design 3](../../prds/agentic-workflow-kit-redesign/release-hardening-design-3.md)),
+inserted between AWK13.12 and AWK14; they **also block AWK14**.
+
 ## Dependency graph
 
 ```mermaid
@@ -76,6 +84,9 @@ flowchart TD
   AWK1310[AWK13.10 API error fidelity]
   AWK1311[AWK13.11 Test trust round 2]
   AWK1312[AWK13.12 DevX/docs hygiene round 2]
+  AWK1313[AWK13.13 Runner type-safety and supervisor decomposition]
+  AWK1314[AWK13.14 Budget and telemetry fidelity]
+  AWK1315[AWK13.15 Coverage headroom and test DevX]
   AWK14[AWK14 Changeset and release readiness]
 
   AWK01 --> AWK02
@@ -115,8 +126,12 @@ flowchart TD
   AWK138 --> AWK1312
   AWK139 --> AWK1311
   AWK1310 --> AWK1311
-  AWK1311 --> AWK14
-  AWK1312 --> AWK14
+  AWK1311 --> AWK1313
+  AWK1312 --> AWK1313
+  AWK1313 --> AWK1314
+  AWK1313 --> AWK1315
+  AWK1314 --> AWK1315
+  AWK1315 --> AWK14
 ```
 
 **Reading the graph:** every solid arrow is a hard dependency. The source story must be in a
@@ -157,7 +172,10 @@ Statuses come from `references/tracker-contract.md`:
 | AWK1310 | AWK13.10 API error fidelity | AWK138 | W7.7 | done | [brief](./stories/AWK1310.md) | — | codex-2026-06-15T19-40-45Z | [#83](https://github.com/aryeko/agentic-workflow-kit/pull/83) |
 | AWK1311 | AWK13.11 Test trust round 2 | AWK139, AWK1310 | W7.8 | done | [brief](./stories/AWK1311.md) | — | codex-2026-06-15T20-32-00Z | [#86](https://github.com/aryeko/agentic-workflow-kit/pull/86) |
 | AWK1312 | AWK13.12 DevX/docs hygiene round 2 | AWK138 | W7.8 | done | [brief](./stories/AWK1312.md) | — | codex-2026-06-15T20-06-34Z | [#85](https://github.com/aryeko/agentic-workflow-kit/pull/85) |
-| AWK14 | Changeset and release readiness | AWK1311, AWK1312 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
+| AWK1313 | AWK13.13 Runner type-safety and supervisor decomposition | AWK1311, AWK1312 | W7.9 | specced | [brief](./stories/AWK1313.md) | — | — | — |
+| AWK1314 | AWK13.14 Budget and telemetry fidelity | AWK1313 | W7.10 | specced | [brief](./stories/AWK1314.md) | — | — | — |
+| AWK1315 | AWK13.15 Coverage headroom and test DevX | AWK1313, AWK1314 | W7.11 | specced | [brief](./stories/AWK1315.md) | — | — | — |
+| AWK14 | Changeset and release readiness | AWK1315 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
 plan after creating the detailed technical story spec. Each story maps to one or more PRD
@@ -222,11 +240,23 @@ on disjoint surfaces (artifacts/runner vs `api/facade`); coordinate only if both
 reflects final shapes; AWK13.12 (docs/DevX hygiene) depends only on AWK13.8. Both gate AWK14 and may
 run 2-way parallel.
 
-**Wave 8 — Release readiness (sequential):** AWK14 runs last and is blocked by AWK13.11 and AWK13.12.
-It creates the consolidated changeset and release handoff after docs are canonical and both hardening
-rounds land. AWK14 is intentionally `deferred` so autopilot cannot launch release-readiness work
-accidentally; run it manually after AWK13.1–AWK13.12 are complete by changing its status back to
-`specced`/`plan-approved` or by force-running that story.
+**Waves 7.9–7.11 — Release hardening round 3 (sequential):** AWK13.13–AWK13.15 remediate the residuals
+found in the [round-3 release-readiness review](./release-readiness-review-3.md); the fix design is in
+[release-hardening-design-3](../../prds/agentic-workflow-kit-redesign/release-hardening-design-3.md).
+These stories are `specced` (eligible), not `deferred` — they are the next real implementation work and
+block AWK14. W7.9: AWK13.13 (runner type-safety + supervisor decomposition) lands first because it
+reshapes runner internals the later stories ride; run it alone. W7.10: AWK13.14 (budget/telemetry
+fidelity) follows because `RunJournal` lives in `runner/`. W7.11: AWK13.15 (coverage headroom + test
+DevX) lands last so the re-baselined ratchet reflects the post-AWK13.13/13.14 shapes. All three gate
+AWK14.
+
+**Wave 8 — Release readiness (sequential):** AWK14 runs last and is blocked by AWK13.15 (and therefore
+by all of AWK13.13–AWK13.15). It creates the consolidated changeset and release handoff after docs are
+canonical and all three hardening rounds land, and records the honest telemetry/structured-output
+limitations in the release notes (see release-hardening-design-3 "Release-note carry-forward"). AWK14 is
+intentionally `deferred` so autopilot cannot launch release-readiness work accidentally; run it manually
+after AWK13.1–AWK13.15 are complete by changing its status back to `specced`/`plan-approved` or by
+force-running that story.
 
 ## ID-prefix registry
 
@@ -269,8 +299,10 @@ reused by another track.
 - [Technical solution](../../prds/agentic-workflow-kit-redesign/technical-solution.md)
 - [Release-readiness review](./release-readiness-review.md)
 - [Release-readiness review (round 2)](./release-readiness-review-2.md)
+- [Release-readiness review (round 3)](./release-readiness-review-3.md)
 - [Release-hardening design](../../prds/agentic-workflow-kit-redesign/release-hardening-design.md)
 - [Release-hardening design 2](../../prds/agentic-workflow-kit-redesign/release-hardening-design-2.md)
+- [Release-hardening design 3](../../prds/agentic-workflow-kit-redesign/release-hardening-design-3.md)
 - [Repo architecture](../../architecture.md)
 - [Repo instructions](../../../AGENTS.md)
 - `./stories/` — story briefs
