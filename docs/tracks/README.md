@@ -7,7 +7,7 @@ dependencies, ownership, and PR links.
 
 | Track | Prefix | Status | README |
 | --- | --- | --- | --- |
-| agentic-workflow-kit redesign | AWK | approved | [README](./agentic-workflow-kit-redesign/README.md) |
+| agentic-workflow-kit redesign | AWK | release-pending | [README](./agentic-workflow-kit-redesign/README.md) |
 
 ## Archived tracks
 
