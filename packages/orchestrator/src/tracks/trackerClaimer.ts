@@ -1,8 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { access, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { access, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { isNodeError, safeName } from '../internal/guards.js';
+import { isNodeError, isRecord, safeName } from '../internal/guards.js';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../types.js';
 import { parseTrackerStories, updateTrackerStoryRow } from './markdownTracker.js';
 
@@ -13,6 +14,16 @@ export type TrackerClaimResult =
 export type TrackerReleaseResult =
   | { ok: true; fromStatus: string; toStatus: string }
   | { ok: false; reason: string; story?: WorkflowStory };
+
+const CLAIM_LOCK_TIMEOUT_MS = 5000;
+const CLAIM_LOCK_STALE_AFTER_MS = 5 * 60 * 1000;
+
+interface ClaimLockMetadata {
+  owner: string;
+  pid: number;
+  createdAt: string;
+  token: string;
+}
 
 export async function trackerFileExists(config: ResolvedWorkflowConfig, story: WorkflowStory): Promise<boolean> {
   try {
@@ -71,7 +82,7 @@ export async function claimTrackerRow(args: {
     }
     return { ok: true, story: claimed };
   } finally {
-    await releaseClaimLock(lockPath);
+    await releaseClaimLock(lockPath, lockAcquired);
   }
 }
 
@@ -123,21 +134,27 @@ function claimLockPath(filePath: string): string {
   return `${filePath}.claim-${safeName(path.basename(filePath))}.lock`;
 }
 
-async function acquireClaimLock(lockPath: string, owner: string): Promise<boolean> {
-  const deadline = Date.now() + 5000;
+async function acquireClaimLock(lockPath: string, owner: string): Promise<ClaimLockMetadata | null> {
+  const deadline = Date.now() + CLAIM_LOCK_TIMEOUT_MS;
+  const metadata = buildClaimLockMetadata(owner);
   for (;;) {
     try {
-      await writeFile(lockPath, `${owner}\n`, { flag: 'wx' });
-      return true;
+      await writeFile(lockPath, `${JSON.stringify(metadata, null, 2)}\n`, { flag: 'wx' });
+      return metadata;
     } catch (error) {
       if (!isNodeError(error) || error.code !== 'EEXIST') throw error;
-      if (Date.now() >= deadline) return false;
+      if (await reclaimStaleClaimLock(lockPath)) continue;
+      if (Date.now() >= deadline) return null;
       await delay(25);
     }
   }
 }
 
-async function releaseClaimLock(lockPath: string): Promise<void> {
+async function releaseClaimLock(lockPath: string, metadata: ClaimLockMetadata): Promise<void> {
+  const current = await readClaimLockContent(lockPath);
+  if (current === null) return;
+  const currentMetadata = parseClaimLockMetadata(current);
+  if (currentMetadata?.token !== metadata.token) return;
   try {
     await unlink(lockPath);
   } catch (error) {
@@ -148,4 +165,161 @@ async function releaseClaimLock(lockPath: string): Promise<void> {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function buildClaimLockMetadata(owner: string): ClaimLockMetadata {
+  return {
+    owner,
+    pid: process.pid,
+    createdAt: new Date().toISOString(),
+    token: randomUUID(),
+  };
+}
+
+async function reclaimStaleClaimLock(lockPath: string): Promise<boolean> {
+  const reclaimIntent = await acquireReclaimIntent(lockPath);
+  if (reclaimIntent === null) return false;
+  try {
+    const inspected = await inspectClaimLock(lockPath);
+    if (inspected === null) return true;
+    if (!inspected.reclaimable) return false;
+    const current = await readClaimLockContent(lockPath);
+    if (current === null) return true;
+    if (current !== inspected.content) return false;
+    try {
+      await unlink(lockPath);
+      return true;
+    } catch (error) {
+      if (isNodeError(error) && error.code === 'ENOENT') return true;
+      throw error;
+    }
+  } finally {
+    await unlink(reclaimIntent.path).catch(() => undefined);
+  }
+}
+
+async function acquireReclaimIntent(lockPath: string): Promise<{ path: string; metadata: ClaimLockMetadata } | null> {
+  const directory = path.dirname(lockPath);
+  const prefix = `${path.basename(lockPath)}.reclaim-`;
+  const metadata = buildClaimLockMetadata(`reclaim:${process.pid}`);
+  const intentPath = path.join(directory, `${prefix}${metadata.pid}-${metadata.token}`);
+  const deadline = Date.now() + CLAIM_LOCK_TIMEOUT_MS;
+  await writeFile(intentPath, `${JSON.stringify(metadata, null, 2)}\n`, { flag: 'wx' });
+  for (;;) {
+    await cleanupStaleReclaimIntents(directory, prefix);
+    const winner = await firstReclaimIntent(directory, prefix);
+    if (winner === intentPath) return { path: intentPath, metadata };
+    if (Date.now() >= deadline) {
+      await unlink(intentPath).catch(() => undefined);
+      return null;
+    }
+    await delay(25);
+  }
+}
+
+async function inspectClaimLock(lockPath: string): Promise<{ reclaimable: boolean; content: string } | null> {
+  let content: string;
+  let modifiedAtMs: number;
+  try {
+    const [fileContent, fileStats] = await Promise.all([readFile(lockPath, 'utf8'), stat(lockPath)]);
+    content = fileContent;
+    modifiedAtMs = fileStats.mtimeMs;
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') return null;
+    throw error;
+  }
+
+  const metadata = parseClaimLockMetadata(content);
+  if (metadata) {
+    const status = processStatus(metadata.pid);
+    if (status === 'dead') return { reclaimable: true, content };
+    if (status === 'alive') return { reclaimable: false, content };
+  }
+
+  const createdAtMs = metadata ? Date.parse(metadata.createdAt) : Number.NaN;
+  const ageStartedAtMs = Number.isFinite(createdAtMs) ? createdAtMs : modifiedAtMs;
+  return { reclaimable: Date.now() - ageStartedAtMs > CLAIM_LOCK_STALE_AFTER_MS, content };
+}
+
+function parseClaimLockMetadata(content: string): ClaimLockMetadata | null {
+  try {
+    const value = JSON.parse(content);
+    if (!isRecord(value)) return null;
+    if (typeof value.owner !== 'string') return null;
+    if (typeof value.pid !== 'number' || !Number.isInteger(value.pid) || value.pid <= 0) return null;
+    if (typeof value.createdAt !== 'string') return null;
+    if (typeof value.token !== 'string') return null;
+    return { owner: value.owner, pid: value.pid, createdAt: value.createdAt, token: value.token };
+  } catch {
+    return null;
+  }
+}
+
+async function cleanupStaleReclaimIntents(directory: string, prefix: string): Promise<void> {
+  const names = await readdir(directory).catch((error) => {
+    if (isNodeError(error) && error.code === 'ENOENT') return [];
+    throw error;
+  });
+  await Promise.all(
+    names
+      .filter((name) => name.startsWith(prefix))
+      .map(async (name) => {
+        const filePath = path.join(directory, name);
+        const inspected = await inspectClaimLock(filePath);
+        if (inspected?.reclaimable === true) {
+          await unlink(filePath).catch((error) => {
+            if (isNodeError(error) && error.code === 'ENOENT') return;
+            throw error;
+          });
+        }
+      }),
+  );
+}
+
+async function firstReclaimIntent(directory: string, prefix: string): Promise<string | null> {
+  const names = await readdir(directory).catch((error) => {
+    if (isNodeError(error) && error.code === 'ENOENT') return [];
+    throw error;
+  });
+  const candidates = (
+    await Promise.all(
+      names
+        .filter((name) => name.startsWith(prefix))
+        .map(async (name) => {
+          const filePath = path.join(directory, name);
+          const inspected = await inspectClaimLock(filePath);
+          if (inspected === null) return null;
+          const metadata = parseClaimLockMetadata(inspected.content);
+          const createdAtMs = metadata ? Date.parse(metadata.createdAt) : Number.NaN;
+          const fallback = await stat(filePath).catch(() => null);
+          return {
+            filePath,
+            order: Number.isFinite(createdAtMs) ? createdAtMs : (fallback?.mtimeMs ?? Number.POSITIVE_INFINITY),
+          };
+        }),
+    )
+  ).filter((candidate): candidate is { filePath: string; order: number } => candidate !== null);
+
+  candidates.sort((left, right) => left.order - right.order || left.filePath.localeCompare(right.filePath));
+  return candidates[0]?.filePath ?? null;
+}
+
+async function readClaimLockContent(lockPath: string): Promise<string | null> {
+  try {
+    return await readFile(lockPath, 'utf8');
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+function processStatus(pid: number): 'alive' | 'dead' | 'unknown' {
+  try {
+    process.kill(pid, 0);
+    return 'alive';
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ESRCH') return 'dead';
+    if (isNodeError(error) && error.code === 'EPERM') return 'alive';
+    return 'unknown';
+  }
 }

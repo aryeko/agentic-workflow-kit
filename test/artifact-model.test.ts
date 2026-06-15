@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { FileArtifactStore } from '../packages/orchestrator/src/artifacts/FileArtifactStore.js';
+import { evaluateRecoveryGuard } from '../packages/orchestrator/src/runner/RecoveryGuard.js';
 
 const tempRoots: string[] = [];
 
@@ -86,6 +87,106 @@ describe('planning artifact model', () => {
         .map((entry) => entry.index)
         .sort((a, b) => a - b),
     ).toEqual(Array.from({ length: 100 }, (_, index) => index));
+  });
+
+  it('atomically replaces full-file JSON artifacts', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-artifacts-'));
+    tempRoots.push(root);
+    const store = new FileArtifactStore(root);
+
+    await store.writeJson('state.json', { status: 'old-complete', runId: 'run-1' });
+    await writeFile(path.join(root, 'state.json.partial'), '{"status":');
+    await store.writeJson('state.json', { status: 'new-complete', runId: 'run-1' });
+
+    expect(JSON.parse(await readFile(path.join(root, 'state.json'), 'utf8'))).toEqual({
+      status: 'new-complete',
+      runId: 'run-1',
+    });
+    expect(await readdir(root)).toContain('state.json.partial');
+  });
+
+  it('preserves existing artifact permissions when atomically replacing a file', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-artifacts-'));
+    tempRoots.push(root);
+    const store = new FileArtifactStore(root);
+    const filePath = path.join(root, 'state.json');
+
+    await store.writeText('state.json', '{"status":"old"}\n');
+    await chmod(filePath, 0o777);
+    await store.writeText('state.json', '{"status":"new"}\n');
+
+    expect((await stat(filePath)).mode & 0o777).toBe(0o777);
+    expect(await readFile(filePath, 'utf8')).toBe('{"status":"new"}\n');
+  });
+
+  it('returns null for missing text artifacts', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-artifacts-'));
+    tempRoots.push(root);
+    const store = new FileArtifactStore(root);
+
+    await expect(store.readText('missing.json')).resolves.toBeNull();
+  });
+
+  it('cleans up atomic temp files when replacement fails', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-artifacts-'));
+    tempRoots.push(root);
+    await mkdir(path.join(root, 'state.json'));
+    const store = new FileArtifactStore(root);
+
+    await expect(store.writeText('state.json', '{"status":"new"}\n')).rejects.toThrow();
+
+    expect((await readdir(root)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+  });
+
+  it('round-trips recovery guard inputs through the real file artifact store', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-artifacts-'));
+    tempRoots.push(root);
+    const writer = new FileArtifactStore(root);
+
+    await writer.writeJson('state.json', {
+      runId: 'run-1',
+      status: 'running',
+      active: ['AWK139'],
+    });
+    await writer.writeJson('children/AWK139.launch.json', {
+      storyId: 'AWK139',
+      sessionId: null,
+      lastHeartbeatAt: null,
+      expectedBranch: 'agentic-workflow-kit-redesign/awk139-run-state-write-atomicity',
+    });
+
+    const reader = new FileArtifactStore(root);
+    const state = JSON.parse((await reader.readText('state.json')) ?? '{}');
+    const launch = JSON.parse((await reader.readText('children/AWK139.launch.json')) ?? '{}');
+    const result = evaluateRecoveryGuard({
+      storyId: launch.storyId,
+      now: '2026-06-15T20:00:00.000Z',
+      staleAfterMs: 1000,
+      session: {
+        sessionId: launch.sessionId,
+        lastHeartbeatAt: launch.lastHeartbeatAt,
+      },
+      git: {
+        expectedBranch: launch.expectedBranch,
+        remoteBranchExists: false,
+        latestCommitSha: null,
+        worktreeClean: true,
+      },
+      pr: {
+        state: 'none',
+        number: null,
+        mergedAt: null,
+      },
+      trackerOnBase: {
+        status: state.status,
+        complete: false,
+      },
+    });
+
+    expect(result).toMatchObject({
+      storyId: 'AWK139',
+      decision: 'safe_to_take_over',
+    });
   });
 });
 

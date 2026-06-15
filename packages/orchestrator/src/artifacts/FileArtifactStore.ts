@@ -1,4 +1,5 @@
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { appendFile, chmod, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { ArtifactStore, RunEvent } from '../types.js';
@@ -14,8 +15,21 @@ export class FileArtifactStore implements ArtifactStore {
 
   async writeText(relativePath: string, value: string): Promise<void> {
     const filePath = path.join(this.root, relativePath);
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, value);
+    const directory = path.dirname(filePath);
+    await mkdir(directory, { recursive: true });
+    const tempPath = path.join(
+      directory,
+      `.${path.basename(filePath)}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`,
+    );
+    try {
+      const mode = await existingFileMode(filePath);
+      await writeFile(tempPath, value, mode === null ? undefined : { mode });
+      if (mode !== null) await chmod(tempPath, mode);
+      await rename(tempPath, filePath);
+    } catch (error) {
+      await unlink(tempPath).catch(() => undefined);
+      throw error;
+    }
   }
 
   async readText(relativePath: string): Promise<string | null> {
@@ -54,5 +68,14 @@ export class FileArtifactStore implements ArtifactStore {
         this.appendQueues.delete(filePath);
       }
     }
+  }
+}
+
+async function existingFileMode(filePath: string): Promise<number | null> {
+  try {
+    return (await stat(filePath)).mode & 0o777;
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
+    throw error;
   }
 }
