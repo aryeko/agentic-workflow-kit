@@ -172,7 +172,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK1310 | AWK13.10 API error fidelity | AWK138 | W7.7 | done | [brief](./stories/AWK1310.md) | — | codex-2026-06-15T19-40-45Z | [#83](https://github.com/aryeko/agentic-workflow-kit/pull/83) |
 | AWK1311 | AWK13.11 Test trust round 2 | AWK139, AWK1310 | W7.8 | done | [brief](./stories/AWK1311.md) | — | codex-2026-06-15T20-32-00Z | [#86](https://github.com/aryeko/agentic-workflow-kit/pull/86) |
 | AWK1312 | AWK13.12 DevX/docs hygiene round 2 | AWK138 | W7.8 | done | [brief](./stories/AWK1312.md) | — | codex-2026-06-15T20-06-34Z | [#85](https://github.com/aryeko/agentic-workflow-kit/pull/85) |
-| AWK1313 | AWK13.13 Runner type-safety and supervisor decomposition | AWK1311, AWK1312 | W7.9 | done | [brief](./stories/AWK1313.md) | — | codex-2026-06-15T21-31-13Z | — |
+| AWK1313 | AWK13.13 Runner type-safety and supervisor decomposition | AWK1311, AWK1312 | W7.9 | done | [brief](./stories/AWK1313.md) | — | codex-2026-06-15T21-31-13Z | [#88](https://github.com/aryeko/agentic-workflow-kit/pull/88) |
 | AWK1314 | AWK13.14 Budget and telemetry fidelity | AWK1313 | W7.10 | specced | [brief](./stories/AWK1314.md) | — | — | — |
 | AWK1315 | AWK13.15 Coverage headroom and test DevX | AWK1313, AWK1314 | W7.11 | specced | [brief](./stories/AWK1315.md) | — | — | — |
 | AWK14 | Changeset and release readiness | AWK1315 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
