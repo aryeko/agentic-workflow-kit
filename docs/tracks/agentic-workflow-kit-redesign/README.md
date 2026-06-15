@@ -133,7 +133,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK134 | AWK13.4 Conservative defaults and API fidelity | AWK131 | W7.2 | done | [brief](./stories/AWK134.md) | — | codex-2026-06-14T09-55-09Z | [#76](https://github.com/aryeko/agentic-workflow-kit/pull/76) |
 | AWK135 | AWK13.5 Module decomposition | AWK132, AWK133, AWK134 | W7.4 | done | [brief](./stories/AWK135.md) | — | codex-2026-06-15T09-38-02Z | [#78](https://github.com/aryeko/agentic-workflow-kit/pull/78) |
 | AWK136 | AWK13.6 Test trust and coverage ratchet | AWK135 | W7.5 | done | [brief](./stories/AWK136.md) | — | codex-2026-06-15T16-51-16Z | [#79](https://github.com/aryeko/agentic-workflow-kit/pull/79) |
-| AWK137 | AWK13.7 Stale docs and DevX hygiene | AWK135 | W7.5 | implementing | [brief](./stories/AWK137.md) | — | codex-2026-06-15T17-04-23Z | — |
+| AWK137 | AWK13.7 Stale docs and DevX hygiene | AWK135 | W7.5 | implementing | [brief](./stories/AWK137.md) + [spec](../../superpowers/specs/2026-06-15-awk137-awk13-7-stale-docs-and-devx-hygiene-design.md) | — | codex-2026-06-15T17-04-23Z | — |
 | AWK14 | Changeset and release readiness | AWK136, AWK137 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
