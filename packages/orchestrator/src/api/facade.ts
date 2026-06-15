@@ -25,7 +25,12 @@ import {
   type WorkflowRunStreamResult,
 } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
-import { type WorkflowApiErrorCode, WorkflowTrackerError, workflowKitErrorFromUnknown } from '../internal/errors.js';
+import {
+  type WorkflowApiErrorCode,
+  WorkflowStoryNotEligibleError,
+  WorkflowTrackerError,
+  workflowKitErrorFromUnknown,
+} from '../internal/errors.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import type { TrackerMigrationReport, TrackerValidationReport } from '../tracks/markdownTracker.js';
 import type { CliOverrides, ResolvedWorkflowConfig, RunStatus, WorkflowRunPreviewTarget } from '../types.js';
@@ -254,7 +259,7 @@ export async function runStatusFacade(
       ],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND'));
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -276,7 +281,7 @@ export async function runStreamFacade(
       ],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND'));
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -296,7 +301,7 @@ export async function runInspectFacade(
       ],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND'));
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -321,7 +326,7 @@ export async function runReportFacade(
       ],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND'));
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -337,7 +342,7 @@ export async function runExportFacade(
       next: [],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND'));
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -389,6 +394,7 @@ export async function trackerValidateFacade(
 ): Promise<WorkflowApiEnvelope<WorkflowTrackerValidateResult>> {
   const operation = 'workflow_tracker_validate';
   try {
+    await loadConfigForFacade(input);
     const validation = await trackerValidateHandler(input).catch((error: unknown) => {
       throw workflowKitErrorFromUnknown(error, 'TRACKER_INVALID');
     });
@@ -416,6 +422,7 @@ export async function trackerMigrateFacade(
 ): Promise<WorkflowApiEnvelope<WorkflowTrackerMigrateResult>> {
   const operation = 'workflow_tracker_migrate';
   try {
+    await loadConfigForFacade(input);
     const migration = await trackerMigrateHandler({ from: input.from, track: input.track }, input).catch(
       (error: unknown) => {
         throw workflowKitErrorFromUnknown(error, 'TRACKER_INVALID');
@@ -470,10 +477,13 @@ async function buildRunPreview(input: WorkflowRunPreviewInput): Promise<{
         blockers: [],
       };
     }
+    if (!story.eligible) {
+      throw new WorkflowStoryNotEligibleError(story.blockedReason ?? `story ${story.id} is not eligible`);
+    }
     return {
       config,
-      dispatchableStoryIds: story.eligible ? [story.id] : [],
-      blockers: story.eligible ? [] : [story.blockedReason ?? `story ${story.id} is not eligible`],
+      dispatchableStoryIds: [story.id],
+      blockers: [],
     };
   }
 
@@ -570,6 +580,18 @@ async function listEligibleForFacade(input: CliOverrides): Promise<Awaited<Retur
   return await listEligibleHandler(input).catch((error: unknown) => {
     throw workflowKitErrorFromUnknown(error, 'TRACKER_INVALID');
   });
+}
+
+async function runReadErrorForFacade(input: CliOverrides & { runPath?: string; runId?: string }, error: unknown) {
+  if (input.runPath && (path.isAbsolute(input.runPath) || input.runPath.includes(path.sep))) {
+    return workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND');
+  }
+  try {
+    await loadConfigForFacade(input);
+  } catch (configError) {
+    return workflowKitErrorFromUnknown(configError, 'CONFIG_INVALID');
+  }
+  return workflowKitErrorFromUnknown(error, 'RUN_NOT_FOUND');
 }
 
 function projectRef(config: ResolvedWorkflowConfig): WorkflowProjectRef {

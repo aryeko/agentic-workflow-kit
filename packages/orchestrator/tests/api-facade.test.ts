@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { projectInspectFacade, runPreviewFacade } from '../src/api/facade';
+import { projectInspectFacade, runPreviewFacade, runStatusFacade, trackerValidateFacade } from '../src/api/facade';
 import {
   WorkflowConfigError,
   WorkflowInternalError,
@@ -183,6 +183,25 @@ describe('workflow API facade', () => {
     await expect(access(path.join(root, '.codex', 'agentic-workflow-kit'))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
+  it('returns a story-not-eligible envelope for non-forced blocked story previews', async () => {
+    const root = await createWorkspace();
+
+    const envelope = await runPreviewFacade({
+      cwd: root,
+      target: { type: 'story', trackId: 'linkly', storyId: 'LK03' },
+    });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_preview',
+      error: {
+        code: 'STORY_NOT_ELIGIBLE',
+        retryable: false,
+        message: 'owner is arye',
+      },
+    });
+  });
+
   it('maps facade failures to a structured error envelope', async () => {
     const root = await createWorkspace();
 
@@ -233,6 +252,36 @@ describe('workflow API facade', () => {
     expect(envelope).toMatchObject({
       ok: false,
       operation: 'workflow_run_preview',
+      error: {
+        code: 'CONFIG_INVALID',
+        retryable: false,
+      },
+    });
+  });
+
+  it('keeps config failures typed before run-read fallback classification', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-api-facade-run-no-config-'));
+
+    const envelope = await runStatusFacade({ cwd: root, runId: 'missing-run' });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_status',
+      error: {
+        code: 'CONFIG_INVALID',
+        retryable: false,
+      },
+    });
+  });
+
+  it('keeps config failures typed before tracker validation', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-api-facade-tracker-no-config-'));
+
+    const envelope = await trackerValidateFacade({ cwd: root, track: 'linkly' });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_tracker_validate',
       error: {
         code: 'CONFIG_INVALID',
         retryable: false,
