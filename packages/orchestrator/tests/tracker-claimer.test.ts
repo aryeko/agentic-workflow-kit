@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readFile, utimes, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -178,11 +178,11 @@ describe('claimTrackerRow', () => {
     ]);
 
     expect(results.filter((result) => result.ok)).toHaveLength(1);
-    await expect(access(`${claimLockPath(trackerPath)}.reclaim`)).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(reclaimIntentNames(trackerPath)).resolves.toEqual([]);
   });
 
-  it('does not stale-reclaim the secondary reclaim mutex', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-claim-reclaim-live-'));
+  it('reclaims an abandoned reclaim intent before reclaiming a stale claim lock', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-claim-reclaim-abandoned-'));
     const trackerPath = path.join(root, 'docs/tracks/linkly/README.md');
     const lockPath = claimLockPath(trackerPath);
     await mkdir(path.dirname(trackerPath), { recursive: true });
@@ -196,13 +196,41 @@ describe('claimTrackerRow', () => {
         token: 'crashed-token',
       }),
     );
+    await writeReclaimIntent(trackerPath, {
+      owner: 'reclaim-owner',
+      pid: 999_999,
+      createdAt: '1970-01-01T00:00:00.000Z',
+      token: 'stale-reclaim-token',
+    });
+
+    const result = await claimTrackerRow({ config: config(root), story: story(), owner: 'awk:run-1:L002' });
+
+    expect(result).toMatchObject({
+      ok: true,
+      story: { id: 'L002', status: 'implementing', owner: 'awk:run-1:L002' },
+    });
+    await expect(reclaimIntentNames(trackerPath)).resolves.toEqual([]);
+  });
+
+  it('does not stale-reclaim a live reclaim intent', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-claim-reclaim-live-'));
+    const trackerPath = path.join(root, 'docs/tracks/linkly/README.md');
+    const lockPath = claimLockPath(trackerPath);
+    const liveIntent = await writeReclaimIntent(trackerPath, {
+      owner: 'reclaim-owner',
+      pid: process.pid,
+      createdAt: '1970-01-01T00:00:00.000Z',
+      token: 'live-reclaim-token',
+    });
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown);
     await writeFile(
-      `${lockPath}.reclaim`,
+      lockPath,
       JSON.stringify({
-        owner: 'reclaim-owner',
+        owner: 'crashed-owner',
         pid: 999_999,
-        createdAt: '1970-01-01T00:00:00.000Z',
-        token: 'stale-reclaim-token',
+        createdAt: '2026-06-15T19:00:00.000Z',
+        token: 'crashed-token',
       }),
     );
 
@@ -212,7 +240,7 @@ describe('claimTrackerRow', () => {
       ok: false,
       reason: 'tracker docs/tracks/linkly/README.md claim lock timed out',
     });
-    await expect(access(`${lockPath}.reclaim`)).resolves.toBeUndefined();
+    await expect(reclaimIntentNames(trackerPath)).resolves.toEqual([path.basename(liveIntent)]);
   }, 10000);
 
   it('reclaims a stale legacy text claim lock by file age', async () => {
@@ -281,4 +309,25 @@ describe('claimTrackerRow', () => {
 
 function claimLockPath(trackerPath: string): string {
   return `${trackerPath}.claim-README.md.lock`;
+}
+
+async function reclaimIntentNames(trackerPath: string): Promise<string[]> {
+  const lockPath = claimLockPath(trackerPath);
+  return (await readdir(path.dirname(lockPath)))
+    .filter((name) => name.startsWith(`${path.basename(lockPath)}.reclaim-`))
+    .sort();
+}
+
+async function writeReclaimIntent(
+  trackerPath: string,
+  metadata: { owner: string; pid: number; createdAt: string; token: string },
+): Promise<string> {
+  const lockPath = claimLockPath(trackerPath);
+  const intentPath = path.join(
+    path.dirname(lockPath),
+    `${path.basename(lockPath)}.reclaim-${metadata.pid}-${metadata.token}`,
+  );
+  await mkdir(path.dirname(intentPath), { recursive: true });
+  await writeFile(intentPath, `${JSON.stringify(metadata, null, 2)}\n`);
+  return intentPath;
 }

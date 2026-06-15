@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -103,6 +103,20 @@ describe('planning artifact model', () => {
       runId: 'run-1',
     });
     expect(await readdir(root)).toContain('state.json.partial');
+  });
+
+  it('preserves existing artifact permissions when atomically replacing a file', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-artifacts-'));
+    tempRoots.push(root);
+    const store = new FileArtifactStore(root);
+    const filePath = path.join(root, 'state.json');
+
+    await store.writeText('state.json', '{"status":"old"}\n');
+    await chmod(filePath, 0o777);
+    await store.writeText('state.json', '{"status":"new"}\n');
+
+    expect((await stat(filePath)).mode & 0o777).toBe(0o777);
+    expect(await readFile(filePath, 'utf8')).toBe('{"status":"new"}\n');
   });
 
   it('returns null for missing text artifacts', async () => {

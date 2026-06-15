@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, readFile, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -43,5 +43,18 @@ describe('FileArtifactStore', () => {
     await expect(store.writeText('state.json', '{"status":"new"}\n')).rejects.toThrow();
 
     expect((await readdir(root)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+  });
+
+  it('preserves existing file mode when atomically replacing artifacts', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-artifacts-'));
+    const store = new FileArtifactStore(root);
+    const filePath = path.join(root, 'state.json');
+
+    await store.writeText('state.json', '{"status":"old"}\n');
+    await chmod(filePath, 0o777);
+    await store.writeText('state.json', '{"status":"new"}\n');
+
+    expect((await stat(filePath)).mode & 0o777).toBe(0o777);
+    expect(await readFile(filePath, 'utf8')).toBe('{"status":"new"}\n');
   });
 });

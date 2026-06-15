@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readFile, rm, utimes, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -113,10 +113,10 @@ describe('tracker claimer', () => {
     ]);
 
     expect(results.filter((result) => result.ok)).toHaveLength(1);
-    await expect(access(`${claimLockPath(trackerPath)}.reclaim`)).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(reclaimIntentNames(trackerPath)).resolves.toEqual([]);
   });
 
-  it('does not stale-reclaim the secondary reclaim mutex', async () => {
+  it('reclaims an abandoned reclaim intent before reclaiming a stale claim lock', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'awk-claimer-'));
     tempRoots.push(root);
     const trackerPath = path.join(root, 'docs/tracks/track/README.md');
@@ -132,13 +132,48 @@ describe('tracker claimer', () => {
         token: 'crashed-token',
       }),
     );
+    await writeReclaimIntent(trackerPath, {
+      owner: 'reclaim-owner',
+      pid: 999_999,
+      createdAt: '1970-01-01T00:00:00.000Z',
+      token: 'stale-reclaim-token',
+    });
+    const config = resolvedConfig(root);
+
+    const result = await claimTrackerRow({
+      config,
+      story: firstStory(await readFile(trackerPath, 'utf8')),
+      owner: 'owner-a',
+    });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(firstStory(await readFile(trackerPath, 'utf8'))).toMatchObject({
+      status: 'implementing',
+      owner: 'owner-a',
+    });
+    await expect(reclaimIntentNames(trackerPath)).resolves.toEqual([]);
+  });
+
+  it('does not stale-reclaim a live reclaim intent', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-claimer-'));
+    tempRoots.push(root);
+    const trackerPath = path.join(root, 'docs/tracks/track/README.md');
+    const lockPath = claimLockPath(trackerPath);
+    const liveIntent = await writeReclaimIntent(trackerPath, {
+      owner: 'reclaim-owner',
+      pid: process.pid,
+      createdAt: '1970-01-01T00:00:00.000Z',
+      token: 'live-reclaim-token',
+    });
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown());
     await writeFile(
-      `${lockPath}.reclaim`,
+      lockPath,
       JSON.stringify({
-        owner: 'reclaim-owner',
+        owner: 'crashed-owner',
         pid: 999_999,
-        createdAt: '1970-01-01T00:00:00.000Z',
-        token: 'stale-reclaim-token',
+        createdAt: '2026-06-15T19:00:00.000Z',
+        token: 'crashed-token',
       }),
     );
     const config = resolvedConfig(root);
@@ -153,7 +188,7 @@ describe('tracker claimer', () => {
       ok: false,
       reason: 'tracker docs/tracks/track/README.md claim lock timed out',
     });
-    await expect(access(`${lockPath}.reclaim`)).resolves.toBeUndefined();
+    await expect(reclaimIntentNames(trackerPath)).resolves.toEqual([path.basename(liveIntent)]);
   }, 10000);
 
   it('reclaims a stale legacy text claim lock by file age', async () => {
@@ -294,4 +329,25 @@ function trackerMarkdown(): string {
 
 function claimLockPath(trackerPath: string): string {
   return `${trackerPath}.claim-README.md.lock`;
+}
+
+async function reclaimIntentNames(trackerPath: string): Promise<string[]> {
+  const lockPath = claimLockPath(trackerPath);
+  return (await readdir(path.dirname(lockPath)))
+    .filter((name) => name.startsWith(`${path.basename(lockPath)}.reclaim-`))
+    .sort();
+}
+
+async function writeReclaimIntent(
+  trackerPath: string,
+  metadata: { owner: string; pid: number; createdAt: string; token: string },
+): Promise<string> {
+  const lockPath = claimLockPath(trackerPath);
+  const intentPath = path.join(
+    path.dirname(lockPath),
+    `${path.basename(lockPath)}.reclaim-${metadata.pid}-${metadata.token}`,
+  );
+  await mkdir(path.dirname(intentPath), { recursive: true });
+  await writeFile(intentPath, `${JSON.stringify(metadata, null, 2)}\n`);
+  return intentPath;
 }

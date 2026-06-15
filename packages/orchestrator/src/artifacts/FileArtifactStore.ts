@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { appendFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { appendFile, chmod, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { ArtifactStore, RunEvent } from '../types.js';
@@ -22,7 +22,9 @@ export class FileArtifactStore implements ArtifactStore {
       `.${path.basename(filePath)}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`,
     );
     try {
-      await writeFile(tempPath, value);
+      const mode = await existingFileMode(filePath);
+      await writeFile(tempPath, value, mode === null ? undefined : { mode });
+      if (mode !== null) await chmod(tempPath, mode);
       await rename(tempPath, filePath);
     } catch (error) {
       await unlink(tempPath).catch(() => undefined);
@@ -66,5 +68,14 @@ export class FileArtifactStore implements ArtifactStore {
         this.appendQueues.delete(filePath);
       }
     }
+  }
+}
+
+async function existingFileMode(filePath: string): Promise<number | null> {
+  try {
+    return (await stat(filePath)).mode & 0o777;
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
+    throw error;
   }
 }

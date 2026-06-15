@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { access, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { access, readdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { isNodeError, isRecord, safeName } from '../internal/guards.js';
@@ -177,9 +177,8 @@ function buildClaimLockMetadata(owner: string): ClaimLockMetadata {
 }
 
 async function reclaimStaleClaimLock(lockPath: string): Promise<boolean> {
-  const reclaimLockPath = `${lockPath}.reclaim`;
-  const reclaimLock = await acquireReclaimLock(reclaimLockPath, `reclaim:${process.pid}`);
-  if (reclaimLock === null) return false;
+  const reclaimIntent = await acquireReclaimIntent(lockPath);
+  if (reclaimIntent === null) return false;
   try {
     const inspected = await inspectClaimLock(lockPath);
     if (inspected === null) return true;
@@ -195,22 +194,26 @@ async function reclaimStaleClaimLock(lockPath: string): Promise<boolean> {
       throw error;
     }
   } finally {
-    await releaseClaimLock(reclaimLockPath, reclaimLock);
+    await unlink(reclaimIntent.path).catch(() => undefined);
   }
 }
 
-async function acquireReclaimLock(lockPath: string, owner: string): Promise<ClaimLockMetadata | null> {
+async function acquireReclaimIntent(lockPath: string): Promise<{ path: string; metadata: ClaimLockMetadata } | null> {
+  const directory = path.dirname(lockPath);
+  const prefix = `${path.basename(lockPath)}.reclaim-`;
+  const metadata = buildClaimLockMetadata(`reclaim:${process.pid}`);
+  const intentPath = path.join(directory, `${prefix}${metadata.pid}-${metadata.token}`);
   const deadline = Date.now() + CLAIM_LOCK_TIMEOUT_MS;
-  const metadata = buildClaimLockMetadata(owner);
+  await writeFile(intentPath, `${JSON.stringify(metadata, null, 2)}\n`, { flag: 'wx' });
   for (;;) {
-    try {
-      await writeFile(lockPath, `${JSON.stringify(metadata, null, 2)}\n`, { flag: 'wx' });
-      return metadata;
-    } catch (error) {
-      if (!isNodeError(error) || error.code !== 'EEXIST') throw error;
-      if (Date.now() >= deadline) return null;
-      await delay(25);
+    await cleanupStaleReclaimIntents(directory, prefix);
+    const winner = await firstReclaimIntent(directory, prefix);
+    if (winner === intentPath) return { path: intentPath, metadata };
+    if (Date.now() >= deadline) {
+      await unlink(intentPath).catch(() => undefined);
+      return null;
     }
+    await delay(25);
   }
 }
 
@@ -250,6 +253,55 @@ function parseClaimLockMetadata(content: string): ClaimLockMetadata | null {
   } catch {
     return null;
   }
+}
+
+async function cleanupStaleReclaimIntents(directory: string, prefix: string): Promise<void> {
+  const names = await readdir(directory).catch((error) => {
+    if (isNodeError(error) && error.code === 'ENOENT') return [];
+    throw error;
+  });
+  await Promise.all(
+    names
+      .filter((name) => name.startsWith(prefix))
+      .map(async (name) => {
+        const filePath = path.join(directory, name);
+        const inspected = await inspectClaimLock(filePath);
+        if (inspected?.reclaimable === true) {
+          await unlink(filePath).catch((error) => {
+            if (isNodeError(error) && error.code === 'ENOENT') return;
+            throw error;
+          });
+        }
+      }),
+  );
+}
+
+async function firstReclaimIntent(directory: string, prefix: string): Promise<string | null> {
+  const names = await readdir(directory).catch((error) => {
+    if (isNodeError(error) && error.code === 'ENOENT') return [];
+    throw error;
+  });
+  const candidates = (
+    await Promise.all(
+      names
+        .filter((name) => name.startsWith(prefix))
+        .map(async (name) => {
+          const filePath = path.join(directory, name);
+          const inspected = await inspectClaimLock(filePath);
+          if (inspected === null) return null;
+          const metadata = parseClaimLockMetadata(inspected.content);
+          const createdAtMs = metadata ? Date.parse(metadata.createdAt) : Number.NaN;
+          const fallback = await stat(filePath).catch(() => null);
+          return {
+            filePath,
+            order: Number.isFinite(createdAtMs) ? createdAtMs : (fallback?.mtimeMs ?? Number.POSITIVE_INFINITY),
+          };
+        }),
+    )
+  ).filter((candidate): candidate is { filePath: string; order: number } => candidate !== null);
+
+  candidates.sort((left, right) => left.order - right.order || left.filePath.localeCompare(right.filePath));
+  return candidates[0]?.filePath ?? null;
 }
 
 async function readClaimLockContent(lockPath: string): Promise<string | null> {
