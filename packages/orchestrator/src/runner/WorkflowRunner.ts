@@ -14,17 +14,21 @@ import type {
   WorkflowStory,
 } from '../types.js';
 import { type BudgetControlDecision, isStrongerBudgetControl, selectBudgetControlDecision } from './BudgetControl.js';
-import {
-  type ClaimedWorkflowStory,
-  type PreparedChildLaunch,
-  recordChildLaunchWithWorkspace,
-} from './ChildLaunchRecorder.js';
+import { recordChildLaunchWithWorkspace } from './ChildLaunchRecorder.js';
 import { executeChildWithSupervisor, isSupervisionLostError } from './ChildSupervisor.js';
 import type { PrepareChildWorkspaceArgs, PreparedChildWorkspace } from './ChildWorkspacePreparer.js';
 import { CompletionGate, type ReturnEvaluation } from './CompletionGate.js';
 import { findDuplicateLaunch } from './DuplicateLaunchGuard.js';
 import { MetricsCollector } from './MetricsCollector.js';
 import { RunJournal, type SettledStoryRun } from './RunJournal.js';
+import type {
+  ChildLaunchContext,
+  ChildSupervisorContext,
+  ChildTimer,
+  ClaimedWorkflowStory,
+  EligibleWorkflowContext,
+  PreparedChildLaunch,
+} from './WorkflowRunnerContext.js';
 import { runEligibleWorkflow } from './WorkflowRunnerEligible.js';
 
 export interface WorkflowRunnerDependencies {
@@ -40,13 +44,6 @@ export interface WorkflowRunnerDependencies {
   runId: string;
   childTimer?: ChildTimer;
   childWorkspacePreparer?: (args: PrepareChildWorkspaceArgs) => Promise<PreparedChildWorkspace>;
-}
-
-export interface ChildTimer {
-  setTimeout(callback: () => void, ms: number): unknown;
-  clearTimeout(handle: unknown): void;
-  setInterval(callback: () => void, ms: number): unknown;
-  clearInterval(handle: unknown): void;
 }
 
 export class WorkflowRunner {
@@ -185,7 +182,7 @@ export class WorkflowRunner {
   }
 
   async runEligible(options: { returnAfterInitialLaunch?: boolean } = {}): Promise<RunState> {
-    return await runEligibleWorkflow(this, options);
+    return await runEligibleWorkflow(this.eligibleWorkflowContext(), options);
   }
 
   private async launchChild(story: WorkflowStory, options: { force?: boolean } = {}): Promise<SettledStoryRun> {
@@ -288,11 +285,77 @@ export class WorkflowRunner {
   }
 
   private async recordChildLaunch(claim: ClaimedWorkflowStory): Promise<PreparedChildLaunch | null> {
-    return await recordChildLaunchWithWorkspace(this, claim);
+    return await recordChildLaunchWithWorkspace(this.childLaunchContext(), claim);
   }
 
   private async executeChild(story: WorkflowStory, launch: PreparedChildLaunch): Promise<SettledStoryRun> {
-    return await executeChildWithSupervisor(this, story, launch);
+    return await executeChildWithSupervisor(this.childSupervisorContext(), story, launch);
+  }
+
+  private childLaunchContext(): ChildLaunchContext {
+    const runner = this;
+    return {
+      get state() {
+        return runner.state;
+      },
+      set state(state: RunState) {
+        runner.state = state;
+      },
+      dependencies: runner.dependencies,
+      journal: runner.journal,
+      metrics: runner.metrics,
+      blockOnce: (storyId: string, reason: string) => runner.blockOnce(storyId, reason),
+      trackerClaims: runner.trackerClaims,
+      writeState: () => runner.writeState(),
+      writeLiveMetrics: () => runner.writeLiveMetrics(),
+    };
+  }
+
+  private childSupervisorContext(): ChildSupervisorContext {
+    const runner = this;
+    return {
+      get state() {
+        return runner.state;
+      },
+      set state(state: RunState) {
+        runner.state = state;
+      },
+      dependencies: runner.dependencies,
+      journal: runner.journal,
+      metrics: runner.metrics,
+      activeChildAbortControllers: runner.activeChildAbortControllers,
+      trackerClaims: runner.trackerClaims,
+      writeState: () => runner.writeState(),
+      writeLiveMetrics: () => runner.writeLiveMetrics(),
+    };
+  }
+
+  private eligibleWorkflowContext(): EligibleWorkflowContext {
+    const runner = this;
+    return {
+      get state() {
+        return runner.state;
+      },
+      set state(state: RunState) {
+        runner.state = state;
+      },
+      dependencies: runner.dependencies,
+      get budgetControlDecision() {
+        return runner.budgetControlDecision;
+      },
+      journal: runner.journal,
+      applyPendingAbortControl: (stage: string) => runner.applyPendingAbortControl(stage),
+      blockOnce: (storyId: string, reason: string) => runner.blockOnce(storyId, reason),
+      writeState: () => runner.writeState(),
+      writeLiveMetrics: () => runner.writeLiveMetrics(),
+      preflightDuplicateLaunch: (story: WorkflowStory) => runner.preflightDuplicateLaunch(story),
+      claimBeforeLaunch: (story: WorkflowStory) => runner.claimBeforeLaunch(story),
+      recordChildLaunch: (claim: ClaimedWorkflowStory) => runner.recordChildLaunch(claim),
+      executeChild: (story: WorkflowStory, launch: PreparedChildLaunch) => runner.executeChild(story, launch),
+      finish: () => runner.finish(),
+      recordSettledChild: (settled: SettledStoryRun) => runner.recordSettledChild(settled),
+      processSettled: (settled: SettledStoryRun, stories: WorkflowStory[]) => runner.processSettled(settled, stories),
+    };
   }
 
   private async processSettled(settled: SettledStoryRun, stories?: WorkflowStory[]): Promise<ReturnEvaluation> {

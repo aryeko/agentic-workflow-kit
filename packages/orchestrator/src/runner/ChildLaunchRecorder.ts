@@ -1,63 +1,15 @@
 import { renderStoryImplementerPrompt } from '../drivers/promptRenderer.js';
-import type { StoryPromptMetadata, StoryRunner } from '../drivers/StoryRunner.js';
+import type { StoryPromptMetadata } from '../drivers/StoryRunner.js';
 import { releaseTrackerClaim } from '../tracks/trackerClaimer.js';
-import type {
-  ActiveChildRun,
-  ArtifactStore,
-  ChildLaunchRecord,
-  Clock,
-  ResolvedAgentProfile,
-  ResolvedWorkflowConfig,
-  RunState,
-  WorkflowStory,
-} from '../types.js';
+import type { ActiveChildRun, ChildLaunchRecord } from '../types.js';
 import { type PreparedChildWorkspace, prepareChildWorkspace } from './ChildWorkspacePreparer.js';
 import { buildLaunchId, hashPrompt } from './launchMetadata.js';
-import type { MetricsCollector } from './MetricsCollector.js';
-import type { RunJournal } from './RunJournal.js';
-
-export interface ClaimedWorkflowStory {
-  story: WorkflowStory;
-  owner: string;
-  previousStatus: string;
-  trackerClaimed: boolean;
-}
-
-export interface PreparedChildLaunch {
-  record: ChildLaunchRecord;
-  prompt: string;
-  profile: ResolvedAgentProfile;
-  promptMetadata: StoryPromptMetadata;
-  claim: ClaimedWorkflowStory;
-  startup: Promise<'acknowledged' | 'failed'>;
-  resolveStartup: (outcome: 'acknowledged' | 'failed') => void;
-}
-
-interface ChildLaunchRunner {
-  state: RunState;
-  dependencies: {
-    config: ResolvedWorkflowConfig;
-    storyRunner: StoryRunner;
-    gitInspector: {
-      snapshotBaseSha?: (args: { git: ResolvedWorkflowConfig['git']; cwdAbs: string }) => Promise<string | null>;
-    };
-    artifactStore: ArtifactStore;
-    clock: Clock;
-    childWorkspacePreparer?: typeof prepareChildWorkspace;
-  };
-  journal: Pick<RunJournal, 'record' | 'recordChildLaunch'>;
-  metrics: Pick<MetricsCollector, 'start'>;
-  blockOnce(storyId: string, reason: string): void;
-  trackerClaims: Map<string, ClaimedWorkflowStory>;
-  writeState(): Promise<void>;
-  writeLiveMetrics(): Promise<void>;
-}
+import type { ChildLaunchContext, ClaimedWorkflowStory, PreparedChildLaunch } from './WorkflowRunnerContext.js';
 
 export async function recordChildLaunchWithWorkspace(
-  runner: unknown,
+  self: ChildLaunchContext,
   claim: ClaimedWorkflowStory,
 ): Promise<PreparedChildLaunch | null> {
-  const self = runner as ChildLaunchRunner;
   const { story } = claim;
   const workspacePreparer = self.dependencies.childWorkspacePreparer ?? prepareChildWorkspace;
   let preparedWorkspace: PreparedChildWorkspace;
@@ -161,7 +113,7 @@ export async function recordChildLaunchWithWorkspace(
 }
 
 async function releaseUnlaunchedClaim(
-  self: ChildLaunchRunner,
+  self: ChildLaunchContext,
   claim: ClaimedWorkflowStory,
   reason: string,
 ): Promise<void> {

@@ -1,50 +1,13 @@
 import pLimit from 'p-limit';
 import type { ResolvedWorkflowConfig, RunState, WorkflowStory } from '../types.js';
 import { renderExpectedBranch, renderExpectedWorktreePath } from './launchMetadata.js';
-import type { RunJournal, SettledStoryRun } from './RunJournal.js';
-
-interface ClaimedWorkflowStory {
-  story: WorkflowStory;
-}
-
-interface PreparedChildLaunch {
-  startup: Promise<'acknowledged' | 'failed'>;
-}
-
-interface SettledEvaluation {
-  complete: boolean;
-  reason: string;
-  returnedStory?: WorkflowStory | null;
-}
-
-interface EligibleWorkflowRunner {
-  state: RunState;
-  dependencies: {
-    config: ResolvedWorkflowConfig;
-    storySource: {
-      listStories(): Promise<WorkflowStory[]>;
-    };
-  };
-  budgetControlDecision: { stopNewLaunches?: boolean; reason?: string | null } | null;
-  journal: Pick<RunJournal, 'record' | 'writeConfigSnapshot' | 'writeRunMetadata' | 'writeStorySnapshot'>;
-  applyPendingAbortControl(stage: string): Promise<boolean>;
-  blockOnce(storyId: string, reason: string): void;
-  writeState(): Promise<void>;
-  writeLiveMetrics(): Promise<void>;
-  preflightDuplicateLaunch(story: WorkflowStory): Promise<boolean>;
-  claimBeforeLaunch(story: WorkflowStory): Promise<ClaimedWorkflowStory | null>;
-  recordChildLaunch(claim: ClaimedWorkflowStory): Promise<PreparedChildLaunch | null>;
-  executeChild(story: WorkflowStory, launch: PreparedChildLaunch): Promise<SettledStoryRun>;
-  finish(): Promise<RunState>;
-  recordSettledChild(settled: SettledStoryRun): Promise<void>;
-  processSettled(settled: SettledStoryRun, stories: WorkflowStory[]): Promise<SettledEvaluation>;
-}
+import type { SettledStoryRun } from './RunJournal.js';
+import type { EligibleWorkflowContext } from './WorkflowRunnerContext.js';
 
 export async function runEligibleWorkflow(
-  runner: unknown,
+  self: EligibleWorkflowContext,
   options: { returnAfterInitialLaunch?: boolean } = {},
 ): Promise<RunState> {
-  const self = runner as EligibleWorkflowRunner;
   await self.journal.writeRunMetadata(self.state);
   await self.journal.writeConfigSnapshot(self.dependencies.config);
   await self.journal.record('run-started', {
