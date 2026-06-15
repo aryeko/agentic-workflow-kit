@@ -6,7 +6,7 @@ import { resolveInvocationCwd } from '../cli/args.js';
 import { SystemClock } from '../clock/SystemClock.js';
 import { GhCollaborationInspector } from '../collaboration/CollaborationInspector.js';
 import { createRunId, loadResolvedConfig, resolveCwdOnlyConfig } from '../config/configLoader.js';
-import { CodexMcpStoryRunner } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
+import { createStoryRunner } from '../drivers/registry.js';
 import { RealGitInspector } from '../git/GitInspector.js';
 import { ConsoleLogger } from '../logging/ConsoleLogger.js';
 import { WorkflowRunner } from '../runner/WorkflowRunner.js';
@@ -445,8 +445,8 @@ export async function mcpCheckHandler(
   options: CommandHandlerOptions = {},
 ): Promise<{ ok: boolean; tools: string[] }> {
   const cwd = resolveInvocationCwd(overrides);
-  const storyRunner = new CodexMcpStoryRunner(resolveCwdOnlyConfig(cwd), {
-    ...(options.createCodexMcpClient ? { createClient: options.createCodexMcpClient } : {}),
+  const storyRunner = createStoryRunner(resolveCwdOnlyConfig(cwd), {
+    ...(options.createCodexMcpClient ? { createCodexMcpClient: options.createCodexMcpClient } : {}),
   });
   return await storyRunner.checkTools();
 }
@@ -485,8 +485,8 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
     command: command.kind,
     config,
     storySource,
-    storyRunner: new CodexMcpStoryRunner(config, {
-      ...(options.createCodexMcpClient ? { createClient: options.createCodexMcpClient } : {}),
+    storyRunner: createStoryRunner(config, {
+      ...(options.createCodexMcpClient ? { createCodexMcpClient: options.createCodexMcpClient } : {}),
     }),
     gitInspector: new RealGitInspector(),
     collaborationInspector: new GhCollaborationInspector(),

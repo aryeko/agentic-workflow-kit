@@ -6,7 +6,7 @@ import { projectInspectFacade, runReportFacade, runStatusFacade } from '../api/f
 import { resolveInvocationCwd } from '../cli/args.js';
 import { listTracksHandler } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
-import { CodexMcpStoryRunner } from '../drivers/codex-mcp/CodexMcpStoryRunner.js';
+import { createStoryRunner } from '../drivers/registry.js';
 import type { ChildControlRequest, ChildControlResult } from '../drivers/StoryRunner.js';
 import type { CliOverrides, Logger, RunState } from '../types.js';
 
@@ -80,7 +80,7 @@ export async function controlConfiguredChild(
 ): Promise<ChildControlResult> {
   const cwd = resolveChildControlCwd(input);
   const config = await loadResolvedConfig(toOverrides(input), cwd);
-  const runner = new CodexMcpStoryRunner(config);
+  const runner = createStoryRunner(config);
   const result = await runner.controlChild?.({
     ...request,
     sessionId: input.sessionId,

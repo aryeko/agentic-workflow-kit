@@ -49,6 +49,15 @@ afterEach(async () => {
 });
 
 describe('codex MCP control target resolution', () => {
+  it('keeps Codex alias MCP tools routed through configured child control', async () => {
+    const toolsSource = await readFile(path.join(process.cwd(), 'packages/orchestrator/src/mcp/tools.ts'), 'utf8');
+
+    expect(toolsSource).not.toContain('sendCodexReply');
+    expect(toolsSource).not.toContain('sendCodexInterrupt');
+    expect(toolsSource).toMatch(/'codex_reply'[\s\S]*controlConfiguredChild\(input, \{ kind: 'reply'/);
+    expect(toolsSource).toMatch(/'codex_interrupt'[\s\S]*controlConfiguredChild\(input, \{ kind: 'interrupt'/);
+  });
+
   it('resolves a child session from runPath and storyId', async () => {
     const runPath = await mkdtemp(path.join(tmpdir(), 'awk-control-'));
     tempRoots.push(runPath);

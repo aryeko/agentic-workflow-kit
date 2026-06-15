@@ -1,5 +1,5 @@
 import path from 'node:path';
-
+import { artifactRootDirForDriver, SUPPORTED_DRIVERS, unsupportedDriverMessage } from '../drivers/registry.js';
 import type {
   AgentBudgetPolicy,
   AgentBudgetSupport,
@@ -12,7 +12,6 @@ import type {
 import { loadConfig } from './resolve.js';
 import { assertRepoRelativePath, ConfigSchema, type WorkflowConfig } from './schema.js';
 
-const SUPPORTED_DRIVERS = new Set<OrchestratorDriver>(['codex-mcp']);
 const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
 const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
 const DEFAULT_WATCH_INTERVAL_MS = 300_000;
@@ -38,6 +37,7 @@ export async function loadResolvedConfig(
   });
 
   const driver = resolveDriver(config.orchestrator.driver);
+  const artifactRootDir = artifactRootDirForDriver(driver);
   const tracksDir = overrides.tracksDir ?? config.paths.tracksDir;
   if (overrides.tracksDir !== undefined) {
     assertRepoRelativePath(overrides.tracksDir, 'tracksDir');
@@ -93,9 +93,9 @@ export async function loadResolvedConfig(
       archiveDirAbs: path.resolve(workspaceRoot, archiveDir),
     },
     artifacts: {
-      rootDir: '.codex/agentic-workflow-kit',
-      rootDirAbs: path.resolve(workspaceRoot, '.codex/agentic-workflow-kit'),
-      runsDirAbs: path.resolve(workspaceRoot, '.codex/agentic-workflow-kit/runs'),
+      rootDir: artifactRootDir,
+      rootDirAbs: path.resolve(workspaceRoot, artifactRootDir),
+      runsDirAbs: path.resolve(workspaceRoot, artifactRootDir, 'runs'),
     },
     statuses: {
       eligible: config.statuses.eligible,
@@ -125,6 +125,9 @@ export async function loadResolvedConfig(
 export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfig {
   const workspaceRoot = path.resolve(cwd);
   const config = ConfigSchema.parse({ version: 1 });
+  const driver: OrchestratorDriver = 'codex-mcp';
+  const artifactRootDir = artifactRootDirForDriver(driver);
+  const resolvedChildSession = { cwdAbs: workspaceRoot };
   return {
     version: 1,
     configPath: path.resolve(workspaceRoot, '.workflow/config.yaml'),
@@ -136,9 +139,9 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       archiveDirAbs: path.resolve(workspaceRoot, 'docs/tracks/archive'),
     },
     artifacts: {
-      rootDir: '.codex/agentic-workflow-kit',
-      rootDirAbs: path.resolve(workspaceRoot, '.codex/agentic-workflow-kit'),
-      runsDirAbs: path.resolve(workspaceRoot, '.codex/agentic-workflow-kit/runs'),
+      rootDir: artifactRootDir,
+      rootDirAbs: path.resolve(workspaceRoot, artifactRootDir),
+      runsDirAbs: path.resolve(workspaceRoot, artifactRootDir, 'runs'),
     },
     statuses: {
       eligible: ['specced', 'plan-approved'],
@@ -175,7 +178,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
     },
     agents: resolveAgentProfiles(config),
     orchestrator: {
-      driver: 'codex-mcp',
+      driver,
       maxParallel: 2,
       stopLaunchingOnBlocked: true,
       watch: {
@@ -189,8 +192,8 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       childStartupTimeoutMs: DEFAULT_CHILD_STARTUP_TIMEOUT_MS,
       childMaxRuntimeMs: 7_200_000,
     },
-    childSession: { cwdAbs: workspaceRoot },
-    codex: { childSession: { cwdAbs: workspaceRoot } },
+    childSession: resolvedChildSession,
+    codex: { childSession: resolvedChildSession },
   };
 }
 
@@ -200,7 +203,7 @@ export function createRunId(now = () => new Date().toISOString()): string {
 
 function resolveDriver(value: string): OrchestratorDriver {
   if (!SUPPORTED_DRIVERS.has(value as OrchestratorDriver)) {
-    throw new Error(`Unsupported orchestrator.driver "${value}". Supported drivers: codex-mcp.`);
+    throw new Error(unsupportedDriverMessage(value));
   }
   return value as OrchestratorDriver;
 }

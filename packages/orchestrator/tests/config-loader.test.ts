@@ -4,6 +4,12 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { createRunId, loadResolvedConfig, resolveCwdOnlyConfig } from '../src/config/configLoader';
+import {
+  artifactRootDirForDriver,
+  createStoryRunner,
+  DEFAULT_ARTIFACT_ROOT_DIR,
+  supportedDriverNames,
+} from '../src/drivers/registry';
 
 async function writeWorkflowConfig(root: string, yaml: string): Promise<void> {
   await mkdir(path.join(root, '.workflow'), { recursive: true });
@@ -62,7 +68,9 @@ orchestrator:
     expect(config.workspace.rootAbs).toBe(root);
     expect(config.paths.tracksDirAbs).toBe(path.join(root, 'docs/tracks'));
     expect(config.paths.archiveDirAbs).toBe(path.join(root, 'docs/tracks/archive'));
-    expect(config.artifacts.runsDirAbs).toBe(path.join(root, '.codex/agentic-workflow-kit/runs'));
+    expect(config.artifacts.rootDir).toBe(DEFAULT_ARTIFACT_ROOT_DIR);
+    expect(config.artifacts.rootDirAbs).toBe(path.join(root, DEFAULT_ARTIFACT_ROOT_DIR));
+    expect(config.artifacts.runsDirAbs).toBe(path.join(root, DEFAULT_ARTIFACT_ROOT_DIR, 'runs'));
     expect(config.statuses.eligible).toEqual(['specced', 'plan-approved']);
     expect(config.statuses.complete).toEqual(['done', 'verified']);
     expect(config.orchestrator).toMatchObject({
@@ -122,6 +130,17 @@ orchestrator:
       unavailableReason: 'live token telemetry is not available before AWK06/AWK08 budget enforcement',
     });
     expect(config.codex.childSession).toEqual({ cwdAbs: root });
+    expect(config.childSession).toBe(config.codex.childSession);
+  });
+
+  it('exposes driver registry helpers for configured runner creation and artifact roots', () => {
+    const config = resolveCwdOnlyConfig('/repo');
+    const runner = createStoryRunner(config);
+
+    expect(supportedDriverNames()).toEqual(['codex-mcp']);
+    expect(artifactRootDirForDriver('codex-mcp')).toBe(DEFAULT_ARTIFACT_ROOT_DIR);
+    expect(typeof runner.runStory).toBe('function');
+    expect(typeof runner.checkTools).toBe('function');
   });
 
   it('copies non-default git policy and child timeout overrides into the resolved config', async () => {
@@ -393,7 +412,10 @@ orchestrator:
     const config = resolveCwdOnlyConfig(root);
 
     expect(config.workspace.rootAbs).toBe(root);
+    expect(config.artifacts.rootDir).toBe(DEFAULT_ARTIFACT_ROOT_DIR);
+    expect(config.artifacts.runsDirAbs).toBe(path.join(root, DEFAULT_ARTIFACT_ROOT_DIR, 'runs'));
     expect(config.codex.childSession.cwdAbs).toBe(root);
+    expect(config.childSession).toBe(config.codex.childSession);
     expect(config.agents.bindings.prePrReview).toBe('prePrReviewer');
     expect(config.agents.resolved.prePrReview.prompt.template).toBe('built-in/pre-pr-reviewer');
     expect(config.orchestrator.childTimeoutMs).toBe(1_800_000);
