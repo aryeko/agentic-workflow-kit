@@ -302,4 +302,114 @@ describe('childResultEvidence', () => {
       findings: 1,
     });
   });
+
+  it('normalizes flat GitHub aliases, check conclusions, review status, and merge metadata', () => {
+    const evidence = childResultEvidence(
+      {
+        result: {
+          prNumber: 109,
+          prUrl: 'https://github.com/aryeko/pathway/pull/109',
+          ci: { name: 'CI', conclusion: 'timed_out', summary: 'CI timed out' },
+          review: { bot: 'codex', status: 'pending', mechanism: 'native-review', detail: 'waiting' },
+          merge: { method: 'rebase', mergedAt: '2026-06-16T00:00:00.000Z', branchDeleted: false },
+          downgrades: ['browser unavailable'],
+          blockers: ['manual review required'],
+        },
+      },
+      '',
+    );
+
+    expect(evidence.github?.checks).toEqual([
+      { command: 'CI', status: 'failed', conclusion: 'timed_out', detail: 'CI timed out' },
+    ]);
+    expect(evidence.github?.review).toMatchObject({
+      reviewer: 'codex',
+      signal: 'pending',
+      mechanism: 'native-review',
+      triaged: null,
+      findings: null,
+      detail: 'waiting',
+    });
+    expect(evidence.github?.merge).toMatchObject({
+      merged: true,
+      method: 'rebase',
+      commit: null,
+      mergedAt: '2026-06-16T00:00:00.000Z',
+      branchDeleted: false,
+    });
+    expect(evidence.downgrades).toEqual(['browser unavailable']);
+    expect(evidence.blockers).toEqual(['manual review required']);
+  });
+
+  it('extracts tracker authority, skipped checks, Codex approval comments, and branch cleanup from text', () => {
+    const evidence = childResultEvidence(
+      {},
+      [
+        'Tracker authority: `docs/tracks/example/README.md` has done.',
+        '`gh pr checks 109 --watch` skipped because no required checks are configured.',
+        'Codex review clear with no findings.',
+        'Branch deleted after PR cleanup.',
+      ].join('\n'),
+    );
+
+    expect(evidence.finalStatus).toBe('done');
+    expect(evidence.trackerPath).toBe('docs/tracks/example/README.md');
+    expect(evidence.github?.checks?.[0]).toMatchObject({
+      command: 'gh pr checks 109 --watch',
+      status: 'skipped',
+    });
+    expect(evidence.github?.review).toMatchObject({
+      reviewer: 'codex',
+      signal: 'approved',
+      mechanism: 'comment',
+      findings: 0,
+    });
+    expect(evidence.github?.merge).toMatchObject({
+      merged: false,
+      branchDeleted: true,
+      commit: null,
+      mergedAt: null,
+    });
+  });
+
+  it('reads mixed verification entries and ignores invalid structured statuses', () => {
+    const evidence = childResultEvidence(
+      {
+        evidence: {
+          verification: [
+            'pnpm check',
+            { command: 'smoke', status: 'skipped', phase: 'post-pr', detail: 'skipped by config' },
+            { command: 'bad', status: 'unknown' },
+            42,
+          ],
+        },
+      },
+      '',
+    );
+
+    expect(evidence.verification).toEqual([
+      { command: 'pnpm check', status: 'passed' },
+      { command: 'smoke', status: 'skipped', phase: 'post-pr', detail: 'skipped by config' },
+    ]);
+  });
+
+  it('keeps explicit not-merged evidence when merge details are absent', () => {
+    const evidence = childResultEvidence(
+      {
+        childResult: {
+          github: { merge: { merged: false } },
+          mergeCommit: '',
+        },
+      },
+      'PR #109 is not merged.',
+    );
+
+    expect(evidence.merged).toBe(false);
+    expect(evidence.mergeCommit).toBeUndefined();
+    expect(evidence.github?.merge).toMatchObject({
+      merged: false,
+      commit: null,
+      mergedAt: null,
+    });
+  });
 });
