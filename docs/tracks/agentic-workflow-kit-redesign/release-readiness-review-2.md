@@ -177,12 +177,23 @@ Do not redo these:
 
 ## Recommended path to release
 
-1. **R2-1** — atomic temp+rename in `FileArtifactStore.writeText` (blocker for the durability claim).
-2. **R2-4** — one crash-recovery round-trip test + one end-to-end story-run test.
-3. **R2-2** — unify the two vitest configs so coverage spans both suites.
-4. Fast-follow (not strict blockers): **R2-3** driver factory + route control through the contract +
-   parameterize artifact dir; **R2-5** typed error codes in the facade.
-5. Then AWK14: consolidated changeset, regenerated changelog, release handoff.
+Decision: **all round-2 findings — including R2-3 and R2-5 — block V1.** They are sequenced as
+remediation stories AWK13.8–AWK13.12 (see
+[release-hardening-design-2.md](../../prds/agentic-workflow-kit-redesign/release-hardening-design-2.md)),
+inserted between AWK13.7 and AWK14; all of them gate AWK14. Seam-first ordering, mirroring round 1:
+
+1. **AWK13.8 / R2-3** — route child control through the `StoryRunner` contract, add a driver factory,
+   parameterize the artifact dir. Lands first because the later fixes ride its seams.
+2. **AWK13.9 / R2-1 + crash-recovery test** — atomic temp+rename in `FileArtifactStore.writeText`,
+   stale-lock recovery, crash-recovery round-trip test. (Parallel with AWK13.10.)
+3. **AWK13.10 / R2-5** — typed error codes + meaningful `retryable` in the facade. (Parallel with
+   AWK13.9.)
+4. **AWK13.11 / R2-2 + R2-4** — unify the vitest configs so coverage spans both suites; add the
+   end-to-end story-run test and live child-control coverage. Lands after the behavioral stories so
+   coverage reflects final shapes.
+5. **AWK13.12** — DevX/docs hygiene (CODEOWNERS, CoC contact, naming nit). Independent of the
+   behavioral fixes; gates AWK14 alongside AWK13.11.
+6. Then **AWK14**: consolidated changeset, regenerated changelog, release handoff.
 
 ## Method
 
