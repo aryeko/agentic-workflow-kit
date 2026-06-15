@@ -116,6 +116,46 @@ describe('tracker claimer', () => {
     await expect(access(`${claimLockPath(trackerPath)}.reclaim`)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
+  it('does not stale-reclaim the secondary reclaim mutex', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-claimer-'));
+    tempRoots.push(root);
+    const trackerPath = path.join(root, 'docs/tracks/track/README.md');
+    const lockPath = claimLockPath(trackerPath);
+    await mkdir(path.dirname(trackerPath), { recursive: true });
+    await writeFile(trackerPath, trackerMarkdown());
+    await writeFile(
+      lockPath,
+      JSON.stringify({
+        owner: 'crashed-owner',
+        pid: 999_999,
+        createdAt: '2026-06-15T19:00:00.000Z',
+        token: 'crashed-token',
+      }),
+    );
+    await writeFile(
+      `${lockPath}.reclaim`,
+      JSON.stringify({
+        owner: 'reclaim-owner',
+        pid: 999_999,
+        createdAt: '1970-01-01T00:00:00.000Z',
+        token: 'stale-reclaim-token',
+      }),
+    );
+    const config = resolvedConfig(root);
+
+    const result = await claimTrackerRow({
+      config,
+      story: firstStory(await readFile(trackerPath, 'utf8')),
+      owner: 'owner-a',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'tracker docs/tracks/track/README.md claim lock timed out',
+    });
+    await expect(access(`${lockPath}.reclaim`)).resolves.toBeUndefined();
+  }, 10000);
+
   it('reclaims a stale legacy text claim lock by file age', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'awk-claimer-'));
     tempRoots.push(root);

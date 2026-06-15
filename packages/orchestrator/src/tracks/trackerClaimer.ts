@@ -178,7 +178,7 @@ function buildClaimLockMetadata(owner: string): ClaimLockMetadata {
 
 async function reclaimStaleClaimLock(lockPath: string): Promise<boolean> {
   const reclaimLockPath = `${lockPath}.reclaim`;
-  const reclaimLock = await acquireStandaloneLock(reclaimLockPath, `reclaim:${process.pid}`);
+  const reclaimLock = await acquireReclaimLock(reclaimLockPath, `reclaim:${process.pid}`);
   if (reclaimLock === null) return false;
   try {
     const inspected = await inspectClaimLock(lockPath);
@@ -199,7 +199,7 @@ async function reclaimStaleClaimLock(lockPath: string): Promise<boolean> {
   }
 }
 
-async function acquireStandaloneLock(lockPath: string, owner: string): Promise<ClaimLockMetadata | null> {
+async function acquireReclaimLock(lockPath: string, owner: string): Promise<ClaimLockMetadata | null> {
   const deadline = Date.now() + CLAIM_LOCK_TIMEOUT_MS;
   const metadata = buildClaimLockMetadata(owner);
   for (;;) {
@@ -208,26 +208,9 @@ async function acquireStandaloneLock(lockPath: string, owner: string): Promise<C
       return metadata;
     } catch (error) {
       if (!isNodeError(error) || error.code !== 'EEXIST') throw error;
-      if (await reclaimStandaloneLock(lockPath)) continue;
       if (Date.now() >= deadline) return null;
       await delay(25);
     }
-  }
-}
-
-async function reclaimStandaloneLock(lockPath: string): Promise<boolean> {
-  const inspected = await inspectClaimLock(lockPath);
-  if (inspected === null) return true;
-  if (!inspected.reclaimable) return false;
-  const current = await readClaimLockContent(lockPath);
-  if (current === null) return true;
-  if (current !== inspected.content) return false;
-  try {
-    await unlink(lockPath);
-    return true;
-  } catch (error) {
-    if (isNodeError(error) && error.code === 'ENOENT') return true;
-    throw error;
   }
 }
 
