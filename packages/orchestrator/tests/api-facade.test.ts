@@ -3,7 +3,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { projectInspectFacade, runPreviewFacade } from '../src/api/facade';
+import { projectInspectFacade, runPreviewFacade, runStatusFacade, trackerValidateFacade } from '../src/api/facade';
+import {
+  WorkflowConfigError,
+  WorkflowInternalError,
+  WorkflowRunNotFoundError,
+  WorkflowStoryNotEligibleError,
+  WorkflowTrackerError,
+  workflowKitErrorFromUnknown,
+} from '../src/internal/errors';
 
 const trackerMarkdown = `---
 title: Linkly tracker
@@ -175,6 +183,25 @@ describe('workflow API facade', () => {
     await expect(access(path.join(root, '.codex', 'agentic-workflow-kit'))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
+  it('returns a story-not-eligible envelope for non-forced blocked story previews', async () => {
+    const root = await createWorkspace();
+
+    const envelope = await runPreviewFacade({
+      cwd: root,
+      target: { type: 'story', trackId: 'linkly', storyId: 'LK03' },
+    });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_preview',
+      error: {
+        code: 'STORY_NOT_ELIGIBLE',
+        retryable: false,
+        message: 'owner is arye',
+      },
+    });
+  });
+
   it('maps facade failures to a structured error envelope', async () => {
     const root = await createWorkspace();
 
@@ -209,9 +236,89 @@ describe('workflow API facade', () => {
       operation: 'workflow_run_preview',
       error: {
         code: 'TRACKER_INVALID',
-        message: expect.stringContaining('story LK99 was not found'),
+        message: 'target LK99 was not found',
       },
     });
+  });
+
+  it('keeps config failures typed before tracker discovery', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-api-facade-no-config-'));
+
+    const envelope = await runPreviewFacade({
+      cwd: root,
+      target: { type: 'story', storyId: 'LK02' },
+    });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_preview',
+      error: {
+        code: 'CONFIG_INVALID',
+        retryable: false,
+      },
+    });
+  });
+
+  it('keeps config failures typed before run-read fallback classification', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-api-facade-run-no-config-'));
+
+    const envelope = await runStatusFacade({ cwd: root, runId: 'missing-run' });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_status',
+      error: {
+        code: 'CONFIG_INVALID',
+        retryable: false,
+      },
+    });
+  });
+
+  it('does not mask corrupt run artifacts as missing runs', async () => {
+    const root = await createWorkspace();
+    const runDir = path.join(root, '.codex', 'agentic-workflow-kit', 'runs', 'run-corrupt');
+    await mkdir(runDir, { recursive: true });
+    await writeFile(path.join(runDir, 'state.json'), '{');
+
+    const envelope = await runStatusFacade({ cwd: root, runId: 'run-corrupt' });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_status',
+      error: {
+        code: 'INTERNAL_ERROR',
+        retryable: false,
+      },
+    });
+  });
+
+  it('keeps config failures typed before tracker validation', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-api-facade-tracker-no-config-'));
+
+    const envelope = await trackerValidateFacade({ cwd: root, track: 'linkly' });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_tracker_validate',
+      error: {
+        code: 'CONFIG_INVALID',
+        retryable: false,
+      },
+    });
+  });
+
+  it('derives public error metadata from typed errors rather than message text', () => {
+    const cases = [
+      [new WorkflowConfigError('settings unavailable'), 'CONFIG_INVALID', false],
+      [new WorkflowTrackerError('target LK99 unavailable'), 'TRACKER_INVALID', false],
+      [new WorkflowStoryNotEligibleError('owner conflict'), 'STORY_NOT_ELIGIBLE', false],
+      [new WorkflowRunNotFoundError('artifact directory missing'), 'RUN_NOT_FOUND', false],
+      [new WorkflowInternalError('driver boundary failure', { retryable: true }), 'INTERNAL_ERROR', true],
+    ] as const;
+
+    for (const [error, code, retryable] of cases) {
+      expect(workflowKitErrorFromUnknown(error)).toMatchObject({ code, retryable, message: error.message });
+    }
   });
 
   it('rejects story preview when the story id exists in multiple tracks and no track is supplied', async () => {

@@ -25,9 +25,17 @@ import {
   type WorkflowRunStreamResult,
 } from '../commands/handlers.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
+import {
+  type WorkflowApiErrorCode,
+  WorkflowStoryNotEligibleError,
+  WorkflowTrackerError,
+  workflowKitErrorFromUnknown,
+} from '../internal/errors.js';
 import { selectDispatchableStories } from '../scheduler/scheduler.js';
 import type { TrackerMigrationReport, TrackerValidationReport } from '../tracks/markdownTracker.js';
 import type { CliOverrides, ResolvedWorkflowConfig, RunStatus, WorkflowRunPreviewTarget } from '../types.js';
+
+export type { WorkflowApiErrorCode } from '../internal/errors.js';
 
 export type WorkflowApiOperation =
   | 'workflow_project_inspect'
@@ -39,13 +47,6 @@ export type WorkflowApiOperation =
   | 'workflow_run_export'
   | 'workflow_tracker_validate'
   | 'workflow_tracker_migrate';
-export type WorkflowApiErrorCode =
-  | 'CONFIG_INVALID'
-  | 'TRACKER_INVALID'
-  | 'STORY_NOT_ELIGIBLE'
-  | 'RUN_NOT_FOUND'
-  | 'INTERNAL_ERROR';
-
 export interface WorkflowArtifactRef {
   kind: string;
   path: string;
@@ -175,8 +176,10 @@ export async function projectInspectFacade(
 ): Promise<WorkflowApiEnvelope<WorkflowProjectInspectResult>> {
   const operation = 'workflow_project_inspect';
   try {
-    const config = await loadResolvedConfig(input, resolveInvocationCwd(input));
-    const tracks = await discoverTracks(config, input);
+    const config = await loadConfigForFacade(input);
+    const tracks = await discoverTracks(config, input).catch((error: unknown) => {
+      throw workflowKitErrorFromUnknown(error, 'TRACKER_INVALID');
+    });
     return successEnvelope(operation, config, input.requestId, {
       result: {
         project: {
@@ -256,7 +259,7 @@ export async function runStatusFacade(
       ],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, error);
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -278,7 +281,7 @@ export async function runStreamFacade(
       ],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, error);
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -298,7 +301,7 @@ export async function runInspectFacade(
       ],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, error);
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -323,7 +326,7 @@ export async function runReportFacade(
       ],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, error);
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -339,7 +342,7 @@ export async function runExportFacade(
       next: [],
     });
   } catch (error) {
-    return failureEnvelope(operation, input, error);
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
   }
 }
 
@@ -391,7 +394,10 @@ export async function trackerValidateFacade(
 ): Promise<WorkflowApiEnvelope<WorkflowTrackerValidateResult>> {
   const operation = 'workflow_tracker_validate';
   try {
-    const validation = await trackerValidateHandler(input);
+    await loadConfigForFacade(input);
+    const validation = await trackerValidateHandler(input).catch((error: unknown) => {
+      throw workflowKitErrorFromUnknown(error, 'TRACKER_INVALID');
+    });
     return successEnvelope(operation, validation.config, input.requestId, {
       result: {
         track: validation.track,
@@ -416,7 +422,12 @@ export async function trackerMigrateFacade(
 ): Promise<WorkflowApiEnvelope<WorkflowTrackerMigrateResult>> {
   const operation = 'workflow_tracker_migrate';
   try {
-    const migration = await trackerMigrateHandler({ from: input.from, track: input.track }, input);
+    await loadConfigForFacade(input);
+    const migration = await trackerMigrateHandler({ from: input.from, track: input.track }, input).catch(
+      (error: unknown) => {
+        throw workflowKitErrorFromUnknown(error, 'TRACKER_INVALID');
+      },
+    );
     return successEnvelope(operation, migration.config, input.requestId, {
       result: {
         track: migration.track,
@@ -448,17 +459,17 @@ async function buildRunPreview(input: WorkflowRunPreviewInput): Promise<{
   };
   const target = input.target;
   if (target.type === 'story') {
-    const { config, stories } = await listStoriesHandler(overrides);
+    const { config, stories } = await listStoriesForFacade(overrides);
     const matchingStories = stories.filter((entry) => entry.id === target.storyId);
     if (target.trackId === undefined && matchingStories.length > 1) {
-      throw new Error(
+      throw new WorkflowTrackerError(
         `story ${target.storyId} exists in multiple tracks: ${matchingStories
           .map((story) => story.metadata.trackId)
           .join(', ')}; pass --track <id>`,
       );
     }
     const story = matchingStories[0];
-    if (!story) throw new Error(`story ${target.storyId} was not found`);
+    if (!story) throw new WorkflowTrackerError(`target ${target.storyId} was not found`);
     if (input.force === true) {
       return {
         config,
@@ -466,19 +477,24 @@ async function buildRunPreview(input: WorkflowRunPreviewInput): Promise<{
         blockers: [],
       };
     }
+    if (!story.eligible) {
+      throw new WorkflowStoryNotEligibleError(story.blockedReason ?? `story ${story.id} is not eligible`);
+    }
     return {
       config,
-      dispatchableStoryIds: story.eligible ? [story.id] : [],
-      blockers: story.eligible ? [] : [story.blockedReason ?? `story ${story.id} is not eligible`],
+      dispatchableStoryIds: [story.id],
+      blockers: [],
     };
   }
 
   const { config, stories } =
-    target.trackId === undefined ? await listStoriesHandler(overrides) : await listEligibleHandler(overrides);
+    target.trackId === undefined ? await listStoriesForFacade(overrides) : await listEligibleForFacade(overrides);
   const eligibleStories = stories.filter((story) => story.eligible);
   const eligibleTrackIds = [...new Set(eligibleStories.map((story) => story.metadata.trackId))];
   if (target.trackId === undefined && eligibleTrackIds.length > 1) {
-    throw new Error(`multiple tracks have eligible stories: ${eligibleTrackIds.join(', ')}; pass --track <id>`);
+    throw new WorkflowTrackerError(
+      `multiple tracks have eligible stories: ${eligibleTrackIds.join(', ')}; pass --track <id>`,
+    );
   }
   const dispatchable = selectDispatchableStories(eligibleStories, {
     maxParallel: input.maxParallel ?? config.orchestrator.maxParallel,
@@ -518,7 +534,7 @@ function failureEnvelope(
   input: Pick<CliOverrides, 'cwd' | 'configPath' | 'requestId'>,
   error: unknown,
 ): WorkflowApiFailure {
-  const message = error instanceof Error ? error.message : String(error);
+  const apiError = workflowKitErrorFromUnknown(error);
   return {
     ok: false,
     operation,
@@ -531,10 +547,10 @@ function failureEnvelope(
         }
       : undefined,
     error: {
-      code: errorCodeForMessage(message),
-      message,
+      code: apiError.code,
+      message: apiError.message,
       severity: 'error',
-      retryable: false,
+      retryable: apiError.retryable,
       details: [],
       artifactRefs: [],
     },
@@ -544,6 +560,37 @@ function failureEnvelope(
       { label: 'Inspect project', mcpTool: 'workflow_project_inspect', cli: 'agentic-workflow-kit project inspect' },
     ],
   };
+}
+
+async function loadConfigForFacade(input: CliOverrides): Promise<ResolvedWorkflowConfig> {
+  return await loadResolvedConfig(input, resolveInvocationCwd(input)).catch((error: unknown) => {
+    throw workflowKitErrorFromUnknown(error, 'CONFIG_INVALID');
+  });
+}
+
+async function listStoriesForFacade(input: CliOverrides): Promise<Awaited<ReturnType<typeof listStoriesHandler>>> {
+  await loadConfigForFacade(input);
+  return await listStoriesHandler(input).catch((error: unknown) => {
+    throw workflowKitErrorFromUnknown(error, 'TRACKER_INVALID');
+  });
+}
+
+async function listEligibleForFacade(input: CliOverrides): Promise<Awaited<ReturnType<typeof listEligibleHandler>>> {
+  await loadConfigForFacade(input);
+  return await listEligibleHandler(input).catch((error: unknown) => {
+    throw workflowKitErrorFromUnknown(error, 'TRACKER_INVALID');
+  });
+}
+
+async function runReadErrorForFacade(input: CliOverrides & { runPath?: string; runId?: string }, error: unknown) {
+  const explicitRunPath = input.runPath && (path.isAbsolute(input.runPath) || input.runPath.includes(path.sep));
+  if (explicitRunPath) return workflowKitErrorFromUnknown(error);
+  try {
+    await loadConfigForFacade(input);
+  } catch (configError) {
+    return workflowKitErrorFromUnknown(configError, 'CONFIG_INVALID');
+  }
+  return workflowKitErrorFromUnknown(error);
 }
 
 function projectRef(config: ResolvedWorkflowConfig): WorkflowProjectRef {
@@ -571,12 +618,4 @@ function capabilitiesFromConfig(config: ResolvedWorkflowConfig): WorkflowApiCapa
     githubVerificationConfigured: config.pr.create,
     githubVerificationAvailable: null,
   };
-}
-
-function errorCodeForMessage(message: string): WorkflowApiErrorCode {
-  if (message.includes('config') || message.includes('.workflow/config.yaml')) return 'CONFIG_INVALID';
-  if (message.includes('not eligible')) return 'STORY_NOT_ELIGIBLE';
-  if (message.includes('run') && message.includes('not found')) return 'RUN_NOT_FOUND';
-  if (message.includes('track') || message.includes('story') || message.includes('stories')) return 'TRACKER_INVALID';
-  return 'INTERNAL_ERROR';
 }

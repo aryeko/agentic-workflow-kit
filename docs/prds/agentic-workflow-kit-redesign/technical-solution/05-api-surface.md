@@ -101,7 +101,19 @@ Every mutating or long-running API should return a shared envelope:
 ```
 
 Errors use the same shape with `ok: false`, an `error` object, and any diagnostics/artifacts that
-were safely produced.
+were safely produced. Public error codes are derived from typed WorkflowKit errors, not from
+human-readable message text:
+
+| Code | Meaning | Retryable default |
+| --- | --- | --- |
+| `CONFIG_INVALID` | The repository config is missing, invalid, or unavailable at a config-loading boundary. | `false` |
+| `TRACKER_INVALID` | Tracker discovery, validation, migration, or story target resolution failed. | `false` |
+| `STORY_NOT_ELIGIBLE` | A requested story exists but cannot be dispatched without `force` because status, owner, or dependencies block it. | `false` |
+| `RUN_NOT_FOUND` | The requested run reference or required run artifact root is absent. | `false` |
+| `INTERNAL_ERROR` | An unexpected failure occurred after the target resource was resolved, such as corrupt run artifacts. | `false` |
+
+`retryable` is owned by the error class. Current public classes default to `false`; future transient
+host or network failures may opt into `true` without changing the envelope shape.
 
 ## CLI design
 

@@ -4,6 +4,7 @@ import { resolveInvocationCwd } from '../cli/args.js';
 import { loadResolvedConfig, resolveCwdOnlyConfig } from '../config/configLoader.js';
 import { createStoryRunner, discoverSessionLogsForDriver } from '../drivers/registry.js';
 import type { StoryRunner } from '../drivers/StoryRunner.js';
+import { WorkflowRunNotFoundError } from '../internal/errors.js';
 import type {
   CliOverrides,
   LiveMetricsSnapshot,
@@ -221,7 +222,7 @@ export async function resolveRunDirectory(input: {
   configPath?: string;
 }): Promise<string> {
   const runRef = input.runPath ?? input.runId;
-  if (!runRef) throw new Error('run not found: pass runId or runPath');
+  if (!runRef) throw new WorkflowRunNotFoundError('run not found: pass runId or runPath');
   if (path.isAbsolute(runRef) || runRef.includes(path.sep)) return path.resolve(runRef);
   const cwd = resolveInvocationCwd(input);
   const config = await loadResolvedConfig(input, cwd);
@@ -248,7 +249,7 @@ export async function assertRunExists(runDirectory: string): Promise<void> {
   const directory = await statIfExists(runDirectory);
   const state = await statIfExists(path.join(runDirectory, 'state.json'));
   if (directory === null || state === null) {
-    throw new Error(`run not found: ${runDirectory}`);
+    throw new WorkflowRunNotFoundError(`run not found: ${runDirectory}`);
   }
 }
 
