@@ -262,6 +262,20 @@ describe('skill authoring', () => {
     expect(body).toContain('Operation requested: $ARGUMENTS');
     expect(body).toContain('Codex review as');
     expect(body).toContain('Do not require a native GitHub approval or');
+    expect(body).toContain('workflow_run_status');
+    expect(body).toContain('workflow_run_stream');
+    expect(body).toContain('workflow_run_inspect');
+    expect(body).toContain('workflow_run_report');
+    expect(body).toContain('workflow_run_export');
+    expect(body).toContain('workflow_run_control');
+    expect(body).toContain('watch_run_start');
+    expect(body).toContain('watch_run_poll');
+    expect(body).toContain('watch_run_stop');
+    expect(body).toContain('workflow_child_reply');
+    expect(body).toContain('workflow_child_interrupt');
+    expect(body).toContain('workflow_driver_check');
+    expect(body).toContain('codex_reply');
+    expect(body).toContain('codex_interrupt');
   });
 
   it.each(skillNames)('%s only references existing plugin-root paths', (skillName) => {

@@ -50,7 +50,33 @@ describe('current-state documentation', () => {
 
     expect(gettingStarted).not.toContain('Install commands are planned');
     expect(gettingStarted).toContain('package-backed MCP runtime');
+    expect(gettingStarted).toContain('explicit approval before any non-dry-run autonomous launch');
+    expect(gettingStarted).toContain('GitHub verification is unavailable or ambiguous, the run fails closed');
+    expect(gettingStarted).toContain('pnpm agentic-workflow-kit -- run status <run-id-or-path> --json');
+    expect(gettingStarted).toContain('pnpm agentic-workflow-kit -- run stream <run-id-or-path> --format ndjson');
+    expect(gettingStarted).toContain('pnpm agentic-workflow-kit -- run inspect <run-id-or-path> --json');
+    expect(gettingStarted).not.toContain('agentic-workflow-kit run status <run-id-or-path> --json');
     expect(contributing).not.toContain('not yet published');
     expect(contributing).toContain('changeset');
+  });
+
+  it('keeps root release and security docs aligned with the current 0.5.x line', () => {
+    const changelog = readFileSync('CHANGELOG.md', 'utf8');
+    const security = readFileSync('SECURITY.md', 'utf8');
+
+    expect(changelog).toContain('packages/orchestrator/CHANGELOG.md');
+    expect(changelog).toContain('0.5.x');
+    expect(changelog).not.toContain('## [0.1.0] - Unreleased');
+    expect(security).toContain('| 0.5.x | yes |');
+    expect(security).toContain('| < 0.5 | no |');
+    expect(security).not.toContain('| 0.1.x | yes |');
+  });
+
+  it('keeps published package metadata aligned with the documented Node runtime', () => {
+    const packageJson = JSON.parse(readFileSync('packages/orchestrator/package.json', 'utf8')) as {
+      engines?: { node?: string };
+    };
+
+    expect(packageJson.engines?.node).toBe('>=24');
   });
 });
