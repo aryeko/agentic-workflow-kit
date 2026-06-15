@@ -6,8 +6,8 @@ agentic-workflow-kit is pre-1.0. Security fixes land on the latest `0.x` release
 
 | Version | Supported |
 | --- | --- |
-| 0.1.x | yes |
-| < 0.1 | no |
+| 0.5.x | yes |
+| < 0.5 | no |
 
 ## Reporting a vulnerability
 

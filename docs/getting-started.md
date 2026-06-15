@@ -41,10 +41,11 @@ In a target repo, run the skill:
 /workflow-init
 ```
 
-It detects your package manager, CI, default branch, and branch protection, picks a PR/merge
-preset, writes `.workflow/config.yaml`, and scaffolds a tracks index plus an example tracker. It is
-idempotent — re-running reconciles missing keys and never overwrites an existing config or tracker
-without confirmation.
+It detects your package manager, CI, default branch, and branch protection, writes
+`.workflow/config.yaml`, and scaffolds a tracks index plus an example tracker. It is idempotent —
+re-running reconciles missing keys and never overwrites an existing config or tracker without
+confirmation. New or unknown repos default to the conservative `push-only` preset; auto-merging
+presets require an explicit selection.
 
 Pick the preset that matches your repo (you can change it later by editing the `pr:` block):
 
@@ -128,8 +129,11 @@ outside a plugin session:
 ```bash
 pnpm agentic-workflow-kit -- mcp check                 # verify the Codex MCP tool schema
 pnpm agentic-workflow-kit -- run-eligible --dry-run --tracks-dir examples --config presets/push-only.yaml    # show what would dispatch, no side effects
-pnpm agentic-workflow-kit -- run-eligible --tracks-dir examples --config presets/push-only.yaml              # launch child sessions (needs the Codex CLI)
+pnpm agentic-workflow-kit -- run-eligible --yes --tracks-dir examples --config presets/push-only.yaml       # launch child sessions (needs the Codex CLI)
 ```
+
+Autonomous dispatch requires explicit approval before any non-dry-run autonomous launch. Dry-run
+first, inspect the launch plan, then approve the launch deliberately.
 
 The orchestrator launches up to `orchestrator.maxParallel` child sessions, re-reads the tracker
 after each returns, and treats the tracker row — not the child's prose — as the completion
@@ -163,9 +167,9 @@ artifacts.
 The product CLI exposes the same artifact-backed status surfaces:
 
 ```bash
-agentic-workflow-kit run status <run-id-or-path> --json
-agentic-workflow-kit run stream <run-id-or-path> --format ndjson
-agentic-workflow-kit run inspect <run-id-or-path> --json
+pnpm agentic-workflow-kit -- run status <run-id-or-path> --json
+pnpm agentic-workflow-kit -- run stream <run-id-or-path> --format ndjson
+pnpm agentic-workflow-kit -- run inspect <run-id-or-path> --json
 ```
 
 Use `run status` for a bounded snapshot, `run stream` for a replayable normalized event tail with a
@@ -181,6 +185,9 @@ be evidence-based: check child progress, branch and remote state, open or merged
 status on the configured base branch, latest commit evidence, and worktree cleanliness before taking
 over. If any evidence is ambiguous, stop with "manual recovery required" instead of editing a child
 branch or worktree.
+
+GitHub PR, check, review, merge, and branch-deletion outcomes are verified from observable
+collaboration evidence rather than child prose. If GitHub verification is unavailable or ambiguous, the run fails closed and reports the missing signal instead of treating the story as shipped.
 
 Autopilot uses three timeout concepts. `orchestrator.childStartupTimeoutMs` bounds the startup
 handshake before a child links a session or reports progress; stale startup orphans with no session,

@@ -45,13 +45,29 @@ If `.workflow/config.yaml` is missing, stop and tell the user to run `/workflow-
 
 When the plugin-provided `agentic-workflow-kit` MCP server is connected, prefer these tools:
 
+- `workflow_project_inspect`
+- `workflow_run_preview`
+- `workflow_run_status`
+- `workflow_run_stream`
+- `workflow_run_inspect`
+- `workflow_run_report`
+- `workflow_run_export`
+- `workflow_run_control`
+- `workflow_child_reply`
+- `workflow_child_interrupt`
+- `workflow_driver_check`
 - `list_tracks`
 - `list_stories`
 - `list_eligible`
 - `run_eligible` with dry-run first
 - `run_story`
 - `watch_run`
+- `watch_run_start`
+- `watch_run_poll`
+- `watch_run_stop`
 - `analyze_run`
+- `codex_reply`
+- `codex_interrupt`
 - `check_codex_mcp`
 
 If the `agentic-workflow-kit` MCP tools are not present in this session, use the CLI fallback below.
@@ -60,10 +76,12 @@ review policy, or merge policy. `analyze_run` also accepts compatible interactiv
 `implement-next` journals when `state.json` contains `command: "implement-next"` and an
 `interactive` child record with `storyId` and `sessionId`.
 For non-dry-run MCP dispatch, treat the `run_eligible` response as a launch receipt once it returns
-`runId`/`artifactDir` and active children. Continue supervision with `watch_run`; use `analyze_run`
-after completion, blockage, or suspected stale state.
-For sparse supervision, prefer `watch_run` with `wait: true`, `intervalMs`, and `timeoutMs` rather
-than frequent manual polling.
+`runId`/`artifactDir` and active children. Continue supervision with `watch_run_start` and
+`watch_run_poll`; use `watch_run` for an immediate snapshot and `analyze_run` after completion,
+blockage, or suspected stale state.
+For sparse supervision, prefer cursor-based `watch_run_start` / `watch_run_poll` or `watch_run` with
+`wait: true`, `intervalMs`, and `timeoutMs` rather than frequent manual polling. Release
+nonblocking watch ids with `watch_run_stop`.
 Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-full-access` with
 `approvalPolicy: never` grants those children full local disk access without interactive approval.
 
@@ -91,6 +109,12 @@ agentic-workflow-kit list-eligible --track <track-id>
 agentic-workflow-kit run-eligible --dry-run --track <track-id>
 agentic-workflow-kit run-eligible --track <track-id> --max-parallel=2 --watch
 agentic-workflow-kit run-story <story-id> --track <track-id>
+agentic-workflow-kit run status .codex/agentic-workflow-kit/runs/<run-id> --json
+agentic-workflow-kit run stream .codex/agentic-workflow-kit/runs/<run-id> --format ndjson
+agentic-workflow-kit run inspect .codex/agentic-workflow-kit/runs/<run-id> --json
+agentic-workflow-kit run report .codex/agentic-workflow-kit/runs/<run-id>
+agentic-workflow-kit run export .codex/agentic-workflow-kit/runs/<run-id>
+agentic-workflow-kit abort-run .codex/agentic-workflow-kit/runs/<run-id> --reason "<reason>"
 agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id>
 agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id> --wait --interval-ms 300000 --timeout-ms 1800000
 agentic-workflow-kit analyze-run .codex/agentic-workflow-kit/runs/<run-id>

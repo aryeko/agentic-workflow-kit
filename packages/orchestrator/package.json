@@ -15,6 +15,9 @@
   ],
   "author": "Arye Kogan",
   "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/aryeko/agentic-workflow-kit.git",
