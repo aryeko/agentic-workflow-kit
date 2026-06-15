@@ -152,7 +152,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK135 | AWK13.5 Module decomposition | AWK132, AWK133, AWK134 | W7.4 | done | [brief](./stories/AWK135.md) | — | codex-2026-06-15T09-38-02Z | [#78](https://github.com/aryeko/agentic-workflow-kit/pull/78) |
 | AWK136 | AWK13.6 Test trust and coverage ratchet | AWK135 | W7.5 | done | [brief](./stories/AWK136.md) | — | codex-2026-06-15T16-51-16Z | [#79](https://github.com/aryeko/agentic-workflow-kit/pull/79) |
 | AWK137 | AWK13.7 Stale docs and DevX hygiene | AWK135 | W7.5 | done | [brief](./stories/AWK137.md) | — | codex-2026-06-15T17-04-23Z | [#80](https://github.com/aryeko/agentic-workflow-kit/pull/80) |
-| AWK138 | AWK13.8 Provider-neutral wiring | AWK136, AWK137 | W7.6 | done | [brief](./stories/AWK138.md) | — | codex-2026-06-15T19-10-41Z | — |
+| AWK138 | AWK13.8 Provider-neutral wiring | AWK136, AWK137 | W7.6 | done | [brief](./stories/AWK138.md) | — | codex-2026-06-15T19-10-41Z | [#82](https://github.com/aryeko/agentic-workflow-kit/pull/82) |
 | AWK139 | AWK13.9 Run-state write atomicity | AWK138 | W7.7 | specced | [brief](./stories/AWK139.md) | — | — | — |
 | AWK1310 | AWK13.10 API error fidelity | AWK138 | W7.7 | specced | [brief](./stories/AWK1310.md) | — | — | — |
 | AWK1311 | AWK13.11 Test trust round 2 | AWK139, AWK1310 | W7.8 | specced | [brief](./stories/AWK1311.md) | — | — | — |
