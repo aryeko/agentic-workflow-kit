@@ -28,6 +28,9 @@ export function normalizeChildMetricAvailability(snapshot: ChildMetricsSnapshot)
     toolCounts:
       snapshot.availability?.toolCounts ??
       (Object.keys(snapshot.toolCounts).length > 0 ? available() : unavailable(UNAVAILABLE_REASONS.sessionLogMetrics)),
+    failedToolCalls:
+      snapshot.availability?.failedToolCalls ??
+      (typeof snapshot.failedToolCalls === 'number' ? available() : unavailable(UNAVAILABLE_REASONS.failedToolCalls)),
     subagentCounts:
       snapshot.availability?.subagentCounts ??
       (Object.keys(snapshot.subagentCounts).length > 0

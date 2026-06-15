@@ -18,6 +18,7 @@ describe('metrics aggregate helpers', () => {
         {
           storyId: 'A001',
           toolCounts: { exec_command: 2, read_file: 1 },
+          failedToolCalls: 1,
           subagentCounts: { reviewer: 1 },
           tokenTotals: {
             inputTokens: 100,
@@ -32,6 +33,7 @@ describe('metrics aggregate helpers', () => {
         {
           storyId: 'A002',
           toolCounts: { exec_command: 3 },
+          failedToolCalls: 2,
           subagentCounts: { reviewer: 2, implementer: 1 },
           tokenTotals: {
             inputTokens: 30,
@@ -46,6 +48,7 @@ describe('metrics aggregate helpers', () => {
       ]),
     ).toEqual({
       toolCounts: { exec_command: 5, read_file: 1 },
+      failedToolCalls: 3,
       subagentCounts: { reviewer: 3, implementer: 1 },
       tokenTotals: {
         inputTokens: 130,

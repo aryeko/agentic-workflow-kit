@@ -65,7 +65,7 @@ function observedBudgetValue(
     case 'toolCalls':
       return countBudgetMetric(metrics, 'toolCounts', UNAVAILABLE_REASONS.sessionLogMetrics);
     case 'failedToolCalls':
-      return { value: null, unavailableReason: UNAVAILABLE_REASONS.failedToolCalls };
+      return countFailedToolCalls(metrics);
     case 'tokens':
       return metrics.aggregate.tokenTotals
         ? { value: metrics.aggregate.tokenTotals.totalTokens, unavailableReason: null }
@@ -73,6 +73,17 @@ function observedBudgetValue(
     case 'costUsd':
       return { value: null, unavailableReason: UNAVAILABLE_REASONS.costTelemetry };
   }
+}
+
+function countFailedToolCalls(metrics: LiveMetricsSnapshot): {
+  value: number | null;
+  unavailableReason: string | null;
+} {
+  const children = Object.values(metrics.children);
+  if (children.length === 0) return { value: null, unavailableReason: UNAVAILABLE_REASONS.failedToolCalls };
+  const hasUnavailableChild = children.some((child) => child.availability?.failedToolCalls?.status !== 'available');
+  if (hasUnavailableChild) return { value: null, unavailableReason: UNAVAILABLE_REASONS.failedToolCalls };
+  return { value: metrics.aggregate.failedToolCalls ?? 0, unavailableReason: null };
 }
 
 function budgetStatus(

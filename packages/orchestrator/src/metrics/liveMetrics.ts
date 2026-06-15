@@ -54,6 +54,7 @@ async function enrichChildMetric(child: ChildMetricsSnapshot): Promise<ChildMetr
     return {
       ...child,
       toolCounts: hasCounts(metrics.commandCounts) ? metrics.commandCounts : child.toolCounts,
+      failedToolCalls: metrics.failedToolCalls,
       subagentCounts: hasCounts(metrics.subagentCounts) ? metrics.subagentCounts : child.subagentCounts,
       tokenTotals: metrics.tokenTotals ?? child.tokenTotals,
       availability: {
@@ -61,6 +62,7 @@ async function enrichChildMetric(child: ChildMetricsSnapshot): Promise<ChildMetr
         subagentCounts: availability.subagentCounts,
         tokenTotals: availability.tokenTotals,
         ...(hasCounts(metrics.commandCounts) ? { toolCounts: available() } : {}),
+        failedToolCalls: available(),
         ...(hasCounts(metrics.subagentCounts) ? { subagentCounts: available() } : {}),
         ...(metrics.tokenTotals || child.tokenTotals ? { tokenTotals: available() } : {}),
         sessionLog: available(),

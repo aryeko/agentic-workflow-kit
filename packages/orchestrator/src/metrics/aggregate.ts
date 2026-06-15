@@ -3,19 +3,30 @@ import type { ChildMetricsSnapshot, LiveMetricsSnapshot, TokenTotals } from '../
 export function mergeChildMetrics(children: ChildMetricsSnapshot[]): LiveMetricsSnapshot['aggregate'] {
   const toolCounts: Record<string, number> = {};
   const subagentCounts: Record<string, number> = {};
+  let failedToolCalls = 0;
+  let sawFailedToolCalls = false;
   let tokenTotals = emptyTokenTotals();
   let sawTokens = false;
 
   for (const child of children) {
     mergeCounts(toolCounts, child.toolCounts);
     mergeCounts(subagentCounts, child.subagentCounts);
+    if (typeof child.failedToolCalls === 'number') {
+      sawFailedToolCalls = true;
+      failedToolCalls += child.failedToolCalls;
+    }
     if (child.tokenTotals) {
       sawTokens = true;
       tokenTotals = addTokenTotals(tokenTotals, child.tokenTotals);
     }
   }
 
-  return { toolCounts, subagentCounts, tokenTotals: sawTokens ? tokenTotals : null };
+  return {
+    toolCounts,
+    failedToolCalls: sawFailedToolCalls ? failedToolCalls : null,
+    subagentCounts,
+    tokenTotals: sawTokens ? tokenTotals : null,
+  };
 }
 
 export function addTokenTotals(a: TokenTotals, b: TokenTotals): TokenTotals {

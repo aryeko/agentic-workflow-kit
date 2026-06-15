@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveCwdOnlyConfig } from '../src/config/configLoader';
 import { MetricsCollector } from '../src/runner/MetricsCollector';
 import { RunJournal, type SettledStoryRun } from '../src/runner/RunJournal';
-import type { ArtifactStore, Clock, RunEvent, RunState } from '../src/types';
+import type { ArtifactStore, Clock, ResolvedWorkflowConfig, RunEvent, RunState } from '../src/types';
 
 class MemoryArtifacts implements ArtifactStore {
   json = new Map<string, unknown>();
@@ -116,6 +116,10 @@ describe('RunJournal', () => {
           storyId: 'A001',
           status: 'active',
           sessionLogPath: '/sessions/a001.jsonl',
+          failedToolCalls: {
+            value: null,
+            unavailableReason: 'failed tool-call telemetry is unavailable',
+          },
           tokens: {
             value: null,
             unavailableReason: 'session log token telemetry is unavailable',
@@ -168,12 +172,14 @@ describe('RunJournal', () => {
       A001: {
         storyId: 'A001',
         toolCounts: {},
+        failedToolCalls: 0,
         subagentCounts: {},
         tokenTotals: null,
         latestProgress: 'no tools needed',
         sessionLogPath: '/sessions/a001.jsonl',
         availability: {
           toolCounts: { status: 'available', unavailableReason: null },
+          failedToolCalls: { status: 'available', unavailableReason: null },
           subagentCounts: { status: 'available', unavailableReason: null },
           tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
           sessionLog: { status: 'available', unavailableReason: null },
@@ -190,6 +196,116 @@ describe('RunJournal', () => {
           observed: 0,
           status: 'not-configured',
           unavailableReason: null,
+        }),
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'failedToolCalls',
+          observed: 0,
+          status: 'not-configured',
+          unavailableReason: null,
+        }),
+      ]),
+    });
+  });
+
+  it('evaluates configured failed-tool-call budgets from observed metrics', async () => {
+    const artifacts = new MemoryArtifacts();
+    const runState = { ...state(), active: ['A001'] };
+    const journal = new RunJournal({ artifactStore: artifacts, clock });
+    const config: ResolvedWorkflowConfig = structuredClone(resolveCwdOnlyConfig('/repo'));
+    config.agents.profiles.storyImplementer.budget.failedToolCalls.limit = 1;
+    config.agents.resolved.implementStory.budget.failedToolCalls.limit = 1;
+    config.agents.resolved.implementStory.budgetSupport.failedToolCalls.enforceable = true;
+
+    const live = await journal.writeLiveMetrics(runState, {
+      A001: {
+        storyId: 'A001',
+        toolCounts: { exec_command: 2 },
+        failedToolCalls: 1,
+        subagentCounts: {},
+        tokenTotals: null,
+        latestProgress: 'tool failed',
+        sessionLogPath: '/sessions/a001.jsonl',
+        availability: {
+          toolCounts: { status: 'available', unavailableReason: null },
+          failedToolCalls: { status: 'available', unavailableReason: null },
+          subagentCounts: { status: 'available', unavailableReason: null },
+          tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
+          sessionLog: { status: 'available', unavailableReason: null },
+        },
+      },
+    });
+    await journal.writeRuntimeArtifacts(runState, config, live);
+
+    expect(artifacts.json.get('budgets.json')).toMatchObject({
+      evaluations: expect.arrayContaining([
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'failedToolCalls',
+          observed: 1,
+          status: 'limit-reached',
+          eventType: 'budget-warning',
+          unavailableReason: null,
+        }),
+      ]),
+    });
+    expect(artifacts.json.get('rows.json')).toMatchObject({
+      rows: [
+        expect.objectContaining({
+          storyId: 'A001',
+          failedToolCalls: { value: 1, unavailableReason: null },
+        }),
+      ],
+    });
+  });
+
+  it('keeps failed-tool-call budgets unavailable when any child lacks failed-call telemetry', async () => {
+    const artifacts = new MemoryArtifacts();
+    const runState = { ...state(), active: ['A001', 'A002'] };
+    const journal = new RunJournal({ artifactStore: artifacts, clock });
+    const config: ResolvedWorkflowConfig = structuredClone(resolveCwdOnlyConfig('/repo'));
+    config.agents.profiles.storyImplementer.budget.failedToolCalls.limit = 1;
+    config.agents.resolved.implementStory.budget.failedToolCalls.limit = 1;
+    config.agents.resolved.implementStory.budgetSupport.failedToolCalls.enforceable = true;
+
+    const live = await journal.writeLiveMetrics(runState, {
+      A001: {
+        storyId: 'A001',
+        toolCounts: {},
+        failedToolCalls: 0,
+        subagentCounts: {},
+        tokenTotals: null,
+        latestProgress: 'linked',
+        sessionLogPath: '/sessions/a001.jsonl',
+        availability: {
+          toolCounts: { status: 'available', unavailableReason: null },
+          failedToolCalls: { status: 'available', unavailableReason: null },
+          subagentCounts: { status: 'available', unavailableReason: null },
+          tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
+          sessionLog: { status: 'available', unavailableReason: null },
+        },
+      },
+      A002: {
+        storyId: 'A002',
+        toolCounts: {},
+        failedToolCalls: null,
+        subagentCounts: {},
+        tokenTotals: null,
+        latestProgress: 'session not linked',
+        sessionLogPath: null,
+      },
+    });
+    await journal.writeRuntimeArtifacts(runState, config, live);
+
+    expect(live.aggregate.failedToolCalls).toBe(0);
+    expect(artifacts.json.get('budgets.json')).toMatchObject({
+      evaluations: expect.arrayContaining([
+        expect.objectContaining({
+          profileName: 'storyImplementer',
+          dimension: 'failedToolCalls',
+          observed: null,
+          status: 'unavailable',
+          unavailableReason: 'failed tool-call telemetry is unavailable',
         }),
       ]),
     });

@@ -22,6 +22,14 @@ describe('live metrics enrichment', () => {
         JSON.stringify({ type: 'response_item', payload: { type: 'function_call', name: 'exec_command' } }),
         JSON.stringify({
           type: 'response_item',
+          payload: { type: 'function_call', name: 'apply_patch', call_id: 'call-1' },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'function_call_output', call_id: 'call-1', output: 'Exit code: 1\n' },
+        }),
+        JSON.stringify({
+          type: 'response_item',
           payload: {
             type: 'function_call',
             name: 'spawn_agent',
@@ -58,26 +66,30 @@ describe('live metrics enrichment', () => {
         DLD07: {
           storyId: 'DLD07',
           toolCounts: {},
+          failedToolCalls: null,
           subagentCounts: {},
           tokenTotals: null,
           latestProgress: 'session linked',
           sessionLogPath,
         },
       },
-      aggregate: { toolCounts: {}, subagentCounts: {}, tokenTotals: null },
+      aggregate: { toolCounts: {}, failedToolCalls: null, subagentCounts: {}, tokenTotals: null },
     };
 
     const enriched = await enrichLiveMetricsFromSessionLogs(snapshot);
 
-    expect(enriched.children.DLD07.toolCounts).toEqual({ exec_command: 1, spawn_agent: 1 });
+    expect(enriched.children.DLD07.toolCounts).toEqual({ exec_command: 1, apply_patch: 1, spawn_agent: 1 });
+    expect(enriched.children.DLD07.failedToolCalls).toBe(1);
     expect(enriched.children.DLD07.subagentCounts).toEqual({ reviewer: 1 });
     expect(enriched.children.DLD07.tokenTotals?.totalTokens).toBe(15);
     expect(enriched.children.DLD07.availability).toMatchObject({
       toolCounts: { status: 'available', unavailableReason: null },
+      failedToolCalls: { status: 'available', unavailableReason: null },
       subagentCounts: { status: 'available', unavailableReason: null },
       tokenTotals: { status: 'available', unavailableReason: null },
       sessionLog: { status: 'available', unavailableReason: null },
     });
-    expect(enriched.aggregate.toolCounts).toEqual({ exec_command: 1, spawn_agent: 1 });
+    expect(enriched.aggregate.toolCounts).toEqual({ exec_command: 1, apply_patch: 1, spawn_agent: 1 });
+    expect(enriched.aggregate.failedToolCalls).toBe(1);
   });
 });

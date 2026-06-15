@@ -53,12 +53,14 @@ describe('MetricsCollector', () => {
     collector.updateChildMetric('A001', {
       storyId: 'A001',
       toolCounts: { exec_command: 1 },
+      failedToolCalls: 1,
       subagentCounts: {},
       tokenTotals: null,
       latestProgress: null,
       sessionLogPath: '/sessions/a001.jsonl',
       availability: {
         toolCounts: { status: 'available', unavailableReason: null },
+        failedToolCalls: { status: 'available', unavailableReason: null },
         subagentCounts: { status: 'unavailable', unavailableReason: 'session log metrics are unavailable' },
         tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
         sessionLog: { status: 'available', unavailableReason: null },
@@ -67,9 +69,11 @@ describe('MetricsCollector', () => {
 
     expect(collector.observedChildMetrics().A001).toMatchObject({
       toolCounts: { exec_command: 1 },
+      failedToolCalls: 1,
       sessionLogPath: '/sessions/a001.jsonl',
       availability: {
         toolCounts: { status: 'available', unavailableReason: null },
+        failedToolCalls: { status: 'available', unavailableReason: null },
         tokenTotals: { status: 'unavailable', unavailableReason: 'session log token telemetry is unavailable' },
         sessionLog: { status: 'available', unavailableReason: null },
       },

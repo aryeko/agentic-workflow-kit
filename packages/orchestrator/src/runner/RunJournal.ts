@@ -274,6 +274,7 @@ function buildRows(state: RunState, metrics: LiveMetricsSnapshot): RunRowArtifac
       : normalizeChildMetricsSnapshot({
           storyId,
           toolCounts: {},
+          failedToolCalls: null,
           subagentCounts: {},
           tokenTotals: null,
           latestProgress: null,
@@ -302,7 +303,11 @@ function buildRows(state: RunState, metrics: LiveMetricsSnapshot): RunRowArtifac
         availability?.toolCounts,
         UNAVAILABLE_REASONS.sessionLogMetrics,
       ),
-      failedToolCalls: nullableMetric(null, undefined, UNAVAILABLE_REASONS.sessionLogMetrics),
+      failedToolCalls: nullableMetric(
+        child.failedToolCalls ?? null,
+        availability?.failedToolCalls,
+        UNAVAILABLE_REASONS.failedToolCalls,
+      ),
       subagents: nullableMetric(
         sumCounts(child.subagentCounts),
         availability?.subagentCounts,

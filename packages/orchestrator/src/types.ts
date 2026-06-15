@@ -465,6 +465,7 @@ export interface TokenTotals {
 export interface ChildMetricsSnapshot {
   storyId: string;
   toolCounts: Record<string, number>;
+  failedToolCalls?: number | null;
   subagentCounts: Record<string, number>;
   tokenTotals: TokenTotals | null;
   latestProgress: string | null;
@@ -474,6 +475,7 @@ export interface ChildMetricsSnapshot {
 
 export interface ChildMetricAvailability {
   toolCounts: MetricAvailability;
+  failedToolCalls?: MetricAvailability;
   subagentCounts: MetricAvailability;
   tokenTotals: MetricAvailability;
   sessionLog: MetricAvailability;
@@ -491,6 +493,7 @@ export interface LiveMetricsSnapshot {
   children: Record<string, ChildMetricsSnapshot>;
   aggregate: {
     toolCounts: Record<string, number>;
+    failedToolCalls: number | null;
     subagentCounts: Record<string, number>;
     tokenTotals: TokenTotals | null;
   };
