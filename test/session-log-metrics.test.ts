@@ -53,6 +53,7 @@ describe('session log metrics', () => {
     const metrics = await analyzeSessionLogMetrics(logPath);
 
     expect(metrics.commandCounts).toEqual({ exec_command: 1, spawn_agent: 1, apply_patch: 1 });
+    expect(metrics.failedToolCalls).toBe(0);
     expect(metrics.subagentCounts).toEqual({ reviewer: 1 });
     expect(metrics.tokenTotals).toEqual({
       inputTokens: 100,
@@ -61,6 +62,46 @@ describe('session log metrics', () => {
       reasoningOutputTokens: 7,
       totalTokens: 127,
     });
+  });
+
+  it('extracts failed tool-call counts from non-zero exit and structured error outputs', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'awk-session-failed-tools-'));
+    tempRoots.push(root);
+    const logPath = path.join(root, 'session.jsonl');
+    await writeFile(
+      logPath,
+      [
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'function_call', name: 'exec_command', call_id: 'call-1' },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'function_call_output', call_id: 'call-1', output: 'Process exited with code 1\n' },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'function_call', name: 'spawn_agent', call_id: 'call-2' },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'function_call_output', call_id: 'call-2', output: JSON.stringify({ error: 'invalid' }) },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'function_call', name: 'exec_command', call_id: 'call-3' },
+        }),
+        JSON.stringify({
+          type: 'response_item',
+          payload: { type: 'function_call_output', call_id: 'call-3', output: 'Process exited with code 0\n' },
+        }),
+      ].join('\n'),
+    );
+
+    const metrics = await analyzeSessionLogMetrics(logPath);
+
+    expect(metrics.commandCounts).toEqual({ exec_command: 2, spawn_agent: 1 });
+    expect(metrics.failedToolCalls).toBe(2);
   });
 
   it('maps session ids to log paths', async () => {

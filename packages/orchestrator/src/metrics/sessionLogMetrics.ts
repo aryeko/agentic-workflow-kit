@@ -5,6 +5,7 @@ import type { TokenTotals } from '../types.js';
 
 export interface SessionLogMetrics {
   commandCounts: Record<string, number>;
+  failedToolCalls: number;
   subagentCounts: Record<string, number>;
   tokenTotals: TokenTotals | null;
   reviewLoops: SessionReviewLoop[];
@@ -41,6 +42,7 @@ export async function analyzeSessionLogMetrics(sessionLog: string): Promise<Sess
   const commandCounts: Record<string, number> = {};
   const subagentCounts: Record<string, number> = {};
   let tokenTotals: TokenTotals | null = null;
+  const toolFailures = new ToolCallFailureState();
   const reviewState = new SessionReviewState();
 
   const content = await readFile(sessionLog, 'utf8');
@@ -55,6 +57,9 @@ export async function analyzeSessionLogMetrics(sessionLog: string): Promise<Sess
         typeof payload.name === 'string'
       ) {
         increment(commandCounts, payload.name);
+        if (typeof payload.call_id === 'string') {
+          toolFailures.recordCall(payload.call_id);
+        }
       }
       if (payload.type === 'function_call' && payload.name === 'spawn_agent' && typeof payload.arguments === 'string') {
         const parsedArgs = parseJsonLine(payload.arguments);
@@ -65,8 +70,15 @@ export async function analyzeSessionLogMetrics(sessionLog: string): Promise<Sess
       if (payload.type === 'function_call' && typeof payload.name === 'string' && typeof payload.call_id === 'string') {
         reviewState.recordCall(payload.call_id, payload.name, readOptionalString(payload.arguments));
       }
-      if (payload.type === 'function_call_output' && typeof payload.call_id === 'string') {
-        reviewState.recordOutput(payload.call_id, readOptionalString(payload.output));
+      if (
+        (payload.type === 'function_call_output' || payload.type === 'custom_tool_call_output') &&
+        typeof payload.call_id === 'string'
+      ) {
+        const rawOutput = readOptionalString(payload.output);
+        toolFailures.recordOutput(payload.call_id, rawOutput);
+        if (payload.type === 'function_call_output') {
+          reviewState.recordOutput(payload.call_id, rawOutput);
+        }
       }
     }
 
@@ -86,11 +98,32 @@ export async function analyzeSessionLogMetrics(sessionLog: string): Promise<Sess
 
   return {
     commandCounts,
+    failedToolCalls: toolFailures.failedCalls(),
     subagentCounts,
     tokenTotals,
     reviewLoops: reviewState.loops(),
     failedSpawnAgentAttempts: reviewState.failedSpawnAgentAttempts(),
   };
+}
+
+class ToolCallFailureState {
+  private readonly calls = new Set<string>();
+  private readonly failedOutputs = new Set<string>();
+
+  recordCall(callId: string): void {
+    this.calls.add(callId);
+  }
+
+  recordOutput(callId: string, rawOutput: string | null): void {
+    if (!this.calls.has(callId) || !rawOutput || this.failedOutputs.has(callId)) return;
+    if (isFailedToolOutput(rawOutput)) {
+      this.failedOutputs.add(callId);
+    }
+  }
+
+  failedCalls(): number {
+    return this.failedOutputs.size;
+  }
 }
 
 class SessionReviewState {
@@ -154,6 +187,13 @@ class SessionReviewState {
 function parseLooseJsonObject(value: string): Record<string, unknown> | null {
   const parsed = parseJsonLine(value);
   return isRecord(parsed) ? parsed : null;
+}
+
+function isFailedToolOutput(value: string): boolean {
+  if (/(?:Process exited with code|Exit code:)\s*[1-9]\d*/i.test(value)) return true;
+  const parsed = parseLooseJsonObject(value);
+  if (!parsed) return false;
+  return parsed.ok === false || parsed.status === 'error' || typeof parsed.error === 'string';
 }
 
 function callTargets(args: Record<string, unknown> | null): string[] {

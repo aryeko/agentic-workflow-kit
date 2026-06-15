@@ -54,9 +54,11 @@ failed tool calls, subagent count, and token totals. Nullable metric fields use 
 ```
 
 `budgets.json` has `schemaVersion: 1` and records resolved agent profile budget policy, support
-metadata, and evaluations for wall time, tokens, tool calls, failed tool calls, and cost. Budget
-evaluations distinguish `not-configured`, `within-limit`, `warning`, `limit-reached`, and
-`unavailable`. Missing telemetry must not be reported as observed zero.
+metadata, and evaluations for wall time, tokens, tool calls, failed tool calls, and cost. Failed
+tool-call budgets are evaluated from parsed session-log tool outputs when a linked host transcript is
+available; missing telemetry remains `unavailable`. Budget evaluations distinguish `not-configured`,
+`within-limit`, `warning`, `limit-reached`, and `unavailable`. Missing telemetry must not be reported
+as observed zero.
 
 `transcripts.json` has `schemaVersion: 1` and indexes session ids and transcript paths. It never
 copies transcript contents into the run bundle by default.

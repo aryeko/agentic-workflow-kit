@@ -654,6 +654,7 @@ export function readAggregate(value: unknown): LiveMetricsSnapshot['aggregate'] 
   if (!isObject(value)) return null;
   return {
     toolCounts: readNumberMap(value.toolCounts),
+    failedToolCalls: readOptionalNumber(value.failedToolCalls) ?? null,
     subagentCounts: readNumberMap(value.subagentCounts),
     tokenTotals: readTokenTotals(value.tokenTotals),
   };

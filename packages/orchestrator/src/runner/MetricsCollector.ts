@@ -52,6 +52,7 @@ export class MetricsCollector {
     const updated = {
       storyId,
       toolCounts: existing?.toolCounts ?? {},
+      failedToolCalls: existing?.failedToolCalls ?? null,
       subagentCounts: existing?.subagentCounts ?? {},
       tokenTotals: existing?.tokenTotals ?? null,
       latestProgress: fields.latestProgress ?? existing?.latestProgress ?? null,
@@ -99,6 +100,7 @@ function mergeChildMetricSnapshots(
   const merged = {
     storyId: next.storyId,
     toolCounts: maxCounts(existing.toolCounts, next.toolCounts),
+    failedToolCalls: next.failedToolCalls ?? existing.failedToolCalls,
     subagentCounts: maxCounts(existing.subagentCounts, next.subagentCounts),
     tokenTotals: next.tokenTotals ?? existing.tokenTotals,
     latestProgress: next.latestProgress ?? existing.latestProgress,
