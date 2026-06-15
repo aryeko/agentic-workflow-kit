@@ -51,8 +51,7 @@ an appointed representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community
-leaders responsible for enforcement at [@aryeko](https://github.com/aryeko). A dedicated private
-contact email can be substituted later.
+leaders responsible for enforcement at aryekogan@gmail.com.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

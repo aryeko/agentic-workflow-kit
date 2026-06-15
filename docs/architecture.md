@@ -127,7 +127,7 @@ The package MCP server exposes these tools over the shared handlers:
 
 | Tool | Purpose |
 | --- | --- |
-| `workflow_project_inspect` | Resolve project context, config path, tracks, and capability flags in the shared WorkflowKit API envelope. |
+| `workflow_project_inspect` | Resolve project context, config path, tracks, and capability flags in the shared agentic-workflow-kit API envelope. |
 | `workflow_run_preview` | Preview a story or eligible-track run using the product target model and shared result/error envelope. |
 | `workflow_run_status` | Read a bounded product status snapshot from `state.json`, `metrics.live.json`, `controls.ndjson`, and recent normalized events. |
 | `workflow_run_stream` | Replay a bounded event tail, optionally send standard MCP progress notifications, and return a terminal or timeout stream summary. |
