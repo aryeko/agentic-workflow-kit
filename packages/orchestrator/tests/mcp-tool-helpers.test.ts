@@ -32,6 +32,7 @@ childSession:
 
     expect(config.workspace.rootAbs).toBe(cwd);
     expect(config.childSession.model).toBe('gpt-test');
+    expect(config.childSession.speed).toBe('derive');
     expect(config.codex.childSession).toBe(config.childSession);
   });
 });

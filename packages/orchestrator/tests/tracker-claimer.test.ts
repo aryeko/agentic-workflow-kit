@@ -75,8 +75,8 @@ function config(root: string): ResolvedWorkflowConfig {
       childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
     },
-    childSession: { cwdAbs: root },
-    codex: { childSession: { cwdAbs: root } },
+    childSession: { cwdAbs: root, speed: 'derive' },
+    codex: { childSession: { cwdAbs: root, speed: 'derive' } },
   };
 }
 

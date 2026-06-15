@@ -130,6 +130,9 @@ findings, and Codex PR review comments or PR comments are findings to triage whe
   planning, analysis, recovery, and tracker migration. Profiles carry driver, model, reasoning,
   prompt template, structured-output contract, sandbox, approval policy, host settings, and budget
   policy.
+- `childSession.speed` controls Codex child-session speed policy: `derive` preserves the user's
+  global Codex setting, `fast` requests Fast mode, and `standard` explicitly opts child sessions out
+  of inherited Fast mode.
 - `agents.bindings` maps logical task types to those profiles, so a repo can change runtime policy
   without editing generated prompts.
 - Budget outcomes are written to `budgets.json`; wall-time and tool-call dimensions can drive

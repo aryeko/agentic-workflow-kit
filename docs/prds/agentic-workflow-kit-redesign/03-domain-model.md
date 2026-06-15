@@ -19,6 +19,8 @@
 - **Agent profile** - a named configurable agent such as story implementer, pre-PR reviewer,
   planner, analyzer, or recovery agent. Each profile owns defaults for prompt/template, model,
   reasoning effort, structured output contract, budget, and permission policy.
+- **Child-session launch policy** - the resolved runtime launch settings shared by child sessions,
+  including speed/service-tier policy, model, reasoning, sandbox, approval policy, and driver config.
 - **Run** - one runtime execution, either story-level or track-level, with state, events, child
   sessions, artifacts, metrics, and final outcome.
 - **Child session** - an agent session launched by the runtime to perform bounded work.

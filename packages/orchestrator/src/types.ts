@@ -336,9 +336,11 @@ export interface ResolvedWorkflowConfig {
 
 export type ApprovalPolicy = 'never' | 'on-failure' | 'on-request' | 'untrusted';
 export type SandboxMode = 'danger-full-access' | 'read-only' | 'workspace-write';
+export type ChildSessionSpeed = 'derive' | 'fast' | 'standard';
 
 export interface ResolvedChildSessionConfig {
   cwdAbs: string;
+  speed: ChildSessionSpeed;
   model?: string;
   approvalPolicy?: ApprovalPolicy;
   sandbox?: SandboxMode;

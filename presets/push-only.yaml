@@ -62,6 +62,8 @@ orchestrator:
   childNoProgressTimeoutMs: 1800000
   childStartupTimeoutMs: 60000
   childMaxRuntimeMs: 7200000
+childSession:
+  speed: derive
 agents:
   profiles:
     storyImplementer:

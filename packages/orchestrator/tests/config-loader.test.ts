@@ -129,7 +129,7 @@ orchestrator:
       enforceable: false,
       unavailableReason: 'live token telemetry is not available before AWK06/AWK08 budget enforcement',
     });
-    expect(config.codex.childSession).toEqual({ cwdAbs: root });
+    expect(config.codex.childSession).toEqual({ cwdAbs: root, speed: 'derive' });
     expect(config.childSession).toBe(config.codex.childSession);
   });
 
@@ -300,6 +300,7 @@ git:
       `
 version: 1
 childSession:
+  speed: fast
   model: gpt-5.2
   approvalPolicy: on-request
   sandbox: workspace-write
@@ -312,6 +313,7 @@ childSession:
 
     expect(config.childSession).toEqual({
       cwdAbs: root,
+      speed: 'fast',
       model: 'gpt-5.2',
       approvalPolicy: 'on-request',
       sandbox: 'workspace-write',
@@ -328,6 +330,7 @@ childSession:
 version: 1
 codex:
   childSession:
+    speed: fast
     model: legacy-model
     approvalPolicy: never
     sandbox: workspace-write
@@ -335,6 +338,7 @@ codex:
       raw: true
       shared: legacy
 childSession:
+  speed: standard
   model: neutral-model
   approvalPolicy: on-request
   config:
@@ -346,6 +350,7 @@ childSession:
 
     expect(config.childSession).toMatchObject({
       cwdAbs: root,
+      speed: 'standard',
       model: 'neutral-model',
       approvalPolicy: 'on-request',
       sandbox: 'workspace-write',
@@ -355,6 +360,57 @@ childSession:
       },
     });
     expect(config.codex.childSession).toBe(config.childSession);
+  });
+
+  it('defaults child-session speed to derive in the resolved config', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-speed-default-'));
+    await writeWorkflowConfig(root, 'version: 1\n');
+
+    const config = await loadResolvedConfig({}, root);
+
+    expect(config.childSession).toEqual({ cwdAbs: root, speed: 'derive' });
+    expect(config.codex.childSession).toBe(config.childSession);
+  });
+
+  it('preserves raw Codex service_tier pass-through when normalized speed is unset or derive', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-speed-raw-'));
+    await writeWorkflowConfig(
+      root,
+      `
+version: 1
+childSession:
+  config:
+    service_tier: fast
+    raw: true
+`,
+    );
+
+    const config = await loadResolvedConfig({}, root);
+
+    expect(config.childSession).toMatchObject({
+      cwdAbs: root,
+      speed: 'derive',
+      config: { service_tier: 'fast', raw: true },
+    });
+  });
+
+  it.each([
+    'fast',
+    'standard',
+  ] as const)('rejects ambiguous %s speed when raw service_tier is also configured', async (speed) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-speed-conflict-'));
+    await writeWorkflowConfig(
+      root,
+      `
+version: 1
+childSession:
+  speed: ${speed}
+  config:
+    service_tier: fast
+`,
+    );
+
+    await expect(loadResolvedConfig({}, root)).rejects.toThrow(/childSession\.speed/);
   });
 
   it('resolves legacy childTimeoutMs as the no-progress timeout', async () => {

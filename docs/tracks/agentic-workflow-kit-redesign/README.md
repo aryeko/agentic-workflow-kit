@@ -51,8 +51,10 @@ re-verified all round-2 blockers as fixed at commit `d7c90b8` and surfaced a bou
 residuals (one inert budget dimension, one runtime type-safety hole plus an oversized supervisor
 function, and razor-thin coverage headroom with a local coverage-dir footgun). The round-3 remediation
 is sequenced as stories **AWK13.13–AWK13.15** (see the
-[release-hardening design 3](../../prds/agentic-workflow-kit-redesign/release-hardening-design-3.md)),
-inserted between AWK13.12 and AWK14; they **also block AWK14**.
+[release-hardening design 3](../../prds/agentic-workflow-kit-redesign/release-hardening-design-3.md)).
+A follow-up operator review then identified one remaining Codex launch-policy gap: child-session
+speed/service-tier needs a normalized config surface before release. That work is sequenced as
+**AWK13.16**, inserted after AWK13.15 and before AWK14; all AWK13.13–AWK13.16 stories **block AWK14**.
 
 ## Dependency graph
 
@@ -87,6 +89,7 @@ flowchart TD
   AWK1313[AWK13.13 Runner type-safety and supervisor decomposition]
   AWK1314[AWK13.14 Budget and telemetry fidelity]
   AWK1315[AWK13.15 Coverage headroom and test DevX]
+  AWK1316[AWK13.16 Codex child-session speed policy]
   AWK14[AWK14 Changeset and release readiness]
 
   AWK01 --> AWK02
@@ -131,7 +134,8 @@ flowchart TD
   AWK1313 --> AWK1314
   AWK1313 --> AWK1315
   AWK1314 --> AWK1315
-  AWK1315 --> AWK14
+  AWK1315 --> AWK1316
+  AWK1316 --> AWK14
 ```
 
 **Reading the graph:** every solid arrow is a hard dependency. The source story must be in a
@@ -175,7 +179,8 @@ Statuses come from `references/tracker-contract.md`:
 | AWK1313 | AWK13.13 Runner type-safety and supervisor decomposition | AWK1311, AWK1312 | W7.9 | done | [brief](./stories/AWK1313.md) | — | codex-2026-06-15T21-31-13Z | [#88](https://github.com/aryeko/agentic-workflow-kit/pull/88) |
 | AWK1314 | AWK13.14 Budget and telemetry fidelity | AWK1313 | W7.10 | done | [brief](./stories/AWK1314.md) | — | codex-2026-06-15T21-53-48-3NZ | [#89](https://github.com/aryeko/agentic-workflow-kit/pull/89) |
 | AWK1315 | AWK13.15 Coverage headroom and test DevX | AWK1313, AWK1314 | W7.11 | done | [brief](./stories/AWK1315.md) | — | codex-2026-06-15T22-12-57Z | [#90](https://github.com/aryeko/agentic-workflow-kit/pull/90) |
-| AWK14 | Changeset and release readiness | AWK1315 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
+| AWK1316 | AWK13.16 Codex child-session speed policy | AWK1315 | W7.12 | done | [brief](./stories/AWK1316.md) | — | codex-2026-06-15T22-47-03Z | [#91](https://github.com/aryeko/agentic-workflow-kit/pull/91) |
+| AWK14 | Changeset and release readiness | AWK1316 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
 plan after creating the detailed technical story spec. Each story maps to one or more PRD
@@ -240,22 +245,25 @@ on disjoint surfaces (artifacts/runner vs `api/facade`); coordinate only if both
 reflects final shapes; AWK13.12 (docs/DevX hygiene) depends only on AWK13.8. Both gate AWK14 and may
 run 2-way parallel.
 
-**Waves 7.9–7.11 — Release hardening round 3 (sequential):** AWK13.13–AWK13.15 remediate the residuals
-found in the [round-3 release-readiness review](./release-readiness-review-3.md); the fix design is in
+**Waves 7.9–7.12 — Release hardening round 3 plus speed-policy hardening (sequential):**
+AWK13.13–AWK13.15 remediate the residuals found in the
+[round-3 release-readiness review](./release-readiness-review-3.md); the fix design is in
 [release-hardening-design-3](../../prds/agentic-workflow-kit-redesign/release-hardening-design-3.md).
-These stories are `specced` (eligible), not `deferred` — they are the next real implementation work and
-block AWK14. W7.9: AWK13.13 (runner type-safety + supervisor decomposition) lands first because it
-reshapes runner internals the later stories ride; run it alone. W7.10: AWK13.14 (budget/telemetry
-fidelity) follows because `RunJournal` lives in `runner/`. W7.11: AWK13.15 (coverage headroom + test
-DevX) lands last so the re-baselined ratchet reflects the post-AWK13.13/13.14 shapes. All three gate
-AWK14.
+These stories are now complete and block AWK14 until release-readiness runs. W7.9: AWK13.13
+(runner type-safety + supervisor decomposition) lands first because
+it reshapes runner internals the later stories ride; run it alone. W7.10: AWK13.14
+(budget/telemetry fidelity) follows because `RunJournal` lives in `runner/`. W7.11: AWK13.15
+(coverage headroom + test DevX) lands so the re-baselined ratchet reflects the
+post-AWK13.13/13.14 shapes. W7.12: AWK13.16 (Codex child-session speed policy) lands after AWK13.15
+because it is a public config/schema addition that needs final coverage headroom and must complete
+before release. All four gate AWK14.
 
-**Wave 8 — Release readiness (sequential):** AWK14 runs last and is blocked by AWK13.15 (and therefore
-by all of AWK13.13–AWK13.15). It creates the consolidated changeset and release handoff after docs are
-canonical and all three hardening rounds land, and records the honest telemetry/structured-output
+**Wave 8 — Release readiness (sequential):** AWK14 runs last and is blocked by AWK13.16 (and therefore
+by all of AWK13.13–AWK13.16). It creates the consolidated changeset and release handoff after docs are
+canonical and all hardening work lands, and records the honest telemetry/structured-output
 limitations in the release notes (see release-hardening-design-3 "Release-note carry-forward"). AWK14 is
 intentionally `deferred` so autopilot cannot launch release-readiness work accidentally; run it manually
-after AWK13.1–AWK13.15 are complete by changing its status back to `specced`/`plan-approved` or by
+after AWK13.1–AWK13.16 are complete by changing its status back to `specced`/`plan-approved` or by
 force-running that story.
 
 ## ID-prefix registry

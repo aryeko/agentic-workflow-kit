@@ -168,6 +168,6 @@ function config(): ResolvedWorkflowConfig {
         },
       },
     },
-    childSession: { cwdAbs: '/repo' },
+    childSession: { cwdAbs: '/repo', speed: 'derive' },
   } as ResolvedWorkflowConfig;
 }
