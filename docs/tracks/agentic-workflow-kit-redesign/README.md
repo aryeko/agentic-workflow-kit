@@ -154,7 +154,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK137 | AWK13.7 Stale docs and DevX hygiene | AWK135 | W7.5 | done | [brief](./stories/AWK137.md) | — | codex-2026-06-15T17-04-23Z | [#80](https://github.com/aryeko/agentic-workflow-kit/pull/80) |
 | AWK138 | AWK13.8 Provider-neutral wiring | AWK136, AWK137 | W7.6 | done | [brief](./stories/AWK138.md) | — | codex-2026-06-15T19-10-41Z | [#82](https://github.com/aryeko/agentic-workflow-kit/pull/82) |
 | AWK139 | AWK13.9 Run-state write atomicity | AWK138 | W7.7 | specced | [brief](./stories/AWK139.md) | — | — | — |
-| AWK1310 | AWK13.10 API error fidelity | AWK138 | W7.7 | implementing | [brief](./stories/AWK1310.md) + [spec](../../superpowers/specs/2026-06-15-awk1310-awk13-10-api-error-fidelity-design.md) | [plan](../../superpowers/plans/2026-06-15-awk1310-awk13-10-api-error-fidelity.md) | codex-2026-06-15T19-40-45Z | — |
+| AWK1310 | AWK13.10 API error fidelity | AWK138 | W7.7 | done | [brief](./stories/AWK1310.md) + [spec](../../superpowers/specs/2026-06-15-awk1310-awk13-10-api-error-fidelity-design.md) | [plan](../../superpowers/plans/2026-06-15-awk1310-awk13-10-api-error-fidelity.md) | codex-2026-06-15T19-40-45Z | — |
 | AWK1311 | AWK13.11 Test trust round 2 | AWK139, AWK1310 | W7.8 | specced | [brief](./stories/AWK1311.md) | — | — | — |
 | AWK1312 | AWK13.12 DevX/docs hygiene round 2 | AWK138 | W7.8 | specced | [brief](./stories/AWK1312.md) | — | — | — |
 | AWK14 | Changeset and release readiness | AWK1311, AWK1312 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
