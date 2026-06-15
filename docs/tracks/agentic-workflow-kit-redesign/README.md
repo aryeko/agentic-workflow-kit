@@ -131,7 +131,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK132 | AWK13.2 GitHub verification and recovery | AWK131 | W7.2 | done | [brief](./stories/AWK132.md) | — | codex | [#74](https://github.com/aryeko/agentic-workflow-kit/pull/74) |
 | AWK133 | AWK13.3 Run-state durability and concurrency | AWK132 | W7.3 | done | [brief](./stories/AWK133.md) | — | codex-2026-06-14T10-04-18Z | [#77](https://github.com/aryeko/agentic-workflow-kit/pull/77) |
 | AWK134 | AWK13.4 Conservative defaults and API fidelity | AWK131 | W7.2 | done | [brief](./stories/AWK134.md) | — | codex-2026-06-14T09-55-09Z | [#76](https://github.com/aryeko/agentic-workflow-kit/pull/76) |
-| AWK135 | AWK13.5 Module decomposition | AWK132, AWK133, AWK134 | W7.4 | done | [brief](./stories/AWK135.md) | — | codex-2026-06-15T09-38-02Z | — |
+| AWK135 | AWK13.5 Module decomposition | AWK132, AWK133, AWK134 | W7.4 | done | [brief](./stories/AWK135.md) | — | codex-2026-06-15T09-38-02Z | [#78](https://github.com/aryeko/agentic-workflow-kit/pull/78) |
 | AWK136 | AWK13.6 Test trust and coverage ratchet | AWK135 | W7.5 | specced | [brief](./stories/AWK136.md) | — | — | — |
 | AWK137 | AWK13.7 Stale docs and DevX hygiene | AWK135 | W7.5 | specced | [brief](./stories/AWK137.md) | — | — | — |
 | AWK14 | Changeset and release readiness | AWK136, AWK137 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
