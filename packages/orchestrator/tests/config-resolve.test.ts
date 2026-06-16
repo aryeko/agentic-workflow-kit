@@ -147,7 +147,6 @@ describe('ConfigSchema', () => {
             budget: {
               tokens: { limit: 100_000 },
               toolCalls: { limit: 200 },
-              costUsd: { limit: 25 },
             },
           },
           customReviewer: {
@@ -158,7 +157,6 @@ describe('ConfigSchema', () => {
               tokens: { limit: 10_000 },
               toolCalls: { limit: 50 },
               failedToolCalls: { limit: 5 },
-              costUsd: { limit: 2 },
             },
           },
         },
@@ -167,12 +165,10 @@ describe('ConfigSchema', () => {
 
     expect(parsed.agents.profiles.storyImplementer.budget.tokens.action).toBe('stop-new-launches');
     expect(parsed.agents.profiles.storyImplementer.budget.toolCalls.action).toBe('checkpoint-stop');
-    expect(parsed.agents.profiles.storyImplementer.budget.costUsd.action).toBe('stop-new-launches');
     expect(parsed.agents.profiles.customReviewer.budget.wallMs.action).toBe('checkpoint-stop');
     expect(parsed.agents.profiles.customReviewer.budget.tokens.action).toBe('stop-new-launches');
     expect(parsed.agents.profiles.customReviewer.budget.toolCalls.action).toBe('checkpoint-stop');
     expect(parsed.agents.profiles.customReviewer.budget.failedToolCalls.action).toBe('warn');
-    expect(parsed.agents.profiles.customReviewer.budget.costUsd.action).toBe('stop-new-launches');
   });
 });
 

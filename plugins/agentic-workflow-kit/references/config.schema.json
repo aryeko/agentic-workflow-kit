@@ -755,47 +755,6 @@
                       }
                     },
                     "additionalProperties": false
-                  },
-                  "costUsd": {
-                    "type": "object",
-                    "properties": {
-                      "limit": {
-                        "default": null,
-                        "anyOf": [
-                          {
-                            "type": "number",
-                            "minimum": 0
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "warnAtPercent": {
-                        "default": 80,
-                        "anyOf": [
-                          {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "action": {
-                        "default": "stop-new-launches",
-                        "type": "string",
-                        "enum": [
-                          "warn",
-                          "stop-new-launches",
-                          "checkpoint-stop",
-                          "abort"
-                        ]
-                      }
-                    },
-                    "additionalProperties": false
                   }
                 },
                 "additionalProperties": false
