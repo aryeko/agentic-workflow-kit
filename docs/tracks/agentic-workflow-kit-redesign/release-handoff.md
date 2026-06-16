@@ -6,7 +6,6 @@ related:
   - ./README.md
   - ../../prds/agentic-workflow-kit-redesign/README.md
   - ../../prds/agentic-workflow-kit-redesign/release-hardening-design-3.md
-  - ../../../.changeset/agentic-workflow-kit-redesign-v1.md
 ---
 
 # Release handoff — agentic-workflow-kit redesign (AWK14)
@@ -26,8 +25,9 @@ default behavior and one config surface:
 - The inert `costUsd` budget dimension is removed; the strict config schema now rejects `budget.costUsd`.
 
 For a pre-1.0 (0.x) package these behavior/config changes ship as a minor per the changesets
-semver-zero convention. The consolidated changeset is `.changeset/agentic-workflow-kit-redesign-v1.md`
-(the four mid-track changesets were folded into it).
+semver-zero convention. The release changesets are authored per theme under `.changeset/` (five
+`minor` plus one `patch`, aggregating to 0.6.0). The four changesets added mid-track were removed and
+their content re-covered by this set.
 
 ## Release gates (all green on this branch)
 

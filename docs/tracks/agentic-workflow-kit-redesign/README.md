@@ -266,8 +266,8 @@ intentionally `deferred` so autopilot cannot launch release-readiness work accid
 after AWK13.1–AWK13.16 are complete by changing its status back to `specced`/`plan-approved` or by
 force-running that story.
 
-AWK14 is now complete: the consolidated changeset (`.changeset/agentic-workflow-kit-redesign-v1.md`)
-and the [release handoff](./release-handoff.md) are in place, and the release gates (`pnpm check`,
+AWK14 is now complete: the release changesets (authored per theme under `.changeset/`) and the
+[release handoff](./release-handoff.md) are in place, and the release gates (`pnpm check`,
 `pnpm build`, `pnpm pack:dry-run`, `pnpm smoke:codex-plugin`) pass. Versioning and publishing remain a
 maintainer-approved step owned by the release workflow.
 
