@@ -1,5 +1,31 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.6.0
+
+### Minor Changes
+
+- 2093dc9: Add configurable agent profiles (model, reasoning, approval policy, sandbox, prompt template, and structured-output contract) with per-dimension budget policy (`wallMs`, `tokens`, `toolCalls`, `failedToolCalls`) and per-task profile bindings. Resolved config reports per-dimension budget enforceability so unsupported controls are visible rather than silently inert.
+- 2093dc9: Make autonomous launch defaults conservative and remove a non-functional control:
+
+  - Non-dry-run story launches now require explicit `--yes` / `confirmNonDryRun` approval.
+  - `workflow-init` defaults new repos to the conservative `push-only` preset; auto-merge presets are an explicit opt-in.
+  - Repo-relative path validation is hardened (absolute and `..`-escaping paths are rejected).
+  - The inert `costUsd` budget dimension is removed; configs that set `budget.costUsd` are now rejected by the strict schema.
+
+- 2093dc9: Add contract-backed tracker validation and a tracker migration tool, both surfaced through the CLI/MCP facade with actionable diagnostics. Tracker state remains the single source of truth for story completion.
+- 2093dc9: Add a product-first CLI and MCP API facade with a shared result envelope (`ok`, `operation`, `apiVersion`, `project`, `result`, `artifacts`, `warnings`, `next`) and structured error codes. New `workflow_*` operations cover project inspection, run preview, run status/stream/inspect, run report/export, and run control/abort, exposed as both MCP tools and `agentic-workflow-kit` CLI subcommands. Existing tool names are preserved for compatibility.
+- 2093dc9: Add a provider-neutral child-session driver boundary: a `childSession` config namespace, neutral child-control MCP tool aliases (`workflow_child_reply`, `workflow_child_interrupt`, `workflow_driver_check`), driver-owned error classification and capability downgrades, and a normalized child-session speed policy (`derive` | `fast` | `standard`). Codex MCP is the single shipped V1 driver; existing `codex_*` aliases and the Codex artifact layout are preserved.
+
+### Patch Changes
+
+- 2093dc9: Harden collaboration and runtime durability:
+
+  - GitHub auto-merge completion requires parent-verified PR, check, review, merge, and branch-cleanup evidence, with recovery driven by real git/`gh` state.
+  - Run-state writes are atomic and safe under concurrent tracker claims; malformed artifacts are tolerated on read.
+  - API errors carry typed, structured error codes.
+
+  Two intentional limitations are recorded in run evidence rather than hidden: live token telemetry is off (`tokenTelemetryLive: false`), and the structured-output contract is recorded but not enforced (`structuredOutputEnforced: false`).
+
 ## 0.5.14
 
 ### Patch Changes
