@@ -180,7 +180,7 @@ Statuses come from `references/tracker-contract.md`:
 | AWK1314 | AWK13.14 Budget and telemetry fidelity | AWK1313 | W7.10 | done | [brief](./stories/AWK1314.md) | — | codex-2026-06-15T21-53-48-3NZ | [#89](https://github.com/aryeko/agentic-workflow-kit/pull/89) |
 | AWK1315 | AWK13.15 Coverage headroom and test DevX | AWK1313, AWK1314 | W7.11 | done | [brief](./stories/AWK1315.md) | — | codex-2026-06-15T22-12-57Z | [#90](https://github.com/aryeko/agentic-workflow-kit/pull/90) |
 | AWK1316 | AWK13.16 Codex child-session speed policy | AWK1315 | W7.12 | done | [brief](./stories/AWK1316.md) | — | codex-2026-06-15T22-47-03Z | [#91](https://github.com/aryeko/agentic-workflow-kit/pull/91) |
-| AWK14 | Changeset and release readiness | AWK1316 | W8 | deferred | [brief](./stories/AWK14.md) | — | — | — |
+| AWK14 | Changeset and release readiness | AWK1316 | W8 | done | [brief](./stories/AWK14.md) + [handoff](./release-handoff.md) | — | claude | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
 plan after creating the detailed technical story spec. Each story maps to one or more PRD
@@ -265,6 +265,11 @@ limitations in the release notes (see release-hardening-design-3 "Release-note c
 intentionally `deferred` so autopilot cannot launch release-readiness work accidentally; run it manually
 after AWK13.1–AWK13.16 are complete by changing its status back to `specced`/`plan-approved` or by
 force-running that story.
+
+AWK14 is now complete: the consolidated changeset (`.changeset/agentic-workflow-kit-redesign-v1.md`)
+and the [release handoff](./release-handoff.md) are in place, and the release gates (`pnpm check`,
+`pnpm build`, `pnpm pack:dry-run`, `pnpm smoke:codex-plugin`) pass. Versioning and publishing remain a
+maintainer-approved step owned by the release workflow.
 
 ## ID-prefix registry
 
