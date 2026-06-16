@@ -87,7 +87,6 @@ const goodConfig = {
           tokens: { limit: null, warnAtPercent: 80, action: 'stop-new-launches' },
           toolCalls: { limit: null, warnAtPercent: 80, action: 'checkpoint-stop' },
           failedToolCalls: { limit: null, warnAtPercent: 80, action: 'warn' },
-          costUsd: { limit: null, warnAtPercent: 80, action: 'stop-new-launches' },
         },
         host: {},
       },

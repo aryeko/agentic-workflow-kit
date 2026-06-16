@@ -220,12 +220,12 @@ Default profiles:
 - `planner`, `analyzer`, and `recovery`: `inline` profiles with built-in prompt and
   structured-output schema names.
 
-Budget dimensions are `wallMs`, `tokens`, `toolCalls`, `failedToolCalls`, and `costUsd`. Each
+Budget dimensions are `wallMs`, `tokens`, `toolCalls`, and `failedToolCalls`. Each
 dimension has `limit` (`number | null`), `warnAtPercent` (`1..100 | null`), and `action`
 (`warn` | `stop-new-launches` | `checkpoint-stop` | `abort`). Wall-time, tool-call, and
-failed-tool-call dimensions can enforce runtime controls when telemetry is available. Token and cost
-budgets are accepted for forward-compatible policy configuration; the current resolved config marks
-token and cost dimensions unenforceable for live control when host telemetry is unavailable.
+failed-tool-call dimensions can enforce runtime controls when telemetry is available. The token
+budget is accepted for forward-compatible policy configuration; the current resolved config marks
+the token dimension unenforceable for live control when host telemetry is unavailable.
 
 Every binding must reference an existing profile. `loadResolvedConfig` exposes the source profiles,
 task bindings, and effective task profiles so `config.resolved.json` artifacts include the selected

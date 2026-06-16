@@ -70,8 +70,6 @@ function observedBudgetValue(
       return metrics.aggregate.tokenTotals
         ? { value: metrics.aggregate.tokenTotals.totalTokens, unavailableReason: null }
         : { value: null, unavailableReason: UNAVAILABLE_REASONS.tokenTelemetry };
-    case 'costUsd':
-      return { value: null, unavailableReason: UNAVAILABLE_REASONS.costTelemetry };
   }
 }
 

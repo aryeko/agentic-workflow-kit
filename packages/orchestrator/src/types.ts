@@ -231,7 +231,6 @@ export interface AgentBudgetPolicy {
   tokens: AgentBudgetDimension;
   toolCalls: AgentBudgetDimension;
   failedToolCalls: AgentBudgetDimension;
-  costUsd: AgentBudgetDimension;
 }
 
 export interface AgentProfile {

@@ -51,7 +51,6 @@ const AgentBudgetPolicySchema = z
     tokens: agentBudgetDimensionSchema('stop-new-launches'),
     toolCalls: agentBudgetDimensionSchema('checkpoint-stop'),
     failedToolCalls: agentBudgetDimensionSchema('warn'),
-    costUsd: agentBudgetDimensionSchema('stop-new-launches'),
   })
   .strict()
   .prefault({});
