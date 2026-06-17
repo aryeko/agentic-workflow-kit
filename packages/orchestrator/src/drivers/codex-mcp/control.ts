@@ -3,6 +3,7 @@ import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { notifyRunSubscriptions } from '../../commands/runSubscriptions.js';
 import { isRecord, safeName } from '../../internal/guards.js';
 import { notifyVerdict } from '../../review/verdictInbox.js';
 import type { ReviewVerdict } from '../../types.js';
@@ -205,6 +206,7 @@ async function journalControlEvent(
     type,
   };
   await appendFile(path.join(target.runPath, 'events.ndjson'), `${JSON.stringify(event)}\n`);
+  await notifyRunSubscriptions(target.runPath);
 }
 
 function sha256(value: string): string {

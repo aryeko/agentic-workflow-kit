@@ -3,6 +3,7 @@ import { mkdir, readdir, readFile, stat, unlink, utimes, writeFile } from 'node:
 import path from 'node:path';
 import {
   appendRunEvent,
+  assertRunExists,
   boundEventData,
   filterNormalizedEvents,
   isObject,
@@ -119,6 +120,7 @@ interface RunSubscriptionRecord {
 export async function runSubscribeHandler(input: WorkflowRunSubscribeInput): Promise<WorkflowRunSubscribeResult> {
   const runDirectory = await resolveRunDirectory(input);
   const now = input.now ?? new Date().toISOString();
+  await assertRunExists(runDirectory);
   const events = await readRunEvents(runDirectory);
   const state = await readJsonIfExists(path.join(runDirectory, 'state.json'));
   const runId = readRunId(state, runDirectory);

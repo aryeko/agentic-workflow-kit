@@ -40,7 +40,19 @@ async function readSubscription(runPath: string, subscriptionId: string): Promis
   return JSON.parse(await readFile(path.join(runPath, 'subscriptions', `${subscriptionId}.json`), 'utf8'));
 }
 
+async function readWakeSignal(runPath: string, wakeArtifact: string): Promise<Record<string, unknown>> {
+  return JSON.parse(await readFile(path.join(runPath, wakeArtifact), 'utf8'));
+}
+
 describe('detached run subscriptions', () => {
+  it('rejects missing run artifacts before creating subscription records', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'awk-subscriptions-missing-'));
+    const missingRunPath = path.join(root, 'missing-run');
+
+    await expect(runSubscribeHandler({ runPath: missingRunPath })).rejects.toThrow(/run not found/i);
+    await expect(stat(path.join(missingRunPath, 'subscriptions'))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('creates a schemaVersion 1 record with replay tail and wake artifacts', async () => {
     const runPath = await createRun();
 
@@ -167,20 +179,21 @@ describe('detached run subscriptions', () => {
       },
     });
     const wakePath = path.join(runPath, subscribed.wakeArtifact);
-    const initial = (await stat(wakePath)).mtimeMs;
+    const initialWake = await readWakeSignal(runPath, subscribed.wakeArtifact);
 
     await appendEvent(runPath, { type: 'child-progress', storyId: 'LK02', message: 'Routine progress' });
     await notifyRunSubscriptions(runPath);
-    expect((await stat(wakePath)).mtimeMs).toBe(initial);
+    expect(await readWakeSignal(runPath, subscribed.wakeArtifact)).toEqual(initialWake);
 
     await appendEvent(runPath, { type: 'child-error', storyId: 'LK02', message: 'Child failed' });
     await notifyRunSubscriptions(runPath);
-    const warningWake = (await stat(wakePath)).mtimeMs;
-    expect(warningWake).toBeGreaterThan(initial);
+    const warningWake = await readWakeSignal(runPath, subscribed.wakeArtifact);
+    expect(warningWake).toMatchObject({ reason: 'events-available', cursorAtWake: 'events.ndjson:4' });
+    expect(warningWake).not.toEqual(initialWake);
 
     await appendEvent(runPath, { type: 'child-error', storyId: 'LK02', message: 'Duplicate warning' });
     await notifyRunSubscriptions(runPath);
-    expect((await stat(wakePath)).mtimeMs).toBe(warningWake);
+    expect(await readWakeSignal(runPath, subscribed.wakeArtifact)).toEqual(warningWake);
 
     await writeFile(path.join(runPath, 'state.json'), JSON.stringify({ runId: 'run-1', status: 'complete' }));
     await appendEvent(runPath, { type: 'run-complete', message: 'Done' });
@@ -191,7 +204,10 @@ describe('detached run subscriptions', () => {
       subscriptionId: subscribed.subscriptionId,
       ackCursor: 'events.ndjson:5',
     });
-    expect((await stat(wakePath)).mtimeMs).toBeGreaterThan(warningWake);
+    await expect(readFile(wakePath, 'utf8').then((content) => JSON.parse(content))).resolves.toMatchObject({
+      reason: 'terminal',
+      cursorAtWake: 'events.ndjson:6',
+    });
     expect(terminal).toMatchObject({ terminal: true, status: 'complete' });
   });
 
@@ -205,13 +221,14 @@ describe('detached run subscriptions', () => {
         replay: { lastEvents: 0 },
       },
     });
-    const wakePath = path.join(runPath, subscribed.wakeArtifact);
-    const initial = (await stat(wakePath)).mtimeMs;
+    const initialWake = await readWakeSignal(runPath, subscribed.wakeArtifact);
 
     await appendEvent(runPath, { type: 'run-complete', message: 'Done before state write' });
     await notifyRunSubscriptions(runPath);
 
-    expect((await stat(wakePath)).mtimeMs).toBeGreaterThan(initial);
+    const terminalWake = await readWakeSignal(runPath, subscribed.wakeArtifact);
+    expect(terminalWake).toMatchObject({ reason: 'terminal', cursorAtWake: 'events.ndjson:3' });
+    expect(terminalWake).not.toEqual(initialWake);
     await expect(readSubscription(runPath, subscribed.subscriptionId)).resolves.toMatchObject({
       terminal: true,
       status: 'complete',
