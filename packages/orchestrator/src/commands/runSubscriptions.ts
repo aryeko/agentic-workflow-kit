@@ -149,7 +149,7 @@ export async function runSubscribeHandler(input: WorkflowRunSubscribeInput): Pro
   const events = await readRunEvents(runDirectory);
   const state = await readJsonIfExists(path.join(runDirectory, 'state.json'));
   const runId = readRunId(state, runDirectory);
-  const status = terminalStatus(state);
+  const status = terminalStatus(state) ?? terminalStatusFromEvents(events);
   await cleanupSubscriptions(runDirectory, now);
   const records = await readSubscriptionRecords(runDirectory);
   const activeCount = records.filter((record) => record.status === 'active' && !record.terminal).length;
@@ -578,10 +578,13 @@ async function appendSubscriptionAuditEvent(
   fields: Record<string, unknown>,
   recordedAt: string,
 ): Promise<void> {
-  await appendFile(
-    path.join(runDirectory, 'events.ndjson'),
-    `\n${JSON.stringify({ ...fields, type, recordedAt, eventAt: recordedAt })}\n`,
-  );
+  const eventPath = path.join(runDirectory, 'events.ndjson');
+  const existing = await readFile(eventPath, 'utf8').catch((error: unknown) => {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return '';
+    throw error;
+  });
+  const prefix = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
+  await appendFile(eventPath, `${prefix}${JSON.stringify({ ...fields, type, recordedAt, eventAt: recordedAt })}\n`);
 }
 
 function initialMetrics(): RunSubscriptionMetrics {

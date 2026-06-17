@@ -198,6 +198,51 @@ describe('detached run subscriptions', () => {
     });
   });
 
+  it('detects terminal events when subscribing before state.json is terminal', async () => {
+    const runPath = await createRun();
+    await appendEvent(runPath, { type: 'run-complete', message: 'Done before state write' });
+
+    const subscribed = await runSubscribeHandler({
+      runPath,
+      subscription: { replay: { lastEvents: 0 } },
+    });
+
+    expect(subscribed).toMatchObject({
+      terminal: true,
+      status: 'complete',
+    });
+    await expect(readWakeSignal(runPath, subscribed.wakeArtifact)).resolves.toMatchObject({
+      reason: 'terminal',
+    });
+    await expect(readSubscription(runPath, subscribed.subscriptionId)).resolves.toMatchObject({
+      terminal: true,
+      status: 'complete',
+    });
+  });
+
+  it('keeps subscription audit events as one JSON record per physical NDJSON line', async () => {
+    const runPath = await createRun();
+    await writeFile(
+      path.join(runPath, 'events.ndjson'),
+      JSON.stringify({ type: 'run-started', recordedAt: '2026-06-17T10:00:00.000Z' }),
+    );
+
+    await runSubscribeHandler({
+      runPath,
+      subscription: { replay: { lastEvents: 0 } },
+    });
+
+    const rawLines = (await readFile(path.join(runPath, 'events.ndjson'), 'utf8')).split('\n');
+    const lines = rawLines.at(-1) === '' ? rawLines.slice(0, -1) : rawLines;
+    expect(lines).toHaveLength(3);
+    expect(lines).not.toContain('');
+    expect(lines.map((line) => JSON.parse(line).type)).toEqual([
+      'run-started',
+      'subscription-created',
+      'subscription-woken',
+    ]);
+  });
+
   it('uses two-phase ack so unacked batches replay and acked batches advance', async () => {
     const runPath = await createRun();
     const subscribed = await runSubscribeHandler({
