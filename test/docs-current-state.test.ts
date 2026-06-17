@@ -9,7 +9,7 @@ describe('current-state documentation', () => {
     expect(agents).not.toContain('`src/` contains shared TypeScript logic');
     expect(agents).not.toContain('not yet published');
     expect(agents).toContain(
-      'workflow-init`, `define-product`, `design-technical-solution`, `plan-delivery-track`, `implement-next`, and `workflow-autopilot',
+      'workflow-init`, `define-product`, `design-technical-solution`, `plan-delivery-track`, `implement-next`, `workflow-autopilot`, and `promote-to-canonical',
     );
     expect(agents).not.toContain('packages/core');
     expect(agents).toContain('package-backed MCP runtime');

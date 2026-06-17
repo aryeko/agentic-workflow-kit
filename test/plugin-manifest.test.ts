@@ -213,6 +213,15 @@ describe('plugin manifests', () => {
     expect(s).toContain('best-effort');
   });
 
+  it('ships the promote-to-canonical skill with frontmatter', () => {
+    expect(existsSync('skills/promote-to-canonical/SKILL.md')).toBe(true);
+    const s = readSkillFrontmatter('promote-to-canonical');
+    expect(s.name).toBe('promote-to-canonical');
+    expect(s.description).toEqual(expect.any(String));
+    expect(s['argument-hint']).toBe('[track or prd-slug]');
+    expect(s['user-invocable']).toBe(true);
+  });
+
   it('no longer ships a separate commands/ layer (skills provide the entry points)', () => {
     expect(existsSync('commands')).toBe(false);
   });

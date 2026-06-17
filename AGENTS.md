@@ -27,7 +27,7 @@ The shared contract:
   materialized `plugins/agentic-workflow-kit/` copy provide the local Codex marketplace fixture. Keep that
   fixture byte-in-sync with `.codex-plugin/`, `skills/`, `references/`, `presets/`, and `examples/`;
   keep its surface-specific `.mcp.json` materialized.
-- `skills/` contains the shared plugin skills: `workflow-init`, `define-product`, `design-technical-solution`, `plan-delivery-track`, `implement-next`, and `workflow-autopilot`. These also provide the slash-command entry points; there is no separate `commands/` layer.
+- `skills/` contains the shared plugin skills: `workflow-init`, `define-product`, `design-technical-solution`, `plan-delivery-track`, `implement-next`, `workflow-autopilot`, and `promote-to-canonical`. These also provide the slash-command entry points; there is no separate `commands/` layer.
 - `references/` contains the canonical config schema, tracker contract, PRD contract, technical solution contract, and templates.
   Keep the human and machine schema docs in sync.
 - `presets/` contains the three starter configs.
