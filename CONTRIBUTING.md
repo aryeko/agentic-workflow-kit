@@ -22,6 +22,10 @@ pnpm typecheck   # tsc across root and orchestrator
 pnpm test        # Vitest across root and orchestrator
 ```
 
+`pnpm test` enforces coverage thresholds (lines 88.5%, statements 85%, functions 90%, branches 76%)
+as a single combined gate across the root and orchestrator suites, so adding code without tests can
+breach the gate.
+
 For a focused change, run the nearest test first, then `pnpm check` before opening a PR. The
 optional Codex plugin smoke (`pnpm smoke:codex-plugin`) requires the Codex CLI and is intentionally
 outside `pnpm check`. Claude plugin validation uses `claude plugin validate .` when the Claude CLI is

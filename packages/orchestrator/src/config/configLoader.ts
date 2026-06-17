@@ -25,7 +25,6 @@ const AGENT_TASK_TYPES: AgentTaskType[] = [
   'migrateTracker',
 ];
 const UNAVAILABLE_TOKEN_BUDGET_REASON = 'live token telemetry is not available before AWK06/AWK08 budget enforcement';
-const UNAVAILABLE_COST_BUDGET_REASON = 'live cost telemetry is not available before AWK06/AWK08 budget enforcement';
 
 export async function loadResolvedConfig(
   overrides: CliOverrides = {},
@@ -249,7 +248,6 @@ function budgetSupportFor(budget: AgentBudgetPolicy): Record<keyof AgentBudgetPo
     tokens: { enforceable: false, unavailableReason: UNAVAILABLE_TOKEN_BUDGET_REASON },
     toolCalls: { enforceable: budget.toolCalls.limit !== null, unavailableReason: null },
     failedToolCalls: { enforceable: budget.failedToolCalls.limit !== null, unavailableReason: null },
-    costUsd: { enforceable: false, unavailableReason: UNAVAILABLE_COST_BUDGET_REASON },
   };
 }
 
