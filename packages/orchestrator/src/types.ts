@@ -71,7 +71,55 @@ export interface ActiveChildRun {
   lastHeartbeatAt: string | null;
 }
 
-export type ChildLaunchStatus = 'requested' | 'launched' | 'startup_failed' | 'settled' | 'supervision_lost';
+export type ChildLaunchStatus =
+  | 'requested'
+  | 'launched'
+  | 'awaiting_review'
+  | 'startup_failed'
+  | 'settled'
+  | 'supervision_lost';
+
+/**
+ * Canonical pre-PR review verdict vocabulary. `PASS` ~ approve, `BLOCK` ~ request-changes.
+ * Reused across the orchestrator verdict envelope and the analyzer/journal events.
+ */
+export type ReviewDecision = 'PASS' | 'BLOCK';
+
+export interface ReviewFinding {
+  title: string;
+  severity?: 'critical' | 'high' | 'medium' | 'low';
+  detail?: string;
+  path?: string;
+}
+
+/**
+ * Verdict the supervising orchestrator deposits for a child waiting in `awaiting_review`.
+ */
+export interface ReviewVerdict {
+  decision: ReviewDecision;
+  findings?: ReviewFinding[];
+  summary?: string;
+  /** Echo of the review loop being judged (orchestrator-side counter is authoritative). */
+  loop?: number;
+}
+
+/**
+ * Marker a child emits (via `structuredContent.prePrReview`) when it yields at the
+ * pre-PR checkpoint in orchestrator review mode instead of self-reviewing or opening the PR.
+ */
+export interface PrePrReviewAwaitingMarker {
+  status: 'awaiting_review';
+  /** Run-relative or absolute path to the review-request packet the child wrote. */
+  packetPath?: string;
+  /** Child-side review loop counter (advisory). */
+  loop?: number;
+  /** Git ref the orchestrator should diff against (defaults to HEAD). */
+  diffRef?: string;
+  /** Short human-readable summary of the turn for the reviewer. */
+  summary?: string;
+  /** Verification evidence gathered so far this turn. */
+  verification?: VerificationEvidence[];
+}
 export type ChildProgressSource =
   | 'codex-event'
   | 'session-linked'
@@ -291,9 +339,10 @@ export interface ResolvedWorkflowConfig {
     review: {
       prePr: {
         enabled: boolean;
-        mode: 'auto' | 'subagent' | 'inline';
+        mode: 'auto' | 'subagent' | 'inline' | 'orchestrator';
         maxLoops: number;
         loopMode: 'incremental' | 'full';
+        downgradeTo: 'none' | 'subagent' | 'inline';
       };
       semanticChecks: {
         enabled: boolean;
@@ -327,6 +376,12 @@ export interface ResolvedWorkflowConfig {
     childNoProgressTimeoutMs: number;
     childStartupTimeoutMs: number;
     childMaxRuntimeMs: number;
+    /**
+     * Maximum time a child may sit in `awaiting_review` (orchestrator pre-PR
+     * review mode) before the review-wait timeout escalates with block + notify.
+     * Distinct from `childNoProgressTimeoutMs`, which is disarmed while awaiting review.
+     */
+    childReviewWaitTimeoutMs: number;
   };
   childSession: ResolvedChildSessionConfig;
   codex: {

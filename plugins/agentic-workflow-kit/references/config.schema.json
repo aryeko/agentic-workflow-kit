@@ -272,7 +272,8 @@
                   "enum": [
                     "auto",
                     "subagent",
-                    "inline"
+                    "inline",
+                    "orchestrator"
                   ]
                 },
                 "maxLoops": {
@@ -287,6 +288,15 @@
                   "enum": [
                     "incremental",
                     "full"
+                  ]
+                },
+                "downgradeTo": {
+                  "default": "none",
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "subagent",
+                    "inline"
                   ]
                 }
               },
@@ -392,6 +402,12 @@
         },
         "childMaxRuntimeMs": {
           "default": 7200000,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "childReviewWaitTimeoutMs": {
+          "default": 1800000,
           "type": "integer",
           "minimum": 1,
           "maximum": 9007199254740991
