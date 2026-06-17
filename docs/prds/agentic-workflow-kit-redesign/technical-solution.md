@@ -12,6 +12,7 @@ related:
   - ./technical-solution/04-ai-observability-operations.md
   - ./technical-solution/05-api-surface.md
   - ./technical-solution/06-delivery-inputs.md
+  - ./runtime-versioning-design.md
   - ../../architecture.md
   - ../../../references/config-schema.md
   - ../../../references/tracker-contract.md
@@ -59,6 +60,7 @@ flowchart LR
 | 4 | [AI, observability, and operations](./technical-solution/04-ai-observability-operations.md) | Prompt boundaries, MCP/CLI tools, notifications, events, rollout, security, and tests |
 | 5 | [API surface](./technical-solution/05-api-surface.md) | Product-first MCP and CLI API contract, schemas, streaming, and errors |
 | 6 | [Delivery inputs](./technical-solution/06-delivery-inputs.md) | Story-area handoff table and non-blocking technical questions |
+| S1 | [Runtime and config versioning](./runtime-versioning-design.md) | Supplemental design for CLI/MCP version discovery, config schema compatibility, upgrade prompting, and migration tools |
 
 ## Context and existing surfaces
 
