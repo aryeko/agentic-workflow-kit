@@ -5,7 +5,6 @@ export const UNAVAILABLE_REASONS = {
   sessionLogMetrics: 'session log metrics are unavailable',
   failedToolCalls: 'failed tool-call telemetry is unavailable',
   tokenTelemetry: 'session log token telemetry is unavailable',
-  costTelemetry: 'cost telemetry is not exposed by the current host',
 } as const;
 
 export function available(): MetricAvailability {

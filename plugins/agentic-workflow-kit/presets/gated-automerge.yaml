@@ -98,10 +98,6 @@ agents:
           limit: null
           warnAtPercent: 80
           action: warn
-        costUsd:
-          limit: null
-          warnAtPercent: 80
-          action: stop-new-launches
       host: {}
     prePrReviewer:
       driver: codex-mcp
