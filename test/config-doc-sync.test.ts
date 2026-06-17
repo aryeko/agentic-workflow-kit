@@ -133,9 +133,9 @@ describe('config-schema.md stays in sync with config.schema.json', () => {
 
   it('documents semver config schema versioning and legacy numeric transition support', () => {
     expect(doc).toContain('Config schema versioning');
-    expect(doc).toContain('Current config schema version: `0.6.0`');
+    expect(doc).toContain('Current config schema version: `0.7.0`');
     expect(doc).toContain('Minimum supported config schema version: `0.6.0`');
-    expect(doc).toContain('New configs should use `version: "0.6.0"`');
+    expect(doc).toContain('New configs should use `version: "0.7.0"`');
     expect(doc).toContain('Existing legacy configs with `version: 1` remain readable');
     expect(doc).toContain('agentic-workflow-kit config status --json');
     expect(doc).toContain('agentic-workflow-kit config upgrade --dry-run --json');

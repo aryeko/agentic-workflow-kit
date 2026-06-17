@@ -8,14 +8,14 @@
       "anyOf": [
         {
           "type": "string",
-          "const": "0.6.0"
+          "const": "0.7.0"
         },
         {
           "type": "number",
           "const": 1
         }
       ],
-      "default": "0.6.0"
+      "default": "0.7.0"
     },
     "paths": {
       "type": "object",
@@ -828,6 +828,146 @@
               "default": "planner",
               "type": "string",
               "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "docs": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "default": "full",
+          "type": "string",
+          "enum": [
+            "lean",
+            "full"
+          ]
+        },
+        "index": {
+          "default": "docs/README.md",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+        },
+        "style": {
+          "default": "docs/docs-style.md",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+        },
+        "templatesDir": {
+          "default": ".workflow/templates",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+        },
+        "paths": {
+          "type": "object",
+          "properties": {
+            "productDir": {
+              "default": "docs/product",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+            },
+            "prdsDir": {
+              "default": "docs/product/prds",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+            },
+            "architectureDir": {
+              "default": "docs/architecture",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+            },
+            "designsDir": {
+              "default": "docs/architecture/designs",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+            },
+            "domainsDir": {
+              "default": "docs/architecture/domains",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+            },
+            "decisionsDir": {
+              "default": "docs/architecture/decisions",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!\\/)(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "types": {
+          "type": "object",
+          "properties": {
+            "adr": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "default": true,
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "domain": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "default": true,
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "runbook": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "default": false,
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "promote": {
+          "type": "object",
+          "properties": {
+            "strategy": {
+              "default": "terminal-story",
+              "type": "string",
+              "enum": [
+                "terminal-story"
+              ]
+            },
+            "gate": {
+              "default": "track-complete",
+              "type": "string",
+              "enum": [
+                "track-complete",
+                "off"
+              ]
+            },
+            "breadcrumbs": {
+              "default": "required",
+              "type": "string",
+              "enum": [
+                "required",
+                "optional",
+                "off"
+              ]
             }
           },
           "additionalProperties": false

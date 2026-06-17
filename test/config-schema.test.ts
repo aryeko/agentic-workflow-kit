@@ -12,7 +12,7 @@ function validateConfigContract(value: unknown): boolean {
 }
 
 const goodConfig = {
-  version: '0.6.0',
+  version: '0.7.0',
   paths: {
     tracksDir: 'docs/tracks',
     specsDir: 'docs/specs',
@@ -112,10 +112,10 @@ describe('config.schema.json', () => {
     expect(validateConfigContract(goodConfig)).toBe(true);
   });
   it('accepts a version-only config because all other fields have defaults', () => {
-    expect(validateConfigContract({ version: '0.6.0' })).toBe(true);
+    expect(validateConfigContract({ version: '0.7.0' })).toBe(true);
   });
   it('applies runtime defaults for interactive review and subagent policy', () => {
-    const parsed = ConfigSchema.parse({ version: '0.6.0' });
+    const parsed = ConfigSchema.parse({ version: '0.7.0' });
 
     expect(parsed.implement.review.prePr).toEqual({
       enabled: true,
@@ -149,7 +149,7 @@ describe('config.schema.json', () => {
   });
   it('keeps childTimeoutMs as a compatibility alias for no-progress timeout', () => {
     const parsed = ConfigSchema.parse({
-      version: '0.6.0',
+      version: '0.7.0',
       orchestrator: { childTimeoutMs: 60_000 },
     });
 
@@ -161,7 +161,7 @@ describe('config.schema.json', () => {
   it('accepts partial nested config objects and relies on runtime defaults', () => {
     expect(
       validateConfigContract({
-        version: '0.6.0',
+        version: '0.7.0',
         paths: {},
         pr: {
           ci: {},
@@ -173,8 +173,8 @@ describe('config.schema.json', () => {
   });
   it('accepts child-session speed policy values in the generated schema', () => {
     for (const speed of ['derive', 'fast', 'standard']) {
-      expect(validateConfigContract({ version: '0.6.0', childSession: { speed } })).toBe(true);
-      expect(validateConfigContract({ version: '0.6.0', codex: { childSession: { speed } } })).toBe(true);
+      expect(validateConfigContract({ version: '0.7.0', childSession: { speed } })).toBe(true);
+      expect(validateConfigContract({ version: '0.7.0', codex: { childSession: { speed } } })).toBe(true);
     }
   });
   it('requires version', () => {
@@ -206,19 +206,19 @@ describe('config.schema.json', () => {
     ];
 
     for (const conflict of conflicts) {
-      expect(validate({ version: '0.6.0', ...conflict })).toBe(false);
+      expect(validate({ version: '0.7.0', ...conflict })).toBe(false);
     }
   });
   it('accepts raw service_tier when child-session speed derives', () => {
     expect(
       validateConfigContract({
-        version: '0.6.0',
+        version: '0.7.0',
         childSession: { speed: 'derive', config: { service_tier: 'fast' } },
       }),
     ).toBe(true);
     expect(
       validateConfigContract({
-        version: '0.6.0',
+        version: '0.7.0',
         childSession: { speed: 'derive' },
         codex: { childSession: { speed: 'fast', config: { service_tier: 'fast' } } },
       }),

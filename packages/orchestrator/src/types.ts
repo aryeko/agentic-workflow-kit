@@ -308,7 +308,7 @@ export interface ResolvedAgentProfile extends AgentProfile {
 }
 
 export interface ResolvedWorkflowConfig {
-  version: '0.6.0';
+  version: '0.7.0';
   configPath: string;
   workspace: {
     rootAbs: string;
@@ -385,6 +385,30 @@ export interface ResolvedWorkflowConfig {
   childSession: ResolvedChildSessionConfig;
   codex: {
     childSession: ResolvedChildSessionConfig;
+  };
+  docs?: {
+    preset: 'lean' | 'full';
+    index: string;
+    style: string;
+    templatesDir: string;
+    paths: {
+      productDir: string;
+      prdsDir: string;
+      architectureDir: string;
+      designsDir: string;
+      domainsDir: string;
+      decisionsDir: string;
+    };
+    types: {
+      adr: { enabled: boolean };
+      domain: { enabled: boolean };
+      runbook: { enabled: boolean };
+    };
+    promote: {
+      strategy: 'terminal-story';
+      gate: 'track-complete' | 'off';
+      breadcrumbs: 'required' | 'optional' | 'off';
+    };
   };
 }
 

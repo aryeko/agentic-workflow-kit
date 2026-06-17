@@ -391,7 +391,7 @@ describe('workflow API facade', () => {
   });
 
   it('blocks subscribe-by-runId when config compatibility is unsupported', async () => {
-    const { root } = await createRunWorkspace('version: "0.7.0"\n');
+    const { root } = await createRunWorkspace('version: "0.8.0"\n');
 
     const envelope = await runSubscribeFacade({ cwd: root, runId: 'run-1' });
 

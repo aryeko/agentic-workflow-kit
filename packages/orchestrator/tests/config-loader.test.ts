@@ -63,7 +63,7 @@ orchestrator:
 
     const config = await loadResolvedConfig({}, root);
 
-    expect(config.version).toBe('0.6.0');
+    expect(config.version).toBe('0.7.0');
     expect(config.configPath).toBe(path.join(root, '.workflow', 'config.yaml'));
     expect(config.workspace.rootAbs).toBe(root);
     expect(config.paths.tracksDirAbs).toBe(path.join(root, 'docs/tracks'));
@@ -498,6 +498,18 @@ orchestrator:
 
   it('creates filesystem-safe run IDs', () => {
     expect(createRunId(() => '2026-06-02T10:11:12.123Z')).toBe('2026-06-02T10-11-12-123Z');
+  });
+
+  it('exposes docs knowledge-base config defaults at version 0.7.0', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-docs-'));
+    await writeWorkflowConfig(root, 'version: "0.7.0"\n');
+
+    const config = await loadResolvedConfig({}, root);
+
+    expect(config.docs!.preset).toBe('full');
+    expect(config.docs!.paths.designsDir).toBe('docs/architecture/designs');
+    expect(config.docs!.types.adr.enabled).toBe(true);
+    expect(config.docs!.promote.gate).toBe('track-complete');
   });
 
   it('reports all Zod validation issues when multiple fields are invalid', async () => {

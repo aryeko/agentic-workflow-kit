@@ -21,7 +21,7 @@ describe('presets', () => {
 
   for (const name of ['push-and-merge', 'gated-automerge', 'push-only']) {
     it(`${name} declares the current semver config schema version`, () => {
-      expect(loadPreset(name).version).toBe('0.6.0');
+      expect(loadPreset(name).version).toBe('0.7.0');
     });
 
     it(`${name} validates against the schema`, () => {

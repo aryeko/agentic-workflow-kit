@@ -121,6 +121,7 @@ export async function loadResolvedConfig(
     },
     childSession: resolvedChildSession,
     codex: { childSession: resolvedChildSession },
+    docs: config.docs,
   };
 }
 
@@ -197,6 +198,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
     },
     childSession: resolvedChildSession,
     codex: { childSession: resolvedChildSession },
+    docs: config.docs,
   };
 }
 

@@ -6,11 +6,11 @@ machine-readable mirror is `config.schema.json` (validated in CI).
 
 ## Config schema versioning
 
-Current config schema version: `0.6.0`.
+Current config schema version: `0.7.0`.
 Minimum supported config schema version: `0.6.0`.
 
-New configs should use `version: "0.6.0"`. Existing legacy configs with `version: 1` remain readable
-during the transition window and are classified as upgradeable to `0.6.0`. Versions below the
+New configs should use `version: "0.7.0"`. Existing legacy configs with `version: 1` remain readable
+during the transition window and are classified as upgradeable to `0.7.0`. Versions below the
 minimum supported schema version are blocked until upgraded. Versions above the current schema
 version are blocked until the runtime is upgraded.
 
@@ -29,7 +29,7 @@ confirmation.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `version` | semver string \| legacy const `1` | `0.6.0` | Config schema version. Use `"0.6.0"` for new configs; legacy `1` is readable and upgradeable during the transition window. |
+| `version` | semver string \| legacy const `1` | `0.7.0` | Config schema version. Use `"0.7.0"` for new configs; legacy `1` is readable and upgradeable during the transition window. |
 
 ## `paths`
 
@@ -289,3 +289,58 @@ supervision-lost children. Observed child progress resets the no-progress timeou
 PR/review/merge stories commonly need a larger wall-clock maximum than the old 30 minute
 `childTimeoutMs` default because healthy progress can include implementation, verification, PR
 creation, review wait, fix batches, merge, and cleanup.
+
+## `docs`
+
+Knowledge-base generation policy. Controls which pillar directories, doc types, and promotion
+strategy the kit uses when producing and maintaining canonical docs.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `preset` | `lean` \| `full` | `full` | Documentation preset. `lean` omits optional doc types; `full` enables all supported types. |
+| `index` | string | `docs/README.md` | Repo-relative path to the docs index file. |
+| `style` | string | `docs/docs-style.md` | Repo-relative path to the docs style guide. |
+| `templatesDir` | string | `.workflow/templates` | Repo-relative directory for custom doc templates. |
+
+## `docs.paths`
+
+Pillar directory paths for generated documentation.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `productDir` | string | `docs/product` | Root of the product pillar. |
+| `prdsDir` | string | `docs/product/prds` | PRD documents directory under the product pillar. |
+| `architectureDir` | string | `docs/architecture` | Root of the architecture pillar. |
+| `designsDir` | string | `docs/architecture/designs` | Technical design documents directory. |
+| `domainsDir` | string | `docs/architecture/domains` | Domain reference documents directory. |
+| `decisionsDir` | string | `docs/architecture/decisions` | Architecture decision records (ADRs) directory. |
+
+All `docs.paths` values must be repo-relative paths. Absolute paths and `..` segments are rejected.
+
+## `docs.types.adr`
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | boolean | `true` | Generate and maintain architecture decision records. |
+
+## `docs.types.domain`
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | boolean | `true` | Generate and maintain domain reference documents. |
+
+## `docs.types.runbook`
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | boolean | `false` | Generate and maintain runbooks. Disabled by default; enable when operational runbooks are part of the repo docs contract. |
+
+## `docs.promote`
+
+Controls when and how the kit promotes docs from draft to canonical state.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `strategy` | `terminal-story` | `terminal-story` | Promotion strategy. `terminal-story` promotes docs at the end of the terminal story in a track. |
+| `gate` | `track-complete` \| `off` | `track-complete` | Gate that must pass before promotion. `track-complete` requires all track stories to be done; `off` promotes immediately after the terminal story. |
+| `breadcrumbs` | `required` \| `optional` \| `off` | `required` | Whether the kit requires breadcrumb annotations linking stories to the docs they produced. |

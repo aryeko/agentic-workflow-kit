@@ -7,7 +7,7 @@ type PrePrMode = ResolvedWorkflowConfig['implement']['review']['prePr']['mode'];
 
 function makeConfig(mode: PrePrMode, enabled = true): ResolvedWorkflowConfig {
   return {
-    version: '0.6.0',
+    version: '0.7.0',
     configPath: '/repo/.workflow/config.yaml',
     workspace: { rootAbs: '/repo' },
     paths: {

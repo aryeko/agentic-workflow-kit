@@ -9,7 +9,7 @@ export const packageVersion =
 export const mcpServerName = 'agentic-workflow-kit';
 export const mcpServerVersion = packageVersion;
 export const apiVersion = '1';
-export const CURRENT_CONFIG_SCHEMA_VERSION = '0.6.0';
+export const CURRENT_CONFIG_SCHEMA_VERSION = '0.7.0';
 export const MIN_SUPPORTED_CONFIG_SCHEMA_VERSION = '0.6.0';
 
 export function runtimeInfo() {

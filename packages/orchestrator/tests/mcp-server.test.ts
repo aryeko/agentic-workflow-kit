@@ -308,31 +308,31 @@ describe('agentic-workflow-kit MCP server', () => {
     expect(runtimeInfo.structuredContent).toMatchObject({
       packageVersion: packageJson.version,
       mcpServer: { name: 'agentic-workflow-kit', version: packageJson.version },
-      configSchema: { current: '0.6.0', minimumSupported: '0.6.0' },
+      configSchema: { current: '0.7.0', minimumSupported: '0.6.0' },
     });
     expect(status.structuredContent).toMatchObject({
       status: 'legacy-upgradeable',
       upgradeAvailable: true,
       blocking: false,
-      targetVersion: '0.6.0',
+      targetVersion: '0.7.0',
     });
     expect(preview.structuredContent).toMatchObject({
       dryRun: true,
       wrote: false,
-      changes: [{ path: 'version', from: 1, to: '0.6.0' }],
+      changes: [{ path: 'version', from: 1, to: '0.7.0' }],
     });
     expect(unconfirmed.structuredContent).toMatchObject({
       dryRun: false,
       wrote: false,
       confirmationRequired: true,
-      changes: [{ path: 'version', from: 1, to: '0.6.0' }],
+      changes: [{ path: 'version', from: 1, to: '0.7.0' }],
     });
     expect(applied.structuredContent).toMatchObject({
       dryRun: false,
       wrote: true,
-      targetVersion: '0.6.0',
+      targetVersion: '0.7.0',
     });
-    expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('version: 0.6.0');
+    expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('version: 0.7.0');
 
     await client.close();
     await server.close();
@@ -506,7 +506,7 @@ describe('agentic-workflow-kit MCP server', () => {
       result: { runId: 'run-1' },
     });
     expect(JSON.parse('text' in config.contents[0] ? config.contents[0].text : '')).toMatchObject({
-      version: '0.6.0',
+      version: '0.7.0',
       statuses: { inProgress: 'implementing' },
     });
     await client.close();

@@ -87,7 +87,7 @@ describe('runCli', () => {
       packageVersion: packageJson.version,
       apiVersion: '1',
       mcpServer: { name: 'agentic-workflow-kit', version: packageJson.version },
-      configSchema: { current: '0.6.0', minimumSupported: '0.6.0' },
+      configSchema: { current: '0.7.0', minimumSupported: '0.6.0' },
     });
   });
 
@@ -114,21 +114,21 @@ describe('runCli', () => {
     expect(JSON.parse(statusStdout[0])).toMatchObject({
       status: 'legacy-upgradeable',
       detectedVersion: '1',
-      targetVersion: '0.6.0',
+      targetVersion: '0.7.0',
       upgradeAvailable: true,
       blocking: false,
     });
     expect(JSON.parse(dryRunStdout[0])).toMatchObject({
       dryRun: true,
       wrote: false,
-      changes: [{ path: 'version', from: 1, to: '0.6.0' }],
+      changes: [{ path: 'version', from: 1, to: '0.7.0' }],
     });
     expect(JSON.parse(upgradeStdout[0])).toMatchObject({
       dryRun: false,
       wrote: true,
-      targetVersion: '0.6.0',
+      targetVersion: '0.7.0',
     });
-    expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('version: 0.6.0');
+    expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('version: 0.7.0');
     expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('tracksDir: docs/work');
   });
 

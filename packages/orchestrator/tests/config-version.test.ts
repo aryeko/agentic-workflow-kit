@@ -24,29 +24,29 @@ async function writeWorkflowConfig(root: string, yaml: string): Promise<string> 
 
 describe('workflow config version compatibility', () => {
   it('exposes runtime and config schema version metadata', () => {
-    expect(CURRENT_CONFIG_SCHEMA_VERSION).toBe('0.6.0');
+    expect(CURRENT_CONFIG_SCHEMA_VERSION).toBe('0.7.0');
     expect(MIN_SUPPORTED_CONFIG_SCHEMA_VERSION).toBe('0.6.0');
     expect(runtimeInfo()).toMatchObject({
       apiVersion: '1',
       mcpServer: { name: 'agentic-workflow-kit' },
       configSchema: {
-        current: '0.6.0',
+        current: '0.7.0',
         minimumSupported: '0.6.0',
       },
     });
   });
 
   it('classifies current, legacy, older, newer, invalid, and missing config versions', () => {
-    expect(classifyWorkflowConfigVersion({ version: '0.6.0' })).toMatchObject({
+    expect(classifyWorkflowConfigVersion({ version: '0.7.0' })).toMatchObject({
       status: 'current',
-      detectedVersion: '0.6.0',
+      detectedVersion: '0.7.0',
       blocking: false,
       upgradeAvailable: false,
     });
     expect(classifyWorkflowConfigVersion({ version: 1 })).toMatchObject({
       status: 'legacy-upgradeable',
       detectedVersion: '1',
-      normalizedVersion: '0.6.0',
+      normalizedVersion: '0.7.0',
       blocking: false,
       upgradeAvailable: true,
     });
@@ -56,7 +56,7 @@ describe('workflow config version compatibility', () => {
       targetVersion: null,
       upgradeAvailable: false,
     });
-    expect(classifyWorkflowConfigVersion({ version: '0.7.0' })).toMatchObject({
+    expect(classifyWorkflowConfigVersion({ version: '0.8.0' })).toMatchObject({
       status: 'unsupported-new',
       blocking: true,
       upgradeAvailable: false,
@@ -77,13 +77,13 @@ describe('workflow config version compatibility', () => {
     const legacyRoot = await mkdtemp(path.join(os.tmpdir(), 'workflow-config-legacy-'));
     const currentRoot = await mkdtemp(path.join(os.tmpdir(), 'workflow-config-current-'));
     await writeWorkflowConfig(legacyRoot, 'version: 1\n');
-    await writeWorkflowConfig(currentRoot, 'version: "0.6.0"\n');
+    await writeWorkflowConfig(currentRoot, 'version: "0.7.0"\n');
 
     await expect(loadConfig({ cwd: legacyRoot })).resolves.toMatchObject({
-      config: { version: '0.6.0' },
+      config: { version: '0.7.0' },
     });
     await expect(loadConfig({ cwd: currentRoot })).resolves.toMatchObject({
-      config: { version: '0.6.0' },
+      config: { version: '0.7.0' },
     });
   });
 
@@ -98,16 +98,16 @@ describe('workflow config version compatibility', () => {
 
     expect(plan).toMatchObject({
       detectedVersion: '1',
-      targetVersion: '0.6.0',
+      targetVersion: '0.7.0',
       writeRequired: true,
-      changes: [{ path: 'version', from: 1, to: '0.6.0' }],
+      changes: [{ path: 'version', from: 1, to: '0.7.0' }],
     });
     expect(await readFile(configPath, 'utf8')).toContain('version: 1');
 
     const result = await applyWorkflowConfigUpgrade({ cwd: root });
 
-    expect(result).toMatchObject({ wrote: true, targetVersion: '0.6.0' });
-    expect(await readFile(configPath, 'utf8')).toContain('version: 0.6.0');
+    expect(result).toMatchObject({ wrote: true, targetVersion: '0.7.0' });
+    expect(await readFile(configPath, 'utf8')).toContain('version: 0.7.0');
     expect(await readFile(configPath, 'utf8')).toContain('tracksDir: custom/tracks');
     expect(await readFile(configPath, 'utf8')).toContain('full: pnpm check');
   });
@@ -156,7 +156,7 @@ describe('workflow config version compatibility', () => {
     const oldRoot = await mkdtemp(path.join(os.tmpdir(), 'workflow-config-load-old-'));
     const newRoot = await mkdtemp(path.join(os.tmpdir(), 'workflow-config-load-new-'));
     await writeWorkflowConfig(oldRoot, 'version: "0.5.0"\n');
-    await writeWorkflowConfig(newRoot, 'version: "0.7.0"\n');
+    await writeWorkflowConfig(newRoot, 'version: "0.8.0"\n');
 
     await expect(loadConfig({ cwd: oldRoot })).rejects.toThrow('older than the minimum supported version 0.6.0');
     await expect(loadConfig({ cwd: newRoot })).rejects.toThrow('newer than this runtime supports');

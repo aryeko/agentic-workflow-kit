@@ -401,6 +401,38 @@ export const ConfigSchema = z
           }
         }
       }),
+    docs: z
+      .object({
+        preset: z.enum(['lean', 'full']).default('full'),
+        index: repoRelativePath.default('docs/README.md'),
+        style: repoRelativePath.default('docs/docs-style.md'),
+        templatesDir: repoRelativePath.default('.workflow/templates'),
+        paths: z
+          .object({
+            productDir: repoRelativePath.default('docs/product'),
+            prdsDir: repoRelativePath.default('docs/product/prds'),
+            architectureDir: repoRelativePath.default('docs/architecture'),
+            designsDir: repoRelativePath.default('docs/architecture/designs'),
+            domainsDir: repoRelativePath.default('docs/architecture/domains'),
+            decisionsDir: repoRelativePath.default('docs/architecture/decisions'),
+          })
+          .prefault({}),
+        types: z
+          .object({
+            adr: z.object({ enabled: z.boolean().default(true) }).prefault({}),
+            domain: z.object({ enabled: z.boolean().default(true) }).prefault({}),
+            runbook: z.object({ enabled: z.boolean().default(false) }).prefault({}),
+          })
+          .prefault({}),
+        promote: z
+          .object({
+            strategy: z.enum(['terminal-story']).default('terminal-story'),
+            gate: z.enum(['track-complete', 'off']).default('track-complete'),
+            breadcrumbs: z.enum(['required', 'optional', 'off']).default('required'),
+          })
+          .prefault({}),
+      })
+      .prefault({}),
   })
   .strict()
   .superRefine((config, context) => {
