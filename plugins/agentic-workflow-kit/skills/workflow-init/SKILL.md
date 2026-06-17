@@ -55,7 +55,7 @@ verify command), `verify.changed` (from a scoped changed gate when present), and
 (from the detected default branch). Only set `verify.changed` equal to `verify.full` when no scoped
 command exists, and say that fallback explicitly in the summary. Leave everything else at the
 preset's value. Presets declare the current semver config schema version, for example
-`version: "0.6.0"`. Existing configs with legacy `version: 1` remain readable during the transition
+`version: "0.7.0"`. Existing configs with legacy `version: 1` remain readable during the transition
 window, but should be reported as upgradeable before reconciling missing keys. Validate the result
 against `config.schema.json` before saving.
 
@@ -157,7 +157,7 @@ When `docs.preset` is `full`, also scaffold:
 
 Never overwrite an existing index or tracker without explicit user confirmation.
 
-## Step 7 — Summarize
+## Step 6 — Summarize
 
 Print the chosen preset (and the signals behind it), the paths written (config and docs
 knowledge base), and the next command to run.
