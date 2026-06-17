@@ -46,6 +46,9 @@ agentic-workflow-kit run preview --cwd . --track product-foundation --mode eligi
 agentic-workflow-kit run preview --cwd . --track product-foundation --story WK001 --json
 agentic-workflow-kit run status .codex/agentic-workflow-kit/runs/<run-id> --json
 agentic-workflow-kit run stream .codex/agentic-workflow-kit/runs/<run-id> --format ndjson
+agentic-workflow-kit run subscribe <run-id> --topics child,error --wake-min-level warn --json
+agentic-workflow-kit run subscription-poll <run-id-or-path> <subscription-id> --ack-cursor events.ndjson:12 --json
+agentic-workflow-kit run unsubscribe <run-id-or-path> <subscription-id> --json
 agentic-workflow-kit run inspect .codex/agentic-workflow-kit/runs/<run-id> --json
 agentic-workflow-kit run report .codex/agentic-workflow-kit/runs/<run-id> --format markdown
 agentic-workflow-kit run export .codex/agentic-workflow-kit/runs/<run-id> --include summary --json
@@ -77,6 +80,15 @@ check the detected schema version, current/minimum supported versions, upgrade a
 warnings, and next actions. Use `config upgrade --dry-run --json` to preview the migration and
 `config upgrade --yes --json` to rewrite `.workflow/config.yaml` after explicit approval.
 
+Use `run subscribe` for detached realtime delivery after an agent or host yields its turn. It
+creates `subscriptions/<subscription-id>.json` and a wake signal under the run artifact directory.
+Use `run subscription-poll` to commit a valid `events.ndjson:<lineCount>` cursor and read filtered
+events; use `run unsubscribe` to close the subscription and remove its wake signal. Subscribe by
+run id is config-dependent. Poll and unsubscribe also accept an absolute run path for artifact-only
+cleanup or resume flows. Lifecycle events are journaled as `subscription-created`,
+`subscription-woken`, and `subscription-closed`, and `run inspect --json` includes a compact
+subscription summary with active counts, last wake time, cursors, and wake/delivery metrics.
+
 ## MCP Server
 
 Plugin installs start the MCP server with an exact package version:
@@ -94,6 +106,9 @@ Available MCP tools:
 - `workflow_run_preview`
 - `workflow_run_status`
 - `workflow_run_stream`
+- `workflow_run_subscribe`
+- `workflow_run_subscription_poll`
+- `workflow_run_unsubscribe`
 - `workflow_run_inspect`
 - `workflow_run_report`
 - `workflow_run_export`
@@ -166,6 +181,9 @@ Inspect a run:
 ```bash
 agentic-workflow-kit run status .codex/agentic-workflow-kit/runs/<run-id> --json
 agentic-workflow-kit run stream .codex/agentic-workflow-kit/runs/<run-id> --format ndjson
+agentic-workflow-kit run subscribe <run-id> --topics run,story,child,error --json
+agentic-workflow-kit run subscription-poll .codex/agentic-workflow-kit/runs/<run-id> <subscription-id> --json
+agentic-workflow-kit run unsubscribe .codex/agentic-workflow-kit/runs/<run-id> <subscription-id> --json
 agentic-workflow-kit run inspect .codex/agentic-workflow-kit/runs/<run-id> --json
 agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id> --json
 agentic-workflow-kit watch-run .codex/agentic-workflow-kit/runs/<run-id> --wait --interval-ms 300000 --timeout-ms 300000 --json
@@ -173,6 +191,11 @@ agentic-workflow-kit analyze-run .codex/agentic-workflow-kit/runs/<run-id> --jso
 agentic-workflow-kit run report .codex/agentic-workflow-kit/runs/<run-id> --format markdown
 agentic-workflow-kit run export .codex/agentic-workflow-kit/runs/<run-id> --include summary --json
 ```
+
+`run subscribe` is for detached hosts that watch a wake file and later resume with
+`run subscription-poll`. Operators can use `run inspect --json` to see active detached
+subscriptions and their wake/delivery counters. `run stream` remains the attached long-lived
+request path.
 
 `watch-run` reads `orchestrator.watch` defaults from the run's `config.resolved.json`; CLI flags
 override those defaults for one invocation. Use `--no-wait` or MCP `wait: false` to disable a

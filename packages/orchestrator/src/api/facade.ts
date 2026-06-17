@@ -24,6 +24,16 @@ import {
   type WorkflowRunStreamInput,
   type WorkflowRunStreamResult,
 } from '../commands/handlers.js';
+import {
+  runSubscribeHandler,
+  runSubscriptionPollHandler,
+  runUnsubscribeHandler,
+  type WorkflowRunSubscribeInput,
+  type WorkflowRunSubscribeResult,
+  type WorkflowRunSubscriptionPollInput,
+  type WorkflowRunSubscriptionPollResult,
+  type WorkflowRunUnsubscribeInput,
+} from '../commands/runSubscriptions.js';
 import { loadResolvedConfig } from '../config/configLoader.js';
 import {
   type WorkflowApiErrorCode,
@@ -42,6 +52,9 @@ export type WorkflowApiOperation =
   | 'workflow_run_preview'
   | 'workflow_run_status'
   | 'workflow_run_stream'
+  | 'workflow_run_subscribe'
+  | 'workflow_run_subscription_poll'
+  | 'workflow_run_unsubscribe'
   | 'workflow_run_inspect'
   | 'workflow_run_report'
   | 'workflow_run_export'
@@ -131,7 +144,10 @@ export interface WorkflowApiCapabilities {
   runStory: boolean;
   runTrack: boolean;
   streaming: boolean;
+  detachedRunSubscriptions: boolean;
   abort: boolean;
+  runtimeInfo: boolean;
+  configCompatibility: boolean;
   tokenTelemetryLive: boolean;
   structuredOutputEnforced: boolean;
   github: boolean;
@@ -285,6 +301,84 @@ export async function runStreamFacade(
   }
 }
 
+export async function runSubscribeFacade(
+  input: WorkflowRunSubscribeInput & Pick<CliOverrides, 'requestId'>,
+): Promise<WorkflowApiEnvelope<WorkflowRunSubscribeResult>> {
+  const operation = 'workflow_run_subscribe';
+  try {
+    const config = await loadConfigForFacade(input);
+    const result = await runSubscribeHandler(input);
+    return successEnvelope(operation, config, input.requestId, {
+      result,
+      artifacts: [
+        { kind: 'run', path: input.runPath ?? input.runId ?? result.runId, description: 'Run artifacts' },
+        { kind: 'subscription', path: result.subscriptionArtifact, description: 'Detached subscription record' },
+        { kind: 'wake', path: result.wakeArtifact, description: 'Detached subscription wake signal' },
+      ],
+      next: [
+        {
+          label: 'Poll subscription',
+          mcpTool: 'workflow_run_subscription_poll',
+          cli: `agentic-workflow-kit run subscription-poll ${result.runId} ${result.subscriptionId}`,
+        },
+        {
+          label: 'Close subscription',
+          mcpTool: 'workflow_run_unsubscribe',
+          cli: `agentic-workflow-kit run unsubscribe ${result.runId} ${result.subscriptionId}`,
+        },
+      ],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, error);
+  }
+}
+
+export async function runSubscriptionPollFacade(
+  input: WorkflowRunSubscriptionPollInput & Pick<CliOverrides, 'requestId'>,
+): Promise<WorkflowApiEnvelope<WorkflowRunSubscriptionPollResult>> {
+  const operation = 'workflow_run_subscription_poll';
+  try {
+    const result = await runSubscriptionPollHandler(input);
+    return await successRunReadEnvelope(operation, input, {
+      result,
+      artifacts: [
+        { kind: 'run', path: input.runPath ?? input.runId ?? result.subscriptionId, description: 'Run artifacts' },
+      ],
+      next: result.terminal
+        ? [
+            {
+              label: 'Close subscription',
+              mcpTool: 'workflow_run_unsubscribe',
+              cli: `agentic-workflow-kit run unsubscribe ${input.runId ?? input.runPath ?? '<run>'} ${
+                result.subscriptionId
+              }`,
+            },
+          ]
+        : [],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
+  }
+}
+
+export async function runUnsubscribeFacade(
+  input: WorkflowRunUnsubscribeInput & Pick<CliOverrides, 'requestId'>,
+): Promise<WorkflowApiEnvelope<{ subscriptionId: string; closed: true }>> {
+  const operation = 'workflow_run_unsubscribe';
+  try {
+    const result = await runUnsubscribeHandler(input);
+    return await successRunReadEnvelope(operation, input, {
+      result,
+      artifacts: [
+        { kind: 'run', path: input.runPath ?? input.runId ?? result.subscriptionId, description: 'Run artifacts' },
+      ],
+      next: [],
+    });
+  } catch (error) {
+    return failureEnvelope(operation, input, await runReadErrorForFacade(input, error));
+  }
+}
+
 export async function runInspectFacade(
   input: WorkflowRunInspectInput,
 ): Promise<WorkflowApiEnvelope<WorkflowRunInspectResult>> {
@@ -351,6 +445,8 @@ async function successRunReadEnvelope<T>(
     WorkflowApiOperation,
     | 'workflow_run_status'
     | 'workflow_run_stream'
+    | 'workflow_run_subscription_poll'
+    | 'workflow_run_unsubscribe'
     | 'workflow_run_inspect'
     | 'workflow_run_report'
     | 'workflow_run_export'
@@ -358,35 +454,55 @@ async function successRunReadEnvelope<T>(
   input: Pick<CliOverrides, 'cwd' | 'configPath' | 'requestId'> & { runPath?: string; runId?: string },
   content: { result: T; artifacts?: WorkflowArtifactRef[]; next?: WorkflowNextAction[] },
 ): Promise<WorkflowApiSuccess<T>> {
+  if (input.runPath && path.isAbsolute(input.runPath) && input.cwd === undefined && input.configPath === undefined) {
+    return successRunPathFallbackEnvelope(operation, input, content);
+  }
   try {
     const config = await loadResolvedConfig(input, resolveInvocationCwd(input));
     return successEnvelope(operation, config, input.requestId, content);
   } catch (error) {
     if (!input.runPath || !path.isAbsolute(input.runPath)) throw error;
-    return {
-      ok: true,
-      operation,
-      apiVersion: '1',
-      ...(input.requestId !== undefined ? { requestId: input.requestId } : {}),
-      project: {
-        repoRoot: path.dirname(input.runPath),
-        configPath: input.configPath ?? '.workflow/config.yaml',
-      },
-      result: content.result,
-      artifacts: content.artifacts ?? [],
-      warnings: [
-        {
-          code: 'CONFIG_UNAVAILABLE',
-          message: 'Run artifact was read from an explicit runPath without resolved repo config.',
-        },
-      ],
-      next: content.next ?? [],
-      response: {
-        include: 'summary',
-        bounded: true,
-      },
-    };
+    return successRunPathFallbackEnvelope(operation, input, content);
   }
+}
+
+function successRunPathFallbackEnvelope<T>(
+  operation: Extract<
+    WorkflowApiOperation,
+    | 'workflow_run_status'
+    | 'workflow_run_stream'
+    | 'workflow_run_subscription_poll'
+    | 'workflow_run_unsubscribe'
+    | 'workflow_run_inspect'
+    | 'workflow_run_report'
+    | 'workflow_run_export'
+  >,
+  input: Pick<CliOverrides, 'cwd' | 'configPath' | 'requestId'> & { runPath?: string; runId?: string },
+  content: { result: T; artifacts?: WorkflowArtifactRef[]; next?: WorkflowNextAction[] },
+): WorkflowApiSuccess<T> {
+  return {
+    ok: true,
+    operation,
+    apiVersion: '1',
+    ...(input.requestId !== undefined ? { requestId: input.requestId } : {}),
+    project: {
+      repoRoot: path.dirname(input.runPath ?? ''),
+      configPath: input.configPath ?? '.workflow/config.yaml',
+    },
+    result: content.result,
+    artifacts: content.artifacts ?? [],
+    warnings: [
+      {
+        code: 'CONFIG_UNAVAILABLE',
+        message: 'Run artifact was read from an explicit runPath without resolved repo config.',
+      },
+    ],
+    next: content.next ?? [],
+    response: {
+      include: 'summary',
+      bounded: true,
+    },
+  };
 }
 
 export async function trackerValidateFacade(
@@ -556,9 +672,7 @@ function failureEnvelope(
     },
     artifacts: [],
     warnings: [],
-    next: [
-      { label: 'Inspect project', mcpTool: 'workflow_project_inspect', cli: 'agentic-workflow-kit project inspect' },
-    ],
+    next: nextActionsForError(apiError.code),
   };
 }
 
@@ -611,11 +725,34 @@ function capabilitiesFromConfig(config: ResolvedWorkflowConfig): WorkflowApiCapa
     runStory: true,
     runTrack: true,
     streaming: true,
+    detachedRunSubscriptions: true,
     abort: true,
+    runtimeInfo: true,
+    configCompatibility: true,
     tokenTelemetryLive: false,
     structuredOutputEnforced: false,
     github: config.pr.create,
     githubVerificationConfigured: config.pr.create,
     githubVerificationAvailable: null,
   };
+}
+
+function nextActionsForError(code: WorkflowApiErrorCode): WorkflowNextAction[] {
+  if (code === 'CONFIG_INVALID') {
+    return [
+      {
+        label: 'Check config compatibility',
+        mcpTool: 'workflow_config_status',
+        cli: 'agentic-workflow-kit config status --json',
+      },
+      {
+        label: 'Preview config upgrade',
+        mcpTool: 'workflow_config_upgrade',
+        cli: 'agentic-workflow-kit config upgrade --dry-run --json',
+      },
+    ];
+  }
+  return [
+    { label: 'Inspect project', mcpTool: 'workflow_project_inspect', cli: 'agentic-workflow-kit project inspect' },
+  ];
 }

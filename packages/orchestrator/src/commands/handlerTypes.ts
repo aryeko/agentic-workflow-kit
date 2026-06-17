@@ -14,6 +14,7 @@ import type {
   WorkflowStory,
   WorkflowTrack,
 } from '../types.js';
+import type { RunSubscriptionInspectSummary } from './runSubscriptions.js';
 
 export interface CommandHandlerOptions {
   stdout?: (line: string) => void;
@@ -211,6 +212,7 @@ export interface WorkflowRunInspectResult {
   }>;
   pr: { urls: string[]; numbers: number[] };
   metrics: unknown | null;
+  subscriptions: RunSubscriptionInspectSummary;
 }
 
 export interface WorkflowRunReportInput extends CliOverrides {

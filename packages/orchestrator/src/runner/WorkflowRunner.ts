@@ -9,6 +9,7 @@ import type {
   Clock,
   Logger,
   ResolvedWorkflowConfig,
+  RunEvent,
   RunState,
   StorySource,
   WorkflowStory,
@@ -42,6 +43,7 @@ export interface WorkflowRunnerDependencies {
   logger: Logger;
   clock: Clock;
   runId: string;
+  onRunEventRecorded?: (event: RunEvent) => Promise<void> | void;
   childTimer?: ChildTimer;
   childWorkspacePreparer?: (args: PrepareChildWorkspaceArgs) => Promise<PreparedChildWorkspace>;
 }
@@ -58,7 +60,11 @@ export class WorkflowRunner {
 
   constructor(private readonly dependencies: WorkflowRunnerDependencies) {
     this.metrics = new MetricsCollector(dependencies.clock);
-    this.journal = new RunJournal({ artifactStore: dependencies.artifactStore, clock: dependencies.clock });
+    this.journal = new RunJournal({
+      artifactStore: dependencies.artifactStore,
+      clock: dependencies.clock,
+      onEventRecorded: dependencies.onRunEventRecorded,
+    });
     this.completionGate = new CompletionGate({
       gitInspector: dependencies.gitInspector,
       statuses: dependencies.config.statuses,

@@ -131,6 +131,9 @@ The package MCP server exposes these tools over the shared handlers:
 | `workflow_run_preview` | Preview a story or eligible-track run using the product target model and shared result/error envelope. |
 | `workflow_run_status` | Read a bounded product status snapshot from `state.json`, `metrics.live.json`, `controls.ndjson`, and recent normalized events. |
 | `workflow_run_stream` | Replay a bounded event tail, optionally send standard MCP progress notifications, and return a terminal or timeout stream summary. |
+| `workflow_run_subscribe` | Register a durable detached run-event subscription with stored filters, cursor state, and a wake artifact. |
+| `workflow_run_subscription_poll` | Commit an acknowledged subscription cursor and return filtered events after the committed cursor. |
+| `workflow_run_unsubscribe` | Close a detached subscription and remove its wake signal artifact. |
 | `workflow_run_inspect` | Inspect a bounded run artifact, child/session, and PR-reference index without copying transcripts. |
 | `workflow_run_report` | Generate `analysis.json` and `report.md` for a run through an explicit post-run report operation. |
 | `workflow_run_export` | Create a bounded shareable run artifact bundle without copying host transcript contents. |
@@ -161,14 +164,15 @@ The `workflow_*` product facade coexists with the legacy tool names. Facade call
 envelope with `ok`, `operation`, `apiVersion`, `project`, `result`, `artifacts`, `warnings`, and
 `next` fields; failures use the same shape with `ok: false` and a structured error code. AWK01
 implemented this foundation for project inspection and run preview. The current product surface also
-includes run status, stream, inspect, report, export, and control operations without removing the
-0.5.13-compatible tools that current plugin workflows still use.
+includes run status, stream, detached subscription, inspect, report, export, and control operations
+without removing the 0.5.13-compatible tools that current plugin workflows still use.
 
 The matching CLI facade is `agentic-workflow-kit project inspect` and
-`agentic-workflow-kit run preview|status|stream|inspect|report|export`; abort controls are also
-available as `agentic-workflow-kit abort-run <runPath>`. These commands print the product envelope
-as JSON by default; `run stream --format ndjson` emits one normalized event per line followed by a
-final stream summary for automation.
+`agentic-workflow-kit run preview|status|stream|subscribe|subscription-poll|unsubscribe|inspect|report|export`;
+abort controls are also available as `agentic-workflow-kit abort-run <runPath>`. These commands
+print the product envelope as JSON by default; `run stream --format ndjson` and
+`run subscription-poll --format ndjson` emit one normalized event per line followed by a final
+summary for automation.
 
 The MCP server exposes read-only resources for project context, resolved config, tracks, and
 bounded run state/event tails. Run resources are artifact-backed and do not copy full transcripts.
@@ -201,11 +205,19 @@ this same boundary; today's plugin-provided autopilot still uses the `codex-mcp`
 
 Autonomous orchestrator runs write structured artifacts under
 `.codex/agentic-workflow-kit/runs/<runId>/` (`events.ndjson`, `state.json`, `metrics.live.json`,
-per-child JSON). These runtime artifacts are ignored for completion dirty checks so a run cannot
-make its own completed story look uncommitted. `metrics.live.json`, `watch_run`, and `analyze-run`
-share Codex session-log parsing for command counts, subagent counts, and token totals by type when a
-child session log is linked. Interactive `implement-next` journals use the same run directory and can be analyzed when
-`state.json` contains `command: "implement-next"` plus an `interactive` child record.
+per-child JSON, and detached subscription records under `subscriptions/<subscriptionId>.json` plus
+wake signals under `subscriptions/<subscriptionId>.wake`). These runtime artifacts are ignored for
+completion dirty checks so a run cannot make its own completed story look uncommitted.
+`workflow_project_inspect` advertises this additive capability with
+`capabilities.detachedRunSubscriptions: true`; the subscription record uses internal
+`schemaVersion: 1` and does not change public `apiVersion: "1"` or the workflow config schema.
+Subscription lifecycle is audited through `subscription-created`, `subscription-woken`, and
+`subscription-closed` events, while `workflow_run_inspect` surfaces active subscription counts,
+last wake time, cursors, and wake/delivery metrics for operator visibility.
+`metrics.live.json`, `watch_run`, and `analyze-run` share Codex session-log parsing for command
+counts, subagent counts, and token totals by type when a child session log is linked. Interactive
+`implement-next` journals use the same run directory and can be analyzed when `state.json` contains
+`command: "implement-next"` plus an `interactive` child record.
 Artifact appends are serialized per artifact path in-process, and run artifact readers tolerate
 malformed NDJSON rows or malformed child JSON by skipping bad lines or treating unreadable child
 artifacts as unavailable. Control commands append intent to `controls.ndjson`; the live

@@ -225,4 +225,58 @@ describe('runCli', () => {
       process.exitCode = previousExitCode;
     }
   });
+
+  it('prints detached subscription lifecycle outputs', async () => {
+    const previousExitCode = process.exitCode;
+    const { root, runPath } = await createRunWorkspace();
+    const subscribeStdout: string[] = [];
+    const pollStdout: string[] = [];
+    const unsubscribeStdout: string[] = [];
+
+    try {
+      process.exitCode = undefined;
+      await runCli(['run', 'subscribe', 'run-1', '--cwd', root, '--topics', 'pr'], {
+        stdout: (line) => subscribeStdout.push(line),
+      });
+      const subscribed = JSON.parse(subscribeStdout[0]) as {
+        result: { subscriptionId: string; nextCursor: string };
+      };
+
+      await runCli(
+        [
+          'run',
+          'subscription-poll',
+          runPath,
+          subscribed.result.subscriptionId,
+          '--ack-cursor',
+          subscribed.result.nextCursor,
+        ],
+        { stdout: (line) => pollStdout.push(line) },
+      );
+      await runCli(['run', 'unsubscribe', runPath, subscribed.result.subscriptionId], {
+        stdout: (line) => unsubscribeStdout.push(line),
+      });
+
+      expect(JSON.parse(subscribeStdout[0])).toMatchObject({
+        ok: true,
+        operation: 'workflow_run_subscribe',
+        result: { runId: 'run-1', committedCursor: 'events.ndjson:0', replay: [] },
+      });
+      expect(JSON.parse(pollStdout[0])).toMatchObject({
+        ok: true,
+        operation: 'workflow_run_subscription_poll',
+        warnings: [{ code: 'CONFIG_UNAVAILABLE' }],
+        result: { subscriptionId: subscribed.result.subscriptionId, events: [] },
+      });
+      expect(JSON.parse(unsubscribeStdout[0])).toMatchObject({
+        ok: true,
+        operation: 'workflow_run_unsubscribe',
+        warnings: [{ code: 'CONFIG_UNAVAILABLE' }],
+        result: { subscriptionId: subscribed.result.subscriptionId, closed: true },
+      });
+      expect(process.exitCode).toBeUndefined();
+    } finally {
+      process.exitCode = previousExitCode;
+    }
+  });
 });

@@ -6,6 +6,17 @@ import type { ApprovalPolicy, CliOverrides, SandboxMode, WorkflowCommand, Workfl
 
 const APPROVAL_POLICIES = new Set<ApprovalPolicy>(['untrusted', 'on-failure', 'on-request', 'never']);
 const SANDBOX_MODES = new Set<SandboxMode>(['read-only', 'workspace-write', 'danger-full-access']);
+const RUN_COMMANDS = [
+  'preview',
+  'status',
+  'stream',
+  'subscribe',
+  'subscription-poll',
+  'unsubscribe',
+  'inspect',
+  'report',
+  'export',
+] as const;
 
 export function parseCommand(argv: string[]): WorkflowCommand {
   const args = argv.filter((arg) => arg !== '--');
@@ -30,8 +41,16 @@ export function parseCommand(argv: string[]): WorkflowCommand {
   if (args[0] === 'project' && args[1] !== 'inspect') {
     throw new Error('Expected `project inspect`');
   }
-  if (args[0] === 'run' && !['preview', 'status', 'stream', 'inspect', 'report', 'export'].includes(args[1] ?? '')) {
-    throw new Error('Expected `run preview`, `run status`, `run stream`, `run inspect`, `run report`, or `run export`');
+  if (args[0] === 'run' && !RUN_COMMANDS.includes((args[1] ?? '') as (typeof RUN_COMMANDS)[number])) {
+    throw new Error(
+      'Expected `run preview`, `run status`, `run stream`, `run subscribe`, `run subscription-poll`, `run unsubscribe`, `run inspect`, `run report`, or `run export`',
+    );
+  }
+  if (args[0] === 'run' && args[1] === 'subscription-poll' && (!args[3] || args[2]?.startsWith('-'))) {
+    throw new Error('run subscription-poll requires a run ref and subscription id');
+  }
+  if (args[0] === 'run' && args[1] === 'unsubscribe' && (!args[3] || args[2]?.startsWith('-'))) {
+    throw new Error('run unsubscribe requires a run ref and subscription id');
   }
   if (args[0] === 'run-story' && (!args[1] || args[1].startsWith('-'))) {
     throw new Error('run-story requires a story id');
@@ -102,6 +121,21 @@ function buildProgram(setParsed: (command: WorkflowCommand) => void): Command {
   withOptions(run.command('stream').argument('<runRef>')).action((runRef: string, options: CommanderOptions) => {
     setParsed({ kind: 'run-stream', runRef, overrides: toProductOverrides(options) });
   });
+  withOptions(run.command('subscribe').argument('<runRef>'))
+    .option('--story <id>', 'Story id filter. Repeat to include multiple stories.', collectRepeated)
+    .action((runRef: string, options: CommanderOptions) => {
+      setParsed({ kind: 'run-subscribe', runRef, overrides: toOverrides(options) });
+    });
+  withOptions(run.command('subscription-poll').argument('<runRef>').argument('<subscriptionId>')).action(
+    (runRef: string, subscriptionId: string, options: CommanderOptions) => {
+      setParsed({ kind: 'run-subscription-poll', runRef, subscriptionId, overrides: toProductOverrides(options) });
+    },
+  );
+  withOptions(run.command('unsubscribe').argument('<runRef>').argument('<subscriptionId>')).action(
+    (runRef: string, subscriptionId: string, options: CommanderOptions) => {
+      setParsed({ kind: 'run-unsubscribe', runRef, subscriptionId, overrides: toProductOverrides(options) });
+    },
+  );
   withOptions(run.command('inspect').argument('<runRef>')).action((runRef: string, options: CommanderOptions) => {
     setParsed({ kind: 'run-inspect', runRef, overrides: toProductOverrides(options) });
   });
@@ -187,7 +221,17 @@ function withOptions(command: Command): Command {
     .option('--from <path>')
     .option('--out <path>')
     .addOption(new Option('--include <mode>').choices(['summary', 'full-bounded']))
+    .addOption(new Option('--include-data <mode>').choices(['none', 'summary', 'full-bounded']))
     .addOption(new Option('--limit <n>').argParser((value) => parsePositiveIntegerFlag(value, '--limit')))
+    .addOption(
+      new Option('--throttle-ms <n>').argParser((value) => parseNonNegativeIntegerFlag(value, '--throttle-ms')),
+    )
+    .option('--topics <csv>')
+    .addOption(new Option('--min-level <level>').choices(['debug', 'info', 'warn', 'error']))
+    .option('--wake-topics <csv>')
+    .option('--wake-types <csv>')
+    .addOption(new Option('--wake-min-level <level>').choices(['debug', 'info', 'warn', 'error']))
+    .option('--ack-cursor <cursor>')
     .addOption(new Option('--format <format>').choices(['table', 'json', 'ndjson', 'markdown']))
     .option('--model <model>')
     .option('--reasoning <effort>')
@@ -217,13 +261,21 @@ interface CommanderOptions {
   sandbox?: SandboxMode;
   cwd?: string;
   sessionRoot?: string;
-  story?: string;
+  story?: string | string[];
   reason?: string;
   mode?: 'eligible';
   from?: string;
   out?: string;
   include?: 'summary' | 'full-bounded';
+  includeData?: 'none' | 'summary' | 'full-bounded';
   limit?: number;
+  throttleMs?: number;
+  topics?: string;
+  minLevel?: string;
+  wakeTopics?: string;
+  wakeTypes?: string;
+  wakeMinLevel?: string;
+  ackCursor?: string;
   format?: 'table' | 'json' | 'ndjson' | 'markdown';
 }
 
@@ -248,11 +300,23 @@ function toOverrides(options: CommanderOptions): CliOverrides {
   if (options.sandbox !== undefined) overrides.sandbox = options.sandbox;
   if (options.cwd !== undefined) overrides.cwd = options.cwd;
   if (options.sessionRoot !== undefined) overrides.sessionRoot = options.sessionRoot;
-  if (options.story !== undefined) overrides.storyId = options.story;
+  if (Array.isArray(options.story)) {
+    if (options.story.length > 0) overrides.storyIds = options.story;
+  } else if (options.story !== undefined) {
+    overrides.storyId = options.story;
+  }
   if (options.reason !== undefined) overrides.reason = options.reason;
   if (options.out !== undefined) overrides.out = options.out;
   if (options.include !== undefined) overrides.exportInclude = options.include;
+  if (options.includeData !== undefined) overrides.includeData = options.includeData;
   if (options.limit !== undefined) overrides.limit = options.limit;
+  if (options.throttleMs !== undefined) overrides.throttleMs = options.throttleMs;
+  if (options.topics !== undefined) overrides.topics = parseCsv(options.topics);
+  if (options.minLevel !== undefined) overrides.minLevel = options.minLevel;
+  if (options.wakeTopics !== undefined) overrides.wakeTopics = parseCsv(options.wakeTopics);
+  if (options.wakeTypes !== undefined) overrides.wakeTypes = parseCsv(options.wakeTypes);
+  if (options.wakeMinLevel !== undefined) overrides.wakeMinLevel = options.wakeMinLevel;
+  if (options.ackCursor !== undefined) overrides.ackCursor = options.ackCursor;
   if (options.format !== undefined) overrides.format = options.format;
   return overrides;
 }
@@ -262,6 +326,14 @@ function toRunPreviewTarget(options: CommanderOptions): WorkflowRunPreviewTarget
     throw new Error('run preview cannot combine --story with --mode');
   }
   if (options.story !== undefined) {
+    if (Array.isArray(options.story)) {
+      if (options.story.length !== 1) throw new Error('run preview requires exactly one --story');
+      return {
+        type: 'story',
+        ...(options.track !== undefined ? { trackId: options.track } : {}),
+        storyId: options.story[0],
+      };
+    }
     return {
       type: 'story',
       ...(options.track !== undefined ? { trackId: options.track } : {}),
@@ -274,6 +346,10 @@ function toRunPreviewTarget(options: CommanderOptions): WorkflowRunPreviewTarget
 function toProductOverrides(options: CommanderOptions): CliOverrides {
   const { track: _track, story: _story, mode: _mode, from: _from, ...baseOptions } = options;
   return toOverrides(baseOptions);
+}
+
+function collectRepeated(value: string, previous: string[] | undefined): string[] {
+  return [...(previous ?? []), value];
 }
 
 function parseApprovalPolicy(value: string): ApprovalPolicy {
@@ -325,6 +401,24 @@ function parsePositiveIntegerFlag(value: string, flag: string): number {
     throw new InvalidArgumentError(`${flag} must be a positive integer`);
   }
   return parsed;
+}
+
+function parseNonNegativeIntegerFlag(value: string, flag: string): number {
+  if (value === '') {
+    throw new InvalidArgumentError(`${flag} requires a value`);
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 0 || String(parsed) !== value) {
+    throw new InvalidArgumentError(`${flag} must be a non-negative integer`);
+  }
+  return parsed;
+}
+
+function parseCsv(value: string): string[] {
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 }
 
 export function resolveInvocationCwd(overrides: Pick<CliOverrides, 'cwd'>): string {

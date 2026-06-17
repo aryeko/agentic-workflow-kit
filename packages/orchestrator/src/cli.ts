@@ -12,6 +12,9 @@ import {
   runReportFacade,
   runStatusFacade,
   runStreamFacade,
+  runSubscribeFacade,
+  runSubscriptionPollFacade,
+  runUnsubscribeFacade,
   trackerMigrateFacade,
   trackerValidateFacade,
 } from './api/facade.js';
@@ -27,6 +30,7 @@ import {
   runWorkflowHandler,
   watchRunHandler,
 } from './commands/handlers.js';
+import type { RunSubscriptionInput } from './commands/runSubscriptions.js';
 import { applyWorkflowConfigUpgrade, getWorkflowConfigStatus, planWorkflowConfigUpgrade } from './config/version.js';
 import type { CodexMcpStoryRunnerOptions } from './drivers/codex-mcp/CodexMcpStoryRunner.js';
 import { ConsoleLogger } from './logging/ConsoleLogger.js';
@@ -178,6 +182,57 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
     return;
   }
 
+  if (command.kind === 'run-subscribe') {
+    const input = runRefInput(command.runRef, command.overrides);
+    const envelope = await runSubscribeFacade({
+      ...command.overrides,
+      ...input,
+      subscription: subscriptionFromOverrides(command.overrides),
+    });
+    stdout(JSON.stringify(envelope, null, 2));
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command.kind === 'run-subscription-poll') {
+    const input = runRefInput(command.runRef, command.overrides);
+    const envelope = await runSubscriptionPollFacade({
+      ...command.overrides,
+      ...input,
+      subscriptionId: command.subscriptionId,
+      ackCursor: command.overrides.ackCursor,
+      max: command.overrides.limit,
+    });
+    if (command.overrides.format === 'ndjson' && envelope.ok) {
+      for (const event of envelope.result.events) stdout(JSON.stringify(event));
+      stdout(
+        JSON.stringify({
+          subscriptionId: envelope.result.subscriptionId,
+          committedCursor: envelope.result.committedCursor,
+          nextCursor: envelope.result.nextCursor,
+          terminal: envelope.result.terminal,
+          status: envelope.result.status,
+        }),
+      );
+    } else {
+      stdout(JSON.stringify(envelope, null, 2));
+    }
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
+  if (command.kind === 'run-unsubscribe') {
+    const input = runRefInput(command.runRef, command.overrides);
+    const envelope = await runUnsubscribeFacade({
+      ...command.overrides,
+      ...input,
+      subscriptionId: command.subscriptionId,
+    });
+    stdout(JSON.stringify(envelope, null, 2));
+    if (!envelope.ok) process.exitCode = 1;
+    return;
+  }
+
   if (command.kind === 'run-inspect') {
     const input = runRefInput(command.runRef, command.overrides);
     const envelope = await runInspectFacade({ ...command.overrides, ...input });
@@ -288,6 +343,31 @@ function runRefInput(runRef: string, overrides: CliOverrides): { runId?: string;
 
 function resolveCwdForRunRef(overrides: CliOverrides): string {
   return overrides.cwd ? path.resolve(overrides.cwd) : process.cwd();
+}
+
+function subscriptionFromOverrides(overrides: CliOverrides): RunSubscriptionInput {
+  const hasWakePolicy =
+    overrides.wakeTopics !== undefined || overrides.wakeTypes !== undefined || overrides.wakeMinLevel !== undefined;
+  const subscription: RunSubscriptionInput = {
+    ...(overrides.topics !== undefined ? { topics: overrides.topics as RunSubscriptionInput['topics'] } : {}),
+    ...(overrides.minLevel !== undefined ? { minLevel: overrides.minLevel as RunSubscriptionInput['minLevel'] } : {}),
+    ...(overrides.storyIds !== undefined ? { storyIds: overrides.storyIds } : {}),
+    ...(overrides.includeData !== undefined ? { includeData: overrides.includeData } : {}),
+    ...(overrides.limit !== undefined ? { replay: { lastEvents: overrides.limit } } : {}),
+    ...(overrides.throttleMs !== undefined ? { throttleMs: overrides.throttleMs } : {}),
+  };
+  if (hasWakePolicy) {
+    subscription.wakeOn = {
+      ...(overrides.wakeTopics !== undefined
+        ? { topics: overrides.wakeTopics as NonNullable<RunSubscriptionInput['wakeOn']>['topics'] }
+        : {}),
+      ...(overrides.wakeTypes !== undefined ? { types: overrides.wakeTypes } : {}),
+      ...(overrides.wakeMinLevel !== undefined
+        ? { minLevel: overrides.wakeMinLevel as NonNullable<RunSubscriptionInput['wakeOn']>['minLevel'] }
+        : {}),
+    };
+  }
+  return subscription;
 }
 
 function printTracks(tracks: WorkflowTrack[], overrides: CliOverrides, stdout: (line: string) => void): void {

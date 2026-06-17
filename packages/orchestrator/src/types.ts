@@ -423,6 +423,15 @@ export interface CliOverrides {
   limit?: number;
   out?: string;
   exportInclude?: 'summary' | 'full-bounded';
+  topics?: string[];
+  minLevel?: string;
+  storyIds?: string[];
+  includeData?: 'none' | 'summary' | 'full-bounded';
+  throttleMs?: number;
+  wakeTopics?: string[];
+  wakeTypes?: string[];
+  wakeMinLevel?: string;
+  ackCursor?: string;
   format?: 'json' | 'ndjson' | 'table' | 'markdown';
   cwd?: string;
   model?: string;
@@ -445,6 +454,9 @@ export type WorkflowCommand =
   | { kind: 'run-preview'; target: WorkflowRunPreviewTarget; overrides: CliOverrides }
   | { kind: 'run-status'; runRef: string; overrides: CliOverrides }
   | { kind: 'run-stream'; runRef: string; overrides: CliOverrides }
+  | { kind: 'run-subscribe'; runRef: string; overrides: CliOverrides }
+  | { kind: 'run-subscription-poll'; runRef: string; subscriptionId: string; overrides: CliOverrides }
+  | { kind: 'run-unsubscribe'; runRef: string; subscriptionId: string; overrides: CliOverrides }
   | { kind: 'run-inspect'; runRef: string; overrides: CliOverrides }
   | { kind: 'run-report'; runRef: string; overrides: CliOverrides }
   | { kind: 'run-export'; runRef: string; overrides: CliOverrides }

@@ -56,6 +56,9 @@ When the plugin-provided `agentic-workflow-kit` MCP server is connected, prefer 
 - `workflow_run_preview`
 - `workflow_run_status`
 - `workflow_run_stream`
+- `workflow_run_subscribe`
+- `workflow_run_subscription_poll`
+- `workflow_run_unsubscribe`
 - `workflow_run_inspect`
 - `workflow_run_report`
 - `workflow_run_export`
@@ -152,6 +155,9 @@ agentic-workflow-kit run-eligible --track <track-id> --max-parallel=2 --watch
 agentic-workflow-kit run-story <story-id> --track <track-id>
 agentic-workflow-kit run status .codex/agentic-workflow-kit/runs/<run-id> --json
 agentic-workflow-kit run stream .codex/agentic-workflow-kit/runs/<run-id> --format ndjson
+agentic-workflow-kit run subscribe <run-id> --topics run,story,child,error --json
+agentic-workflow-kit run subscription-poll .codex/agentic-workflow-kit/runs/<run-id> <subscription-id> --json
+agentic-workflow-kit run unsubscribe .codex/agentic-workflow-kit/runs/<run-id> <subscription-id> --json
 agentic-workflow-kit run inspect .codex/agentic-workflow-kit/runs/<run-id> --json
 agentic-workflow-kit run report .codex/agentic-workflow-kit/runs/<run-id>
 agentic-workflow-kit run export .codex/agentic-workflow-kit/runs/<run-id>
@@ -173,6 +179,8 @@ pnpm agentic-workflow-kit -- <command>
 Artifacts are under `.codex/agentic-workflow-kit/runs/<run-id>/`.
 
 - `events.ndjson` is the live parent event stream.
+- `subscriptions/<subscription-id>.json` and `subscriptions/<subscription-id>.wake` support detached
+  run-event subscriptions for hosts that watch a wake file and later poll by cursor.
 - `state.json` records run status, active children, completed children, returned tracker status,
   blocked reason, and parent timing metrics.
 - `metrics.live.json` records live parent metrics and best-effort child metrics.

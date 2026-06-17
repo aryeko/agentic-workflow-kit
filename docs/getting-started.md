@@ -169,12 +169,17 @@ The product CLI exposes the same artifact-backed status surfaces:
 ```bash
 pnpm agentic-workflow-kit -- run status <run-id-or-path> --json
 pnpm agentic-workflow-kit -- run stream <run-id-or-path> --format ndjson
+pnpm agentic-workflow-kit -- run subscribe <run-id> --topics run,story,child,error --json
+pnpm agentic-workflow-kit -- run subscription-poll <run-id-or-path> <subscription-id> --json
+pnpm agentic-workflow-kit -- run unsubscribe <run-id-or-path> <subscription-id> --json
 pnpm agentic-workflow-kit -- run inspect <run-id-or-path> --json
 ```
 
 Use `run status` for a bounded snapshot, `run stream` for a replayable normalized event tail with a
-terminal or timeout summary, and `run inspect` for artifact, child-session, transcript-path, and PR
-references. These reads are non-mutating and preserve `watch_run` as the polling fallback.
+terminal or timeout summary, `run subscribe` plus `run subscription-poll` for detached hosts that
+watch a wake file and later resume by cursor, and `run inspect` for artifact, child-session,
+transcript-path, and PR references. `run status`, `run stream`, and `run inspect` are non-mutating;
+subscription polling commits the acknowledged cursor, and unsubscribe closes the subscription.
 
 Do not edit run artifacts or tracker rows by hand while a child may still be active. Session ids,
 session logs, observed child progress, worktree activity, or not-yet-stale launch timestamps mean

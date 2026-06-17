@@ -248,6 +248,51 @@ describe('Codex child-control execution', () => {
     expect(JSON.stringify(event)).not.toContain('sk-live');
   });
 
+  it('wakes detached subscriptions for direct child-control journal events', async () => {
+    const { runSubscribeHandler, runSubscriptionPollHandler } = await import('../src/commands/runSubscriptions');
+    const { sendChildReply } = await import('../src/drivers/codex-mcp/control');
+    const runPath = await tempRunPath();
+    await writeFile(path.join(runPath, 'state.json'), JSON.stringify({ runId: 'run-control', status: 'running' }));
+
+    const subscribed = await runSubscribeHandler({
+      runPath,
+      subscription: {
+        topics: ['review'],
+        replay: { lastEvents: 0 },
+        wakeOn: { types: ['pre_pr_review_verdict'] },
+      },
+    });
+
+    await sendChildReply({
+      sessionId: '019e-session',
+      storyId: 'WK001',
+      runPath,
+      verdict: { decision: 'PASS', summary: 'approved' },
+    });
+
+    await expect(readFile(path.join(runPath, subscribed.wakeArtifact), 'utf8').then(JSON.parse)).resolves.toMatchObject(
+      {
+        reason: 'events-available',
+        cursorAtWake: 'events.ndjson:3',
+      },
+    );
+    await expect(
+      runSubscriptionPollHandler({
+        runPath,
+        subscriptionId: subscribed.subscriptionId,
+        ackCursor: subscribed.nextCursor,
+      }),
+    ).resolves.toMatchObject({
+      events: [
+        expect.objectContaining({
+          type: 'pre_pr_review_verdict',
+          topic: 'review',
+          storyId: 'WK001',
+        }),
+      ],
+    });
+  });
+
   it('requires a resolvable runPath and storyId when depositing a verdict', async () => {
     const { sendChildReply } = await import('../src/drivers/codex-mcp/control');
 

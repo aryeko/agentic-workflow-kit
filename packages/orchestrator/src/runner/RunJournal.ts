@@ -15,6 +15,7 @@ import type {
   LiveMetricsSnapshot,
   ResolvedWorkflowConfig,
   RunControlRequest,
+  RunEvent,
   RunRowArtifact,
   RunState,
   RunSummaryArtifact,
@@ -44,6 +45,7 @@ export interface SettledStoryRun {
 export interface RunJournalDependencies {
   artifactStore: ArtifactStore;
   clock: Clock;
+  onEventRecorded?: (event: RunEvent) => Promise<void> | void;
 }
 
 export class RunJournal {
@@ -182,12 +184,14 @@ export class RunJournal {
   async record(type: string, fields: Record<string, unknown> = {}): Promise<void> {
     const recordedAt = this.dependencies.clock.now();
     const explicitEventAt = typeof fields.eventAt === 'string' ? fields.eventAt : null;
-    await this.dependencies.artifactStore.appendEvent({
+    const event = {
       ...fields,
       recordedAt,
       eventAt: explicitEventAt ?? recordedAt,
       type,
-    });
+    };
+    await this.dependencies.artifactStore.appendEvent(event);
+    await this.dependencies.onEventRecorded?.(event);
   }
 }
 

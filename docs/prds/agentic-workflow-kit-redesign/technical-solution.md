@@ -12,6 +12,7 @@ related:
   - ./technical-solution/04-ai-observability-operations.md
   - ./technical-solution/05-api-surface.md
   - ./technical-solution/06-delivery-inputs.md
+  - ./technical-solution/07-detached-realtime-subscription.md
   - ./runtime-versioning-design.md
   - ../../architecture.md
   - ../../../references/config-schema.md
@@ -60,6 +61,7 @@ flowchart LR
 | 4 | [AI, observability, and operations](./technical-solution/04-ai-observability-operations.md) | Prompt boundaries, MCP/CLI tools, notifications, events, rollout, security, and tests |
 | 5 | [API surface](./technical-solution/05-api-surface.md) | Product-first MCP and CLI API contract, schemas, streaming, and errors |
 | 6 | [Delivery inputs](./technical-solution/06-delivery-inputs.md) | Story-area handoff table and non-blocking technical questions |
+| 7 | [Detached realtime event subscription](./technical-solution/07-detached-realtime-subscription.md) | Durable run-event subscriptions that can wake detached host agents without fixed polling |
 | S1 | [Runtime and config versioning](./runtime-versioning-design.md) | Supplemental design for CLI/MCP version discovery, config schema compatibility, upgrade prompting, and migration tools |
 
 ## Context and existing surfaces
@@ -90,7 +92,7 @@ Deep dive: [Architecture and domains](./technical-solution/01-architecture-and-d
 | Tracker validation and migration | TRK-1, TRK-2, TRK-3, TRK-4 | Runtime executes only validated kit trackers; migration/import produces draft trackers plus diagnostics. |
 | Story and track runtime | RUN-1, RUN-2, RUN-3, RUN-4, RUN-5, RUN-6 | Story execution is the primitive; track autopilot schedules eligible story runs with policy, budget, recovery, and completion gates. |
 | Policy, agents, and budgets | POL-1, POL-2, POL-3, POL-4, POL-5, POL-6, POL-7 | Config defines autonomy presets, named agent profiles, prompt/model/reasoning defaults, structured output, and budget actions. |
-| Observability and control | OBS-1, OBS-2, OBS-3, OBS-4, OBS-5, OBS-6, OBS-7 | CLI/MCP expose status, stream, inspect, abort, analyze, and report over normalized events and artifacts. |
+| Observability and control | OBS-1, OBS-2, OBS-3, OBS-4, OBS-5, OBS-6, OBS-7 | CLI/MCP expose status, stream, detached subscription, inspect, abort, analyze, and report over normalized events and artifacts. |
 | API consistency | WF-5, RUN-1, RUN-2, OBS-1, OBS-2, OBS-3, HC-1, HC-2 | MCP and CLI share the same conceptual resources, command semantics, result envelopes, event stream, and error model. |
 | Host and collaboration | HC-1, HC-2, HC-3, HC-4 | Codex MCP is the V1 driver; the driver contract remains host-neutral; GitHub PR/check/review/merge evidence is structured. |
 | Future readiness | FUT-1, FUT-2 | V1 avoids hosted dashboards/evals but produces structured run data that can power them later. |
@@ -244,7 +246,8 @@ No open question blocks delivery-track planning. The important defaults are:
 - Start with built-in output schemas for child results, review results, planning results, run
   analysis, recovery decisions, and migration reports.
 - Add `workflow_run_stream` for long-lived live progress while keeping snapshot status
-  compatibility.
+  compatibility, and add the detached subscription tools for host-bound realtime wakes without
+  fixed polling.
 - Enforce wall-time/tool-count budgets live; report token budgets from transcript/analyzer until
   live token telemetry is proven.
 - Keep GitHub workflow child-owned in V1, but require structured evidence extraction and analyzer
@@ -264,6 +267,7 @@ observability/reporting and packaging stabilization.
 | Tracker validation and migration | TRK-1, TRK-2, TRK-3, TRK-4 | [Architecture and domains](./technical-solution/01-architecture-and-domains.md), [Data contracts](./technical-solution/03-data-contracts.md) |
 | Story/track runtime policies | RUN-1, RUN-2, RUN-3, RUN-4, RUN-5, RUN-6 | [Runtime flows](./technical-solution/02-runtime-flows.md), [Delivery inputs](./technical-solution/06-delivery-inputs.md) |
 | Streaming, abort, analyzer, and reports | OBS-1, OBS-2, OBS-3, OBS-4, OBS-5, OBS-6, OBS-7, FUT-1, FUT-2 | [Runtime flows](./technical-solution/02-runtime-flows.md), [AI/operations](./technical-solution/04-ai-observability-operations.md) |
+| Detached realtime subscriptions | OBS-1, OBS-5, OBS-7, FUT-2 | [API surface](./technical-solution/05-api-surface.md), [Detached realtime event subscription](./technical-solution/07-detached-realtime-subscription.md), [Runtime and config versioning](./runtime-versioning-design.md) |
 | Provider-neutral driver and GitHub evidence | HC-1, HC-2, HC-3, HC-4 | [Architecture and domains](./technical-solution/01-architecture-and-domains.md), [Data contracts](./technical-solution/03-data-contracts.md) |
 
 Deep dive: [Delivery inputs](./technical-solution/06-delivery-inputs.md).

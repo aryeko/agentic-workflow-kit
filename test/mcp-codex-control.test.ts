@@ -1,8 +1,12 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { abortRunHandler } from '../packages/orchestrator/src/commands/handlers.js';
+import {
+  runSubscribeHandler,
+  runSubscriptionPollHandler,
+} from '../packages/orchestrator/src/commands/runSubscriptions.js';
 import type {
   ChildControlRequest,
   ChildControlResult,
@@ -177,10 +181,23 @@ describe('codex MCP control target resolution', () => {
       path.join(runPath, 'children/DLD07.launch.json'),
       JSON.stringify({ storyId: 'DLD07', sessionId: null }),
     );
+    const subscription = await runSubscribeHandler({
+      runPath,
+      subscription: { topics: ['control'], replay: { lastEvents: 0 } },
+    });
+    const wakePath = path.join(runPath, subscription.wakeArtifact);
+    const initialWake = (await stat(wakePath)).mtimeMs;
 
     const result = await abortRunHandler({ runPath, storyId: 'DLD07', reason: 'operator stop', requestedBy: 'test' });
+    const polled = await runSubscriptionPollHandler({
+      runPath,
+      subscriptionId: subscription.subscriptionId,
+      ackCursor: subscription.nextCursor,
+    });
 
     expect(result.outcome).toBe('unsupported');
+    expect((await stat(wakePath)).mtimeMs).toBeGreaterThan(initialWake);
+    expect(polled.events.map((event) => event.type)).toEqual(['control-requested', 'control-applied']);
     expect(result.childOutcomes).toEqual([
       {
         storyId: 'DLD07',

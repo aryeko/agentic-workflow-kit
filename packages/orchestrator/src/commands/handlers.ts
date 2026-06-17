@@ -51,6 +51,7 @@ import type {
   WorkflowRunStreamInput,
   WorkflowRunStreamResult,
 } from './handlerTypes.js';
+import { appendRunEventAndNotify, inspectRunSubscriptions, notifyRunSubscriptions } from './runSubscriptions.js';
 
 export type * from './handlerTypes.js';
 export { analyzeRunHandler, runExportHandler, runReportHandler } from './runReports.js';
@@ -58,7 +59,6 @@ export { analyzeRunHandler, runExportHandler, runReportHandler } from './runRepo
 import {
   abortActiveChildren,
   appendNdjson,
-  appendRunEvent,
   assertRunExists,
   boundedEventOffset,
   boundedLimit,
@@ -187,7 +187,7 @@ export async function abortRunHandler(input: AbortRunInput): Promise<RunControlR
     requestedBy: input.requestedBy ?? 'operator',
   };
   await appendNdjson(path.join(runPath, 'controls.ndjson'), request);
-  await appendRunEvent(runPath, 'control-requested', {
+  await appendRunEventAndNotify(runPath, 'control-requested', {
     controlId: request.id,
     action: request.action,
     storyId: request.storyId,
@@ -206,7 +206,7 @@ export async function abortRunHandler(input: AbortRunInput): Promise<RunControlR
         detail: 'requested story is not active in this run',
       },
     ];
-    await appendRunEvent(runPath, 'control-applied', {
+    await appendRunEventAndNotify(runPath, 'control-applied', {
       controlId: request.id,
       action: request.action,
       outcome: 'unsupported',
@@ -253,7 +253,7 @@ export async function abortRunHandler(input: AbortRunInput): Promise<RunControlR
   const hasActiveChildren = activeStoryIds.length > 0;
   const appliedAt = new Date().toISOString();
   const outcome = controlOutcomeForChildren(hasActiveChildren, childOutcomes);
-  await appendRunEvent(runPath, 'control-applied', {
+  await appendRunEventAndNotify(runPath, 'control-applied', {
     controlId: request.id,
     action: request.action,
     outcome,
@@ -361,13 +361,14 @@ export async function runStreamHandler(input: WorkflowRunStreamInput = {}): Prom
 export async function runInspectHandler(input: WorkflowRunInspectInput = {}): Promise<WorkflowRunInspectResult> {
   const runDirectory = await resolveRunDirectory(input);
   await assertRunExists(runDirectory);
-  const [state, metrics, artifacts, children, childArtifacts, events] = await Promise.all([
+  const [state, metrics, artifacts, children, childArtifacts, events, subscriptions] = await Promise.all([
     readJsonIfExists(path.join(runDirectory, 'state.json')),
     readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
     inspectArtifacts(runDirectory),
     inspectChildren(runDirectory),
     readChildArtifacts(runDirectory),
     readRunEvents(runDirectory),
+    inspectRunSubscriptions(runDirectory),
   ]);
   const stateObject = isObject(state) ? state : {};
   const pr = collectPrRefs([...events, ...childArtifacts]);
@@ -379,6 +380,7 @@ export async function runInspectHandler(input: WorkflowRunInspectInput = {}): Pr
     children,
     pr,
     metrics,
+    subscriptions,
   };
 }
 
@@ -505,6 +507,7 @@ export async function runWorkflowHandler(command: RunCommand, options: CommandHa
     logger,
     clock: new SystemClock(),
     runId,
+    onRunEventRecorded: async () => notifyRunSubscriptions(runDirectory),
   });
 
   const run =
