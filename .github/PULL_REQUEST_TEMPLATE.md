@@ -1,6 +1,14 @@
-# Summary
+## What
 
-<!-- Describe what this PR does and why. Link to the relevant issue or tracker story if applicable. -->
+<!-- What this PR does and why. Link the relevant issue or tracker story if applicable. -->
+
+## How
+
+<!-- Key implementation decisions a reviewer needs. -->
+
+## Test plan
+
+<!-- Commands run and their result (e.g. `pnpm check`). Report real output, not assumption. -->
 
 ## Type of change
 
