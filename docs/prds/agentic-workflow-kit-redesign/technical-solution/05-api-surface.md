@@ -383,6 +383,13 @@ Final response:
 }
 ```
 
+`workflow_run_stream` is the *attached* path: delivery ends when this request returns. For a
+detached subscriber (an agent that yields its turn and wants realtime wakes), an additive set of
+tools — `workflow_run_subscribe`, `workflow_run_subscription_poll`, and `workflow_run_unsubscribe` —
+provides a durable, server-stored subscription with a wake signal. It reuses this event model and
+does not change `workflow_run_stream`. See
+[07-detached-realtime-subscription.md](07-detached-realtime-subscription.md).
+
 ### `workflow_run_control`
 
 Input:
