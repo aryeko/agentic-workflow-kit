@@ -7,9 +7,10 @@ sections. Every section listed here is mandatory unless marked `(optional)`. Res
 `references/tracker-contract.md` — in particular the status-matrix columns and the status
 vocabulary are fixed by that contract; do not add columns or invent statuses.
 
-The tracker is the **index** for the work, not the work itself. New trackers link lightweight story
-briefs under `./stories/<ID>.md`; `implement-next` creates the detailed technical story spec and
-implementation plan later. Keep this file under ~250 lines.
+The tracker is the **index** for the work, not the work itself. New trackers link grow-in-place story
+files under `./stories/<ID>.md`; `implement-next` enriches those files in place to implementation-ready
+and writes the implementation plan. Always include a terminal promote story in the final wave with
+`Depends on` = all implementation stories. Keep this file under ~250 lines.
 
 ---
 
@@ -67,14 +68,17 @@ Statuses come from `references/tracker-contract.md`:
 
 | ID | Name | Depends on | Wave | Status | Spec | Plan | Owner | PR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| <PREFIX>01 | <Short name> | — | W1 | specced | [brief](./stories/<PREFIX>01.md) | — | — | — |
-| <PREFIX>02 | <Short name> | <PREFIX>01 | W2 | specced | [brief](./stories/<PREFIX>02.md) | — | — | — |
-| <PREFIX>03 | <Short name> | <PREFIX>02 | W3 | specced | [brief](./stories/<PREFIX>03.md) | — | — | — |
+| <PREFIX>01 | <Short name> | — | W1 | specced | [story](./stories/<PREFIX>01.md) | — | — | — |
+| <PREFIX>02 | <Short name> | <PREFIX>01 | W2 | specced | [story](./stories/<PREFIX>02.md) | — | — | — |
+| <PREFIX>03 | <Short name> | <PREFIX>02 | W3 | specced | [story](./stories/<PREFIX>03.md) | — | — | — |
+| <PREFIX>04 | Promote to canonical | <PREFIX>01, <PREFIX>02, <PREFIX>03 | W4 | specced | [story](./stories/<PREFIX>04.md) | — | — | — |
 
 Keep the **Status** column current. Leave **Plan** as `—` — the implementing session drafts the
-plan after creating the detailed technical story spec. For new trackers, **Spec** links to the
-story brief. Existing trackers that link a detailed spec directly remain valid. Each story maps
-to one or more PRD acceptance-criteria IDs (cite them in the story brief, not as a new column).
+plan after enriching the story file. For new trackers, **Spec** links to the grow-in-place story
+file. Existing trackers that link a detailed spec directly remain valid. Each story maps to one or
+more PRD acceptance-criteria IDs (cite them in the story file, not as a new column). The final row
+is the terminal promote story; the track is not complete until it reaches a `statuses.complete`
+status (`done` or `verified`).
 
 ## Parallelism rules
 
@@ -109,8 +113,9 @@ never reused by another track.
    is in `statuses.eligible`.
 2. Claim it (set **Owner**; isolate per `git.strategy`) and flip **Status** to
    `statuses.inProgress`.
-3. Read the linked story brief.
-4. Create/refine the detailed technical story spec under `<specsDir>` (default `docs/specs`).
+3. Read the linked story file.
+4. Enrich the story file in place to implementation-ready (append implementation sections; advance
+   tracker row to `plan-approved`).
 5. If no plan exists, draft one under `<plansDir>` (default `docs/plans`).
 6. Execute. Before opening the PR, flip **Status** to `done` in this table in the same change.
 7. Fill the **PR** column once the PR exists.
@@ -123,8 +128,9 @@ never reused by another track.
   fix the spec.
 - **The tracker is the single source of truth for status** — never infer completion from prose
   elsewhere.
-- **When the story brief is wrong, update it in the same PR** as the detailed spec or code that
+- **When the story file is wrong, update it in the same PR** as the enrichment or code that
   surfaced the gap.
+- **The track is not complete until the terminal promote story is `done` or `verified`.**
 - **<Track-specific rule(s)>** — 1–3 unique to this track.
 
 ## Related

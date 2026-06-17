@@ -1,27 +1,55 @@
 # Detailed technical story spec contract
 
-A detailed technical story spec is created or refined by `implement-next` after it claims one
-tracker row and before it writes an implementation plan or code.
-
-Default location (resolved from `paths.specsDir`, default `docs/specs`):
+When `implement-next` claims a story brief (`status: specced`), it enriches the same story file in
+place — appending the implementation-ready sections below — rather than creating a separate document.
+The story file is located at:
 
 ```text
-<specsDir>/<YYYY-MM-DD>-<id-lc>-<slug>-design.md
+<tracksDir>/<track>/stories/<ID>.md
 ```
 
-Existing trackers that already link a detailed spec directly (rather than a story brief) remain
-valid. New trackers produced by `plan-delivery-track` link story briefs; `implement-next` expands
-those briefs into this detailed spec.
+Once enriched, the tracker row advances to `plan-approved`, signalling that the story is
+implementation-ready. The brief-level note becomes accurate: the story has been enriched to
+`plan-approved` and the "not implementation-ready" note no longer applies.
 
-## Required content
+`paths.specsDir` (default `docs/specs`) is retained for backward compatibility. Existing trackers
+that already link a separate detailed spec directly remain valid; `implement-next` continues the
+legacy behavior for those rows. New trackers use the grow-in-place model.
 
-- exact types/contracts
-- exact files/modules
-- query/schema/prompt/event/component design
-- tests
-- migration/deploy concerns
-- decisions resolved from the story brief
+## Sections appended in place by `implement-next`
 
-The detailed spec must resolve or explicitly block on every blocking technical question in the
-story brief. No implementation plan or code may be written while the detailed spec is missing or
-has blocking technical questions.
+The following sections are appended to the story file during enrichment. Together they constitute the
+implementation-ready state.
+
+### Decisions resolved from the story brief
+
+| Question | Decision | Rationale |
+| --- | --- | --- |
+| `<question from brief>` | `<decision>` | `<why this is safe>` |
+
+### Exact types/contracts
+
+Define exact exported types, interfaces, API contracts, props, payloads, status values, or command
+contracts.
+
+### Exact files/modules
+
+```text
+<path>  <exact responsibility/change>
+```
+
+### Query/schema/prompt/event/component design
+
+Describe exact query, schema, prompt, event, component, route, worker, or command behavior.
+
+### Tests
+
+List exact test files, scenarios, fixtures, and focused commands.
+
+### Migration/deploy concerns
+
+List migrations, backfills, feature flags, rollout order, rollback, and deploy compatibility.
+
+### Blocking technical questions
+
+This section must say `None` before an implementation plan or code may be written.

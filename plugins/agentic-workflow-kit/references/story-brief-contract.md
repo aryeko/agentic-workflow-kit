@@ -1,20 +1,21 @@
 # Story brief contract
 
-A story brief is a lightweight delivery-contract artifact produced by `plan-delivery-track` for one
-tracker row. It is stored under the track:
+A story brief is the brief-level state of a grow-in-place story file produced by
+`plan-delivery-track` for one tracker row. It is stored under the track:
 
 ```text
 <tracksDir>/<track>/stories/<ID>.md
 ```
 
-Story briefs are not implementation-ready. They give `implement-next` enough context to create or
-refine the detailed technical story spec under `<specsDir>` (default `docs/specs`), then create an
-implementation plan under `<plansDir>` (default `docs/plans`), then code.
+Story files grow in place: `plan-delivery-track` writes the brief-level sections; at pickup,
+`implement-next` enriches the same file to implementation-ready by appending the implementation
+sections. The tracker `status` column tracks maturity: `specced` = brief-level,
+`plan-approved` = implementation-ready.
 
-Every story brief must include this exact note:
+Every story file at brief-level (status `specced`) must include this exact note:
 
 ```text
-not implementation-ready; create a detailed technical story spec before plan/code
+brief-level — not implementation-ready until enriched to plan-approved
 ```
 
 ## Required sections
@@ -53,6 +54,12 @@ high-level how, tracker owns sequencing/status, story brief owns lightweight sto
 detailed technical story spec owns exact implementation design, implementation plan owns execution
 steps, and Runtime artifacts own execution evidence.
 
+### Canonical impact
+
+One line stating whether this story changes an invariant, introduces a decision, or changes product
+behavior that the promote-to-canonical story must fold into canonical docs. Use `none` when the
+story has no durable canonical impact.
+
 ### Candidate surfaces
 
 List likely files, modules, commands, routes, queries, prompts, events, components, migrations, or
@@ -60,10 +67,10 @@ tests. These are candidates, not final implementation instructions.
 
 ### Validation expectations
 
-List expected verification layers and repo-configured gates that the detailed spec should turn into
-specific commands and checks.
+List expected verification layers and repo-configured gates that the enriched story file must turn
+into specific commands and checks.
 
 ### Open technical questions
 
-List questions that `implement-next` must resolve in the detailed technical story spec before
-planning or code. Blocking questions must stay explicit.
+List questions that `implement-next` must resolve when enriching this story to implementation-ready
+before planning or code. Blocking questions must stay explicit.

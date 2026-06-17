@@ -1,19 +1,18 @@
 ---
-title: <ID> detailed technical story spec
+title: <ID> story — implementation-ready
 owner: <name or "—">
 last-reviewed: <YYYY-MM-DD>
 related:
   - <path to tracker README>
-  - <path to story brief or legacy spec source>
   - <path to PRD README>
   - <path to technical solution, if present>
 ---
 
-# <ID> detailed technical story spec
+<!-- This file is the grow-in-place story spec. The sections above the rule were written by
+plan-delivery-track (brief-level). The sections below are appended by implement-next when the
+story advances to plan-approved. -->
 
-## Source story brief
-
-<Path to story brief, or note that this is a backward-compatible legacy detailed spec.>
+---
 
 ## Decisions resolved from the story brief
 

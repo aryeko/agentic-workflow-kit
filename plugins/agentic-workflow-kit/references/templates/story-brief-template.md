@@ -10,7 +10,7 @@ related:
 
 # <ID> story brief
 
-not implementation-ready; create a detailed technical story spec before plan/code
+brief-level — not implementation-ready until enriched to plan-approved
 
 ## PRD criteria
 
@@ -54,10 +54,13 @@ If no technical solution was required, state the reason here.
 - PRD owns what/why and acceptance criteria.
 - Technical solution owns high-level how when required.
 - Tracker owns sequencing, status, owner, plan, and PR fields.
-- Story brief owns lightweight story-local scope and citations.
-- Detailed technical story spec owns exact implementation design.
+- Story file owns story-local scope, citations (brief-level), and implementation design (plan-approved level).
 - Implementation plan owns execution steps.
 - Runtime artifacts own execution evidence.
+
+## Canonical impact
+
+<one line: does this story change an invariant, introduce a decision, or change product behavior? Use "none" when there is no durable canonical impact.>
 
 ## Candidate surfaces
 

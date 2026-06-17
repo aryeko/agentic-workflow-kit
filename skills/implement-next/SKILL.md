@@ -1,6 +1,6 @@
 ---
 name: implement-next
-description: Use when the user asks to pick, claim, implement, ship, or merge the next eligible agentic-workflow-kit tracker story, or names a specific tracker ID such as PC03, WK4, AR12, or TU11. Reads .workflow/config.yaml plus references/tracker-contract.md, discovers active trackers, validates dependencies and ownership, expands new story briefs into detailed technical story specs, writes implementation plans, then implements, verifies, updates tracker state, creates PRs, handles configured CI/review gates, optional merge, and cleanup. Do not use for creating trackers (use plan-delivery-track), writing PRDs (use define-product), or non-tracker one-off work.
+description: Use when the user asks to pick, claim, implement, ship, or merge the next eligible agentic-workflow-kit tracker story, or names a specific tracker ID such as PC03, WK4, AR12, or TU11. Reads .workflow/config.yaml plus references/tracker-contract.md, discovers active trackers, validates dependencies and ownership, enriches brief-level story files in place to implementation-ready (plan-approved), writes implementation plans, then implements, verifies, updates tracker state, creates PRs, handles configured CI/review gates, optional merge, and cleanup. Do not use for creating trackers (use plan-delivery-track), writing PRDs (use define-product), or non-tracker one-off work.
 argument-hint: "[story-id]"
 arguments: story_id
 disable-model-invocation: true
@@ -23,10 +23,10 @@ Read these before changing state:
 |---|---|
 | `.workflow/config.yaml` | Paths, statuses, verify commands, git strategy, PR/merge policy. If missing, stop and tell the user to run `/workflow-init`. |
 | `references/config-schema.md` | Defaults for missing optional config keys. |
-| `references/tracker-contract.md` | Eligibility rule, status matrix shape, dependency semantics, and status vocabulary. |
-| `references/story-brief-contract.md` | New story brief shape produced by `plan-delivery-track`. |
-| `references/detailed-story-spec-contract.md` | Required detailed technical story spec content before planning/code. |
-| `references/templates/detailed-story-spec-template.md` | Template for specs created from story briefs. |
+| `references/tracker-contract.md` | Eligibility rule, status matrix shape, dependency semantics, status vocabulary, and terminal promote story rule. |
+| `references/story-brief-contract.md` | Story file contract (brief-level sections produced by `plan-delivery-track`). |
+| `references/detailed-story-spec-contract.md` | Implementation-ready sections appended in place to the story file. |
+| `references/templates/detailed-story-spec-template.md` | Template for implementation sections appended in place. |
 | Repo instructions | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, technical solution docs, and local docs. These win over specs and plans. |
 
 Apply documented defaults when optional config keys are missing. At the start of every run,
@@ -263,17 +263,18 @@ git commit -m "chore(<id>): claim <id>"
 
 Read the row's `Spec` and `Plan` columns:
 
-- `[brief](path)` or a path under `<tracksDir>/<track>/stories/<ID>.md` means read the story brief
-  under `<tracksDir>/<track>/stories/<ID>.md`.
-- Backward compatibility: a detailed spec link (not a story brief) — typically under `<specsDir>` —
+- `[story](path)`, `[brief](path)`, or a path under `<tracksDir>/<track>/stories/<ID>.md` means
+  read the grow-in-place story file under `<tracksDir>/<track>/stories/<ID>.md`. If it is
+  brief-level (status `specced`), the file must be enriched in place before implementation.
+- Backward compatibility: a detailed spec link (not a story file) — typically under `<specsDir>` —
   means continue the legacy behavior and read it as the detailed technical story spec.
 - Backward compatibility: a legacy `see <ID> + [delta](path)` link means read the referenced base
   spec plus the delta together as the detailed technical story spec.
-- `[spec](path)` means inspect the path. If it points to a story brief, create/refine the detailed
-  technical story spec first. If it points to a detailed spec under `<specsDir>`, use the
-  backward-compatible detailed-spec path.
+- `[spec](path)` means inspect the path. If it points to a story file at brief-level, enrich it
+  in place first. If it points to a detailed spec under `<specsDir>`, use the backward-compatible
+  detailed-spec path.
 - `Plan` with a link means read and assess it.
-- `Plan` as `—` means a plan must be written after the detailed technical story spec is ready.
+- `Plan` as `—` means a plan must be written after the story file is enriched to implementation-ready.
 
 Also read repo contract docs and the tracker's dependency, parallelism, and coordination
 sections. Produce a short brief with:
@@ -286,19 +287,15 @@ sections. Produce a short brief with:
 
 If there is a blocker, pause for user input before planning or implementation.
 
-## Phase 4: Create or refine the detailed technical story spec
+## Phase 4: Enrich the story file to implementation-ready
 
-For story brief rows, create/refine the detailed technical story spec first.
+For story files at brief-level (`status: specced`), enrich the story file in place before writing
+any implementation plan or code.
 
-If the tracker row links a story brief under `<tracksDir>/<track>/stories/<ID>.md`, create/refine
-the detailed technical story spec before writing any implementation plan or code, under:
-
-```text
-<specsDir>/<YYYY-MM-DD>-<id-lc>-<slug>-design.md
-```
-
-Use `references/templates/detailed-story-spec-template.md` and satisfy
-`references/detailed-story-spec-contract.md`. The detailed technical story spec must include:
+If the tracker row links a story file under `<tracksDir>/<track>/stories/<ID>.md` and the file is
+brief-level, append the implementation-ready sections to that same file following
+`references/detailed-story-spec-contract.md`. Use `references/templates/detailed-story-spec-template.md`
+as the template for the appended sections. The enriched story file must include:
 
 - exact types/contracts,
 - exact files/modules,
@@ -307,25 +304,25 @@ Use `references/templates/detailed-story-spec-template.md` and satisfy
 - migration/deploy concerns,
 - decisions resolved from the story brief.
 
-Every blocking technical question from the story brief must be resolved in the detailed spec or the
-story must stop as blocked. The `## Blocking technical questions` section must say `None` before
-planning or code.
+Every blocking technical question from the story file must be resolved or the story must stop as
+blocked. The `## Blocking technical questions` section must say `None` before planning or code.
 
-Update the tracker row's **Spec** column from the brief link to a combined reference, for example:
+After enrichment, advance the tracker row's **Status** to `plan-approved` and update the **Spec**
+link if needed (the story file path does not change):
 
 ```markdown
-[brief](./stories/<ID>.md) + [spec](<specsDir-relative path>)
+[story](./stories/<ID>.md)
 ```
 
 Commit:
 
 ```bash
-git add <tracker README> <detailed spec file>
-git commit -m "chore(<id>): write detailed story spec"
+git add <tracker README> <story file>
+git commit -m "chore(<id>): enrich story to plan-approved"
 ```
 
-If the row already links a detailed spec directly (not a story brief), keep the legacy path:
-review/refine that spec instead of creating a duplicate.
+If the row already links a detailed spec directly (not a story file), keep the legacy path:
+review/refine that spec instead of enriching in place.
 
 ## Phase 5: Write a plan when needed
 

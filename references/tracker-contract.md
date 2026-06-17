@@ -26,11 +26,25 @@ A markdown table with these columns, in order:
 - **Depends on** — comma/semicolon-separated IDs, or `—`.
 - **Wave** — grouping for parallelism.
 - **Status** — a term from the vocabulary below.
-- **Spec** — links or `—`. For new trackers, Spec links to the story brief under
-  `<tracksDir>/<track>/stories/<ID>.md`; the story brief is not implementation-ready.
+- **Spec** — links or `—`. For new trackers, Spec links to the story file under
+  `<tracksDir>/<track>/stories/<ID>.md`; at brief-level the story is not implementation-ready.
   Existing trackers that link a detailed spec directly remain valid for backward compatibility.
 - **Plan / PR** — links or `—`.
 - **Owner** — the claiming session, or `—`/empty when unowned.
+
+## Terminal promote story
+
+Every tracker produced by `plan-delivery-track` must include a terminal promote story in its final
+wave. The promote story:
+
+- has `Depends on` set to the full set of implementation story IDs in the tracker,
+- is placed in the final wave (after all implementation stories),
+- links its own story file as Spec,
+- runs `promote-to-canonical` when executed.
+
+The track is not complete until the promote story reaches a `statuses.complete` status
+(`done` or `verified`). This is an exit-bar rule: the tracker (and its PRD) cannot be marked
+complete while the promote story is unfinished.
 
 ## Dependency graph
 
