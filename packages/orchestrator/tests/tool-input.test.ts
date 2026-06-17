@@ -5,7 +5,7 @@ import { renderStoryImplementerPrompt } from '../src/drivers/promptRenderer';
 import type { ResolvedWorkflowConfig, WorkflowStory } from '../src/types';
 
 const config: ResolvedWorkflowConfig = {
-  version: 1,
+  version: '0.6.0',
   configPath: '/repo/.workflow/config.yaml',
   workspace: { rootAbs: '/repo' },
   paths: {

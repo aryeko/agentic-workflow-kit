@@ -24,6 +24,8 @@ import {
   stopWatchRunHandler,
   watchRunHandler,
 } from '../commands/handlers.js';
+import { applyWorkflowConfigUpgrade, previewWorkflowConfigUpgrade, workflowConfigStatus } from '../config/version.js';
+import { runtimeInfo } from '../runtime/version.js';
 import {
   assertWorkflowRepoContext,
   conciseAnalysisContent,
@@ -38,6 +40,9 @@ import {
 } from './toolHelpers.js';
 
 export const ORCHESTRATOR_MCP_TOOLS = [
+  'workflow_runtime_info',
+  'workflow_config_status',
+  'workflow_config_upgrade',
   'workflow_project_inspect',
   'workflow_run_preview',
   'workflow_run_status',
@@ -77,6 +82,11 @@ const productBaseInputSchema = z.object({
     .enum(['concise', 'detailed'])
     .optional()
     .describe('Structured response size. Use concise by default; detailed raises limits but may still truncate.'),
+});
+
+const workflowConfigUpgradeInputSchema = productBaseInputSchema.extend({
+  dryRun: z.boolean().optional().describe('Preview without writing. Defaults to true unless confirm is true.'),
+  confirm: z.boolean().optional().describe('Required to apply the upgrade when dryRun is false.'),
 });
 
 function baseProductTrackerInputSchema() {
@@ -380,6 +390,54 @@ const outputSchema = z
 
 export function registerOrchestratorTools(server: McpServer): void {
   registerWorkflowResources(server);
+
+  server.registerTool(
+    'workflow_runtime_info',
+    {
+      description: 'Report WorkflowKit runtime, MCP server, API, and config schema versions.',
+      inputSchema: z.object({}),
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async () => handleTool('workflow_runtime_info', undefined, async () => runtimeInfo()),
+  );
+
+  server.registerTool(
+    'workflow_config_status',
+    {
+      description: 'Report WorkflowKit config compatibility, supported versions, warnings, and next actions.',
+      inputSchema: productBaseInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_config_status', input.responseFormat, () =>
+        workflowConfigStatus({ cwd: input.cwd, configPath: input.configPath }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_config_upgrade',
+    {
+      description: 'Preview or apply WorkflowKit config upgrades after explicit confirmation.',
+      inputSchema: workflowConfigUpgradeInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    async (input) =>
+      handleTool('workflow_config_upgrade', input.responseFormat, () => {
+        const options = { cwd: input.cwd, configPath: input.configPath };
+        if (input.dryRun === false && input.confirm === true) return applyWorkflowConfigUpgrade(options);
+        if (input.dryRun === false) {
+          return previewWorkflowConfigUpgrade(options).then((result) => ({
+            ...result,
+            dryRun: false,
+            confirmationRequired: true,
+          }));
+        }
+        return previewWorkflowConfigUpgrade(options);
+      }),
+  );
 
   server.registerTool(
     'workflow_project_inspect',

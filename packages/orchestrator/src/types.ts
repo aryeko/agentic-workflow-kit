@@ -308,7 +308,7 @@ export interface ResolvedAgentProfile extends AgentProfile {
 }
 
 export interface ResolvedWorkflowConfig {
-  version: 1;
+  version: '0.6.0';
   configPath: string;
   workspace: {
     rootAbs: string;
@@ -433,6 +433,9 @@ export interface CliOverrides {
 
 export type WorkflowCommand =
   | { kind: 'help' }
+  | { kind: 'version'; overrides: CliOverrides }
+  | { kind: 'config-status'; overrides: CliOverrides }
+  | { kind: 'config-upgrade'; overrides: CliOverrides }
   | { kind: 'project-inspect'; overrides: CliOverrides }
   | { kind: 'list-tracks'; overrides: CliOverrides }
   | { kind: 'list-stories'; overrides: CliOverrides }

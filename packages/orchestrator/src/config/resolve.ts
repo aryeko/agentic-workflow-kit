@@ -4,6 +4,7 @@ import YAML from 'yaml';
 import type { z } from 'zod';
 import { isNodeError } from '../internal/guards.js';
 import { ConfigSchema, type WorkflowConfig } from './schema.js';
+import { classifyWorkflowConfigVersion } from './version.js';
 
 const DEFAULT_CONFIG_PATH = '.workflow/config.yaml';
 
@@ -35,6 +36,10 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<Loade
   }
 
   const parsed = YAML.parse(raw) as unknown;
+  const compatibility = classifyWorkflowConfigVersion(parsed);
+  if (compatibility.blocking) {
+    throw new Error(`Invalid .workflow/config.yaml — ${compatibility.message}`);
+  }
   const result = ConfigSchema.safeParse(parsed);
   if (!result.success) {
     throw new Error(formatZodError(result.error));

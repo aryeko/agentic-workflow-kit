@@ -5,8 +5,17 @@
   "type": "object",
   "properties": {
     "version": {
-      "type": "number",
-      "const": 1
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "0.6.0"
+        },
+        {
+          "type": "number",
+          "const": 1
+        }
+      ],
+      "default": "0.6.0"
     },
     "paths": {
       "type": "object",

@@ -31,6 +31,11 @@ Read these before changing state:
 
 Apply documented defaults when optional config keys are missing. At the start of every run,
 summarize the resolved policy: `paths`, `statuses`, `verify`, `git`, `implement`, and `pr`.
+If the runtime exposes `workflow_config_status` or `agentic-workflow-kit config status --json`,
+check config compatibility before claiming a row or writing files. For legacy upgradeable configs,
+summarize the upgrade and ask whether to run `workflow_config_upgrade` or
+`agentic-workflow-kit config upgrade --yes --json` first. Stop on unsupported old, unsupported new,
+invalid, or missing config versions until the user resolves the compatibility issue.
 
 ## Hard rules
 

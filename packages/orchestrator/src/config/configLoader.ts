@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { artifactRootDirForDriver, SUPPORTED_DRIVERS, unsupportedDriverMessage } from '../drivers/registry.js';
+import { CURRENT_CONFIG_SCHEMA_VERSION } from '../runtime/version.js';
 import type {
   AgentBudgetPolicy,
   AgentBudgetSupport,
@@ -83,7 +84,7 @@ export async function loadResolvedConfig(
   };
 
   return {
-    version: 1,
+    version: CURRENT_CONFIG_SCHEMA_VERSION,
     configPath,
     workspace: { rootAbs: workspaceRoot },
     paths: {
@@ -130,7 +131,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
   const artifactRootDir = artifactRootDirForDriver(driver);
   const resolvedChildSession = { cwdAbs: workspaceRoot, speed: 'derive' as const };
   return {
-    version: 1,
+    version: CURRENT_CONFIG_SCHEMA_VERSION,
     configPath: path.resolve(workspaceRoot, '.workflow/config.yaml'),
     workspace: { rootAbs: workspaceRoot },
     paths: {

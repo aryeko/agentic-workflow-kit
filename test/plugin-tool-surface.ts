@@ -1,6 +1,9 @@
 import { expect } from 'vitest';
 
 export const PRODUCT_MCP_TOOLS = [
+  'workflow_runtime_info',
+  'workflow_config_status',
+  'workflow_config_upgrade',
   'workflow_project_inspect',
   'workflow_run_preview',
   'workflow_run_status',

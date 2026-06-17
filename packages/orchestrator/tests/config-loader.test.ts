@@ -63,7 +63,7 @@ orchestrator:
 
     const config = await loadResolvedConfig({}, root);
 
-    expect(config.version).toBe(1);
+    expect(config.version).toBe('0.6.0');
     expect(config.configPath).toBe(path.join(root, '.workflow', 'config.yaml'));
     expect(config.workspace.rootAbs).toBe(root);
     expect(config.paths.tracksDirAbs).toBe(path.join(root, 'docs/tracks'));
