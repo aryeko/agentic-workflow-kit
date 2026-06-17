@@ -31,6 +31,7 @@ Install the plugin, then initialize a repo:
 /agentic-workflow-kit:define-product
 /agentic-workflow-kit:plan-delivery-track
 /agentic-workflow-kit:implement-next
+/agentic-workflow-kit:promote-to-canonical
 ```
 
 For autonomous dispatch, use `workflow-autopilot` from a plugin session. For terminal and CI use,
@@ -86,7 +87,8 @@ flowchart LR
   H --> I
   I --> J{More eligible<br/>stories?}
   J -->|yes| F
-  J -->|no| K["track complete"]
+  J -->|no| K["/promote-to-canonical<br/>terminal story"]
+  K --> L["canon updated<br/>feeds next initiative"]
 ```
 
 1. **Set up once** — `/workflow-init` detects your package manager, CI, default branch, and branch
@@ -103,6 +105,11 @@ flowchart LR
    runtime for local development, CI, and troubleshooting.
 6. **Ship** — under the declarative `pr:` policy (open a PR, wait on CI/review, auto-merge — or
    not), then repeat until the tracker is drained.
+7. **Promote to canonical** — `/promote-to-canonical` runs as the dependency-terminal story once all
+   implementation stories are complete. It folds durable decisions back into the canonical knowledge
+   base (product narrative, architecture docs, domain references, ADRs), flips the PRD to `shipped`,
+   archives the design doc, and refreshes the pillar indexes. The next initiative starts from
+   accurate canon.
 
 ## PR/merge presets
 
@@ -159,6 +166,7 @@ findings, and Codex PR review comments or PR comments are findings to triage whe
 - [references/technical-solution-contract.md](references/technical-solution-contract.md) — the technical solution gate format
 - [references/story-brief-contract.md](references/story-brief-contract.md) — the lightweight story brief format
 - [references/detailed-story-spec-contract.md](references/detailed-story-spec-contract.md) — the pre-code detailed story spec format
+- [references/promote-contract.md](references/promote-contract.md) — the promote-to-canonical step inputs, outputs, gate, and immutability rules
 - [references/runtime-artifact-contract.md](references/runtime-artifact-contract.md) — runtime artifact, metric, budget, transcript, report, and export shape
 - [examples/](examples/) — a worked PRD and tracker (Linkly)
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to develop and contribute

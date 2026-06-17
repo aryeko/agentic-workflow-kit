@@ -91,7 +91,7 @@ flowchart TB
 ```
 
 ### Skills (`skills/`)
-Instruction-first Markdown that runs inside Claude Code or Codex. Six entry points:
+Instruction-first Markdown that runs inside Claude Code or Codex. Seven entry points:
 
 | Skill | Role | Side effects |
 | --- | --- | --- |
@@ -101,6 +101,7 @@ Instruction-first Markdown that runs inside Claude Code or Codex. Six entry poin
 | `plan-delivery-track` | PRD plus technical solution when needed -> tracker + story briefs | Writes a tracker + briefs |
 | `implement-next` | One eligible story end-to-end | Branch/worktree, commits, PR, merge |
 | `workflow-autopilot` | Drive the orchestrator over the same contract | Launches child sessions |
+| `promote-to-canonical` | Fold a shipped track's durable knowledge into the canonical knowledge base | Updates canonical docs, mints ADRs, flips PRD to shipped, archives design doc |
 
 The two side-effectful drivers (`implement-next`, `workflow-autopilot`) are explicit-invocation-only.
 

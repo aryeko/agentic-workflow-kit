@@ -26,12 +26,14 @@ pnpm agentic-workflow-kit -- --help
 
 ```mermaid
 flowchart LR
-  A["/workflow-init"] --> B["/define-product"] --> C["/plan-delivery-track"] --> D["/implement-next<br/>or orchestrator"]
+  A["/workflow-init"] --> B["/define-product"] --> C["/plan-delivery-track"] --> D["/implement-next<br/>or orchestrator"] --> P["/promote-to-canonical<br/>(terminal story)"]
   B --> E["/design-technical-solution<br/>(when needed)"] --> C
 ```
 
 Each step writes into the shared contract (`.workflow/config.yaml` + a markdown tracker) that the
-next step reads. See [architecture.md](./architecture.md) for the full picture.
+next step reads. `promote-to-canonical` is the final step: it runs as the terminal story in every
+tracker and folds durable knowledge back into the canonical knowledge base so the next initiative
+starts from accurate canon. See [architecture.md](./architecture.md) for the full picture.
 
 ## 1. Initialize a repo
 
