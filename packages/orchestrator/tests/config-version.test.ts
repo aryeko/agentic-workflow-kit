@@ -7,6 +7,7 @@ import {
   applyWorkflowConfigUpgrade,
   classifyWorkflowConfigVersion,
   planWorkflowConfigUpgrade,
+  workflowConfigStatus,
 } from '../src/config/version';
 import {
   CURRENT_CONFIG_SCHEMA_VERSION,
@@ -52,7 +53,8 @@ describe('workflow config version compatibility', () => {
     expect(classifyWorkflowConfigVersion({ version: '0.5.0' })).toMatchObject({
       status: 'unsupported-old',
       blocking: true,
-      upgradeAvailable: true,
+      targetVersion: null,
+      upgradeAvailable: false,
     });
     expect(classifyWorkflowConfigVersion({ version: '0.7.0' })).toMatchObject({
       status: 'unsupported-new',
@@ -120,6 +122,8 @@ describe('workflow config version compatibility', () => {
     expect(plan).toMatchObject({
       status: 'unsupported-old',
       blocking: true,
+      upgradeAvailable: false,
+      targetVersion: null,
       writeRequired: false,
       changes: [],
     });
@@ -129,6 +133,23 @@ describe('workflow config version compatibility', () => {
       changes: [],
     });
     expect(await readFile(configPath, 'utf8')).toContain('version: "0.5.0"');
+  });
+
+  it('returns structured status when the config file is missing', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'workflow-config-missing-file-'));
+
+    await expect(workflowConfigStatus({ cwd: root })).resolves.toMatchObject({
+      status: 'missing',
+      detectedVersion: null,
+      upgradeAvailable: false,
+      blocking: true,
+      next: [
+        {
+          label: 'Initialize workflow config',
+          cli: '/agentic-workflow-kit:workflow-init',
+        },
+      ],
+    });
   });
 
   it('reports actionable compatibility errors during normal config loading', async () => {

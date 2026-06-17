@@ -64,7 +64,19 @@ export async function workflowConfigStatus(
   options: WorkflowConfigVersionOptions = {},
 ): Promise<WorkflowConfigStatusResult> {
   const configPath = resolveConfigPath(options);
-  const rawConfig = await readRawConfig(configPath);
+  let rawConfig: unknown;
+  try {
+    rawConfig = await readRawConfig(configPath);
+  } catch (error) {
+    if (!isMissingFileError(error)) {
+      throw error;
+    }
+    return {
+      ...missingConfigFileCompatibility(),
+      configPath,
+      runtime: runtimeInfo(),
+    };
+  }
   return {
     ...classifyWorkflowConfigVersion(rawConfig),
     configPath,
@@ -144,8 +156,8 @@ export function classifyWorkflowConfigVersion(rawConfig: unknown): WorkflowConfi
       status: 'unsupported-old',
       detectedVersion: version,
       normalizedVersion: null,
-      targetVersion: CURRENT_CONFIG_SCHEMA_VERSION,
-      upgradeAvailable: true,
+      targetVersion: null,
+      upgradeAvailable: false,
       blocking: true,
       message: `Workflow config version ${version} is older than the minimum supported version ${MIN_SUPPORTED_CONFIG_SCHEMA_VERSION}.`,
     });
@@ -180,7 +192,23 @@ export async function planWorkflowConfigUpgrade(
   options: WorkflowConfigVersionOptions = {},
 ): Promise<WorkflowConfigUpgradePlan> {
   const configPath = resolveConfigPath(options);
-  const rawConfig = await readRawConfig(configPath);
+  let rawConfig: unknown;
+  try {
+    rawConfig = await readRawConfig(configPath);
+  } catch (error) {
+    if (!isMissingFileError(error)) {
+      throw error;
+    }
+    const status = missingConfigFileCompatibility();
+    return {
+      ...status,
+      configPath,
+      currentVersion: status.detectedVersion,
+      runtimeCurrentVersion: status.currentVersion,
+      writeRequired: false,
+      changes: [],
+    };
+  }
   const status = classifyWorkflowConfigVersion(rawConfig);
   const legacyVersion = isRecord(rawConfig) ? rawConfig.version : undefined;
   const canRewriteVersion = status.status === 'legacy-upgradeable';
@@ -237,9 +265,40 @@ function compatibility(input: Omit<WorkflowConfigCompatibility, 'next'>): Workfl
   return { ...input, next };
 }
 
+function missingConfigFileCompatibility(): WorkflowConfigCompatibility {
+  return {
+    status: 'missing',
+    detectedVersion: null,
+    normalizedVersion: null,
+    currentVersion: CURRENT_CONFIG_SCHEMA_VERSION,
+    minimumSupportedVersion: MIN_SUPPORTED_CONFIG_SCHEMA_VERSION,
+    targetVersion: null,
+    upgradeAvailable: false,
+    blocking: true,
+    message: 'Workflow config file is missing. Run /workflow-init before using workflow automation.',
+    addedCapabilities: [
+      'CLI and MCP runtime version discovery',
+      'Config compatibility status reporting',
+      'Previewable workflow config upgrades',
+    ],
+    next: [
+      {
+        label: 'Initialize workflow config',
+        cli: '/agentic-workflow-kit:workflow-init',
+      },
+    ],
+  };
+}
+
 async function readRawConfig(configPath: string): Promise<unknown> {
   const raw = await readFile(configPath, 'utf8');
   return YAML.parse(raw) as unknown;
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && 'code' in error && (error as { code?: unknown }).code === 'ENOENT'
+  );
 }
 
 function resolveConfigPath(options: WorkflowConfigVersionOptions): string {
