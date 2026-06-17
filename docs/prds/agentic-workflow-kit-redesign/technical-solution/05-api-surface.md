@@ -154,6 +154,9 @@ Command map:
 | `workflow-kit run start --track TRACK --mode eligible` | Start track autopilot over eligible stories. | yes |
 | `workflow-kit run status RUN_ID` | Read current run state, active children, recent events, budgets. | no |
 | `workflow-kit run stream RUN_ID --topics run,story,child,error` | Stream normalized events as table or NDJSON. | no |
+| `workflow-kit run subscribe RUN_ID --topics run,story,child,error` | Register a detached realtime subscription and return a wake artifact plus replay tail. | yes |
+| `workflow-kit run subscription-poll RUN_ID SUBSCRIPTION_ID` | Pull and ack deliverable events for a detached subscription. | yes |
+| `workflow-kit run unsubscribe RUN_ID SUBSCRIPTION_ID` | Close a detached subscription and remove its wake artifact. | yes |
 | `workflow-kit abort-run RUN_PATH --reason TEXT` | Request abort and return applied/unsupported/terminal outcome. | yes |
 | `workflow-kit run inspect RUN_ID` | Show artifact tree, child sessions, transcripts, PR links, metrics. | no |
 | `workflow-kit run report RUN_ID --format markdown|json` | Build `analysis.json` and `report.md` from bounded run artifacts. | yes |
@@ -189,6 +192,9 @@ prefixed with `workflow_` to avoid collisions.
 | `workflow_run_start` | `run start` | Start story or track execution. |
 | `workflow_run_status` | `run status` | Snapshot run state and recent events. |
 | `workflow_run_stream` | `run stream` | Long-lived request that subscribes to filtered normalized events. |
+| `workflow_run_subscribe` | `run subscribe` | Register a durable detached subscription with server-stored filters/cursor and a wake artifact. |
+| `workflow_run_subscription_poll` | `run subscription-poll` | Pull deliverable events for a detached subscription and commit an acknowledged cursor. |
+| `workflow_run_unsubscribe` | `run unsubscribe` | Idempotently close a detached subscription and remove its wake artifact. |
 | `workflow_run_control` | `run control` | Request abort or future controls. |
 | `workflow_run_inspect` | `run inspect` | Return artifact/session/PR/metrics index. |
 | `workflow_run_report` | `run report` | Produce report outputs through an explicit post-run write operation. |
