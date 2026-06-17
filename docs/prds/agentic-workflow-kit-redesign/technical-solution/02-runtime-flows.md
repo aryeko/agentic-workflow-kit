@@ -134,6 +134,12 @@ sequenceDiagram
   Tool-->>Client: "Abort outcome and artifact paths"
 ```
 
+The sequence above is the *attached* streaming path: delivery lives for the duration of the
+in-flight request. For a subscriber that returns its turn and wants realtime wakes after the call
+returns, see the additive detached subscription primitive in
+[07-detached-realtime-subscription.md](07-detached-realtime-subscription.md). It is parallel to this
+path and does not change it.
+
 ## Runtime state and controls
 
 ```mermaid
