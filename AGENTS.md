@@ -80,6 +80,12 @@ handoff. Report any skipped or failed verification with the exact reason.
 
 - No emojis in code, comments, docs, manifests, or commit messages.
 - Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, `test:`); no AI attribution.
+- Pull request title and body are a contract, not freeform. Title is one Conventional Commit line.
+  Body follows [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md): `## What`
+  (change and why; link the tracker story or issue), `## How` (decisions a reviewer needs),
+  `## Test plan` (commands run and their real result), then `## Type of change` / `## Checklist`.
+  Base the summary on the full diff (`git diff main...HEAD`), not the last commit. PR/merge **gating**
+  (CI wait, review bot, merge method) stays in `.workflow/config.yaml`, not here.
 - Prefer immutable data and small, focused files.
 - If a change alters public behavior, update the relevant docs, schemas, presets, examples, and
   tests in the same change.
