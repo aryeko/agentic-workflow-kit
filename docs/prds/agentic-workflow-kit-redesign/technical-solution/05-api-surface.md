@@ -138,7 +138,10 @@ Command map:
 
 | Command | Purpose | Mutates? |
 | --- | --- | --- |
+| `workflow-kit --version` / `workflow-kit version --json` | Show package, MCP server, public API, and config schema versions. | no |
 | `workflow-kit project inspect` | Show resolved repo context, config path, docs dirs, package/plugin metadata. | no |
+| `workflow-kit config status` | Classify config compatibility against the current runtime and return upgrade guidance. | no |
+| `workflow-kit config upgrade --dry-run\|--yes` | Preview or apply supported config schema migrations. | optional |
 | `workflow-kit config validate` | Validate config, presets, statuses, agent profiles, budgets, and observability defaults. | no |
 | `workflow-kit profiles list` | List resolved agent profiles and task bindings. | no |
 | `workflow-kit profiles show PROFILE` | Show one profile, including inherited defaults and unavailable capabilities. | no |
@@ -177,7 +180,10 @@ prefixed with `workflow_` to avoid collisions.
 
 | MCP tool | CLI equivalent | Purpose |
 | --- | --- | --- |
+| `workflow_runtime_info` | `version --json` | Report package, MCP server, public API, and config schema versions. |
 | `workflow_project_inspect` | `project inspect` | Resolve project context and surface capabilities. |
+| `workflow_config_status` | `config status` | Classify config compatibility and return warnings, blocking status, upgrade availability, and next actions. |
+| `workflow_config_upgrade` | `config upgrade` | Preview or apply supported config schema migrations with explicit confirmation for writes. |
 | `workflow_config_validate` | `config validate` | Validate config and return diagnostics. |
 | `workflow_profiles_list` | `profiles list` | List profiles and task bindings. |
 | `workflow_profile_get` | `profiles show` | Inspect one resolved profile. |
@@ -244,6 +250,29 @@ Prompt exposure should be conservative:
 - `minimal`: ids, status, and artifact refs only
 - `summary`: bounded human-readable summaries plus key fields
 - `full-bounded`: structured details up to configured byte/event limits
+
+### Version and config compatibility tools
+
+`workflow_runtime_info` is the read-only source for runtime discovery:
+
+```json
+{
+  "packageVersion": "0.6.0",
+  "mcpServer": {"name": "agentic-workflow-kit", "version": "0.6.0"},
+  "apiVersion": "1",
+  "configSchema": {"current": "0.6.0", "minimumSupported": "0.6.0"}
+}
+```
+
+`workflow_config_status` and `workflow_config_upgrade` are the compatibility boundary for
+`.workflow/config.yaml`. Config-dependent runtime actions, including run start and
+subscribe-by-`runId`, should call the same classifier before strict config parsing turns stale,
+unsupported, or newer config files into generic failures. Legacy numeric `version: 1` remains a
+supported upgrade path while current configs use semver strings such as `"0.6.0"`.
+
+Read-only artifact operations that already support explicit run artifact paths may use that existing
+fallback when repo config is unavailable, but they must not silently upgrade config or ignore a
+blocking compatibility result for `runId`-based resolution.
 
 ### `workflow_run_start`
 
@@ -396,6 +425,24 @@ provides a durable, server-stored subscription with a wake signal. It reuses thi
 does not change `workflow_run_stream`. See
 [07-detached-realtime-subscription.md](07-detached-realtime-subscription.md).
 
+### `workflow_run_subscribe` / `workflow_run_subscription_poll` / `workflow_run_unsubscribe`
+
+The detached subscription tools are additive runtime tools for agents that need realtime wakes after
+their original tool call returns. They use the same result envelope and public `apiVersion: "1"` as
+the rest of the API, reuse `notifications/workflow_event` event payloads, and persist subscription
+state as internal `schemaVersion: 1` artifacts under the run root.
+
+`workflow_run_subscribe` resolves a run through repo context and is therefore config-dependent.
+When config compatibility is blocking (`missing`, `invalid`, `unsupported-old`, or
+`unsupported-new`), it should fail with the same structured diagnostics and next actions exposed by
+`workflow_config_status` / `workflow_config_upgrade`. `workflow_run_subscription_poll` and
+`workflow_run_unsubscribe` may accept an explicit `runPath` for artifact-local operation only where
+existing run-read tools already support that fallback.
+
+Project inspection should advertise this feature with
+`capabilities.detachedRunSubscriptions: true` when the runtime can create subscription records,
+touch wake artifacts, and poll by subscription id.
+
 ### `workflow_run_control`
 
 Input:
@@ -472,7 +519,7 @@ Standard codes:
 
 | Code | Meaning | CLI exit |
 | --- | --- | --- |
-| `CONFIG_INVALID` | Config failed schema or semantic validation. | 2 |
+| `CONFIG_INVALID` | Config failed schema, semantic validation, or compatibility checks. Details should include compatibility status and point to config status/upgrade when available. | 2 |
 | `AGENT_PROFILE_MISSING` | Task binding references a missing profile. | 2 |
 | `TRACKER_INVALID` | Tracker contract/dependency/status validation failed. | 2 |
 | `STORY_NOT_ELIGIBLE` | Requested story cannot run under current policy. | 3 |
@@ -508,7 +555,10 @@ Standard codes:
     "runStory": true,
     "runTrack": true,
     "streaming": true,
+    "detachedRunSubscriptions": true,
     "abort": true,
+    "runtimeInfo": true,
+    "configCompatibility": true,
     "tokenTelemetryLive": false,
     "structuredOutputEnforced": true,
     "github": true

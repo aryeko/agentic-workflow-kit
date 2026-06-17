@@ -54,6 +54,26 @@ Detached replay-by-cursor is therefore supported by existing infrastructure: any
 from a stored offset into `events.ndjson`. No second event schema and no new event store are
 required, but implementation must centralize wake notification across every event append path.
 
+### Version and compatibility alignment
+
+The merged runtime/config versioning surface is the version boundary for this feature:
+
+- Public MCP/CLI envelopes continue to use runtime `apiVersion: "1"`. Detached subscription tools
+  do not introduce a second public API version.
+- `workflow_runtime_info` remains the discovery surface for package, MCP server, API, and config
+  schema versions. `workflow_project_inspect.capabilities` should add a capability flag for this
+  feature, e.g. `detachedRunSubscriptions: true`.
+- The subscription registry record gets its own internal artifact `schemaVersion: 1`. That version
+  applies only to files under a run's `subscriptions/` directory and is independent of the public
+  API version and `.workflow/config.yaml` schema version.
+- This design adds no `.workflow/config.yaml` keys or default semantics. Therefore it does **not**
+  require bumping `CURRENT_CONFIG_SCHEMA_VERSION` beyond the current `0.6.0`; only a future
+  config-backed option for subscriptions should trigger a config schema version change.
+- Subscribe-by-`runId` is config-dependent because the runtime must resolve project context and run
+  artifact roots through the configured repo. Explicit run-artifact operations by `runPath` may use
+  the existing read-tool fallback only where current run readers already support artifact-local
+  inspection without loading a compatible repo config.
+
 ## Technical requirements
 
 Each requirement is observable and testable.
@@ -82,6 +102,10 @@ Each requirement is observable and testable.
 - R10 — The capability is **purely additive**. `workflow_run_stream`, `notifications/progress`, and
   `notifications/workflow_event` behavior is unchanged, and the existing normalized event model is
   reused unchanged.
+- R11 — Subscription tools respect runtime/config version surfaces. Runtime/package/API/config
+  schema versions are discoverable through `workflow_runtime_info`; project discovery advertises
+  detached subscription capability; config-incompatible `runId` resolution fails with the same
+  structured compatibility guidance as other config-dependent runtime actions.
 
 ## Attached vs pull vs detached
 
@@ -180,7 +204,7 @@ artifact changes.
   controls.ndjson                existing
   ...
   subscriptions/                 new: detached subscription registry + wake signals
-    <subscriptionId>.json        durable subscription record (filters, cursor, terminal state)
+    <subscriptionId>.json        durable schemaVersion: 1 record (filters, cursor, terminal state)
     <subscriptionId>.wake        tiny wake-signal artifact (mtime + minimal payload)
 ```
 
@@ -192,6 +216,10 @@ dirty checks. Subscription records and wake artifacts are runtime artifacts and 
 Naming follows existing conventions: MCP tools are `workflow_run_*`; CLI verbs are
 `agentic-workflow-kit run <verb>`. Returned event payloads reuse the existing
 `notifications/workflow_event` normalized event shape; no new public event schema is introduced.
+All MCP results use the shared WorkflowKit envelope with `apiVersion: "1"`. Capability/version
+discovery is split deliberately: `workflow_runtime_info` reports runtime/API/config versions, while
+`workflow_project_inspect.capabilities.detachedRunSubscriptions` reports whether this feature is
+available in the resolved project/runtime.
 
 ### `workflow_run_subscribe`
 
@@ -378,6 +406,7 @@ interface RunSubscriptionWakePolicy {
 }
 
 interface RunSubscription {
+  schemaVersion: 1;                   // internal runtime artifact schema, not public API/config version
   id: string;                          // capability handle
   runId: string;                       // run scope
   filter: RunSubscriptionFilter;
@@ -422,6 +451,10 @@ Contract rules:
 - Normalized event `data` scrubbing and `includeData` shaping follow the same rules and the same enum
   (`none` | `summary` | `full-bounded`) as the attached stream path; the detached path never exposes
   raw child host events and never introduces a second `includeData` value.
+- `RunSubscription.schemaVersion` is persisted in `<subscriptionId>.json` and versioned separately
+  from runtime `apiVersion` and `.workflow/config.yaml` schema compatibility. V1 readers should
+  reject unknown future subscription artifact versions with a clear artifact-schema error rather
+  than silently corrupting cursor state.
 - The wake artifact carries only `RunSubscriptionWakeSignal` (a pointer), never event bodies — the
   host reads events through the poll tool, keeping the wake file tiny.
 - Cursors are opaque to clients; only the kit interprets them. Delivery resumes from
@@ -477,6 +510,7 @@ three observe the same wake artifact.
 | Burst of events | Coalesced into at most one wake per `throttleMs`; the following poll returns the batch. |
 | Subscriber never returns (orphan) | Subscription is cleaned up on run completion / TTL; `unsubscribe` is idempotent and safe to call late. |
 | Unknown / closed `subscriptionId` | Poll/unsubscribe return a clear, structured error via the existing error envelope; no partial state is created. |
+| Config is missing or incompatible for `runId` resolution | Subscribe/status-style resolution by `runId` fails closed with config compatibility diagnostics and `next` actions pointing to `workflow_config_status` / `workflow_config_upgrade`. Artifact-local poll/unsubscribe by explicit `runPath` may continue only where existing run-read fallback semantics can identify the run artifact without compatible config. |
 | Poll after terminal | Returns `terminal: true`, `committedCursor` == `nextCursor`, and an empty `events` tail; safe and idempotent. |
 
 ## Reuse and the "no change" boundary
@@ -486,6 +520,9 @@ This capability is parallel and additive. Explicitly unchanged:
 - `workflow_run_stream` (attached, long-lived, progress-token keyed) — behavior unchanged.
 - `notifications/progress` and `notifications/workflow_event` — payloads and semantics unchanged.
 - `watch_run_start` / `watch_run_poll` / `watch_run_stop` — behavior unchanged.
+- `workflow_runtime_info`, `workflow_config_status`, and `workflow_config_upgrade` — remain the
+  runtime/config compatibility surfaces; subscription tools consume their policy rather than
+  redefining version behavior.
 
 Explicitly reused, not reinvented:
 
@@ -502,6 +539,8 @@ Explicitly reused, not reinvented:
   same journal, without a new schema.
 - Surface active-subscription count and last-wake timestamps in the run summary/inspect output so
   operators can see detached subscribers.
+- Surface `detachedRunSubscriptions: true` in project inspection capabilities when the runtime can
+  create and poll subscription artifacts.
 - Record wake coalescing counts (wakes fired vs events delivered) to make throttle behavior
   observable.
 
@@ -524,9 +563,20 @@ Verification gate when implemented: `pnpm check` (Biome lint + typecheck + Vites
   append helper paths so every journal writer wakes subscribers. Reuse the existing journal /
   `artifactStore` test patterns.
 - Contract — schema/round-trip tests for the new tool inputs/outputs and the subscription record;
-  assert returned events match the existing `workflow_event` shape (no second schema).
+  assert returned events match the existing `workflow_event` shape (no second schema); assert
+  `schemaVersion: 1` is required for subscription records and unknown future schema versions fail
+  with an artifact-schema diagnostic.
+- Compatibility — cover current `"0.6.0"` configs, legacy numeric `version: 1`, unsupported-old,
+  unsupported-new, and missing-version configs. Assert subscribe-by-`runId` follows the config
+  compatibility classifier and points blocked users at `workflow_config_status` /
+  `workflow_config_upgrade`; assert explicit `runPath` poll/unsubscribe works only for the
+  artifact-local fallback cases already supported by run readers.
 - Regression — assert `workflow_run_stream`, the `notifications/*` paths, and `watch_run_*` are
   unchanged.
+- Tool surface — update CLI/MCP surface tests so `workflow_runtime_info`,
+  `workflow_config_status`, `workflow_config_upgrade`, `workflow_run_subscribe`,
+  `workflow_run_subscription_poll`, and `workflow_run_unsubscribe` remain discoverable together,
+  and project inspection advertises `detachedRunSubscriptions`.
 - Manual — subscribe to a disposable live run, observe the wake artifact mtime change as events
   append, poll to retrieve them, and confirm terminal on run completion. Also subscribe to an
   already-terminal dry-run and confirm `terminal: true` is returned immediately.
@@ -555,6 +605,12 @@ unless a detailed technical story spec proves they need adjustment:
   dirty checks, consistent with existing run-artifact retention.
 - A5 — The event writer owns wake evaluation for its own append. A shared notifier is called from
   all append paths instead of depending on a long-lived MCP tool after the original request returns.
+- A6 — Runtime `apiVersion` remains `"1"` for this feature; no public event payload or envelope
+  version changes are required.
+- A7 — `CURRENT_CONFIG_SCHEMA_VERSION` remains `0.6.0` unless implementation adds subscription
+  settings to `.workflow/config.yaml`.
+- A8 — Subscription artifact `schemaVersion: 1` is the migration boundary for files under
+  `subscriptions/`, separate from package semver, public API version, and config schema semver.
 
 ## Inputs for delivery tracker / story briefs
 
@@ -580,4 +636,6 @@ tracker stories are created by this document.)
   path. Sequence foundation before pilot before rollout.
 - Validation expectations to inherit — the at-least-once + replay-on-reconnect + terminal-wake tests
   in "Testing strategy", run-ref lookup tests, append-path wake coverage, and the regression
-  assertion that existing streaming/poll tools are unchanged.
+  assertion that existing streaming/poll tools are unchanged. Also inherit the version-aware cases:
+  current/legacy/unsupported config compatibility, `schemaVersion: 1` record validation, and
+  `workflow_project_inspect.capabilities.detachedRunSubscriptions` discovery.

@@ -267,7 +267,7 @@ observability/reporting and packaging stabilization.
 | Tracker validation and migration | TRK-1, TRK-2, TRK-3, TRK-4 | [Architecture and domains](./technical-solution/01-architecture-and-domains.md), [Data contracts](./technical-solution/03-data-contracts.md) |
 | Story/track runtime policies | RUN-1, RUN-2, RUN-3, RUN-4, RUN-5, RUN-6 | [Runtime flows](./technical-solution/02-runtime-flows.md), [Delivery inputs](./technical-solution/06-delivery-inputs.md) |
 | Streaming, abort, analyzer, and reports | OBS-1, OBS-2, OBS-3, OBS-4, OBS-5, OBS-6, OBS-7, FUT-1, FUT-2 | [Runtime flows](./technical-solution/02-runtime-flows.md), [AI/operations](./technical-solution/04-ai-observability-operations.md) |
-| Detached realtime subscriptions | OBS-1, OBS-5, OBS-7, FUT-2 | [API surface](./technical-solution/05-api-surface.md), [Detached realtime event subscription](./technical-solution/07-detached-realtime-subscription.md) |
+| Detached realtime subscriptions | OBS-1, OBS-5, OBS-7, FUT-2 | [API surface](./technical-solution/05-api-surface.md), [Detached realtime event subscription](./technical-solution/07-detached-realtime-subscription.md), [Runtime and config versioning](./runtime-versioning-design.md) |
 | Provider-neutral driver and GitHub evidence | HC-1, HC-2, HC-3, HC-4 | [Architecture and domains](./technical-solution/01-architecture-and-domains.md), [Data contracts](./technical-solution/03-data-contracts.md) |
 
 Deep dive: [Delivery inputs](./technical-solution/06-delivery-inputs.md).
