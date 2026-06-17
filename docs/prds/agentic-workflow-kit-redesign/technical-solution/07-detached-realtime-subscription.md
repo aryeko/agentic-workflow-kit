@@ -60,16 +60,17 @@ Each requirement is observable and testable.
 - R1 — A subscriber can register a subscription that **outlives the registering tool call**. After
   the call returns, the subscription remains active and continues to accrue deliverable events.
 - R2 — Registration is **non-blocking**: `workflow_run_subscribe` returns immediately with a
-  subscription handle, an initial cursor, the wake-artifact path, a bounded replay tail, and
-  host-adapter hints. It never blocks awaiting future events.
+  subscription handle, the committed and next cursors, the wake-artifact path, a bounded replay tail,
+  and host-adapter hints. It never blocks awaiting future events.
 - R3 — The kit emits a **wake signal** the host can observe with its existing mechanisms
   (filesystem watch, mtime poll, or OS signal) whenever new matching events exist past the cursor,
   or a configured wake condition fires.
 - R4 — A subscriber can **pull deliverable events** for a subscription by handle; the kit returns
-  the filtered, ordered batch since the stored cursor and advances the cursor.
-- R5 — Delivery is **at-least-once** with **replay-on-reconnect**: after any gap (turn yielded,
-  process restart), the next pull resumes from the last stored cursor with no lost events.
-- R6 — Events are delivered in **journal-append order**; the cursor is monotonic.
+  the filtered, ordered batch after the committed cursor and a `nextCursor` for the client to ack.
+- R5 — Delivery is **at-least-once** with **replay-on-reconnect**, enforced by a two-phase cursor:
+  the committed cursor advances only on ack, so after any gap (turn yielded, process restart, or an
+  unacked batch) the next pull re-delivers from the last committed cursor with no lost events.
+- R6 — Events are delivered in **journal-append order**; the committed cursor is monotonic.
 - R7 — Subscriptions reach a **terminal** state on run abort/block/complete: a terminal event, a
   `terminal` flag on pull, and a final wake. Terminal is idempotent and observable.
 - R8 — Filters (`topics`, `minLevel`, `storyIds`, `includeData`) and `throttleMs` are **stored
@@ -126,18 +127,17 @@ sequenceDiagram
   Agent->>Tool: "workflow_run_subscribe(runId, filters, wakeOn)"
   Tool->>Reg: "Create subscription record + initial cursor"
   Tool->>Journal: "Read bounded replay tail"
-  Tool-->>Agent: "subscriptionId, cursor, wakePath, replay tail, host hints"
+  Tool-->>Agent: "subscriptionId, committedCursor, nextCursor, wakePath, replay tail, host hints"
   Agent->>Host: "Yield turn; bind wake to wakePath"
   Runner->>Journal: "Append normalized event"
-  Journal-->>Tool: "New row past cursor"
+  Journal-->>Tool: "New row past committed cursor"
   Tool->>Wake: "Touch wake artifact (coalesced by throttleMs)"
   Wake-->>Host: "Filesystem change / signal"
   Host->>Agent: "Resume idle turn"
-  Agent->>Tool: "workflow_run_subscription_poll(subscriptionId)"
-  Tool->>Reg: "Read stored cursor + filters"
-  Tool->>Journal: "Read + filter events since cursor"
-  Tool->>Reg: "Advance stored cursor"
-  Tool-->>Agent: "Ordered filtered batch + terminal flag"
+  Agent->>Tool: "workflow_run_subscription_poll(subscriptionId, ackCursor=prior nextCursor)"
+  Tool->>Reg: "Commit ackCursor; read filters"
+  Tool->>Journal: "Read + filter events after committed cursor"
+  Tool-->>Agent: "Ordered batch + nextCursor + terminal flag"
   Note over Runner,Journal: "On run abort/block/complete -> terminal event"
   Journal-->>Tool: "Terminal row"
   Tool->>Wake: "Final wake (terminal)"
@@ -192,16 +192,22 @@ Input:
     "throttleMs": 2000,
     "wakeOn": {
       "minLevel": "warning",
-      "types": ["merge", "run-blocked", "child-failed", "terminal"]
+      "topics": ["merge", "pr"],
+      "types": ["run-blocked", "run-aborted", "run-complete", "child-error", "child-startup-failed"]
     }
   }
 }
 ```
 
-`wakeOn` selects which events touch the wake artifact. It defaults to the subscription filter (every
-deliverable event wakes); narrowing it lets a host sleep through routine progress and wake only on
-notable transitions. `throttleMs` coalesces wake touches so bursts produce at most one wake per
-window.
+`wakeOn` selects which events touch the wake artifact, matching on any of `minLevel`, `topics`
+(`RunEvent.topic` values, e.g. `merge`/`pr`), or `types` (concrete `RunEvent.type` names, e.g.
+`run-blocked`, `child-error`). It defaults to the subscription filter (every deliverable event
+wakes); narrowing it lets a host sleep through routine progress and wake only on notable
+transitions. Use `topics` for topic-level matches such as `merge` and `pr` — `merge`/`pr` are
+topics, not event types, so listing them under `types` would never match. **Terminal transitions
+(`run-complete`, `run-aborted`, `run-blocked`) always fire a final wake regardless of `wakeOn`**, so
+a host can never sleep through the end of a run. `throttleMs` coalesces wake touches so bursts
+produce at most one wake per window.
 
 Output:
 
@@ -212,7 +218,8 @@ Output:
   "result": {
     "runId": "2026-06-13T15-48-02-107Z",
     "subscriptionId": "sub_8f2c...",
-    "cursor": "events.ndjson:0",
+    "committedCursor": "events.ndjson:0",
+    "nextCursor": "events.ndjson:20",
     "wakeArtifact": "subscriptions/sub_8f2c....wake",
     "subscriptionArtifact": "subscriptions/sub_8f2c....json",
     "replay": [ /* bounded tail of normalized events, workflow_event shape */ ],
@@ -228,16 +235,26 @@ Output:
 
 ### `workflow_run_subscription_poll`
 
-Return deliverable events for a subscription since its stored cursor, advance the cursor, and report
-terminal state. Distinct from `watch_run_poll` because the cursor and filters are **server-side and
-keyed to `subscriptionId`**, where `watch_run_poll` keeps the cursor client-side.
+Return deliverable events for a subscription and report terminal state. The cursor and filters are
+**server-side and keyed to `subscriptionId`** (distinct from `watch_run_poll`, which keeps the
+cursor client-side), but the server **commits the cursor only on acknowledgement**, never simply
+because a batch was returned.
 
-Input:
+The cursor is **two-phase** to preserve at-least-once delivery (R5). Each poll returns the batch
+since the last *committed* cursor plus a `nextCursor` marking the end of that batch. The server
+commits `nextCursor` only when the client passes it back as `ackCursor` on a subsequent poll
+(acknowledging it durably processed that batch). If the host crashes or the transport fails after
+the server returns a batch but before the client acks, the next poll re-delivers from the last
+committed cursor — no events are lost. Clients dedupe on `RunEvent.id`. This makes the detached path
+at least as safe as `watch_run_poll`'s client-owned cursor.
+
+Input (omit `ackCursor` on the first poll):
 
 ```json
 {
   "repo": "/repo",
   "subscriptionId": "sub_8f2c...",
+  "ackCursor": "events.ndjson:120",
   "max": 200
 }
 ```
@@ -250,8 +267,9 @@ Output:
   "operation": "workflow_run_subscription_poll",
   "result": {
     "subscriptionId": "sub_8f2c...",
-    "events": [ /* ordered, filtered events since prior cursor, workflow_event shape */ ],
-    "cursor": "events.ndjson:184",
+    "events": [ /* ordered, filtered events after the committed cursor, workflow_event shape */ ],
+    "committedCursor": "events.ndjson:120",
+    "nextCursor": "events.ndjson:184",
     "terminal": true,
     "status": "complete",
     "eventsDelivered": 184
@@ -259,8 +277,10 @@ Output:
 }
 ```
 
-A poll with no new events returns an empty `events` array and the unchanged cursor; this is the
-expected idle case and is cheap.
+`committedCursor` echoes the position the server advanced to from this call's `ackCursor`;
+`nextCursor` is the position the client should ack on its next poll once it has durably processed the
+returned batch. A poll with no new events returns an empty `events` array with `nextCursor` equal to
+`committedCursor`; this is the expected idle case and is cheap.
 
 ### `workflow_run_unsubscribe`
 
@@ -306,13 +326,13 @@ interface RunSubscriptionFilter {
   topics: RunEvent["topic"][];
   minLevel: RunEvent["level"];
   storyIds: string[];
-  includeData: "none" | "summary" | "full";
+  includeData: "none" | "summary" | "full-bounded"; // same enum as the attached stream path
 }
 
 interface RunSubscriptionWakePolicy {
   minLevel?: RunEvent["level"];
-  topics?: RunEvent["topic"][];
-  types?: string[];        // event types or coarse categories (e.g. "terminal")
+  topics?: RunEvent["topic"][];   // e.g. "merge", "pr"
+  types?: string[];               // concrete RunEvent.type names, e.g. "run-blocked", "child-error"
 }
 
 interface RunSubscription {
@@ -321,7 +341,7 @@ interface RunSubscription {
   filter: RunSubscriptionFilter;
   wakeOn: RunSubscriptionWakePolicy;   // defaults to filter when omitted
   throttleMs: number;
-  cursor: string;                      // offset into events.ndjson
+  committedCursor: string;             // last acked offset into events.ndjson (delivery resumes here)
   createdAt: string;
   updatedAt: string;
   terminal: boolean;
@@ -336,10 +356,17 @@ interface RunSubscriptionWakeSignal {
   cursorAtWake: string;
 }
 
+interface RunSubscriptionPollInput {
+  subscriptionId: string;
+  ackCursor?: string;      // nextCursor from the prior poll; commits delivery up to here. Omit on first poll.
+  max?: number;
+}
+
 interface RunSubscriptionPollResult {
   subscriptionId: string;
   events: RunEvent[];      // filtered + scrubbed via includeData, same rules as the stream path
-  cursor: string;
+  committedCursor: string; // position advanced to from this call's ackCursor
+  nextCursor: string;      // end of the returned batch; ack this on the next poll once processed
   terminal: boolean;
   status: RunSubscription["status"];
   eventsDelivered: number;
@@ -348,13 +375,15 @@ interface RunSubscriptionPollResult {
 
 Contract rules:
 
-- `RunEvent.data` scrubbing and `includeData` shaping follow the same rules as the attached stream
-  path; the detached path never exposes raw child host events.
+- `RunEvent.data` scrubbing and `includeData` shaping follow the same rules and the same enum
+  (`none` | `summary` | `full-bounded`) as the attached stream path; the detached path never exposes
+  raw child host events and never introduces a second `includeData` value.
 - The wake artifact carries only `RunSubscriptionWakeSignal` (a pointer), never event bodies — the
   host reads events through the poll tool, keeping the wake file tiny.
-- `cursor` is opaque to clients; only the kit interprets it. Clients pass nothing back for the
-  normal case (the stored cursor is authoritative); a client-supplied cursor override is a
-  re-read/debug affordance, not the default.
+- Cursors are opaque to clients; only the kit interprets them. Delivery resumes from
+  `committedCursor`, which advances **only** when the client acks a prior `nextCursor` (two-phase),
+  preserving at-least-once across a crash between batch return and processing. Clients dedupe on
+  `RunEvent.id`.
 
 ## Host-integration contract
 
@@ -364,9 +393,9 @@ This is the boundary the kit guarantees and the host must complete.
 
 | Guarantee | Behavior |
 | --- | --- |
-| Ordering | Events delivered in `events.ndjson` append order; cursor is monotonic. |
-| Delivery | At-least-once. After any gap the next poll resumes from the stored cursor. Clients must be idempotent on `RunEvent.id`. At-most-once is not offered. |
-| Replay on reconnect | `subscribe` returns a bounded replay tail; `poll` always resumes from the stored cursor regardless of how long the subscriber was away. |
+| Ordering | Events delivered in `events.ndjson` append order; the committed cursor is monotonic. |
+| Delivery | At-least-once via a two-phase cursor: the server advances `committedCursor` only when the client acks the prior `nextCursor`, so a crash between batch return and processing re-delivers rather than skips. Clients must be idempotent on `RunEvent.id`. At-most-once is not offered. |
+| Replay on reconnect | `subscribe` returns a bounded replay tail; `poll` always resumes from `committedCursor` regardless of how long the subscriber was away or whether the last batch was acked. |
 | Terminal signaling | On abort/block/complete: a terminal event in the journal, `terminal: true` on poll, and a final wake with `reason: "terminal"`. |
 | Backpressure / throttle | `throttleMs` coalesces wake touches; `poll` batches and honors `max`. A wake means "there may be work", not "exactly one event". |
 | Scoping / auth | A subscription is scoped to one run; `subscriptionId` is the capability handle for poll and unsubscribe. |
@@ -378,12 +407,15 @@ The host binds its own wake mechanism to the wake artifact. A reference adapter 
 
 ```text
 1. call workflow_run_subscribe(runId, filters, wakeOn) -> { subscriptionId, wakeArtifact, ... }
-2. process the returned replay tail, then yield the agent's turn
+2. process the returned replay tail; track its nextCursor as the pending ack; yield the agent's turn
 3. watch wakeArtifact (fs.watch / mtime poll / OS signal); keep a long fallback timer for liveness
-4. on wake: resume the agent, call workflow_run_subscription_poll(subscriptionId)
-5. feed the returned events to the agent; if terminal -> stop watching + workflow_run_unsubscribe
-6. otherwise yield again and return to step 3
+4. on wake: resume the agent; call workflow_run_subscription_poll(subscriptionId, ackCursor=pending)
+5. durably process the returned events, then set pending = nextCursor from the result
+6. if terminal -> stop watching + workflow_run_unsubscribe; else yield again and return to step 3
 ```
+
+The ack in step 4 commits the previous batch; if the host crashed before step 5 last time, the same
+events are re-delivered (dedupe on `RunEvent.id`).
 
 The kit does not assume any specific host mechanism. fs.watch is push-quality where available;
 mtime poll is the portable fallback; an OS signal is available where the host can register one. All
@@ -394,12 +426,12 @@ three observe the same wake artifact.
 | Situation | Behavior |
 | --- | --- |
 | Run completes / blocks / aborts | Terminal journal event -> subscription `terminal: true`, `status` set accordingly, final wake (`reason: "terminal"`); host unsubscribes. |
-| Kit process restart | Subscription record + cursor are durable files; on next poll, delivery resumes from the stored cursor. The wake artifact is reconstructed lazily. |
+| Kit process restart | Subscription record + `committedCursor` are durable files; on next poll, delivery resumes from `committedCursor` (an unacked batch is simply re-delivered). The wake artifact is reconstructed lazily. |
 | No new matching events while run is alive | No wake fires (avoids busy-wake). The host's long fallback timer covers liveness. |
 | Burst of events | Coalesced into at most one wake per `throttleMs`; the following poll returns the batch. |
 | Subscriber never returns (orphan) | Subscription is cleaned up on run completion / TTL; `unsubscribe` is idempotent and safe to call late. |
 | Unknown / closed `subscriptionId` | Poll/unsubscribe return a clear, structured error via the existing error envelope; no partial state is created. |
-| Poll after terminal | Returns the final cursor, `terminal: true`, and an empty `events` tail; safe and idempotent. |
+| Poll after terminal | Returns `terminal: true`, `committedCursor` == `nextCursor`, and an empty `events` tail; safe and idempotent. |
 
 ## Reuse and the "no change" boundary
 
@@ -431,13 +463,16 @@ Explicitly reused, not reinvented:
 Verification gate when implemented: `pnpm check` (Biome lint + typecheck + Vitest), per
 [AGENTS.md](../../../../AGENTS.md).
 
-- Unit — subscription registry create/poll/unsubscribe; cursor advance and monotonicity; filter
-  application (`topics`, `minLevel`, `storyIds`, `includeData`); terminal marking; wake touch on
-  matching event; `throttleMs` coalescing; `wakeOn` narrowing vs the delivery filter.
+- Unit — subscription registry create/poll/unsubscribe; two-phase cursor (committed advances only on
+  ack) and monotonicity; an unacked batch re-delivers on the next poll; filter application (`topics`,
+  `minLevel`, `storyIds`, `includeData` incl. `full-bounded`); terminal marking; wake touch on
+  matching event; `throttleMs` coalescing; `wakeOn` narrowing vs the delivery filter, incl.
+  topic-level (`merge`/`pr`) vs type-level matches.
 - Integration — drive a fake/in-memory journal: subscribe, append events, assert the wake artifact
-  is touched, poll returns the ordered filtered batch, cursor advances, and the terminal flow fires
-  a final wake and `terminal: true`. Assert at-least-once replay after a simulated gap/restart.
-  Reuse the existing journal / `artifactStore` test patterns.
+  is touched, poll returns the ordered filtered batch, the committed cursor advances only after ack,
+  and the terminal flow fires a final wake and `terminal: true`. Assert at-least-once replay after a
+  simulated gap/restart with an unacked batch. Reuse the existing journal / `artifactStore` test
+  patterns.
 - Contract — schema/round-trip tests for the new tool inputs/outputs and the subscription record;
   assert returned events match the existing `workflow_event` shape (no second schema).
 - Regression — assert `workflow_run_stream`, the `notifications/*` paths, and `watch_run_*` are
