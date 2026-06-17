@@ -56,6 +56,8 @@ describe('current-state documentation', () => {
     expect(readme).toContain('workflow_runtime_info');
     expect(readme).toContain('workflow_config_status');
     expect(readme).toContain('workflow_config_upgrade');
+    expect(readme).toContain('subscription-created');
+    expect(readme).toContain('wake/delivery metrics');
   });
 
   it('keeps architecture docs aligned with detached subscription runtime tools', () => {
@@ -66,6 +68,8 @@ describe('current-state documentation', () => {
     expect(architecture).toContain('workflow_run_unsubscribe');
     expect(architecture).toContain('subscriptions/<subscriptionId>.json');
     expect(architecture).toContain('detachedRunSubscriptions');
+    expect(architecture).toContain('subscription-created');
+    expect(architecture).toContain('last wake time');
   });
 
   it('keeps getting started and contributor docs aligned with published status', () => {

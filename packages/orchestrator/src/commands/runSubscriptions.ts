@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readdir, readFile, stat, unlink, utimes, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readdir, readFile, stat, unlink, utimes, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   appendRunEvent,
@@ -25,6 +25,7 @@ const MAX_ACTIVE_SUBSCRIPTIONS = 20;
 const IDLE_SUBSCRIPTION_TTL_MS = 24 * 60 * 60 * 1000;
 
 const TERMINAL_STATUSES = new Set(['complete', 'blocked', 'aborted', 'supervision_lost', 'dry-run']);
+const SUBSCRIPTION_AUDIT_EVENTS = new Set(['subscription-created', 'subscription-woken', 'subscription-closed']);
 const LEVEL_RANK: Record<WorkflowRunEventLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
 
 export interface RunSubscriptionFilter {
@@ -102,6 +103,29 @@ export interface WorkflowRunSubscriptionPollResult {
   eventsDelivered: number;
 }
 
+export interface RunSubscriptionMetrics {
+  wakeCount: number;
+  matchedEventCount: number;
+  coalescedEventCount: number;
+  deliveredEventCount: number;
+  lastWakeCursor: string | null;
+  lastObservedCursor: string | null;
+}
+
+export interface RunSubscriptionInspectSummary {
+  activeSubscriptions: number;
+  totalSubscriptions: number;
+  lastWakeAt: string | null;
+  items: Array<{
+    subscriptionId: string;
+    status: RunSubscriptionRecord['status'];
+    terminal: boolean;
+    committedCursor: string;
+    lastWakeAt: string | null;
+    metrics: RunSubscriptionMetrics;
+  }>;
+}
+
 interface RunSubscriptionRecord {
   schemaVersion: 1;
   id: string;
@@ -115,6 +139,7 @@ interface RunSubscriptionRecord {
   lastWakeAt: string | null;
   terminal: boolean;
   status: 'active' | 'complete' | 'blocked' | 'aborted' | 'supervision_lost' | 'dry-run' | 'closed';
+  metrics: RunSubscriptionMetrics;
 }
 
 export async function runSubscribeHandler(input: WorkflowRunSubscribeInput): Promise<WorkflowRunSubscribeResult> {
@@ -136,7 +161,6 @@ export async function runSubscribeHandler(input: WorkflowRunSubscribeInput): Pro
   const filter = normalizeFilter(subscription);
   const subscriptionId = `sub_${randomUUID()}`;
   const cursor = formatCursor(0);
-  const nextCursor = formatCursor(events.length);
   const record: RunSubscriptionRecord = {
     schemaVersion: SUBSCRIPTION_SCHEMA_VERSION,
     id: subscriptionId,
@@ -150,9 +174,31 @@ export async function runSubscribeHandler(input: WorkflowRunSubscribeInput): Pro
     lastWakeAt: null,
     terminal: status !== null,
     status: status ?? 'active',
+    metrics: initialMetrics(),
   };
   await writeSubscriptionRecord(runDirectory, record);
-  await writeWakeSignal(runDirectory, record, status !== null ? 'terminal' : 'events-available', nextCursor, now);
+  await appendSubscriptionAuditEvent(
+    runDirectory,
+    'subscription-created',
+    {
+      subscriptionId,
+      runId,
+      status: record.status,
+      committedCursor: cursor,
+    },
+    now,
+  );
+  const initialWakeCursor = formatCursor(events.length + 1);
+  const wokenRecord = await wakeSubscription(
+    runDirectory,
+    record,
+    status !== null ? 'terminal' : 'events-available',
+    initialWakeCursor,
+    now,
+    { matchedEvents: 0, coalescedEvents: 0 },
+    { recordLastWakeAt: status !== null },
+  );
+  const nextCursor = formatCursor(events.length + 2);
 
   return {
     runId,
@@ -163,7 +209,7 @@ export async function runSubscribeHandler(input: WorkflowRunSubscribeInput): Pro
     subscriptionArtifact: subscriptionArtifact(subscriptionId),
     replay: replayEvents(events, filter, subscription.replay?.lastEvents),
     terminal: status !== null,
-    status: record.status,
+    status: wokenRecord.status,
     hostAdapter: {
       watch: wakeArtifact(subscriptionId),
       poll: { mcpTool: 'workflow_run_subscription_poll', args: { runId, subscriptionId } },
@@ -190,16 +236,26 @@ export async function runSubscriptionPollHandler(
 
   const state = await readJsonIfExists(path.join(runDirectory, 'state.json'));
   const terminal = terminalStatus(state);
-  record = {
+  const nextRecord = {
     ...record,
     committedCursor: formatCursor(nextCommittedIndex),
     updatedAt: now,
     ...(terminal !== null ? { terminal: true, status: terminal } : {}),
   };
+  const max = positiveInteger(input.max, DEFAULT_MAX_EVENTS);
+  const page = subscriptionEventPage(events, nextCommittedIndex, nextRecord.filter, max);
+  record = {
+    ...nextRecord,
+    metrics: {
+      ...nextRecord.metrics,
+      deliveredEventCount:
+        nextCommittedIndex > committedIndex
+          ? nextRecord.metrics.deliveredEventCount + page.events.length
+          : nextRecord.metrics.deliveredEventCount,
+    },
+  };
   await writeSubscriptionRecord(runDirectory, record);
 
-  const max = positiveInteger(input.max, DEFAULT_MAX_EVENTS);
-  const page = subscriptionEventPage(events, nextCommittedIndex, record.filter, max);
   return {
     subscriptionId: record.id,
     events: page.events,
@@ -217,6 +273,7 @@ export async function runUnsubscribeHandler(
   const runDirectory = await resolveRunDirectory(input);
   const now = input.now ?? new Date().toISOString();
   const record = await readSubscriptionRecord(runDirectory, input.subscriptionId);
+  const alreadyClosed = record.status === 'closed';
   await writeSubscriptionRecord(runDirectory, {
     ...record,
     terminal: true,
@@ -224,6 +281,19 @@ export async function runUnsubscribeHandler(
     updatedAt: now,
   });
   await removeIfExists(path.join(runDirectory, wakeArtifact(input.subscriptionId)));
+  if (!alreadyClosed) {
+    await appendSubscriptionAuditEvent(
+      runDirectory,
+      'subscription-closed',
+      {
+        subscriptionId: record.id,
+        runId: record.runId,
+        reason: 'unsubscribe',
+        status: 'closed',
+      },
+      now,
+    );
+  }
   return { subscriptionId: input.subscriptionId, closed: true };
 }
 
@@ -240,22 +310,39 @@ export async function notifyRunSubscriptions(runPath: string, options: { now?: s
   for (const record of records) {
     if (record.status !== 'active') continue;
     const updated = terminal !== null ? { ...record, terminal: true, status: terminal } : record;
-    const shouldWake =
-      terminal !== null ||
-      matchingEventsAfterCommitted(events, updated).some((event) => shouldWakeForEvent(updated, event));
+    const observedIndex = parseCursor(
+      record.metrics.lastObservedCursor ?? record.committedCursor,
+      'lastObservedCursor',
+    );
+    const newMatchingEvents = matchingEventsAfterIndex(events, observedIndex, updated);
+    const metrics = {
+      ...updated.metrics,
+      matchedEventCount: updated.metrics.matchedEventCount + newMatchingEvents.length,
+      ...(newMatchingEvents.length > 0 ? { lastObservedCursor: cursorAtWake } : {}),
+    };
+    const shouldWake = terminal !== null || newMatchingEvents.some((event) => shouldWakeForEvent(updated, event));
     if (!shouldWake) {
-      if (updated !== record) await writeSubscriptionRecord(runDirectory, { ...updated, updatedAt: now });
+      if (updated !== record || newMatchingEvents.length > 0) {
+        await writeSubscriptionRecord(runDirectory, { ...updated, metrics, updatedAt: now });
+      }
       continue;
     }
     const reason = terminal !== null ? 'terminal' : 'events-available';
-    if (reason !== 'terminal' && !canWake(updated, now)) continue;
-    const woken = {
-      ...updated,
-      lastWakeAt: now,
-      updatedAt: now,
-    };
-    await writeSubscriptionRecord(runDirectory, woken);
-    await writeWakeSignal(runDirectory, woken, reason, cursorAtWake, now);
+    if (reason !== 'terminal' && !canWake(updated, now)) {
+      await writeSubscriptionRecord(runDirectory, {
+        ...updated,
+        metrics: {
+          ...metrics,
+          coalescedEventCount: metrics.coalescedEventCount + newMatchingEvents.length,
+        },
+        updatedAt: now,
+      });
+      continue;
+    }
+    await wakeSubscription(runDirectory, { ...updated, metrics }, reason, cursorAtWake, now, {
+      matchedEvents: newMatchingEvents.length,
+      coalescedEvents: 0,
+    });
   }
 }
 
@@ -266,6 +353,31 @@ export async function appendRunEventAndNotify(
 ): Promise<void> {
   await appendRunEvent(runPath, type, fields);
   await notifyRunSubscriptions(runPath);
+}
+
+export async function inspectRunSubscriptions(runPath: string): Promise<RunSubscriptionInspectSummary> {
+  const runDirectory = path.resolve(runPath);
+  const records = await readSubscriptionRecords(runDirectory);
+  const items = records.map((record) => ({
+    subscriptionId: record.id,
+    status: record.status,
+    terminal: record.terminal,
+    committedCursor: record.committedCursor,
+    lastWakeAt: record.lastWakeAt,
+    metrics: record.metrics,
+  }));
+  const lastWakeAt =
+    items
+      .map((item) => item.lastWakeAt)
+      .filter((value): value is string => value !== null)
+      .sort()
+      .at(-1) ?? null;
+  return {
+    activeSubscriptions: records.filter((record) => record.status === 'active' && !record.terminal).length,
+    totalSubscriptions: records.length,
+    lastWakeAt,
+    items,
+  };
 }
 
 function replayEvents(
@@ -282,11 +394,15 @@ function replayEvents(
   );
 }
 
-function matchingEventsAfterCommitted(rawEvents: unknown[], record: RunSubscriptionRecord): NormalizedRunEvent[] {
-  const committed = parseCursor(record.committedCursor, 'committedCursor');
+function matchingEventsAfterIndex(
+  rawEvents: unknown[],
+  startIndex: number,
+  record: RunSubscriptionRecord,
+): NormalizedRunEvent[] {
   return rawEvents
-    .slice(committed)
-    .map((event, index) => normalizeRunEvent(event, committed + index))
+    .slice(startIndex)
+    .map((event, index) => normalizeRunEvent(event, startIndex + index))
+    .filter((event) => !SUBSCRIPTION_AUDIT_EVENTS.has(event.type))
     .filter((event) => eventMatchesFilter(event, record.filter))
     .map((event) => boundEventData(event, record.filter.includeData));
 }
@@ -341,6 +457,17 @@ async function cleanupSubscriptions(runDirectory: string, now: string): Promise<
       if (record.status !== 'active' || record.terminal) return;
       const idleAt = Date.parse(record.lastWakeAt ?? record.updatedAt ?? record.createdAt);
       if (Number.isFinite(idleAt) && nowMs - idleAt > IDLE_SUBSCRIPTION_TTL_MS) {
+        await appendSubscriptionAuditEvent(
+          runDirectory,
+          'subscription-closed',
+          {
+            subscriptionId: record.id,
+            runId: record.runId,
+            reason: 'idle-ttl',
+            status: 'closed',
+          },
+          now,
+        );
         await removeIfExists(path.join(runDirectory, subscriptionArtifact(record.id)));
         await removeIfExists(path.join(runDirectory, wakeArtifact(record.id)));
       }
@@ -376,7 +503,7 @@ async function readSubscriptionRecordFile(filePath: string): Promise<RunSubscrip
     throw new Error(`Unsupported subscription artifact schemaVersion ${String(parsed.schemaVersion)}`);
   }
   if (typeof parsed.id !== 'string') throw new Error(`Malformed subscription artifact ${filePath}: missing id`);
-  return parsed as unknown as RunSubscriptionRecord;
+  return { ...(parsed as unknown as RunSubscriptionRecord), metrics: normalizeMetrics(parsed.metrics) };
 }
 
 async function writeSubscriptionRecord(runDirectory: string, record: RunSubscriptionRecord): Promise<void> {
@@ -404,6 +531,80 @@ async function writeWakeSignal(
   );
   const mtime = new Date(Math.max(Date.parse(wokeAt), oldMtime + 1));
   await utimes(filePath, mtime, mtime);
+}
+
+async function wakeSubscription(
+  runDirectory: string,
+  record: RunSubscriptionRecord,
+  reason: 'events-available' | 'terminal',
+  cursorAtWake: string,
+  wokeAt: string,
+  details: { matchedEvents: number; coalescedEvents: number },
+  options: { recordLastWakeAt?: boolean } = {},
+): Promise<RunSubscriptionRecord> {
+  const woken = {
+    ...record,
+    lastWakeAt: options.recordLastWakeAt === false ? record.lastWakeAt : wokeAt,
+    updatedAt: wokeAt,
+    metrics: {
+      ...record.metrics,
+      wakeCount: record.metrics.wakeCount + 1,
+      lastWakeCursor: cursorAtWake,
+      lastObservedCursor: cursorAtWake,
+    },
+  };
+  await writeSubscriptionRecord(runDirectory, woken);
+  await writeWakeSignal(runDirectory, woken, reason, cursorAtWake, wokeAt);
+  await appendSubscriptionAuditEvent(
+    runDirectory,
+    'subscription-woken',
+    {
+      subscriptionId: record.id,
+      runId: record.runId,
+      reason,
+      cursorAtWake,
+      wakeCount: woken.metrics.wakeCount,
+      matchedEvents: details.matchedEvents,
+      coalescedEvents: details.coalescedEvents,
+    },
+    wokeAt,
+  );
+  return woken;
+}
+
+async function appendSubscriptionAuditEvent(
+  runDirectory: string,
+  type: 'subscription-created' | 'subscription-woken' | 'subscription-closed',
+  fields: Record<string, unknown>,
+  recordedAt: string,
+): Promise<void> {
+  await appendFile(
+    path.join(runDirectory, 'events.ndjson'),
+    `\n${JSON.stringify({ ...fields, type, recordedAt, eventAt: recordedAt })}\n`,
+  );
+}
+
+function initialMetrics(): RunSubscriptionMetrics {
+  return {
+    wakeCount: 0,
+    matchedEventCount: 0,
+    coalescedEventCount: 0,
+    deliveredEventCount: 0,
+    lastWakeCursor: null,
+    lastObservedCursor: null,
+  };
+}
+
+function normalizeMetrics(value: unknown): RunSubscriptionMetrics {
+  const input = isObject(value) ? value : {};
+  return {
+    wakeCount: readOptionalNumber(input.wakeCount) ?? 0,
+    matchedEventCount: readOptionalNumber(input.matchedEventCount) ?? 0,
+    coalescedEventCount: readOptionalNumber(input.coalescedEventCount) ?? 0,
+    deliveredEventCount: readOptionalNumber(input.deliveredEventCount) ?? 0,
+    lastWakeCursor: readOptionalString(input.lastWakeCursor),
+    lastObservedCursor: readOptionalString(input.lastObservedCursor),
+  };
 }
 
 function normalizeFilter(input: RunSubscriptionInput): RunSubscriptionRecord['filter'] {
@@ -469,6 +670,10 @@ function parseCursor(cursor: string, name: string): number {
 
 function positiveInteger(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : fallback;
+}
+
+function readOptionalNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 function subscriptionArtifact(subscriptionId: string): string {

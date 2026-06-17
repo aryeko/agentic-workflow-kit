@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-
+import { runInspectHandler } from '../src/commands/handlers';
 import {
   notifyRunSubscriptions,
   runSubscribeHandler,
@@ -44,6 +44,14 @@ async function readWakeSignal(runPath: string, wakeArtifact: string): Promise<Re
   return JSON.parse(await readFile(path.join(runPath, wakeArtifact), 'utf8'));
 }
 
+async function readEvents(runPath: string): Promise<Array<Record<string, unknown>>> {
+  return (await readFile(path.join(runPath, 'events.ndjson'), 'utf8'))
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
+}
+
 describe('detached run subscriptions', () => {
   it('rejects missing run artifacts before creating subscription records', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'awk-subscriptions-missing-'));
@@ -64,7 +72,7 @@ describe('detached run subscriptions', () => {
     expect(result).toMatchObject({
       runId: 'run-1',
       committedCursor: 'events.ndjson:0',
-      nextCursor: 'events.ndjson:2',
+      nextCursor: 'events.ndjson:4',
       terminal: false,
       replay: [expect.objectContaining({ type: 'child-session-linked', topic: 'child', storyId: 'LK02' })],
       hostAdapter: {
@@ -83,6 +91,110 @@ describe('detached run subscriptions', () => {
       status: 'active',
       committedCursor: 'events.ndjson:0',
       filter: { topics: ['child'], includeData: 'summary' },
+      metrics: { wakeCount: 1, lastWakeCursor: 'events.ndjson:3' },
+    });
+  });
+
+  it('journals lifecycle events without self-wake recursion and tracks wake/delivery metrics', async () => {
+    const runPath = await createRun();
+
+    const subscribed = await runSubscribeHandler({
+      runPath,
+      now: '2026-06-17T10:00:00.000Z',
+      subscription: { topics: ['child'], replay: { lastEvents: 0 } },
+    });
+
+    expect((await readEvents(runPath)).map((event) => event.type)).toEqual([
+      'run-started',
+      'child-session-linked',
+      'subscription-created',
+      'subscription-woken',
+    ]);
+
+    await notifyRunSubscriptions(runPath, { now: '2026-06-17T10:00:01.000Z' });
+    expect((await readEvents(runPath)).filter((event) => event.type === 'subscription-woken')).toHaveLength(1);
+
+    await appendEvent(runPath, {
+      type: 'child-progress',
+      storyId: 'LK02',
+      message: 'Working',
+      recordedAt: '2026-06-17T10:00:02.000Z',
+    });
+    await notifyRunSubscriptions(runPath, { now: '2026-06-17T10:00:03.000Z' });
+
+    const polled = await runSubscriptionPollHandler({
+      runPath,
+      subscriptionId: subscribed.subscriptionId,
+      ackCursor: subscribed.nextCursor,
+      now: '2026-06-17T10:00:04.000Z',
+    });
+    await runUnsubscribeHandler({
+      runPath,
+      subscriptionId: subscribed.subscriptionId,
+      now: '2026-06-17T10:00:05.000Z',
+    });
+
+    expect(polled.events).toEqual([expect.objectContaining({ type: 'child-progress', storyId: 'LK02' })]);
+    expect((await readEvents(runPath)).map((event) => event.type)).toEqual([
+      'run-started',
+      'child-session-linked',
+      'subscription-created',
+      'subscription-woken',
+      'child-progress',
+      'subscription-woken',
+      'subscription-closed',
+    ]);
+    await expect(readSubscription(runPath, subscribed.subscriptionId)).resolves.toMatchObject({
+      status: 'closed',
+      metrics: {
+        wakeCount: 2,
+        matchedEventCount: 1,
+        coalescedEventCount: 0,
+        deliveredEventCount: 1,
+        lastWakeCursor: 'events.ndjson:5',
+        lastObservedCursor: 'events.ndjson:5',
+      },
+    });
+  });
+
+  it('surfaces compact detached subscription observability in run inspect output', async () => {
+    const runPath = await createRun();
+    const subscribed = await runSubscribeHandler({
+      runPath,
+      now: '2026-06-17T10:00:00.000Z',
+      subscription: { topics: ['child'], replay: { lastEvents: 0 } },
+    });
+    await appendEvent(runPath, {
+      type: 'child-progress',
+      storyId: 'LK02',
+      message: 'Working',
+      recordedAt: '2026-06-17T10:00:02.000Z',
+    });
+    await notifyRunSubscriptions(runPath, { now: '2026-06-17T10:00:03.000Z' });
+
+    await expect(runInspectHandler({ runPath })).resolves.toMatchObject({
+      runId: 'run-1',
+      subscriptions: {
+        activeSubscriptions: 1,
+        totalSubscriptions: 1,
+        lastWakeAt: '2026-06-17T10:00:03.000Z',
+        items: [
+          {
+            subscriptionId: subscribed.subscriptionId,
+            status: 'active',
+            terminal: false,
+            committedCursor: 'events.ndjson:0',
+            lastWakeAt: '2026-06-17T10:00:03.000Z',
+            metrics: {
+              wakeCount: 2,
+              matchedEventCount: 1,
+              coalescedEventCount: 0,
+              deliveredEventCount: 0,
+              lastWakeCursor: 'events.ndjson:5',
+            },
+          },
+        ],
+      },
     });
   });
 
@@ -109,7 +221,7 @@ describe('detached run subscriptions', () => {
 
     expect(first).toMatchObject({
       committedCursor: subscribed.nextCursor,
-      nextCursor: 'events.ndjson:3',
+      nextCursor: 'events.ndjson:6',
       terminal: false,
       events: [expect.objectContaining({ type: 'child-progress', message: 'Working' })],
     });
@@ -145,9 +257,9 @@ describe('detached run subscriptions', () => {
     });
 
     expect(firstPage.events.map((event) => event.message)).toEqual(['First', 'Second']);
-    expect(firstPage.nextCursor).toBe('events.ndjson:4');
+    expect(firstPage.nextCursor).toBe('events.ndjson:6');
     expect(secondPage.events.map((event) => event.message)).toEqual(['Third']);
-    expect(secondPage.nextCursor).toBe('events.ndjson:5');
+    expect(secondPage.nextCursor).toBe('events.ndjson:7');
   });
 
   it('rejects malformed cursors and unknown future subscription artifact versions', async () => {
@@ -188,7 +300,7 @@ describe('detached run subscriptions', () => {
     await appendEvent(runPath, { type: 'child-error', storyId: 'LK02', message: 'Child failed' });
     await notifyRunSubscriptions(runPath);
     const warningWake = await readWakeSignal(runPath, subscribed.wakeArtifact);
-    expect(warningWake).toMatchObject({ reason: 'events-available', cursorAtWake: 'events.ndjson:4' });
+    expect(warningWake).toMatchObject({ reason: 'events-available', cursorAtWake: 'events.ndjson:6' });
     expect(warningWake).not.toEqual(initialWake);
 
     await appendEvent(runPath, { type: 'child-error', storyId: 'LK02', message: 'Duplicate warning' });
@@ -206,7 +318,7 @@ describe('detached run subscriptions', () => {
     });
     await expect(readFile(wakePath, 'utf8').then((content) => JSON.parse(content))).resolves.toMatchObject({
       reason: 'terminal',
-      cursorAtWake: 'events.ndjson:6',
+      cursorAtWake: 'events.ndjson:9',
     });
     expect(terminal).toMatchObject({ terminal: true, status: 'complete' });
   });
@@ -227,7 +339,7 @@ describe('detached run subscriptions', () => {
     await notifyRunSubscriptions(runPath);
 
     const terminalWake = await readWakeSignal(runPath, subscribed.wakeArtifact);
-    expect(terminalWake).toMatchObject({ reason: 'terminal', cursorAtWake: 'events.ndjson:3' });
+    expect(terminalWake).toMatchObject({ reason: 'terminal', cursorAtWake: 'events.ndjson:5' });
     expect(terminalWake).not.toEqual(initialWake);
     await expect(readSubscription(runPath, subscribed.subscriptionId)).resolves.toMatchObject({
       terminal: true,

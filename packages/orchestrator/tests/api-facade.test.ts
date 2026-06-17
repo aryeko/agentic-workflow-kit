@@ -337,7 +337,7 @@ describe('workflow API facade', () => {
       result: {
         runId: 'run-1',
         committedCursor: 'events.ndjson:0',
-        nextCursor: 'events.ndjson:2',
+        nextCursor: 'events.ndjson:4',
         replay: [],
       },
     });
@@ -352,7 +352,7 @@ describe('workflow API facade', () => {
     expect(polled).toMatchObject({
       ok: true,
       operation: 'workflow_run_subscription_poll',
-      result: { events: [], committedCursor: 'events.ndjson:2' },
+      result: { events: [], committedCursor: 'events.ndjson:4' },
     });
 
     const unsubscribed = await runUnsubscribeFacade({

@@ -85,7 +85,9 @@ creates `subscriptions/<subscription-id>.json` and a wake signal under the run a
 Use `run subscription-poll` to commit a valid `events.ndjson:<lineCount>` cursor and read filtered
 events; use `run unsubscribe` to close the subscription and remove its wake signal. Subscribe by
 run id is config-dependent. Poll and unsubscribe also accept an absolute run path for artifact-only
-cleanup or resume flows.
+cleanup or resume flows. Lifecycle events are journaled as `subscription-created`,
+`subscription-woken`, and `subscription-closed`, and `run inspect --json` includes a compact
+subscription summary with active counts, last wake time, cursors, and wake/delivery metrics.
 
 ## MCP Server
 
@@ -191,7 +193,9 @@ agentic-workflow-kit run export .codex/agentic-workflow-kit/runs/<run-id> --incl
 ```
 
 `run subscribe` is for detached hosts that watch a wake file and later resume with
-`run subscription-poll`. `run stream` remains the attached long-lived request path.
+`run subscription-poll`. Operators can use `run inspect --json` to see active detached
+subscriptions and their wake/delivery counters. `run stream` remains the attached long-lived
+request path.
 
 `watch-run` reads `orchestrator.watch` defaults from the run's `config.resolved.json`; CLI flags
 override those defaults for one invocation. Use `--no-wait` or MCP `wait: false` to disable a

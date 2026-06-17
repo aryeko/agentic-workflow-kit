@@ -51,7 +51,7 @@ import type {
   WorkflowRunStreamInput,
   WorkflowRunStreamResult,
 } from './handlerTypes.js';
-import { appendRunEventAndNotify, notifyRunSubscriptions } from './runSubscriptions.js';
+import { appendRunEventAndNotify, inspectRunSubscriptions, notifyRunSubscriptions } from './runSubscriptions.js';
 
 export type * from './handlerTypes.js';
 export { analyzeRunHandler, runExportHandler, runReportHandler } from './runReports.js';
@@ -361,13 +361,14 @@ export async function runStreamHandler(input: WorkflowRunStreamInput = {}): Prom
 export async function runInspectHandler(input: WorkflowRunInspectInput = {}): Promise<WorkflowRunInspectResult> {
   const runDirectory = await resolveRunDirectory(input);
   await assertRunExists(runDirectory);
-  const [state, metrics, artifacts, children, childArtifacts, events] = await Promise.all([
+  const [state, metrics, artifacts, children, childArtifacts, events, subscriptions] = await Promise.all([
     readJsonIfExists(path.join(runDirectory, 'state.json')),
     readJsonIfExists(path.join(runDirectory, 'metrics.live.json')),
     inspectArtifacts(runDirectory),
     inspectChildren(runDirectory),
     readChildArtifacts(runDirectory),
     readRunEvents(runDirectory),
+    inspectRunSubscriptions(runDirectory),
   ]);
   const stateObject = isObject(state) ? state : {};
   const pr = collectPrRefs([...events, ...childArtifacts]);
@@ -379,6 +380,7 @@ export async function runInspectHandler(input: WorkflowRunInspectInput = {}): Pr
     children,
     pr,
     metrics,
+    subscriptions,
   };
 }
 

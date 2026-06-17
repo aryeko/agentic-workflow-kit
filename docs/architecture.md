@@ -211,6 +211,9 @@ completion dirty checks so a run cannot make its own completed story look uncomm
 `workflow_project_inspect` advertises this additive capability with
 `capabilities.detachedRunSubscriptions: true`; the subscription record uses internal
 `schemaVersion: 1` and does not change public `apiVersion: "1"` or the workflow config schema.
+Subscription lifecycle is audited through `subscription-created`, `subscription-woken`, and
+`subscription-closed` events, while `workflow_run_inspect` surfaces active subscription counts,
+last wake time, cursors, and wake/delivery metrics for operator visibility.
 `metrics.live.json`, `watch_run`, and `analyze-run` share Codex session-log parsing for command
 counts, subagent counts, and token totals by type when a child session log is linked. Interactive
 `implement-next` journals use the same run directory and can be analyzed when `state.json` contains

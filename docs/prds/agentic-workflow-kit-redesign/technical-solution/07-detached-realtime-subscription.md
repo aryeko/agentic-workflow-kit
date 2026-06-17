@@ -335,7 +335,7 @@ Output:
     "nextCursor": "events.ndjson:184",
     "terminal": true,
     "status": "complete",
-    "eventsDelivered": 184
+    "eventsDelivered": 64
   }
 }
 ```
@@ -343,7 +343,8 @@ Output:
 `committedCursor` echoes the position the server advanced to from this call's `ackCursor`;
 `nextCursor` is the position the client should ack on its next poll once it has durably processed the
 returned batch. A poll with no new events returns an empty `events` array with `nextCursor` equal to
-`committedCursor`; this is the expected idle case and is cheap.
+`committedCursor`; this is the expected idle case and is cheap. `eventsDelivered` is the current
+poll page length, not a cumulative total.
 
 ### `workflow_run_unsubscribe`
 
@@ -442,7 +443,7 @@ interface RunSubscriptionPollResult {
   nextCursor: string;      // end of the returned batch; ack this on the next poll once processed
   terminal: boolean;
   status: RunSubscription["status"];
-  eventsDelivered: number;
+  eventsDelivered: number; // current poll page length
 }
 ```
 
@@ -537,12 +538,13 @@ Explicitly reused, not reinvented:
 - Journal a `subscription-created`, `subscription-woken`, and `subscription-closed` event under a
   suitable existing topic (e.g. `run`/`control`) so subscription lifecycle is auditable from the
   same journal, without a new schema.
-- Surface active-subscription count and last-wake timestamps in the run summary/inspect output so
-  operators can see detached subscribers.
+- Surface active-subscription count, total subscription count, per-subscription status/cursor
+  summaries, metrics, and last-wake timestamps in inspect output so operators can see detached
+  subscribers without reading raw artifacts.
 - Surface `detachedRunSubscriptions: true` in project inspection capabilities when the runtime can
   create and poll subscription artifacts.
-- Record wake coalescing counts (wakes fired vs events delivered) to make throttle behavior
-  observable.
+- Record wake counts, matched-event counts, coalescing counts, and durable delivered-event counts in
+  each subscription record to make throttle behavior observable.
 
 ## Testing strategy
 
@@ -623,13 +625,14 @@ tracker stories are created by this document.)
   contracts".
 - Pilot candidate — `workflow_run_subscribe` / `workflow_run_subscription_poll` /
   `workflow_run_unsubscribe` MCP tools + facade, plus the shared wake notifier for every event
-  append path. PRD criteria: OBS-1, OBS-7. Cites "API surface", "Event append and wake authority",
-  "Host-integration contract".
+  append path and required observability (lifecycle events, inspect surfacing, coalescing counts).
+  PRD criteria: OBS-1, OBS-3, OBS-5, OBS-7, FUT-2. Cites "API surface", "Event append and wake
+  authority", "Host-integration contract", "Observability", "Failure, abort, and terminal
+  semantics".
 - Rollout candidate — CLI verbs and the documented host-adapter contract + example loop. Cites "API
   surface" (CLI) and "Host-integration contract". PRD criteria: OBS-7, HC-1, HC-2.
-- Polish candidate — observability (lifecycle events, summary/inspect surfacing, coalescing counts)
-  and TTL/cleanup. PRD criteria: OBS-3, OBS-5, FUT-2. Cites "Observability", "Failure, abort, and
-  terminal semantics".
+- Polish candidate — optional operator refinements beyond the required inspect summary, such as
+  richer reports or dashboards if later usage shows they are needed.
 - File contention / sequencing — touches `runner/RunJournal.ts` (artifact additions),
   command-level event append helpers, `mcp/tools.ts` and `api/facade.ts` (new tools/facade), and the
   CLI command layer. The new tools are parallel to `workflow_run_stream`; do not modify the stream

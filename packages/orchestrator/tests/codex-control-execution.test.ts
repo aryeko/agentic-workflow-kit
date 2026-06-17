@@ -273,7 +273,7 @@ describe('Codex child-control execution', () => {
     await expect(readFile(path.join(runPath, subscribed.wakeArtifact), 'utf8').then(JSON.parse)).resolves.toMatchObject(
       {
         reason: 'events-available',
-        cursorAtWake: 'events.ndjson:1',
+        cursorAtWake: 'events.ndjson:3',
       },
     );
     await expect(
