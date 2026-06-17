@@ -5,20 +5,22 @@ import pRetry, { AbortError } from 'p-retry';
 import pTimeout from 'p-timeout';
 
 import { isRecord } from '../../internal/guards.js';
-import type { ChildResultEvidence, ResolvedWorkflowConfig } from '../../types.js';
+import type { ChildResultEvidence, ResolvedAgentProfile, ResolvedWorkflowConfig, WorkflowStory } from '../../types.js';
 import type {
   ChildControlRequest,
   ChildControlResult,
+  ChildLifecycleEvent,
   ChildProgressSource,
   DriverErrorClassification,
   DriverToolStatus,
+  ResumeStoryRequest,
   StoryPromptMetadata,
   StoryRunner,
   StoryRunRequest,
   StoryRunResult,
 } from '../StoryRunner.js';
 import { codexProgressMessage, parseCodexEventNotification } from './codexEvents.js';
-import { controlChild } from './control.js';
+import { controlChild, REPLY_TOOL_CANDIDATES } from './control.js';
 import { childResultEvidence } from './evidenceParser.js';
 import { type McpTool, validateCodexToolSchemas } from './schemaValidation.js';
 import { codexSessionLogRoots } from './sessionLogs.js';
@@ -55,105 +57,157 @@ export class CodexMcpStoryRunner implements StoryRunner {
         request.profile,
         request.promptMetadata,
       );
-      const capabilityDowngrades = codexDriverCapabilityDowngrades(request.promptMetadata);
-      const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childMaxRuntimeMs;
-      const totalTimeoutMs =
-        this.options.requestTimeoutMs === undefined
-          ? this.config.orchestrator.childMaxRuntimeMs
-          : Math.min(this.options.requestTimeoutMs, this.config.orchestrator.childMaxRuntimeMs);
-      const linkedSessionIds = new Set<string>();
-      let codexEventRequestId: string | number | null = null;
-      const reportSessionLinked = async (
-        sessionId: string,
-        sessionLogPath: string | null,
-        progressSource: ChildProgressSource,
-      ): Promise<void> => {
-        if (request.signal?.aborted) return;
-        if (linkedSessionIds.has(sessionId)) return;
-        linkedSessionIds.add(sessionId);
-        await request.onLifecycle?.({ type: 'session-linked', sessionId, sessionLogPath, progressSource });
-      };
-      const previousFallbackNotificationHandler = client.fallbackNotificationHandler;
-      client.fallbackNotificationHandler = async (notification) => {
-        await previousFallbackNotificationHandler?.(notification);
-        if (request.signal?.aborted) return;
-        const event = parseCodexEventNotification(notification);
-        if (event === null) return;
-        if (!matchesCodexEventRequest(event.requestId, codexEventRequestId)) return;
-        if (linkedSessionIds.size === 0) {
-          if (event.eventType === 'session_configured') {
-            if (event.threadId === null || event.cwd === null || !samePath(event.cwd, request.cwd)) return;
-            codexEventRequestId = event.requestId ?? codexEventRequestId;
-            await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
-          } else if (event.eventType !== 'warning') {
-            return;
-          }
-        } else {
-          if (event.threadId !== null && !linkedSessionIds.has(event.threadId)) return;
-          codexEventRequestId = event.requestId ?? codexEventRequestId;
-          if (event.eventType === 'session_configured' && event.threadId !== null) {
-            await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
-          }
-        }
-        if (event.threadId !== null || event.eventType === 'warning') {
-          await request.onLifecycle?.({
-            type: 'progress',
-            message: codexProgressMessage(event),
-            progressSource: 'codex-event',
-            eventType: event.eventType,
-            journal: shouldJournalCodexEvent(event.eventType),
-          });
-        }
-      };
-      const rawResult = await pTimeout(
-        client.callTool(
-          {
-            name: 'codex',
-            arguments: invocation as unknown as Record<string, unknown>,
-          },
-          undefined,
-          {
-            timeout: requestTimeoutMs,
-            resetTimeoutOnProgress: true,
-            maxTotalTimeout: totalTimeoutMs,
-            signal: request.signal,
-            onprogress: (progress: unknown) => {
-              if (request.signal?.aborted) return;
-              const sessionId = progressSessionId(progress);
-              if (sessionId) void reportSessionLinked(sessionId, null, 'mcp-progress');
-              void request.onLifecycle?.({
-                type: 'progress',
-                message: progressMessage(progress),
-                progressToken: progressToken(progress),
-                progressSource: 'mcp-progress',
-              });
-            },
-          },
-        ),
-        {
-          milliseconds: totalTimeoutMs,
-          message: 'Codex MCP request timed out',
-        },
-      );
-      request.signal?.throwIfAborted();
-
-      if (isToolError(rawResult)) {
-        throw new AbortError(extractContent(rawResult) || 'Codex MCP returned a tool error');
-      }
-
-      const output = validateCodexToolOutput(rawResult);
-      await reportSessionLinked(output.threadId, null, 'structured');
-      const evidence = mergeDriverEvidence(output.evidence, request, capabilityDowngrades);
-      return {
-        storyId: request.story.id,
-        sessionId: output.threadId,
-        content: output.content,
-        evidence,
-        capabilityDowngrades,
-        rawResult,
+      return await this.runTurn(client, 'codex', invocation as unknown as Record<string, unknown>, {
+        story: request.story,
+        cwd: request.cwd,
+        profile: request.profile,
+        promptMetadata: request.promptMetadata,
+        signal: request.signal,
+        onLifecycle: request.onLifecycle,
         invocation: invocation as unknown as Record<string, unknown>,
-      };
+      });
     });
+  }
+
+  async resumeStory(request: ResumeStoryRequest): Promise<StoryRunResult> {
+    return await this.withClient(async (client) => {
+      request.signal?.throwIfAborted();
+      const toolName = await this.discoverReplyTool(client);
+      const args: Record<string, unknown> = {
+        threadId: request.sessionId,
+        sessionId: request.sessionId,
+        message: request.message,
+      };
+      return await this.runTurn(client, toolName, args, {
+        story: request.story,
+        cwd: request.cwd,
+        profile: request.profile,
+        promptMetadata: request.promptMetadata,
+        signal: request.signal,
+        onLifecycle: request.onLifecycle,
+        invocation: { tool: toolName, ...args },
+      });
+    });
+  }
+
+  private async discoverReplyTool(client: Client): Promise<string> {
+    const startupTimeoutMs = this.options.startupTimeoutMs ?? STARTUP_TIMEOUT_MS;
+    const result = await pTimeout(
+      client.listTools({}, { timeout: startupTimeoutMs, maxTotalTimeout: startupTimeoutMs }),
+      { milliseconds: startupTimeoutMs, message: 'Codex MCP tools/list timed out' },
+    );
+    const names = listToolNames(result);
+    const toolName = REPLY_TOOL_CANDIDATES.find((candidate) => names.has(candidate));
+    if (!toolName) {
+      throw new AbortError(`Codex MCP reply tool is unavailable; expected one of ${REPLY_TOOL_CANDIDATES.join(', ')}`);
+    }
+    return toolName;
+  }
+
+  private async runTurn(
+    client: Client,
+    toolName: string,
+    toolArguments: Record<string, unknown>,
+    ctx: TurnContext,
+  ): Promise<StoryRunResult> {
+    const capabilityDowngrades = codexDriverCapabilityDowngrades(ctx.promptMetadata);
+    const requestTimeoutMs = this.options.requestTimeoutMs ?? this.config.orchestrator.childMaxRuntimeMs;
+    const totalTimeoutMs =
+      this.options.requestTimeoutMs === undefined
+        ? this.config.orchestrator.childMaxRuntimeMs
+        : Math.min(this.options.requestTimeoutMs, this.config.orchestrator.childMaxRuntimeMs);
+    const linkedSessionIds = new Set<string>();
+    let codexEventRequestId: string | number | null = null;
+    const reportSessionLinked = async (
+      sessionId: string,
+      sessionLogPath: string | null,
+      progressSource: ChildProgressSource,
+    ): Promise<void> => {
+      if (ctx.signal?.aborted) return;
+      if (linkedSessionIds.has(sessionId)) return;
+      linkedSessionIds.add(sessionId);
+      await ctx.onLifecycle?.({ type: 'session-linked', sessionId, sessionLogPath, progressSource });
+    };
+    const previousFallbackNotificationHandler = client.fallbackNotificationHandler;
+    client.fallbackNotificationHandler = async (notification) => {
+      await previousFallbackNotificationHandler?.(notification);
+      if (ctx.signal?.aborted) return;
+      const event = parseCodexEventNotification(notification);
+      if (event === null) return;
+      if (!matchesCodexEventRequest(event.requestId, codexEventRequestId)) return;
+      if (linkedSessionIds.size === 0) {
+        if (event.eventType === 'session_configured') {
+          if (event.threadId === null || event.cwd === null || !samePath(event.cwd, ctx.cwd)) return;
+          codexEventRequestId = event.requestId ?? codexEventRequestId;
+          await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
+        } else if (event.eventType !== 'warning') {
+          return;
+        }
+      } else {
+        if (event.threadId !== null && !linkedSessionIds.has(event.threadId)) return;
+        codexEventRequestId = event.requestId ?? codexEventRequestId;
+        if (event.eventType === 'session_configured' && event.threadId !== null) {
+          await reportSessionLinked(event.threadId, event.sessionLogPath, 'codex-event');
+        }
+      }
+      if (event.threadId !== null || event.eventType === 'warning') {
+        await ctx.onLifecycle?.({
+          type: 'progress',
+          message: codexProgressMessage(event),
+          progressSource: 'codex-event',
+          eventType: event.eventType,
+          journal: shouldJournalCodexEvent(event.eventType),
+        });
+      }
+    };
+    const rawResult = await pTimeout(
+      client.callTool(
+        {
+          name: toolName,
+          arguments: toolArguments,
+        },
+        undefined,
+        {
+          timeout: requestTimeoutMs,
+          resetTimeoutOnProgress: true,
+          maxTotalTimeout: totalTimeoutMs,
+          signal: ctx.signal,
+          onprogress: (progress: unknown) => {
+            if (ctx.signal?.aborted) return;
+            const sessionId = progressSessionId(progress);
+            if (sessionId) void reportSessionLinked(sessionId, null, 'mcp-progress');
+            void ctx.onLifecycle?.({
+              type: 'progress',
+              message: progressMessage(progress),
+              progressToken: progressToken(progress),
+              progressSource: 'mcp-progress',
+            });
+          },
+        },
+      ),
+      {
+        milliseconds: totalTimeoutMs,
+        message: 'Codex MCP request timed out',
+      },
+    );
+    ctx.signal?.throwIfAborted();
+
+    if (isToolError(rawResult)) {
+      throw new AbortError(extractContent(rawResult) || 'Codex MCP returned a tool error');
+    }
+
+    const output = validateCodexToolOutput(rawResult);
+    await reportSessionLinked(output.threadId, null, 'structured');
+    const evidence = mergeDriverEvidence(output.evidence, ctx, capabilityDowngrades);
+    return {
+      storyId: ctx.story.id,
+      sessionId: output.threadId,
+      content: output.content,
+      evidence,
+      capabilityDowngrades,
+      rawResult,
+      invocation: ctx.invocation,
+    };
   }
 
   async checkTools(): Promise<DriverToolStatus> {
@@ -245,25 +299,40 @@ export class CodexMcpStoryRunner implements StoryRunner {
   }
 }
 
+/**
+ * Shared context for a single Codex MCP turn (first run or resume). Carries the per-turn
+ * lifecycle hooks, abort signal, cwd, profile/prompt metadata for evidence, and the recorded
+ * invocation surfaced on the `StoryRunResult`.
+ */
+interface TurnContext {
+  story: WorkflowStory;
+  cwd: string;
+  profile: ResolvedAgentProfile;
+  promptMetadata: StoryPromptMetadata;
+  signal?: AbortSignal;
+  onLifecycle?: (event: ChildLifecycleEvent) => Promise<void> | void;
+  invocation: Record<string, unknown>;
+}
+
 function mergeDriverEvidence(
   evidence: ChildResultEvidence | undefined,
-  request: StoryRunRequest,
+  ctx: TurnContext,
   capabilityDowngrades: ReturnType<typeof codexDriverCapabilityDowngrades>,
 ): ChildResultEvidence | undefined {
-  if (!request.profile || !request.promptMetadata) return evidence;
+  if (!ctx.profile || !ctx.promptMetadata) return evidence;
   return {
     ...evidence,
     profile: {
-      name: request.profile.name,
-      taskType: request.profile.taskType,
+      name: ctx.profile.name,
+      taskType: ctx.profile.taskType,
     },
     prompt: {
-      template: request.promptMetadata.template,
-      hash: request.promptMetadata.promptHash,
+      template: ctx.promptMetadata.template,
+      hash: ctx.promptMetadata.promptHash,
     },
     structuredOutput: {
-      schema: request.promptMetadata.structuredOutputSchema,
-      required: request.promptMetadata.structuredOutputRequired,
+      schema: ctx.promptMetadata.structuredOutputSchema,
+      required: ctx.promptMetadata.structuredOutputRequired,
       enforced: false,
     },
     capabilityDowngrades,
@@ -320,6 +389,17 @@ function validateListToolsResult(value: unknown): McpTool[] {
     }
     return tool as McpTool;
   });
+}
+
+function listToolNames(value: unknown): Set<string> {
+  if (!isRecord(value) || !Array.isArray(value.tools)) {
+    throw new AbortError('MCP tools/list result must contain a tools array');
+  }
+  return new Set(
+    value.tools
+      .map((tool) => (isRecord(tool) && typeof tool.name === 'string' ? tool.name : null))
+      .filter((name): name is string => name !== null),
+  );
 }
 
 function isToolError(value: unknown): boolean {

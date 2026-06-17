@@ -4,12 +4,13 @@ import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { isRecord, safeName } from '../../internal/guards.js';
+import { notifyVerdict } from '../../review/verdictInbox.js';
 import type { ReviewVerdict } from '../../types.js';
 import type { ChildControlRequest, ChildControlResult } from '../StoryRunner.js';
 
 const SUMMARY_PREVIEW_MAX_LENGTH = 120;
 
-const REPLY_TOOL_CANDIDATES = ['codex_reply', 'codex-reply', 'reply', 'codex_continue', 'continue'];
+export const REPLY_TOOL_CANDIDATES = ['codex_reply', 'codex-reply', 'reply', 'codex_continue', 'continue'];
 const INTERRUPT_TOOL_CANDIDATES = ['codex_interrupt', 'codex-interrupt', 'interrupt', 'codex_cancel', 'cancel'];
 
 export interface CodexControlTargetInput {
@@ -125,6 +126,9 @@ async function depositChildVerdict(target: CodexControlTarget, verdict: ReviewVe
     source: 'reply-tool',
     summaryPreview,
   });
+
+  // In-process fast path: wake a supervisor already awaiting this verdict.
+  notifyVerdict(target.runPath, target.storyId, verdict);
 
   return { ok: true, ...target, tool: 'verdict-deposit', rawResult: artifact };
 }
