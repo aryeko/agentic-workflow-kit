@@ -172,16 +172,16 @@ describe('skill authoring', () => {
     expect(body).toContain('Assumptions and blockers');
     expect(body).toContain('Artifact boundaries');
     expect(body).toContain('<tracksDir>/<track>/stories/<ID>.md');
-    expect(body).toContain('story briefs are not implementation-ready');
-    expect(body).toContain('Do not write detailed technical story specs');
+    expect(body).toContain('story files are lightweight and not implementation-ready');
+    expect(body).toContain('Do not enrich story files');
     expect(body).toContain('PRD criteria and technical solution sections');
   });
 
-  it('implement-next owns detailed technical spec and implementation plan before code', () => {
+  it('implement-next owns enrichment to implementation-ready and implementation plan before code', () => {
     const { body } = readSkill('implement-next');
 
-    expect(body).toContain('story brief under `<tracksDir>/<track>/stories/<ID>.md`');
-    expect(body).toContain('a detailed spec link (not a story brief)');
+    expect(body).toContain('story file under `<tracksDir>/<track>/stories/<ID>.md`');
+    expect(body).toContain('a detailed spec link (not a story file)');
     expect(body).toContain('No implementation plan or code while the detailed technical story spec is missing');
     expect(body).toContain('blocking technical questions');
     expect(body).toContain('<specsDir>');

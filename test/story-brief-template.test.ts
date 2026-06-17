@@ -31,8 +31,8 @@ describe('story brief contract and template', () => {
     }
   });
 
-  it('states story briefs are not implementation-ready', () => {
-    const note = 'not implementation-ready; create a detailed technical story spec before plan/code';
+  it('states story files are brief-level until enriched to plan-approved', () => {
+    const note = 'brief-level — not implementation-ready until enriched to plan-approved';
     expect(contract).toContain(note);
     expect(template).toContain(note);
   });

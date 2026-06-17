@@ -32,20 +32,20 @@ describe('planning artifact model', () => {
     expect(body).not.toContain('delta-spec-template.md');
   });
 
-  it('implement-next accepts old detailed specs and expands new story briefs before planning', () => {
+  it('implement-next accepts old detailed specs and enriches new story files in place before planning', () => {
     const { body } = readSkillBody('implement-next');
 
     expect(body).toContain('Backward compatibility');
     expect(body).toContain('<specsDir>');
-    expect(body).toContain('story brief under `<tracksDir>/<track>/stories/<ID>.md`');
-    expect(body).toContain('create/refine the detailed technical story spec first');
+    expect(body).toContain('story file under `<tracksDir>/<track>/stories/<ID>.md`');
+    expect(body).toContain('enrich the story file in place');
     expect(body).toContain('No implementation plan or code while the detailed technical story spec is missing');
   });
 
   it('tracker contract keeps old detailed spec links valid while redefining Spec for new trackers', () => {
     const contract = readFileSync('references/tracker-contract.md', 'utf8');
 
-    expect(contract).toContain('For new trackers, Spec links to the story brief');
+    expect(contract).toContain('For new trackers, Spec links to the story file');
     expect(contract).toContain('Existing trackers that link a detailed spec directly remain valid');
   });
 

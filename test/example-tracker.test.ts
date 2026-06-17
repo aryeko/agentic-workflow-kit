@@ -53,16 +53,16 @@ describe('example tracker story briefs and PRD linkage', () => {
     expect(md).toMatch(/L-2/);
     expect(md).toMatch(/A-1/);
   });
-  it('worked story briefs carry the not-implementation-ready note and no status mirror', () => {
+  it('worked story files carry the brief-level note and no status mirror', () => {
     const a = readFileSync(LK01, 'utf8');
     const b = readFileSync(LK02, 'utf8');
-    expect(a).toContain('not implementation-ready; create a detailed technical story spec before plan/code');
-    expect(b).toContain('not implementation-ready; create a detailed technical story spec before plan/code');
+    expect(a).toContain('brief-level — not implementation-ready until enriched to plan-approved');
+    expect(b).toContain('brief-level — not implementation-ready until enriched to plan-approved');
     expect(a).not.toMatch(/linkly-status:/);
     expect(b).not.toMatch(/linkly-status:/);
   });
 
-  it('worked story briefs record assumptions and artifact boundaries', () => {
+  it('worked story files record assumptions and artifact boundaries', () => {
     const a = readFileSync(LK01, 'utf8');
     const b = readFileSync(LK02, 'utf8');
     for (const brief of [a, b]) {
@@ -70,5 +70,12 @@ describe('example tracker story briefs and PRD linkage', () => {
       expect(brief).toContain('## Artifact boundaries');
       expect(brief).toContain('Runtime artifacts');
     }
+  });
+
+  it('worked story files carry a Canonical impact line', () => {
+    const a = readFileSync(LK01, 'utf8');
+    const b = readFileSync(LK02, 'utf8');
+    expect(a).toContain('## Canonical impact');
+    expect(b).toContain('## Canonical impact');
   });
 });
