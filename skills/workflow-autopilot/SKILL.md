@@ -98,6 +98,35 @@ Non-dry-run MCP calls can launch unsupervised child sessions; `sandbox: danger-f
 - Do not diagnose git author metadata, app regressions, or deploy regressions from parent prose
   alone. Use child session logs, PR metadata, check logs, tracker snapshots, and run artifacts.
 
+## Orchestrator pre-PR review
+
+When `implement.review.prePr.mode: orchestrator`, the implementing child does not self-review or open
+its PR at the pre-PR checkpoint. Instead it writes a review-request packet and ends its turn in child
+status `awaiting_review`, surfaced as a `pre_pr_review_requested` event / launch status. The plugin
+provides this yield/resume mechanism; the orchestrator owns the review judgement.
+
+When `watch_run` / `watch_run_poll` shows a child in `awaiting_review`:
+
+- Read the review packet (`children/<id>.review-request.json`, or the `packetPath` from the child's
+  `prePrReview` marker) plus the diff, spec, plan, and tracker row.
+- Perform an independent review against acceptance criteria, spec/plan compliance, and scope.
+- Reply via `workflow_child_reply` with a structured `verdict`:
+  `{ decision: 'PASS' | 'BLOCK', findings?, summary?, loop? }`. Friendly aliases are normalized
+  (approve/lgtm -> `PASS`; request-changes/changes/reject -> `BLOCK`). The reply deposits the verdict
+  (`children/<id>.verdict.json` + a `pre_pr_review_verdict` journal event); the orchestrator, not the
+  reply tool, owns the resume turn that nudges the child forward.
+- `PASS` lets the child open the PR. `BLOCK` sends findings for the child to fix and re-yield, bounded
+  by `implement.review.prePr.maxLoops` (counted orchestrator-side).
+
+You may review multiple awaiting children concurrently (up to `orchestrator.maxParallel`); v1 holds
+the concurrency slot during review. `awaiting_review` is exempt from the child no-progress and max
+runtime timeouts and is instead bounded by `orchestrator.childReviewWaitTimeoutMs` (default 30 min).
+This is fail-closed: if no verdict arrives in time the child blocks with `pre_pr_review_blocked`
+(reason `pre_pr_review_timeout`) unless `implement.review.prePr.downgradeTo` is `subagent` or `inline`,
+in which case the child resumes to self-review (journaling `pre_pr_review_downgraded`). This mode is
+gated to the `codex-mcp` driver in v1; the external Codex PR review (`pr.review`) remains the
+independent final gate.
+
 ## CLI fallback
 
 Installed package usage when the plugin-provided MCP runtime is not available:
