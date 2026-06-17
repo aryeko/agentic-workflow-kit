@@ -100,6 +100,55 @@ describe('codexReplyInputSchema (plain object, published inputSchema)', () => {
     expect(codexReplyInputSchema.shape.message).toBeDefined();
     expect(codexReplyInputSchema.shape.verdict).toBeDefined();
   });
+
+  it('accepts friendly decision aliases at the MCP boundary (the published schema must not reject them)', () => {
+    for (const alias of ['approve', 'approved', 'lgtm', 'ship', 'pass']) {
+      const result = codexReplyInputSchema.safeParse({ sessionId: 's1', verdict: { decision: alias } });
+      expect(result.success).toBe(true);
+    }
+    for (const alias of ['request-changes', 'request_changes', 'changes', 'reject', 'block']) {
+      const result = codexReplyInputSchema.safeParse({ sessionId: 's1', verdict: { decision: alias } });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it('accepts mixed-case decision aliases at the MCP boundary', () => {
+    for (const alias of ['Approve', 'LGTM', 'Request-Changes', 'BLOCK', 'Pass']) {
+      const result = codexReplyInputSchema.safeParse({ sessionId: 's1', verdict: { decision: alias } });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it('passes the raw alias string through the published schema unchanged (normalization is handler-level)', () => {
+    const parsed = codexReplyInputSchema.parse({ sessionId: 's1', verdict: { decision: 'approve' } });
+    expect(parsed.verdict?.decision).toBe('approve');
+  });
+
+  it('preserves findings/summary/loop alongside an alias decision at the boundary', () => {
+    const parsed = codexReplyInputSchema.parse({
+      sessionId: 's1',
+      verdict: {
+        decision: 'lgtm',
+        findings: [{ title: 'nit', severity: 'low' }],
+        summary: 'fine',
+        loop: 3,
+      },
+    });
+    expect(parsed.verdict?.decision).toBe('lgtm');
+    expect(parsed.verdict?.findings).toHaveLength(1);
+    expect(parsed.verdict?.summary).toBe('fine');
+    expect(parsed.verdict?.loop).toBe(3);
+  });
+
+  it('rejects a non-string verdict decision at the boundary', () => {
+    expect(codexReplyInputSchema.safeParse({ sessionId: 's1', verdict: { decision: 42 } }).success).toBe(false);
+  });
+
+  it('rejects a verdict object that omits a decision at the boundary', () => {
+    expect(codexReplyInputSchema.safeParse({ sessionId: 's1', verdict: { summary: 'no decision' } }).success).toBe(
+      false,
+    );
+  });
 });
 
 describe('validateReplyInput (handler-level rules)', () => {

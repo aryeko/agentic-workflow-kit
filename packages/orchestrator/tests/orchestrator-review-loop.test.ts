@@ -159,6 +159,59 @@ const clock: Clock = {
   nowMs: () => 1_000,
 };
 
+/**
+ * Captures the `ms` argument of every setTimeout/setInterval call so a test can assert what
+ * budget the max-runtime timer was armed with. Timers never auto-fire (deterministic): the
+ * review loop drives itself off the verdict inbox, not these handles.
+ */
+class CapturingChildTimer {
+  /** Every setTimeout `ms`, in call order. */
+  readonly timeoutMs: number[] = [];
+
+  setTimeout(_callback: () => void, ms: number): unknown {
+    this.timeoutMs.push(ms);
+    return `timeout-${this.timeoutMs.length}`;
+  }
+
+  clearTimeout(): void {}
+
+  setInterval(): unknown {
+    return 'interval';
+  }
+
+  clearInterval(): void {}
+}
+
+/**
+ * Deterministic clock. `nowMs()` advances by a fixed tick on every read so each turn consumes a
+ * small, non-zero amount of active runtime. `jump(ms)` simulates a long awaiting_review wait that
+ * must NOT count against the active-runtime budget.
+ */
+class SteppingClock implements Clock {
+  private valueMs: number;
+
+  constructor(
+    startMs: number,
+    private readonly tickMs: number,
+  ) {
+    this.valueMs = startMs;
+  }
+
+  now(): string {
+    return new Date(this.valueMs).toISOString();
+  }
+
+  nowMs(): number {
+    const current = this.valueMs;
+    this.valueMs += this.tickMs;
+    return current;
+  }
+
+  jump(ms: number): void {
+    this.valueMs += ms;
+  }
+}
+
 async function readJson(filePath: string): Promise<unknown> {
   return JSON.parse(await readFile(filePath, 'utf8')) as unknown;
 }
@@ -237,11 +290,17 @@ function story(status: 'specced' | 'done'): WorkflowStory {
   };
 }
 
+interface RunnerOverrides {
+  clock?: Clock;
+  childTimer?: CapturingChildTimer;
+}
+
 function makeRunner(
   runId: string,
   config: ResolvedWorkflowConfig,
   source: SnapshotStorySource,
   storyRunner: StoryRunner,
+  overrides: RunnerOverrides = {},
 ): { runner: WorkflowRunner; runPath: string } {
   const runPath = path.join(config.artifacts.runsDirAbs, runId);
   const runner = new WorkflowRunner({
@@ -252,7 +311,8 @@ function makeRunner(
     gitInspector: new PassingGitInspector(),
     artifactStore: new FileArtifactStore(runPath),
     logger,
-    clock,
+    clock: overrides.clock ?? clock,
+    childTimer: overrides.childTimer,
     runId,
     childWorkspacePreparer: async ({ story: workflowStory, workspaceRootAbs, fallbackCwdAbs, git }) => ({
       childCwdAbs: fallbackCwdAbs,
@@ -381,6 +441,59 @@ describe('orchestrator pre-PR review loop', () => {
     expect(eventTypes(events)).toContain('pre_pr_review_requested');
   });
 
+  it('arms each turn max-runtime timer with the REMAINING active budget, excluding review wait', async () => {
+    const workspaceRoot = await mkdtemp(path.join(tmpdir(), 'awk-review-budget-'));
+    tempRoots.push(workspaceRoot);
+    const runId = 'run-budget';
+    const childMaxRuntimeMs = 100_000;
+    const reviewWaitMs = 50_000;
+    const base = configForWorkspace(workspaceRoot, { maxLoops: 3 });
+    // Distinct timeout values so max-runtime arms are identifiable: they are the only timers armed
+    // far above the (small) startup/no-progress values and above the review-wait jump.
+    const config: ResolvedWorkflowConfig = {
+      ...base,
+      orchestrator: {
+        ...base.orchestrator,
+        childMaxRuntimeMs,
+        childStartupTimeoutMs: 1_000,
+        childNoProgressTimeoutMs: 2_000,
+        childReviewWaitTimeoutMs: 5_000,
+      },
+    };
+    const source = new SnapshotStorySource([[story('specced')], [story('done')]]);
+    // Turn 1 yields (awaiting_review); a BLOCK verdict resumes into turn 2, which settles.
+    const storyRunner = new ScriptedStoryRunner([{ kind: 'yield' }, { kind: 'settle' }]);
+    const childTimer = new CapturingChildTimer();
+    const stepClock = new SteppingClock(1_000, 10);
+    const { runner, runPath } = makeRunner(runId, config, source, storyRunner, {
+      clock: stepClock,
+      childTimer,
+    });
+
+    const statePromise = runner.runStory('WK001');
+    // Turn 1 BLOCK: jump the clock during the awaiting_review wait to prove it is NOT charged
+    // against the active-runtime budget, then deliver the verdict to resume turn 2.
+    await deliverVerdictAfterReviewWaitJump(runPath, 'WK001', { decision: 'BLOCK', summary: 'fix it' }, () =>
+      stepClock.jump(reviewWaitMs),
+    );
+
+    const state = await statePromise;
+    expect(state.status).toBe('complete');
+
+    // The max-runtime arms are the only timers armed above the review-wait jump magnitude.
+    const maxRuntimeArms = childTimer.timeoutMs.filter((ms) => ms > reviewWaitMs);
+    expect(maxRuntimeArms.length).toBeGreaterThanOrEqual(2);
+
+    // Regression: the first (and single-shot) arm uses the full budget.
+    expect(maxRuntimeArms[0]).toBe(childMaxRuntimeMs);
+
+    // The second arm is REDUCED by turn-1 active runtime (a few ticks), NOT a fresh full value, and
+    // NOT reduced by the review-wait jump (which would have pushed it below reviewWaitMs).
+    const secondArm = maxRuntimeArms[1];
+    expect(secondArm).toBeLessThan(childMaxRuntimeMs);
+    expect(secondArm).toBeGreaterThan(childMaxRuntimeMs - reviewWaitMs);
+  });
+
   it('non-orchestrator mode behaves as a single-shot run (regression guard)', async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), 'awk-review-single-'));
     tempRoots.push(workspaceRoot);
@@ -411,6 +524,25 @@ async function deliverVerdictWhenWaiting(runPath: string, storyId: string, verdi
   // Durable route: write the verdict artifact (awaitVerdict polls/watches for it).
   await writeFile(artifactPath, JSON.stringify(verdict), 'utf8');
   // Belt-and-braces: also wake any in-process waiter immediately.
+  notifyVerdict(runPath, storyId, verdict);
+}
+
+/**
+ * Like `deliverVerdictWhenWaiting`, but runs `onWaiting` once the child is awaiting_review and
+ * before the verdict is delivered. Used to advance the clock through the review wait so a test can
+ * assert that wait is excluded from the active-runtime budget.
+ */
+async function deliverVerdictAfterReviewWaitJump(
+  runPath: string,
+  storyId: string,
+  verdict: ReviewVerdict,
+  onWaiting: () => void,
+): Promise<void> {
+  const artifactPath = path.join(runPath, 'children', `${storyId}.verdict.json`);
+  await waitForFileAbsent(artifactPath);
+  await waitForLaunchStatus(runPath, storyId, 'awaiting_review');
+  onWaiting();
+  await writeFile(artifactPath, JSON.stringify(verdict), 'utf8');
   notifyVerdict(runPath, storyId, verdict);
 }
 

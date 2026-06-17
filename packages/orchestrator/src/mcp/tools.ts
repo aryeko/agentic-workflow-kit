@@ -271,6 +271,27 @@ const reviewVerdictSchema = z.object({
 });
 
 /**
+ * Permissive verdict schema for the PUBLISHED MCP tool input. Identical to
+ * {@link reviewVerdictSchema} except `decision` is a free string so friendly aliases
+ * (approve/approved/lgtm/ship/pass, request-changes/request_changes/changes/reject/block,
+ * plus canonical PASS/BLOCK) survive MCP-boundary validation, which the SDK runs BEFORE
+ * the handler. The handler normalizes aliases to the canonical PASS/BLOCK vocabulary via
+ * {@link normalizeVerdictInput} (which still throws on unknown tokens).
+ */
+const reviewVerdictInputSchema = z.object({
+  decision: z
+    .string()
+    .describe(
+      'Pre-PR review decision. Accepts canonical PASS/BLOCK or friendly aliases ' +
+        '(PASS: approve, approved, lgtm, ship, pass; BLOCK: request-changes, request_changes, changes, reject, block). ' +
+        'Case-insensitive; normalized to PASS/BLOCK by the handler.',
+    ),
+  findings: z.array(reviewFindingSchema).optional().describe('Structured review findings.'),
+  summary: z.string().optional().describe('Short reviewer summary of the verdict.'),
+  loop: z.number().int().optional().describe('Echo of the review loop being judged.'),
+});
+
+/**
  * Alias table mapping friendly decision tokens to the canonical PASS/BLOCK vocabulary.
  * Case-insensitive: lookups are performed on the lower-cased token.
  */
@@ -317,7 +338,7 @@ export function normalizeVerdictInput(raw: unknown): z.infer<typeof reviewVerdic
  */
 export const codexReplyInputSchema = childControlBaseInputSchema.extend({
   message: z.string().min(1).optional().describe('Reply message to send to the live Codex child session.'),
-  verdict: reviewVerdictSchema
+  verdict: reviewVerdictInputSchema
     .optional()
     .describe(
       'Structured pre-PR review verdict. When present, the verdict is deposited (artifact + journal) instead of sending a live reply.',

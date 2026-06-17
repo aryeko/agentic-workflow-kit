@@ -37,6 +37,10 @@ class ChildSupervisorRun {
   private readonly maxRuntimeMs: number;
   private readonly timer: ChildTimer;
   private readonly startedAtMs: number;
+  /** Active implementation time consumed across all turns so far (excludes awaiting_review waits). */
+  private activeRuntimeConsumedMs = 0;
+  /** clock.nowMs() captured when the current turn's max-runtime timer was armed, or null when disarmed. */
+  private turnStartedAtMs: number | null = null;
   private readonly childAbortController = new AbortController();
   private startupTimeoutHandle: unknown;
   private noProgressTimeoutHandle: unknown;
@@ -106,10 +110,15 @@ class ChildSupervisorRun {
 
   /** Arms the max-runtime, startup, and no-progress timeout promises and stores their handles. */
   private armTurnTimeouts(): void {
+    // Bound cumulative ACTIVE runtime by childMaxRuntimeMs: arm with the remaining budget, not a
+    // fresh full cap. Each disarm accumulates the active interval; awaiting_review waits are
+    // excluded because the loop disarms before the verdict wait and re-arms after it.
+    this.turnStartedAtMs = this.runner.dependencies.clock.nowMs();
+    const remainingRuntimeMs = Math.max(1, this.maxRuntimeMs - this.activeRuntimeConsumedMs);
     this.maxRuntimeTimeout = new Promise<StoryRunResult>((_, reject) => {
       this.maxRuntimeTimeoutHandle = this.timer.setTimeout(
         () => reject(new Error('child-max-runtime-timeout')),
-        this.maxRuntimeMs,
+        remainingRuntimeMs,
       );
     });
     // Startup timeout is armed once; subsequent turns (resume) keep the already-acknowledged child.
@@ -128,6 +137,13 @@ class ChildSupervisorRun {
 
   /** Clears the three turn-timeout handles and nulls the no-progress rejecter. */
   private disarmTurnTimeouts(): void {
+    // Accumulate the active runtime consumed by this turn so the next arm uses the remaining budget.
+    // Guarded by turnStartedAtMs !== null so a repeated disarm (e.g. enterAwaitingReview after the
+    // loop already disarmed) does not double-count.
+    if (this.turnStartedAtMs !== null) {
+      this.activeRuntimeConsumedMs += this.runner.dependencies.clock.nowMs() - this.turnStartedAtMs;
+      this.turnStartedAtMs = null;
+    }
     if (this.startupTimeoutHandle !== undefined) this.timer.clearTimeout(this.startupTimeoutHandle);
     if (this.noProgressTimeoutHandle !== undefined) this.timer.clearTimeout(this.noProgressTimeoutHandle);
     if (this.maxRuntimeTimeoutHandle !== undefined) this.timer.clearTimeout(this.maxRuntimeTimeoutHandle);
