@@ -32,18 +32,40 @@ Then proceed unless a blocking decision is needed.
 
 ## Step 1 — Resolve location and detect
 
-- Read `.workflow/config.yaml` if present and take `paths.prdsDir` (default `docs/prds`).
-  `define-product` works even before `/workflow-init` — the default applies.
+- Read `.workflow/config.yaml` if present. Take:
+  - `docs.paths.prdsDir` (default `docs/product/prds`) as the PRD output directory.
+    Fall back to `paths.prdsDir` (legacy key, default `docs/prds`) when `docs.paths.prdsDir`
+    is absent. `define-product` works even before `/workflow-init` — the default applies.
+  - `docs.paths.productDir` (default `docs/product`) as the product pillar root.
+  - `docs.style` (default `docs/docs-style.md`) as the repo-owned authoring standard.
 - Agree a short kebab-case `<slug>` with the user.
 - If `<prdsDir>/<slug>/` already exists, switch to resume/extend mode (see Idempotency).
 
-## Step 2 — Ingest existing material
+## Step 2 — Read canonical docs as context
 
-If the user has notes, brainstorming output, existing docs, a brief, a partial PRD, design docs,
-session context, or relevant code, read them first. Summarize what was found and which PRD sections
-it pre-fills. Only interview on the gaps.
+Before drafting, read the current canonical docs to understand what is already known. This
+grounds the PRD in accurate, current canon rather than re-deriving product facts from scratch:
 
-## Step 3 — Draft with a context-rich fast path
+- Read `<productDir>/README.md` (product pillar index) if it exists — surfaces, current
+  state, positioning.
+- Read any existing canonical PRDs under `<prdsDir>/` that are related to this initiative —
+  a related or predecessor PRD may pre-fill background, goals, and constraints.
+- Read `<architectureDir>/README.md` and `<architectureDir>/guidelines.md` (architecture
+  pillar index and guidelines) if they exist — architecture constraints, conventions, and
+  the current technical lay of the land that the PRD must respect.
+- Read `docs.style` (the repo-owned authoring standard) if it exists; the PRD must conform
+  to its frontmatter requirements and status vocabulary.
+
+Summarize what canonical context was found and note which PRD sections it pre-fills or
+constrains. Skip this step gracefully when the docs do not yet exist.
+
+## Step 3 — Ingest user-supplied material
+
+If the user has notes, brainstorming output, a brief, a partial PRD, design docs, session
+context, or relevant code, read them. Summarize what was found and which PRD sections it
+pre-fills. Only interview on the gaps.
+
+## Step 4 — Draft with a context-rich fast path
 
 When the user has provided rich context, use a context-rich fast path:
 
@@ -69,16 +91,28 @@ For `08-acceptance-criteria`: group criteria by theme, give each group a short P
 criteria `PREFIX-n`, and tag every criterion `[ship blocker]` or `[target]`. These IDs are
 what `plan-delivery-track` maps stories to — keep each criterion observable and testable.
 
-## Step 4 — Write the PRD
+## Step 5 — Write the PRD
 
 Write `<prdsDir>/<slug>/` from the bundled templates, filling placeholders. Conform to
 `prd-contract.md`: README index with a document map and the PRD-vs-technical-design boundary
 note, back-link headers and navigation footers per section, relative cross-links, and
 frontmatter `status` from the PRD vocabulary (`draft | approved | shipped | archived`). Do not
-use the story-level status vocabulary here.
+use the story-level status vocabulary here. Conform to `docs.style` (the repo-owned authoring
+standard) — required frontmatter, one-line TL;DR under the H1, sentence-case headings, and
+relative links. If `docs.style` is absent, apply the kit's built-in standard.
 Record assumptions and blocking questions in `09-risks-and-open-questions.md`.
 
-## Step 5 — Summarize and hand off
+After writing, **register the new PRD in the product pillar index** at
+`<productDir>/README.md`:
+
+- If the pillar index exists, add a row for the new PRD to the requirements or PRDs table
+  (or create that table if absent). Format: `[<slug>](<relative link to slug/README.md>)`
+  with the PRD's short title and current status.
+- If the pillar index does not exist, note in the summary that it should be created by
+  `/workflow-init` and the PRD should be registered once it exists. Do not create the
+  pillar index here — that is `workflow-init`'s responsibility.
+
+## Step 6 — Summarize and hand off
 
 Print the files written and the slug, then recommend exactly one next step:
 
