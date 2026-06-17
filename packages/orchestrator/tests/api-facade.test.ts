@@ -3,7 +3,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { projectInspectFacade, runPreviewFacade, runStatusFacade, trackerValidateFacade } from '../src/api/facade';
+import {
+  projectInspectFacade,
+  runPreviewFacade,
+  runStatusFacade,
+  runSubscribeFacade,
+  runSubscriptionPollFacade,
+  runUnsubscribeFacade,
+  trackerValidateFacade,
+} from '../src/api/facade';
 import {
   WorkflowConfigError,
   WorkflowInternalError,
@@ -59,6 +67,43 @@ async function createWorkspace(
   return root;
 }
 
+async function createRunWorkspace(config = 'version: 1\n'): Promise<{ root: string; runPath: string }> {
+  const root = await createWorkspace();
+  await writeFile(path.join(root, '.workflow/config.yaml'), config);
+  const runPath = path.join(root, '.codex', 'agentic-workflow-kit', 'runs', 'run-1');
+  await mkdir(runPath, { recursive: true });
+  await writeFile(
+    path.join(runPath, 'state.json'),
+    JSON.stringify({
+      runId: 'run-1',
+      status: 'running',
+      active: ['LK02'],
+      completed: [],
+      blockedStoryId: null,
+      blockedReason: null,
+    }),
+  );
+  await writeFile(
+    path.join(runPath, 'events.ndjson'),
+    `${[
+      JSON.stringify({
+        recordedAt: '2026-06-17T00:00:00.000Z',
+        eventAt: '2026-06-17T00:00:00.000Z',
+        type: 'run-started',
+        message: 'Started',
+      }),
+      JSON.stringify({
+        recordedAt: '2026-06-17T00:00:01.000Z',
+        eventAt: '2026-06-17T00:00:01.000Z',
+        type: 'child-progress',
+        storyId: 'LK02',
+        message: 'Working',
+      }),
+    ].join('\n')}\n`,
+  );
+  return { root, runPath };
+}
+
 describe('workflow API facade', () => {
   it('returns project inspection in the shared product envelope', async () => {
     const root = await createWorkspace();
@@ -85,7 +130,10 @@ describe('workflow API facade', () => {
           runStory: true,
           runTrack: true,
           streaming: true,
+          detachedRunSubscriptions: true,
           abort: true,
+          runtimeInfo: true,
+          configCompatibility: true,
           github: true,
           githubVerificationConfigured: true,
           githubVerificationAvailable: null,
@@ -271,6 +319,90 @@ describe('workflow API facade', () => {
         code: 'CONFIG_INVALID',
         retryable: false,
       },
+    });
+  });
+
+  it('subscribes, polls, and unsubscribes through the product envelope', async () => {
+    const { root } = await createRunWorkspace();
+
+    const subscribed = await runSubscribeFacade({
+      cwd: root,
+      runId: 'run-1',
+      subscription: { topics: ['child'], replay: { lastEvents: 0 } },
+    });
+    expect(subscribed).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_subscribe',
+      apiVersion: '1',
+      result: {
+        runId: 'run-1',
+        committedCursor: 'events.ndjson:0',
+        nextCursor: 'events.ndjson:2',
+        replay: [],
+      },
+    });
+    if (!subscribed.ok) throw new Error('subscribe failed');
+
+    const polled = await runSubscriptionPollFacade({
+      cwd: root,
+      runId: 'run-1',
+      subscriptionId: subscribed.result.subscriptionId,
+      ackCursor: subscribed.result.nextCursor,
+    });
+    expect(polled).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_subscription_poll',
+      result: { events: [], committedCursor: 'events.ndjson:2' },
+    });
+
+    const unsubscribed = await runUnsubscribeFacade({
+      cwd: root,
+      runId: 'run-1',
+      subscriptionId: subscribed.result.subscriptionId,
+    });
+    expect(unsubscribed).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_unsubscribe',
+      result: { subscriptionId: subscribed.result.subscriptionId, closed: true },
+    });
+  });
+
+  it('allows absolute runPath poll fallback with CONFIG_UNAVAILABLE warning', async () => {
+    const { root, runPath } = await createRunWorkspace();
+    const subscribed = await runSubscribeFacade({
+      cwd: root,
+      runId: 'run-1',
+      subscription: { replay: { lastEvents: 0 } },
+    });
+    if (!subscribed.ok) throw new Error('subscribe failed');
+
+    const polled = await runSubscriptionPollFacade({
+      runPath,
+      subscriptionId: subscribed.result.subscriptionId,
+      ackCursor: subscribed.result.nextCursor,
+    });
+
+    expect(polled).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_subscription_poll',
+      warnings: [{ code: 'CONFIG_UNAVAILABLE' }],
+      result: { subscriptionId: subscribed.result.subscriptionId },
+    });
+  });
+
+  it('blocks subscribe-by-runId when config compatibility is unsupported', async () => {
+    const { root } = await createRunWorkspace('version: "0.7.0"\n');
+
+    const envelope = await runSubscribeFacade({ cwd: root, runId: 'run-1' });
+
+    expect(envelope).toMatchObject({
+      ok: false,
+      operation: 'workflow_run_subscribe',
+      error: { code: 'CONFIG_INVALID', message: expect.stringContaining('newer than this runtime supports') },
+      next: [
+        expect.objectContaining({ mcpTool: 'workflow_config_status' }),
+        expect.objectContaining({ mcpTool: 'workflow_config_upgrade' }),
+      ],
     });
   });
 

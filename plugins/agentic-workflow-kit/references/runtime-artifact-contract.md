@@ -30,6 +30,8 @@ budgets.json
 transcripts.json
 analysis.json
 report.md
+subscriptions/<subscriptionId>.json
+subscriptions/<subscriptionId>.wake
 ```
 
 `controls.ndjson` contains durable operator control requests. V1 supports abort requests. Each row
@@ -70,6 +72,17 @@ does not create this file by itself.
 `report.md` is written by explicit report generation commands and contains a deterministic
 human-readable run report. Reports may display transcript ids, paths, statuses, and unavailable
 reasons, but must not inline host transcript content.
+
+`subscriptions/<subscriptionId>.json` has `schemaVersion: 1` and stores a detached run-event
+subscription: run id, normalized filters, wake policy, throttle settings, committed cursor,
+timestamps, terminal flag, and status. The subscription artifact schema is internal to the run
+directory and is independent of the public WorkflowKit API version and `.workflow/config.yaml`
+schema version.
+
+`subscriptions/<subscriptionId>.wake` is a minimal wake signal written when matching events or
+terminal run state should wake a detached host. It contains the subscription id, run id, wake time,
+reason, and cursor-at-wake. Hosts watch the wake artifact, then call the subscription poll API to
+commit a valid `events.ndjson:<lineCount>` cursor and fetch deliverable events.
 
 Bounded export bundles may copy approved run artifacts and child JSON evidence, but must skip raw
 child payloads and must not follow transcript paths to copy host transcript files by default.

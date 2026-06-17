@@ -8,6 +8,9 @@ import {
   runReportFacade,
   runStatusFacade,
   runStreamFacade,
+  runSubscribeFacade,
+  runSubscriptionPollFacade,
+  runUnsubscribeFacade,
   trackerMigrateFacade,
   trackerValidateFacade,
 } from '../api/facade.js';
@@ -47,6 +50,9 @@ export const ORCHESTRATOR_MCP_TOOLS = [
   'workflow_run_preview',
   'workflow_run_status',
   'workflow_run_stream',
+  'workflow_run_subscribe',
+  'workflow_run_subscription_poll',
+  'workflow_run_unsubscribe',
   'workflow_run_inspect',
   'workflow_run_report',
   'workflow_run_export',
@@ -133,6 +139,50 @@ const workflowRunStreamInputSchema = workflowRunReadInputSchema.extend({
     .optional()
     .describe('Maximum stream duration before returning a timeout summary.'),
   intervalMs: z.number().int().positive().optional().describe('Polling interval while waiting for new run events.'),
+});
+
+const workflowRunSubscriptionSchema = z.object({
+  topics: z
+    .array(z.enum(['run', 'tracker', 'story', 'child', 'review', 'pr', 'merge', 'budget', 'control', 'error', 'debug']))
+    .optional()
+    .describe('Event topics to deliver. Omit for all topics.'),
+  minLevel: z.enum(['debug', 'info', 'warn', 'error']).optional().describe('Minimum event severity to deliver.'),
+  storyIds: z.array(z.string()).optional().describe('Optional story id filters.'),
+  includeData: z
+    .enum(['none', 'summary', 'full-bounded'])
+    .optional()
+    .describe('How much bounded event data to include. Defaults to summary.'),
+  replay: z
+    .object({ lastEvents: z.number().int().nonnegative().max(200).optional() })
+    .optional()
+    .describe('Initial replay window. Use 0 for no replay.'),
+  throttleMs: z.number().int().nonnegative().optional().describe('Minimum milliseconds between wake updates.'),
+  wakeOn: z
+    .object({
+      topics: z
+        .array(
+          z.enum(['run', 'tracker', 'story', 'child', 'review', 'pr', 'merge', 'budget', 'control', 'error', 'debug']),
+        )
+        .optional(),
+      types: z.array(z.string()).optional(),
+      minLevel: z.enum(['debug', 'info', 'warn', 'error']).optional(),
+    })
+    .optional()
+    .describe('Wake policy. Omit to wake on any delivered event.'),
+});
+
+const workflowRunSubscribeInputSchema = productBaseInputSchema.extend({
+  runId: z.string().describe('Run id under the configured artifact root.'),
+  subscription: workflowRunSubscriptionSchema.optional().describe('Detached subscription filter and wake policy.'),
+});
+
+const workflowRunSubscriptionPollInputSchema = workflowRunReadInputSchema.extend({
+  subscriptionId: z.string().describe('Detached subscription id returned by workflow_run_subscribe.'),
+  ackCursor: z.string().optional().describe('Cursor to commit before returning newly visible events.'),
+});
+
+const workflowRunUnsubscribeInputSchema = workflowRunReadInputSchema.extend({
+  subscriptionId: z.string().describe('Detached subscription id returned by workflow_run_subscribe.'),
 });
 
 const workflowRunReportInputSchema = workflowRunReadInputSchema.extend({
@@ -522,6 +572,62 @@ export function registerOrchestratorTools(server: McpServer): void {
                     },
                   });
                 },
+        }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_run_subscribe',
+    {
+      description:
+        'Create a detached run subscription with durable cursor and wake artifacts. Requires a configured runId.',
+      inputSchema: workflowRunSubscribeInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (input) =>
+      handleTool('workflow_run_subscribe', input.responseFormat, () =>
+        runSubscribeFacade({ ...toOverrides(input), runId: input.runId, subscription: input.subscription }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_run_subscription_poll',
+    {
+      description:
+        'Poll a detached run subscription, first committing a valid ackCursor and then returning filtered events.',
+      inputSchema: workflowRunSubscriptionPollInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (input) =>
+      handleTool('workflow_run_subscription_poll', input.responseFormat, () =>
+        runSubscriptionPollFacade({
+          ...toOverrides(input),
+          runId: input.runId,
+          runPath: input.runPath,
+          subscriptionId: input.subscriptionId,
+          ackCursor: input.ackCursor,
+          max: input.limit,
+        }),
+      ),
+  );
+
+  server.registerTool(
+    'workflow_run_unsubscribe',
+    {
+      description: 'Close a detached run subscription and remove its wake signal artifact.',
+      inputSchema: workflowRunUnsubscribeInputSchema,
+      outputSchema,
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    async (input) =>
+      handleTool('workflow_run_unsubscribe', input.responseFormat, () =>
+        runUnsubscribeFacade({
+          ...toOverrides(input),
+          runId: input.runId,
+          runPath: input.runPath,
+          subscriptionId: input.subscriptionId,
         }),
       ),
   );

@@ -58,6 +58,9 @@ describe('planning artifact model', () => {
     expect(contract).toContain('transcripts.json');
     expect(contract).toContain('analysis.json');
     expect(contract).toContain('report.md');
+    expect(contract).toContain('subscriptions/<subscriptionId>.json');
+    expect(contract).toContain('schemaVersion: 1');
+    expect(contract).toContain('subscriptions/<subscriptionId>.wake');
     expect(contract).toContain('Existing run artifacts without these files');
   });
 

@@ -36,6 +36,12 @@ describe('current-state documentation', () => {
     expect(readme).toContain('agentic-workflow-kit-mcp');
     expect(readme).toContain('npx -y --package @agentic-workflow-kit/orchestrator@<exact-version>');
     expect(readme).toContain('Available MCP tools');
+    expect(readme).toContain('agentic-workflow-kit run subscribe <run-id>');
+    expect(readme).toContain('agentic-workflow-kit run subscription-poll <run-id-or-path> <subscription-id>');
+    expect(readme).toContain('agentic-workflow-kit run unsubscribe <run-id-or-path> <subscription-id>');
+    expect(readme).toContain('workflow_run_subscribe');
+    expect(readme).toContain('workflow_run_subscription_poll');
+    expect(readme).toContain('workflow_run_unsubscribe');
     expect(readme).toContain('workflow_run_export');
     expect(readme).toContain('workflow_run_control');
     expect(readme).toContain('legacy tools remain available');
@@ -50,6 +56,16 @@ describe('current-state documentation', () => {
     expect(readme).toContain('workflow_runtime_info');
     expect(readme).toContain('workflow_config_status');
     expect(readme).toContain('workflow_config_upgrade');
+  });
+
+  it('keeps architecture docs aligned with detached subscription runtime tools', () => {
+    const architecture = readFileSync('docs/architecture.md', 'utf8');
+
+    expect(architecture).toContain('workflow_run_subscribe');
+    expect(architecture).toContain('workflow_run_subscription_poll');
+    expect(architecture).toContain('workflow_run_unsubscribe');
+    expect(architecture).toContain('subscriptions/<subscriptionId>.json');
+    expect(architecture).toContain('detachedRunSubscriptions');
   });
 
   it('keeps getting started and contributor docs aligned with published status', () => {

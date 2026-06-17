@@ -81,6 +81,30 @@ describe('RunJournal', () => {
     });
   });
 
+  it('notifies append listeners after recording run events', async () => {
+    const artifacts = new MemoryArtifacts();
+    const notified: RunEvent[] = [];
+    const journal = new RunJournal({
+      artifactStore: artifacts,
+      clock,
+      onEventRecorded: async (event) => {
+        notified.push(event);
+      },
+    });
+
+    await journal.record('child-progress', { storyId: 'A001', message: 'running tests' });
+
+    expect(notified).toEqual([
+      {
+        recordedAt: '2026-06-02T00:00:01.000Z',
+        eventAt: '2026-06-02T00:00:01.000Z',
+        type: 'child-progress',
+        storyId: 'A001',
+        message: 'running tests',
+      },
+    ]);
+  });
+
   it('writes normalized summary, rows, budget, and transcript artifacts', async () => {
     const artifacts = new MemoryArtifacts();
     const runState = {

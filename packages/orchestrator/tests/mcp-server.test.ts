@@ -239,8 +239,25 @@ describe('agentic-workflow-kit MCP server', () => {
     expect(runPreview?.inputSchema.properties?.target).toBeDefined();
 
     expect(result.tools.map((tool) => tool.name)).toEqual(
-      expect.arrayContaining(['workflow_run_status', 'workflow_run_stream', 'workflow_run_inspect']),
+      expect.arrayContaining([
+        'workflow_run_status',
+        'workflow_run_stream',
+        'workflow_run_subscribe',
+        'workflow_run_subscription_poll',
+        'workflow_run_unsubscribe',
+        'workflow_run_inspect',
+      ]),
     );
+    const runSubscribe = result.tools.find((tool) => tool.name === 'workflow_run_subscribe');
+    expect(runSubscribe?.description).toContain('detached');
+    expect(runSubscribe?.inputSchema.properties?.subscription).toBeDefined();
+    const runSubscriptionPoll = result.tools.find((tool) => tool.name === 'workflow_run_subscription_poll');
+    expect(runSubscriptionPoll?.description).toContain('Poll');
+    expect(runSubscriptionPoll?.inputSchema.properties?.subscriptionId).toBeDefined();
+    expect(runSubscriptionPoll?.inputSchema.properties?.ackCursor).toBeDefined();
+    const runUnsubscribe = result.tools.find((tool) => tool.name === 'workflow_run_unsubscribe');
+    expect(runUnsubscribe?.description).toContain('Close');
+    expect(runUnsubscribe?.inputSchema.properties?.subscriptionId).toBeDefined();
 
     const trackerValidate = result.tools.find((tool) => tool.name === 'workflow_tracker_validate');
     expect(trackerValidate?.description).toContain('Validate tracker contract');
@@ -396,6 +413,55 @@ describe('agentic-workflow-kit MCP server', () => {
       },
     });
     expect((inspect.structuredContent as { result?: { children?: unknown[] } }).result?.children).toHaveLength(1);
+    await client.close();
+    await server.close();
+  });
+
+  it('exposes detached run subscription MCP tools', async () => {
+    const { root, runPath } = await createProductRun();
+    const { client, server } = await connectClient();
+
+    const subscribed = await client.callTool({
+      name: 'workflow_run_subscribe',
+      arguments: {
+        cwd: root,
+        runId: 'run-1',
+        subscription: { topics: ['child'], replay: { lastEvents: 0 } },
+      },
+    });
+    const subscriptionId = (
+      subscribed.structuredContent as { result?: { subscriptionId?: string; nextCursor?: string } }
+    ).result?.subscriptionId;
+    const nextCursor = (subscribed.structuredContent as { result?: { nextCursor?: string } }).result?.nextCursor;
+    expect(subscribed.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_subscribe',
+      result: { runId: 'run-1', committedCursor: 'events.ndjson:0', replay: [] },
+    });
+    expect(subscriptionId).toEqual(expect.stringMatching(/^sub_/));
+
+    const polled = await client.callTool({
+      name: 'workflow_run_subscription_poll',
+      arguments: { runPath, subscriptionId, ackCursor: nextCursor },
+    });
+    expect(polled.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_subscription_poll',
+      warnings: [{ code: 'CONFIG_UNAVAILABLE' }],
+      result: { subscriptionId, events: [] },
+    });
+
+    const unsubscribed = await client.callTool({
+      name: 'workflow_run_unsubscribe',
+      arguments: { runPath, subscriptionId },
+    });
+    expect(unsubscribed.structuredContent).toMatchObject({
+      ok: true,
+      operation: 'workflow_run_unsubscribe',
+      warnings: [{ code: 'CONFIG_UNAVAILABLE' }],
+      result: { subscriptionId, closed: true },
+    });
+
     await client.close();
     await server.close();
   });

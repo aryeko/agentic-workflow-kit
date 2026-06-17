@@ -66,4 +66,14 @@ describe('orchestrator package wiring', () => {
     const config = readFileSync('packages/orchestrator/vitest.config.ts', 'utf8');
     expect(config).toContain("include: ['tests/**/*.test.ts']");
   });
+
+  it('exports detached subscription facade functions from the package entrypoint', () => {
+    const index = readFileSync('packages/orchestrator/src/index.ts', 'utf8');
+
+    expect(index).toContain('runSubscribeFacade');
+    expect(index).toContain('runSubscriptionPollFacade');
+    expect(index).toContain('runUnsubscribeFacade');
+    expect(index).toContain('WorkflowRunSubscribeResult');
+    expect(index).toContain('WorkflowRunSubscriptionPollResult');
+  });
 });

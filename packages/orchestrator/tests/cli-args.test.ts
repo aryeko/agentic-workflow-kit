@@ -105,6 +105,61 @@ describe('parseCommand', () => {
       runRef: '.codex/runs/run-1',
       overrides: { format: 'ndjson', timeoutMs: 10 },
     });
+    expect(
+      parseCommand([
+        'run',
+        'subscribe',
+        'run-1',
+        '--topics',
+        'child,error',
+        '--min-level',
+        'warn',
+        '--story',
+        'LK02',
+        '--story',
+        'LK03',
+        '--include-data',
+        'full-bounded',
+        '--limit',
+        '10',
+        '--throttle-ms',
+        '1000',
+        '--wake-topics',
+        'merge,pr',
+        '--wake-types',
+        'run-complete,child-error',
+        '--wake-min-level',
+        'error',
+      ]),
+    ).toEqual({
+      kind: 'run-subscribe',
+      runRef: 'run-1',
+      overrides: {
+        topics: ['child', 'error'],
+        minLevel: 'warn',
+        storyIds: ['LK02', 'LK03'],
+        includeData: 'full-bounded',
+        limit: 10,
+        throttleMs: 1000,
+        wakeTopics: ['merge', 'pr'],
+        wakeTypes: ['run-complete', 'child-error'],
+        wakeMinLevel: 'error',
+      },
+    });
+    expect(
+      parseCommand(['run', 'subscription-poll', '/tmp/run-1', 'sub_123', '--ack-cursor', 'events.ndjson:2']),
+    ).toEqual({
+      kind: 'run-subscription-poll',
+      runRef: '/tmp/run-1',
+      subscriptionId: 'sub_123',
+      overrides: { ackCursor: 'events.ndjson:2' },
+    });
+    expect(parseCommand(['run', 'unsubscribe', '/tmp/run-1', 'sub_123'])).toEqual({
+      kind: 'run-unsubscribe',
+      runRef: '/tmp/run-1',
+      subscriptionId: 'sub_123',
+      overrides: {},
+    });
     expect(parseCommand(['run', 'inspect', '/tmp/run-1'])).toEqual({
       kind: 'run-inspect',
       runRef: '/tmp/run-1',
@@ -211,6 +266,9 @@ describe('parseCommand', () => {
     expect(() => parseCommand(['config'])).toThrow('Expected `config status` or `config upgrade`');
     expect(() => parseCommand(['tracker', 'migrate', '--track', 'linkly'])).toThrow('tracker migrate requires --from');
     expect(() => parseCommand(['run-story'])).toThrow('run-story requires a story id');
+    expect(() => parseCommand(['run', 'subscription-poll', '/tmp/run-1'])).toThrow(
+      'run subscription-poll requires a run ref and subscription id',
+    );
     expect(() => parseCommand(['watch-run'])).toThrow('watch-run requires a run directory');
     expect(() => parseCommand(['analyze-run'])).toThrow('analyze-run requires a run directory');
   });

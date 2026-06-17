@@ -264,6 +264,9 @@ describe('skill authoring', () => {
     expect(body).toContain('Do not require a native GitHub approval or');
     expect(body).toContain('workflow_run_status');
     expect(body).toContain('workflow_run_stream');
+    expect(body).toContain('workflow_run_subscribe');
+    expect(body).toContain('workflow_run_subscription_poll');
+    expect(body).toContain('workflow_run_unsubscribe');
     expect(body).toContain('workflow_run_inspect');
     expect(body).toContain('workflow_run_report');
     expect(body).toContain('workflow_run_export');

@@ -12,7 +12,22 @@ export type {
   WorkflowTrackerMigrateResult,
   WorkflowTrackerValidateResult,
 } from './api/facade.js';
-export { projectInspectFacade, runPreviewFacade, trackerMigrateFacade, trackerValidateFacade } from './api/facade.js';
+export {
+  projectInspectFacade,
+  runPreviewFacade,
+  runSubscribeFacade,
+  runSubscriptionPollFacade,
+  runUnsubscribeFacade,
+  trackerMigrateFacade,
+  trackerValidateFacade,
+} from './api/facade.js';
+export type {
+  WorkflowRunSubscribeInput,
+  WorkflowRunSubscribeResult,
+  WorkflowRunSubscriptionPollInput,
+  WorkflowRunSubscriptionPollResult,
+  WorkflowRunUnsubscribeInput,
+} from './commands/runSubscriptions.js';
 export { createRunId, loadResolvedConfig } from './config/configLoader.js';
 export { buildConfigJsonSchema, serializeConfigJsonSchema } from './config/jsonSchema.js';
 export { type PresetName, type RepoSignals, selectPreset } from './config/preset.js';
