@@ -33,13 +33,18 @@ flowchart TD
   LK01[LK01 Short-code foundation<br/>service + store boundary]
   LK02[LK02 Redirect endpoint]
   LK03[LK03 Click analytics]
+  LK04[LK04 Promote to canonical]
 
   LK01 --> LK02
   LK02 --> LK03
+  LK01 --> LK04
+  LK02 --> LK04
+  LK03 --> LK04
 ```
 
 **Reading the graph:** every solid arrow is a hard dependency. The source story must be `done` or
-`verified` before the target starts. LK01 has no inbound edge and can start immediately.
+`verified` before the target starts. LK01 has no inbound edge and can start immediately. LK04 is
+the terminal promote story and cannot start until all implementation stories are complete.
 
 ## Status matrix
 
@@ -49,12 +54,14 @@ Statuses: `specced` -> `plan-approved` -> `implementing` -> `done` -> `verified`
 
 | ID | Name | Depends on | Wave | Status | Spec | Plan | Owner | PR |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LK01 | Short-code foundation (L-1) | — | W1 | specced | [brief](./stories/LK01.md) | — | — | — |
-| LK02 | Redirect endpoint (L-2) | LK01 | W2 | specced | [brief](./stories/LK02.md) | — | — | — |
-| LK03 | Click analytics (A-1) | LK02 | W3 | specced | [brief](./stories/LK03.md) | — | — | — |
+| LK01 | Short-code foundation (L-1) | — | W1 | specced | [story](./stories/LK01.md) | — | — | — |
+| LK02 | Redirect endpoint (L-2) | LK01 | W2 | specced | [story](./stories/LK02.md) | — | — | — |
+| LK03 | Click analytics (A-1) | LK02 | W3 | specced | [story](./stories/LK03.md) | — | — | — |
+| LK04 | Promote to canonical | LK01, LK02, LK03 | W4 | specced | [story](./stories/LK04.md) | — | — | — |
 
-The **Plan** column stays `—`; the implementing session drafts plans after creating the detailed
-technical story spec.
+The **Plan** column stays `—`; the implementing session drafts plans after enriching the story file
+to implementation-ready. The track is not complete until LK04 (the terminal promote story) reaches
+`done` or `verified`.
 
 ## Parallelism rules
 
@@ -67,6 +74,10 @@ touches the router.
 **Wave 3 — Analytics (sequential):** LK03 reads the redirect path LK02 establishes, so it follows
 LK02.
 
+**Wave 4 — Promote (terminal, single story):** LK04 depends on all implementation stories and runs
+`promote-to-canonical` to fold durable decisions into canonical docs. The track is not complete
+until LK04 is `done` or `verified`.
+
 ## ID-prefix registry
 
 This track reserves the prefix **`LK`**. It is recorded in the tracks index (`<tracksDir>/README.md`
@@ -77,8 +88,8 @@ in a real repo) and is never reused.
 1. Find a row whose **Depends on** are all `done`/`verified` and whose **Status** is `specced` or
    `plan-approved`.
 2. Claim it and flip **Status** to `implementing`.
-3. Read the linked story brief.
-4. Create/refine the detailed technical story spec under `docs/specs/` (the configured `specsDir`).
+3. Read the linked story file.
+4. Enrich the story file in place to implementation-ready (advance tracker row to `plan-approved`).
 5. Draft an implementation plan under `docs/plans/` (the configured `plansDir`).
 6. Execute. Flip **Status** to `done` in this table in the same PR.
 
@@ -87,7 +98,8 @@ in a real repo) and is never reused.
 - **One story per PR.**
 - **One ID prefix per track** — `LK` is reserved here.
 - **The PRD is the source of done-ness; the tracker is the source of status.**
-- **The story brief is not implementation-ready.**
+- **Story files are brief-level until enriched to plan-approved by implement-next.**
+- **The track is not complete until LK04 (the terminal promote story) is `done` or `verified`.**
 
 ## Related
 
