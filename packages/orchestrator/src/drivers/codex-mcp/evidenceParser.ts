@@ -5,6 +5,7 @@ import type {
   GithubEvidence,
   GithubMergeEvidence,
   GithubReviewEvidence,
+  PrePrReviewAwaitingMarker,
   VerificationEvidence,
 } from '../../types.js';
 
@@ -15,6 +16,31 @@ export function childResultEvidence(structuredContent: Record<string, unknown>, 
     readEvidenceObject(structuredContent.evidence) ??
     readEvidenceObject(structuredContent);
   return mergeEvidence(compatibilityEvidence(content, structured?.storyId, structured?.prNumber), structured);
+}
+
+/**
+ * Reads a typed pre-PR-review "awaiting_review" marker from free-form evidence.
+ *
+ * Returns the marker only when `value` is a record whose `status === 'awaiting_review'`.
+ * Optional fields are coerced (packetPath/diffRef/summary as non-empty strings, loop as an
+ * integer, verification passed through when it is an array). Returns null for non-records,
+ * a missing/other status, or malformed input. Never throws.
+ */
+export function readAwaitingReviewMarker(value: unknown): PrePrReviewAwaitingMarker | null {
+  if (!isRecord(value)) return null;
+  if (value.status !== 'awaiting_review') return null;
+  const marker: PrePrReviewAwaitingMarker = { status: 'awaiting_review' };
+  const packetPath = readString(value.packetPath);
+  const loop = readNumber(value.loop);
+  const diffRef = readString(value.diffRef);
+  const summary = readString(value.summary);
+  const verification = readVerification(value.verification);
+  if (packetPath) marker.packetPath = packetPath;
+  if (loop !== null) marker.loop = loop;
+  if (diffRef) marker.diffRef = diffRef;
+  if (summary) marker.summary = summary;
+  if (verification.length > 0) marker.verification = verification;
+  return marker;
 }
 
 function readEvidenceObject(value: unknown): ChildResultEvidence | null {

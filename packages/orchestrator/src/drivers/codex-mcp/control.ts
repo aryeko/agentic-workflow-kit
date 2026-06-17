@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto';
-import { appendFile, readFile } from 'node:fs/promises';
+import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { isRecord, safeName } from '../../internal/guards.js';
+import type { ReviewVerdict } from '../../types.js';
 import type { ChildControlRequest, ChildControlResult } from '../StoryRunner.js';
+
+const SUMMARY_PREVIEW_MAX_LENGTH = 120;
 
 const REPLY_TOOL_CANDIDATES = ['codex_reply', 'codex-reply', 'reply', 'codex_continue', 'continue'];
 const INTERRUPT_TOOL_CANDIDATES = ['codex_interrupt', 'codex-interrupt', 'interrupt', 'codex_cancel', 'cancel'];
@@ -22,7 +25,12 @@ export interface CodexControlTarget {
 }
 
 export interface CodexReplyInput extends CodexControlTargetInput {
-  message: string;
+  message?: string;
+  /**
+   * Structured pre-PR review verdict. When present, the verdict is deposited
+   * (artifact + journal) instead of sending a live reply to the child.
+   */
+  verdict?: ReviewVerdict;
 }
 
 export interface CodexInterruptInput extends CodexControlTargetInput {
@@ -75,6 +83,12 @@ export const resolveCodexControlTarget = resolveChildControlTarget;
 
 export async function sendChildReply(input: CodexReplyInput): Promise<CodexControlResult> {
   const target = await resolveChildControlTarget(input);
+  if (input.verdict) {
+    return await depositChildVerdict(target, input.verdict);
+  }
+  if (!input.message) {
+    throw new Error('child reply requires message');
+  }
   const result = await callCodexControlTool(REPLY_TOOL_CANDIDATES, {
     sessionId: target.sessionId,
     threadId: target.sessionId,
@@ -82,6 +96,37 @@ export async function sendChildReply(input: CodexReplyInput): Promise<CodexContr
   });
   await journalControlEvent(target, 'child-reply-sent', childReplyJournalFields(input.message, result.tool));
   return { ok: true, ...target, tool: result.tool, rawResult: result.rawResult };
+}
+
+/**
+ * Deposit a structured pre-PR review verdict for a child waiting in `awaiting_review`.
+ * Writes the verdict artifact and journals a redacted `pre_pr_review_verdict` event.
+ * Does NOT spawn the live Codex reply tool: in orchestrator mode the supervisor owns
+ * the resume turn.
+ */
+async function depositChildVerdict(target: CodexControlTarget, verdict: ReviewVerdict): Promise<CodexControlResult> {
+  if (!target.runPath || !target.storyId) {
+    throw new Error('verdict deposit requires runPath and storyId to locate the child verdict artifact');
+  }
+  const recordedAt = new Date().toISOString();
+  const artifact = { ...verdict, recordedAt, sessionId: target.sessionId };
+  const artifactPath = path.join(target.runPath, 'children', `${safeName(target.storyId)}.verdict.json`);
+  await writeFile(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
+
+  const resumeMessage = verdict.summary ?? `Review verdict: ${verdict.decision}`;
+  const summaryPreview =
+    typeof verdict.summary === 'string' ? verdict.summary.slice(0, SUMMARY_PREVIEW_MAX_LENGTH) : null;
+  await journalControlEvent(target, 'pre_pr_review_verdict', {
+    messageSha256: sha256(resumeMessage),
+    tool: 'verdict-deposit',
+    decision: verdict.decision,
+    findingsCount: verdict.findings?.length ?? 0,
+    loop: verdict.loop ?? null,
+    source: 'reply-tool',
+    summaryPreview,
+  });
+
+  return { ok: true, ...target, tool: 'verdict-deposit', rawResult: artifact };
 }
 
 export async function sendChildInterrupt(input: CodexInterruptInput): Promise<CodexControlResult> {
@@ -103,7 +148,7 @@ export const sendCodexInterrupt = sendChildInterrupt;
 
 export async function controlChild(input: ChildControlRequest): Promise<ChildControlResult> {
   if (input.kind === 'reply') {
-    if (!input.message) throw new Error('child reply requires message');
+    if (!input.message && !input.verdict) throw new Error('child reply requires message or verdict');
     return await sendChildReply(input as CodexReplyInput);
   }
   return await sendChildInterrupt(input as CodexInterruptInput);
@@ -142,7 +187,7 @@ async function callCodexControlTool(
 
 async function journalControlEvent(
   target: CodexControlTarget,
-  type: 'child-reply-sent' | 'child-interrupt-sent',
+  type: 'child-reply-sent' | 'child-interrupt-sent' | 'pre_pr_review_verdict',
   fields: Record<string, unknown>,
 ): Promise<void> {
   if (!target.runPath) return;

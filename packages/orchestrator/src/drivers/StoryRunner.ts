@@ -4,6 +4,7 @@ import type {
   ChildProgressSource,
   ChildResultEvidence,
   ResolvedAgentProfile,
+  ReviewVerdict,
   WorkflowStory,
 } from '../types.js';
 
@@ -18,6 +19,11 @@ export interface ChildControlRequest {
   storyId?: string;
   message?: string;
   reason?: string;
+  /**
+   * Structured pre-PR review verdict. When present on a reply request, the verdict is
+   * deposited (artifact + journal) instead of sending a live reply to the child.
+   */
+  verdict?: ReviewVerdict;
 }
 
 export interface ChildControlResult {
