@@ -25,6 +25,10 @@ Read:
 - `AGENTS.md` or equivalent repo instructions
 
 If `.workflow/config.yaml` is missing, stop and tell the user to run `/workflow-init`.
+Before any non-dry-run dispatch, check config compatibility with `workflow_config_status` when MCP
+is available, or `agentic-workflow-kit config status --json` via CLI fallback. Warn and ask before
+upgrading legacy supported configs. Stop on unsupported old, unsupported new, invalid, or missing
+config versions until the user upgrades the config or runtime.
 
 ## Hard rules
 
@@ -46,6 +50,9 @@ If `.workflow/config.yaml` is missing, stop and tell the user to run `/workflow-
 When the plugin-provided `agentic-workflow-kit` MCP server is connected, prefer these tools:
 
 - `workflow_project_inspect`
+- `workflow_runtime_info`
+- `workflow_config_status`
+- `workflow_config_upgrade`
 - `workflow_run_preview`
 - `workflow_run_status`
 - `workflow_run_stream`
@@ -104,6 +111,11 @@ Installed package usage when the plugin-provided MCP runtime is not available:
 
 ```bash
 agentic-workflow-kit list-tracks
+agentic-workflow-kit --version
+agentic-workflow-kit version --json
+agentic-workflow-kit config status --json
+agentic-workflow-kit config upgrade --dry-run --json
+agentic-workflow-kit config upgrade --yes --json
 agentic-workflow-kit list-stories --track <track-id>
 agentic-workflow-kit list-eligible --track <track-id>
 agentic-workflow-kit run-eligible --dry-run --track <track-id>

@@ -1,9 +1,9 @@
-import { mkdir, mkdtemp, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
-
+import packageJson from '../package.json';
 import { isDirectCliExecution, runCli } from '../src/cli';
 
 class FakeClient {
@@ -75,6 +75,63 @@ async function createRunWorkspace(): Promise<{ root: string; runPath: string }> 
 }
 
 describe('runCli', () => {
+  it('prints runtime version in plain text and JSON formats', async () => {
+    const plainStdout: string[] = [];
+    const jsonStdout: string[] = [];
+
+    await runCli(['--version'], { stdout: (line) => plainStdout.push(line) });
+    await runCli(['version', '--json'], { stdout: (line) => jsonStdout.push(line) });
+
+    expect(plainStdout).toEqual([packageJson.version]);
+    expect(JSON.parse(jsonStdout[0])).toMatchObject({
+      packageVersion: packageJson.version,
+      apiVersion: '1',
+      mcpServer: { name: 'agentic-workflow-kit', version: packageJson.version },
+      configSchema: { current: '0.6.0', minimumSupported: '0.6.0' },
+    });
+  });
+
+  it('prints config status and previews/applies config upgrade', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-cli-'));
+    await mkdir(path.join(root, '.workflow'), { recursive: true });
+    await writeFile(
+      path.join(root, '.workflow/config.yaml'),
+      ['version: 1', 'paths:', '  tracksDir: docs/work', ''].join('\n'),
+    );
+    const statusStdout: string[] = [];
+    const dryRunStdout: string[] = [];
+    const upgradeStdout: string[] = [];
+
+    await runCli(['config', 'status', '--cwd', root, '--json'], { stdout: (line) => statusStdout.push(line) });
+    await runCli(['config', 'upgrade', '--cwd', root, '--dry-run', '--json'], {
+      stdout: (line) => dryRunStdout.push(line),
+    });
+    expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('version: 1');
+    await runCli(['config', 'upgrade', '--cwd', root, '--yes', '--json'], {
+      stdout: (line) => upgradeStdout.push(line),
+    });
+
+    expect(JSON.parse(statusStdout[0])).toMatchObject({
+      status: 'legacy-upgradeable',
+      detectedVersion: '1',
+      targetVersion: '0.6.0',
+      upgradeAvailable: true,
+      blocking: false,
+    });
+    expect(JSON.parse(dryRunStdout[0])).toMatchObject({
+      dryRun: true,
+      wrote: false,
+      changes: [{ path: 'version', from: 1, to: '0.6.0' }],
+    });
+    expect(JSON.parse(upgradeStdout[0])).toMatchObject({
+      dryRun: false,
+      wrote: true,
+      targetVersion: '0.6.0',
+    });
+    expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('version: 0.6.0');
+    expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('tracksDir: docs/work');
+  });
+
   it('runs mcp check with only a cwd when no workflow config exists', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-check-'));
     const client = new FakeClient();

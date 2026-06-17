@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { z } from 'zod';
+import { CURRENT_CONFIG_SCHEMA_VERSION, MIN_SUPPORTED_CONFIG_SCHEMA_VERSION } from '../runtime/version.js';
 
 const nonEmpty = z.string().min(1);
 const REPO_RELATIVE_PATH_PATTERN = /^(?!\/)(?![A-Za-z]:)(?!.*(?:^|[\\/])\.\.(?:[\\/]|$)).+$/;
@@ -23,6 +24,7 @@ const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
 const DEFAULT_CHILD_MAX_RUNTIME_MS = 7_200_000;
 const DEFAULT_WATCH_INTERVAL_MS = 300_000;
 const DEFAULT_WATCH_TIMEOUT_MS = 300_000;
+const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)$/;
 const AGENT_TASK_TYPES = [
   'implementStory',
   'prePrReview',
@@ -33,6 +35,36 @@ const AGENT_TASK_TYPES = [
 ] as const;
 const BUDGET_ACTIONS = ['warn', 'stop-new-launches', 'checkpoint-stop', 'abort'] as const;
 const CHILD_SESSION_SPEEDS = ['derive', 'fast', 'standard'] as const;
+
+function compareSemver(a: string, b: string): number {
+  const left = parseSemver(a);
+  const right = parseSemver(b);
+  if (!left || !right) return 0;
+  for (let index = 0; index < left.length; index += 1) {
+    const diff = (left[index] ?? 0) - (right[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+function parseSemver(value: string): [number, number, number] | null {
+  const match = value.match(SEMVER_PATTERN);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+const ConfigVersionSchema = z.preprocess(
+  (value) => (value === 1 ? CURRENT_CONFIG_SCHEMA_VERSION : value),
+  z
+    .string()
+    .regex(SEMVER_PATTERN, { message: 'must be a semver string' })
+    .refine((value) => compareSemver(value, MIN_SUPPORTED_CONFIG_SCHEMA_VERSION) >= 0, {
+      message: `must be at least ${MIN_SUPPORTED_CONFIG_SCHEMA_VERSION}`,
+    })
+    .refine((value) => compareSemver(value, CURRENT_CONFIG_SCHEMA_VERSION) <= 0, {
+      message: `must be no newer than ${CURRENT_CONFIG_SCHEMA_VERSION}`,
+    }),
+);
 
 function agentBudgetDimensionSchema(defaultAction: (typeof BUDGET_ACTIONS)[number]) {
   return z
@@ -210,7 +242,7 @@ function deepMergeObjects(base: Record<string, unknown>, override: Record<string
 
 export const ConfigSchema = z
   .object({
-    version: z.literal(1),
+    version: ConfigVersionSchema,
     paths: z
       .object({
         tracksDir: repoRelativePath.default('docs/tracks'),

@@ -42,6 +42,14 @@ describe('current-state documentation', () => {
     expect(readme).toContain('.codex/agentic-workflow-kit/runs/<run-id>');
     expect(readme).not.toContain('.workflow/runs/<run-id>');
     expect(readme).toContain('Tracker state is authoritative');
+    expect(readme).toContain('agentic-workflow-kit --version');
+    expect(readme).toContain('agentic-workflow-kit version --json');
+    expect(readme).toContain('agentic-workflow-kit config status --cwd . --json');
+    expect(readme).toContain('agentic-workflow-kit config upgrade --cwd . --dry-run --json');
+    expect(readme).toContain('agentic-workflow-kit config upgrade --cwd . --yes --json');
+    expect(readme).toContain('workflow_runtime_info');
+    expect(readme).toContain('workflow_config_status');
+    expect(readme).toContain('workflow_config_upgrade');
   });
 
   it('keeps getting started and contributor docs aligned with published status', () => {

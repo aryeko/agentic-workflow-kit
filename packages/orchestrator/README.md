@@ -36,6 +36,11 @@ tracker. Use this package directly when you want the runtime from a terminal, CI
 
 ```bash
 agentic-workflow-kit --help
+agentic-workflow-kit --version
+agentic-workflow-kit version --json
+agentic-workflow-kit config status --cwd . --json
+agentic-workflow-kit config upgrade --cwd . --dry-run --json
+agentic-workflow-kit config upgrade --cwd . --yes --json
 agentic-workflow-kit project inspect --cwd . --json
 agentic-workflow-kit run preview --cwd . --track product-foundation --mode eligible --json
 agentic-workflow-kit run preview --cwd . --track product-foundation --story WK001 --json
@@ -66,6 +71,12 @@ uses the same story and track selection behavior as `run-story --dry-run` and
 `run-eligible --dry-run` while exposing product nouns for CLI/MCP parity. The legacy commands remain
 available for current plugin workflows and existing automation.
 
+Use `--version` for a plain package version and `version --json` for package, MCP server, API, and
+config-schema version metadata. Use `config status --json` before config-dependent automation to
+check the detected schema version, current/minimum supported versions, upgrade availability,
+warnings, and next actions. Use `config upgrade --dry-run --json` to preview the migration and
+`config upgrade --yes --json` to rewrite `.workflow/config.yaml` after explicit approval.
+
 ## MCP Server
 
 Plugin installs start the MCP server with an exact package version:
@@ -76,6 +87,9 @@ npx -y --package @agentic-workflow-kit/orchestrator@<exact-version> agentic-work
 
 Available MCP tools:
 
+- `workflow_runtime_info`
+- `workflow_config_status`
+- `workflow_config_upgrade`
 - `workflow_project_inspect`
 - `workflow_run_preview`
 - `workflow_run_status`
@@ -107,6 +121,11 @@ workflow repo, pass `cwd` as the target repo root in tool input.
 The `workflow_*` tools are the product-named facade. The legacy tools remain available for
 0.5.13-compatible plugin workflows and existing automation.
 
+`workflow_runtime_info` reports the same package, MCP server, API, and config-schema version
+metadata as `agentic-workflow-kit version --json`. `workflow_config_status` reports compatibility
+for the target repo config without writing files. `workflow_config_upgrade` previews by default and
+requires explicit write confirmation before changing `.workflow/config.yaml`.
+
 ## Workflow Contract
 
 The orchestrator does not invent workflow policy. It reads:
@@ -114,6 +133,10 @@ The orchestrator does not invent workflow policy. It reads:
 - `.workflow/config.yaml` for paths, status buckets, verification commands, git/worktree strategy,
   and PR/merge policy.
 - Markdown trackers for story state, dependencies, ownership, and completion.
+
+New workflow configs use semver schema versions such as `version: "0.6.0"`. Legacy `version: 1`
+configs remain readable during the transition window and can be upgraded with the config status and
+upgrade commands above.
 
 Tracker state is authoritative. A child session saying it is done is not enough; completion comes
 from the tracker row moving into a configured complete status.

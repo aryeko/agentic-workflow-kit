@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
+import { mcpServerName, mcpServerVersion } from '../runtime/version.js';
 import { registerOrchestratorTools } from './tools.js';
 
 export const SERVER_INSTRUCTIONS =
@@ -15,8 +16,8 @@ export const SERVER_INSTRUCTIONS =
 export function createOrchestratorMcpServer(): McpServer {
   const server = new McpServer(
     {
-      name: 'agentic-workflow-kit',
-      version: '0.1.0',
+      name: mcpServerName,
+      version: mcpServerVersion,
     },
     {
       instructions: SERVER_INSTRUCTIONS,

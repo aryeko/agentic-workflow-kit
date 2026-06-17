@@ -4,11 +4,32 @@ The single source of truth for how agentic-workflow-kit behaves in a repo. Every
 optional with the default shown; `workflow-init` writes a fully-populated file. The
 machine-readable mirror is `config.schema.json` (validated in CI).
 
+## Config schema versioning
+
+Current config schema version: `0.6.0`.
+Minimum supported config schema version: `0.6.0`.
+
+New configs should use `version: "0.6.0"`. Existing legacy configs with `version: 1` remain readable
+during the transition window and are classified as upgradeable to `0.6.0`. Versions below the
+minimum supported schema version are blocked until upgraded. Versions above the current schema
+version are blocked until the runtime is upgraded.
+
+Use these commands to inspect and upgrade config versions:
+
+```bash
+agentic-workflow-kit config status --json
+agentic-workflow-kit config upgrade --dry-run --json
+agentic-workflow-kit config upgrade --yes --json
+```
+
+Config upgrades never rewrite `.workflow/config.yaml` without `--yes` or an explicit MCP upgrade
+confirmation.
+
 ## Top level
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `version` | const `1` | `1` | Schema version. Must be exactly `1`. Required. |
+| `version` | semver string \| legacy const `1` | `0.6.0` | Config schema version. Use `"0.6.0"` for new configs; legacy `1` is readable and upgradeable during the transition window. |
 
 ## `paths`
 

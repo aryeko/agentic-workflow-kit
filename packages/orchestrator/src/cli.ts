@@ -27,8 +27,10 @@ import {
   runWorkflowHandler,
   watchRunHandler,
 } from './commands/handlers.js';
+import { applyWorkflowConfigUpgrade, getWorkflowConfigStatus, planWorkflowConfigUpgrade } from './config/version.js';
 import type { CodexMcpStoryRunnerOptions } from './drivers/codex-mcp/CodexMcpStoryRunner.js';
 import { ConsoleLogger } from './logging/ConsoleLogger.js';
+import { runtimeInfo } from './runtime/version.js';
 import type { CliOverrides, WorkflowStory, WorkflowTrack } from './types.js';
 
 export interface RunCliOptions {
@@ -43,6 +45,24 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
 
   if (command.kind === 'help') {
     stdout(getHelpText());
+    return;
+  }
+
+  if (command.kind === 'version') {
+    const info = runtimeInfo();
+    stdout(command.overrides.json ? JSON.stringify(info, null, 2) : info.packageVersion);
+    return;
+  }
+
+  if (command.kind === 'config-status') {
+    const status = await getWorkflowConfigStatus(command.overrides);
+    printConfigStatus(status, command.overrides, stdout);
+    return;
+  }
+
+  if (command.kind === 'config-upgrade') {
+    const result = await configUpgradeResult(command.overrides);
+    printConfigUpgradeResult(result, command.overrides, stdout);
     return;
   }
 
@@ -211,6 +231,52 @@ export async function runCli(argv = process.argv.slice(2), options: RunCliOption
   if (result.status === 'blocked') {
     process.exitCode = 1;
   }
+}
+
+async function configUpgradeResult(overrides: CliOverrides): Promise<Record<string, unknown>> {
+  if (overrides.confirmNonDryRun && !overrides.dryRun) {
+    return { ...(await applyWorkflowConfigUpgrade(overrides)), dryRun: false };
+  }
+  return {
+    ...(await planWorkflowConfigUpgrade(overrides)),
+    dryRun: overrides.dryRun === true,
+    wrote: false,
+    confirmationRequired: overrides.dryRun !== true,
+  };
+}
+
+function printConfigStatus(
+  status: Record<string, unknown>,
+  overrides: CliOverrides,
+  stdout: (line: string) => void,
+): void {
+  if (overrides.json) {
+    stdout(JSON.stringify(status, null, 2));
+    return;
+  }
+  const detected = typeof status.detectedVersion === 'string' ? status.detectedVersion : 'unknown';
+  const target = typeof status.targetVersion === 'string' ? status.targetVersion : 'current';
+  stdout(`${String(status.status)}: config ${detected} -> ${target}`);
+}
+
+function printConfigUpgradeResult(
+  result: Record<string, unknown>,
+  overrides: CliOverrides,
+  stdout: (line: string) => void,
+): void {
+  if (overrides.json) {
+    stdout(JSON.stringify(result, null, 2));
+    return;
+  }
+  if (result.confirmationRequired === true) {
+    stdout('Config upgrade requires confirmation. Rerun with --dry-run to preview or --yes to apply.');
+    return;
+  }
+  if (result.wrote === true) {
+    stdout(`Config upgraded to ${String(result.targetVersion)}`);
+    return;
+  }
+  stdout('Config upgrade preview completed without writing.');
 }
 
 function runRefInput(runRef: string, overrides: CliOverrides): { runId?: string; runPath?: string } {

@@ -8,6 +8,12 @@ describe('parseCommand', () => {
     expect(parseCommand(['-h'])).toEqual({ kind: 'help' });
   });
 
+  it('parses version forms', () => {
+    expect(parseCommand(['--version'])).toEqual({ kind: 'version', overrides: {} });
+    expect(parseCommand(['version'])).toEqual({ kind: 'version', overrides: {} });
+    expect(parseCommand(['version', '--json'])).toEqual({ kind: 'version', overrides: { json: true } });
+  });
+
   it('parses list commands', () => {
     expect(parseCommand(['list-tracks', '--json'])).toEqual({ kind: 'list-tracks', overrides: { json: true } });
     expect(parseCommand(['list-stories', '--track', 'linkly'])).toEqual({
@@ -124,6 +130,18 @@ describe('parseCommand', () => {
       track: 'linkly',
       overrides: {},
     });
+    expect(parseCommand(['config', 'status', '--cwd', '/repo', '--json'])).toEqual({
+      kind: 'config-status',
+      overrides: { cwd: '/repo', json: true },
+    });
+    expect(parseCommand(['config', 'upgrade', '--cwd', '/repo', '--dry-run', '--json'])).toEqual({
+      kind: 'config-upgrade',
+      overrides: { cwd: '/repo', dryRun: true, json: true },
+    });
+    expect(parseCommand(['config', 'upgrade', '--cwd', '/repo', '--yes', '--json'])).toEqual({
+      kind: 'config-upgrade',
+      overrides: { cwd: '/repo', confirmNonDryRun: true, json: true },
+    });
     expect(() => parseCommand(['run', 'preview', '--story', 'LK02', '--mode', 'eligible'])).toThrow(
       'run preview cannot combine --story with --mode',
     );
@@ -190,6 +208,7 @@ describe('parseCommand', () => {
     expect(() => parseCommand(['--json', 'list-tracks'])).toThrow('Unknown command: --json');
     expect(() => parseCommand(['mcp'])).toThrow('Expected `mcp check`');
     expect(() => parseCommand(['tracker'])).toThrow('Expected `tracker validate` or `tracker migrate`');
+    expect(() => parseCommand(['config'])).toThrow('Expected `config status` or `config upgrade`');
     expect(() => parseCommand(['tracker', 'migrate', '--track', 'linkly'])).toThrow('tracker migrate requires --from');
     expect(() => parseCommand(['run-story'])).toThrow('run-story requires a story id');
     expect(() => parseCommand(['watch-run'])).toThrow('watch-run requires a run directory');

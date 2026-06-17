@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isRecord } from '../internal/guards.js';
+import { CURRENT_CONFIG_SCHEMA_VERSION } from '../runtime/version.js';
 import { ConfigSchema } from './schema.js';
 
 const ID = 'https://github.com/aryeko/agentic-workflow-kit/config.schema.json';
@@ -7,14 +8,28 @@ const ID = 'https://github.com/aryeko/agentic-workflow-kit/config.schema.json';
 export function buildConfigJsonSchema(): Record<string, unknown> {
   const generated = z.toJSONSchema(ConfigSchema) as Record<string, unknown>;
   const schema = addChildSessionSpeedConflictRules(
-    relaxObjectRequired({
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $id: ID,
-      title: 'agentic-workflow-kit config',
-      ...generated,
-    }),
+    addVersionCompatibilityRule(
+      relaxObjectRequired({
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $id: ID,
+        title: 'agentic-workflow-kit config',
+        ...generated,
+      }),
+    ),
   );
   schema.$comment = 'Runtime validation: every agents.bindings value must reference a key in agents.profiles.';
+  return schema;
+}
+
+function addVersionCompatibilityRule(schema: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(schema.properties)) return schema;
+  schema.properties.version = {
+    anyOf: [
+      { type: 'string', const: CURRENT_CONFIG_SCHEMA_VERSION },
+      { type: 'number', const: 1 },
+    ],
+    default: CURRENT_CONFIG_SCHEMA_VERSION,
+  };
   return schema;
 }
 

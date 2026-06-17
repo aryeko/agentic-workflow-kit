@@ -1,4 +1,4 @@
-version: 1
+version: "0.6.0"
 paths:
   tracksDir: docs/tracks
   specsDir: docs/specs

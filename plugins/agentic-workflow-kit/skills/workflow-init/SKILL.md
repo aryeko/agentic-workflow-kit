@@ -53,7 +53,10 @@ Copy the chosen preset verbatim, then patch detected values: `verify.full` (from
 verify command), `verify.changed` (from a scoped changed gate when present), and `git.baseBranch`
 (from the detected default branch). Only set `verify.changed` equal to `verify.full` when no scoped
 command exists, and say that fallback explicitly in the summary. Leave everything else at the
-preset's value. Validate the result against `config.schema.json` before saving.
+preset's value. Presets declare the current semver config schema version, for example
+`version: "0.6.0"`. Existing configs with legacy `version: 1` remain readable during the transition
+window, but should be reported as upgradeable before reconciling missing keys. Validate the result
+against `config.schema.json` before saving.
 
 ## Step 4 — Scaffold trackers (only if absent)
 
@@ -73,4 +76,8 @@ command to run.
 ## Idempotency
 
 Re-running is safe: reconcile missing keys in an existing `.workflow/config.yaml`, report
-any drift from the schema, and skip scaffolding files that already exist.
+any drift from the schema, and skip scaffolding files that already exist. If the runtime exposes
+`workflow_config_status` or `agentic-workflow-kit config status --json`, use it before changing an
+existing config. If status reports an available upgrade, summarize the change and ask before running
+`workflow_config_upgrade` or `agentic-workflow-kit config upgrade --yes --json`; dry-run first when
+the user has not already approved the write.

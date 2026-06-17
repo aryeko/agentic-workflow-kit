@@ -12,6 +12,9 @@ export function parseCommand(argv: string[]): WorkflowCommand {
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     return { kind: 'help' };
   }
+  if (args.length === 1 && args[0] === '--version') {
+    return { kind: 'version', overrides: {} };
+  }
   if (args[0].startsWith('-')) {
     throw new Error(`Unknown command: ${args[0]}`);
   }
@@ -20,6 +23,9 @@ export function parseCommand(argv: string[]): WorkflowCommand {
   }
   if (args[0] === 'tracker' && args[1] !== 'validate' && args[1] !== 'migrate') {
     throw new Error('Expected `tracker validate` or `tracker migrate`');
+  }
+  if (args[0] === 'config' && args[1] !== 'status' && args[1] !== 'upgrade') {
+    throw new Error('Expected `config status` or `config upgrade`');
   }
   if (args[0] === 'project' && args[1] !== 'inspect') {
     throw new Error('Expected `project inspect`');
@@ -76,6 +82,9 @@ function buildProgram(setParsed: (command: WorkflowCommand) => void): Command {
   withOptions(program.command('list-eligible')).action((options: CommanderOptions) => {
     setParsed({ kind: 'list-eligible', overrides: toOverrides(options) });
   });
+  withOptions(program.command('version')).action((options: CommanderOptions) => {
+    setParsed({ kind: 'version', overrides: toOverrides(options) });
+  });
   const project = program.command('project').allowExcessArguments(false);
   withOptions(project.command('inspect')).action((options: CommanderOptions) => {
     setParsed({ kind: 'project-inspect', overrides: toOverrides(options) });
@@ -115,6 +124,13 @@ function buildProgram(setParsed: (command: WorkflowCommand) => void): Command {
       track: options.track,
       overrides: toProductOverrides(options),
     });
+  });
+  const config = program.command('config').allowExcessArguments(false);
+  withOptions(config.command('status')).action((options: CommanderOptions) => {
+    setParsed({ kind: 'config-status', overrides: toOverrides(options) });
+  });
+  withOptions(config.command('upgrade')).action((options: CommanderOptions) => {
+    setParsed({ kind: 'config-upgrade', overrides: toOverrides(options) });
   });
   withOptions(program.command('run-story').argument('<storyId>')).action(
     (storyId: string, options: CommanderOptions) => {

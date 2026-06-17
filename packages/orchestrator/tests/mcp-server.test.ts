@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { afterEach, describe, expect, it } from 'vitest';
-
+import packageJson from '../package.json';
 import { createOrchestratorMcpServer } from '../src/mcp/server';
 import { ORCHESTRATOR_MCP_TOOLS } from '../src/mcp/tools';
 
@@ -202,6 +202,10 @@ describe('agentic-workflow-kit MCP server', () => {
 
     const result = await client.listTools();
 
+    expect(client.getServerVersion()).toMatchObject({
+      name: 'agentic-workflow-kit',
+      version: packageJson.version,
+    });
     expect(result.tools.map((tool) => tool.name).sort()).toEqual([...ORCHESTRATOR_MCP_TOOLS].sort());
     for (const tool of result.tools) {
       expect(tool.outputSchema).toBeDefined();
@@ -220,6 +224,15 @@ describe('agentic-workflow-kit MCP server', () => {
 
     const projectInspect = result.tools.find((tool) => tool.name === 'workflow_project_inspect');
     expect(projectInspect?.description).toContain('Resolve WorkflowKit project context');
+
+    const runtimeInfo = result.tools.find((tool) => tool.name === 'workflow_runtime_info');
+    expect(runtimeInfo?.description).toContain('Report WorkflowKit runtime');
+
+    const configStatus = result.tools.find((tool) => tool.name === 'workflow_config_status');
+    expect(configStatus?.description).toContain('Report WorkflowKit config compatibility');
+
+    const configUpgrade = result.tools.find((tool) => tool.name === 'workflow_config_upgrade');
+    expect(configUpgrade?.description).toContain('Preview or apply WorkflowKit config upgrades');
 
     const runPreview = result.tools.find((tool) => tool.name === 'workflow_run_preview');
     expect(runPreview?.description).toContain('Preview story or track execution');
@@ -246,6 +259,63 @@ describe('agentic-workflow-kit MCP server', () => {
       description: expect.stringContaining('Target repo root'),
     });
     expect(workflowChildReply?.inputSchema.properties?.configPath).toBeDefined();
+
+    await client.close();
+    await server.close();
+  });
+
+  it('reports runtime info and previews/applies config upgrades through MCP tools', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-mcp-config-'));
+    await mkdir(path.join(root, '.workflow'), { recursive: true });
+    await writeFile(
+      path.join(root, '.workflow/config.yaml'),
+      ['version: 1', 'paths:', '  tracksDir: docs/custom-tracks', ''].join('\n'),
+    );
+    const { client, server } = await connectClient();
+
+    const runtimeInfo = await client.callTool({ name: 'workflow_runtime_info', arguments: {} });
+    const status = await client.callTool({ name: 'workflow_config_status', arguments: { cwd: root } });
+    const preview = await client.callTool({
+      name: 'workflow_config_upgrade',
+      arguments: { cwd: root, dryRun: true },
+    });
+    const unconfirmed = await client.callTool({
+      name: 'workflow_config_upgrade',
+      arguments: { cwd: root, dryRun: false },
+    });
+    const applied = await client.callTool({
+      name: 'workflow_config_upgrade',
+      arguments: { cwd: root, dryRun: false, confirm: true },
+    });
+
+    expect(runtimeInfo.structuredContent).toMatchObject({
+      packageVersion: packageJson.version,
+      mcpServer: { name: 'agentic-workflow-kit', version: packageJson.version },
+      configSchema: { current: '0.6.0', minimumSupported: '0.6.0' },
+    });
+    expect(status.structuredContent).toMatchObject({
+      status: 'legacy-upgradeable',
+      upgradeAvailable: true,
+      blocking: false,
+      targetVersion: '0.6.0',
+    });
+    expect(preview.structuredContent).toMatchObject({
+      dryRun: true,
+      wrote: false,
+      changes: [{ path: 'version', from: 1, to: '0.6.0' }],
+    });
+    expect(unconfirmed.structuredContent).toMatchObject({
+      dryRun: false,
+      wrote: false,
+      confirmationRequired: true,
+      changes: [{ path: 'version', from: 1, to: '0.6.0' }],
+    });
+    expect(applied.structuredContent).toMatchObject({
+      dryRun: false,
+      wrote: true,
+      targetVersion: '0.6.0',
+    });
+    expect(await readFile(path.join(root, '.workflow/config.yaml'), 'utf8')).toContain('version: 0.6.0');
 
     await client.close();
     await server.close();
@@ -370,7 +440,7 @@ describe('agentic-workflow-kit MCP server', () => {
       result: { runId: 'run-1' },
     });
     expect(JSON.parse('text' in config.contents[0] ? config.contents[0].text : '')).toMatchObject({
-      version: 1,
+      version: '0.6.0',
       statuses: { inProgress: 'implementing' },
     });
     await client.close();
