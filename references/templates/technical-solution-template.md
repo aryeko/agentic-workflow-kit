@@ -82,6 +82,18 @@ resolution path.
 | --- | --- | --- | --- |
 | <question> | <yes/no> | <default> | <how it will be answered> |
 
+## Canonical impact
+
+_Enumerate every canonical doc this design will create or change when it is promoted at track
+completion. This list seeds the terminal promote story._
+
+| Doc | Action | Notes |
+| --- | --- | --- |
+| `<canonical doc path>` | `create` \| `update` \| `new-adr` \| `archive` | <one-line description of the change> |
+
+If no canonical doc changes are expected, replace the table with: "No canonical doc changes —
+this design is self-contained and leaves no durable decisions."
+
 ## Inputs for delivery tracker/story briefs
 
 | Story brief input | PRD criteria | Technical solution sections to cite | Sequencing/file-contention notes |

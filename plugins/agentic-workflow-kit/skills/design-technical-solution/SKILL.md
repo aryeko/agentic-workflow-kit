@@ -31,17 +31,27 @@ Then proceed unless a blocking decision is needed.
 
 ## Step 1 - Resolve PRD and solution location
 
-- Read `.workflow/config.yaml` if present and take `paths.prdsDir` (default `docs/prds`).
-- Locate the PRD at `<prdsDir>/<slug>/` when a PRD slug or path is supplied, and verify it conforms
-  to `prd-contract.md`.
+- Read `.workflow/config.yaml` if present. Take:
+  - `docs.paths.designsDir` (default `docs/architecture/designs`) as the primary output
+    location for new technical designs.
+  - `docs.paths.prdsDir` (default `docs/product/prds`; fall back to `paths.prdsDir` →
+    `docs/prds` for legacy configs) to locate the source PRD.
+  - `docs.style` (default `docs/docs-style.md`) as the repo-owned authoring standard.
+- Locate the PRD at `<prdsDir>/<slug>/` when a PRD slug or path is supplied, and verify it
+  conforms to `prd-contract.md`.
 - If no conforming PRD exists but the user supplied explicit design docs, technical notes, or
   session context with enough product scope and acceptance outcomes, derive a short kebab-case
-  `<slug>` from the product/work name or ask the user to confirm one before writing. Continue only
-  after the slug is known, and record the source material as assumptions. If neither a PRD nor
-  sufficient context exists, stop and point the user at `/define-product`.
-- Write the technical solution at `<prdsDir>/<slug>/technical-solution.md`.
-- If that file already exists, switch to resume/extend mode. Never overwrite it without explicit
-  confirmation.
+  `<slug>` from the product/work name or ask the user to confirm one before writing. Continue
+  only after the slug is known, and record the source material as assumptions. If neither a
+  PRD nor sufficient context exists, stop and point the user at `/define-product`.
+- **Output location** — write the technical design at `<designsDir>/<slug>.md`. This is a
+  staging doc (`status: draft` → `approved`) under the architecture pillar; it is archived
+  after promotion to canonical.
+- **Back-compat** — if `<prdsDir>/<slug>/technical-solution.md` already exists, read it as
+  input and offer to migrate it to `<designsDir>/<slug>.md`. Never silently drop the old
+  file; surface the migration as an explicit action for the user to confirm.
+- If the target file at `<designsDir>/<slug>.md` already exists, switch to resume/extend
+  mode. Never overwrite it without explicit confirmation.
 
 ## Step 2 - Ingest context before asking
 
@@ -61,7 +71,8 @@ implementation plan, and runtime artifacts own downstream detail and evidence.
 
 ## Step 3 - Draft the technical solution
 
-Copy `references/templates/technical-solution-template.md` and fill every required section:
+Copy `${CLAUDE_PLUGIN_ROOT}/references/templates/technical-solution-template.md` and fill every
+required section:
 
 - Context and existing surfaces
 - Technical requirements
@@ -73,6 +84,7 @@ Copy `references/templates/technical-solution-template.md` and fill every requir
 - Migration/deploy surfaces
 - Testing strategy
 - Open technical questions
+- **Canonical impact** ← required new section (see below)
 - Inputs for delivery tracker/story briefs
 
 The technical solution must cite PRD acceptance-criteria IDs from `08-acceptance-criteria.md`. It
@@ -81,6 +93,39 @@ constraints, file contention, validation expectations, and technical solution he
 briefs should cite.
 When there is no PRD, cite equivalent product outcomes from the supplied external context and mark
 the PRD criteria column as context-derived until a PRD is created.
+
+### Canonical impact section
+
+The **Canonical impact** section enumerates every canonical doc this design will create or change
+when it is promoted at track completion. It seeds the terminal promote story so the promote step
+does not have to reconstruct intent from diffs alone.
+
+For each item, state:
+
+| Doc | Action | Notes |
+|---|---|---|
+| `<canonical doc path>` | `create` \| `update` \| `new-adr` \| `archive` | One-line description of the change |
+
+Common entries:
+
+- `architecture/guidelines.md` — update if the design introduces a new architectural rule.
+- `architecture/domains/<domain>.md` — update invariants, public API, or gotchas; or `create`
+  if this is a new domain.
+- `architecture/decisions/NNNN-<slug>.md` — `new-adr` for each real, durable decision
+  captured in this design.
+- `product/<surface>.md` or `product/README.md` — update if product surfaces or status
+  descriptions change.
+- `<prdsDir>/<slug>/README.md` — flip `status` to `shipped` on promotion.
+- `<designsDir>/<slug>.md` — `archive` (flip `status` to `archived`) on promotion.
+
+If no canonical doc changes are expected, say so explicitly: "No canonical doc changes —
+this design is self-contained and leaves no durable decisions." A missing or empty section
+is a signal to `plan-delivery-track` to ask before accepting the design.
+
+Conform the document to `docs.style` (repo-owned authoring standard): required frontmatter
+(`title`, `status: draft`, `owner`, `last-reviewed`, `related`), one-line italic TL;DR
+under the H1, and relative links. If `docs.style` is absent, apply the kit's built-in
+standard.
 
 ## Step 4 - Self-review
 
@@ -93,12 +138,17 @@ Before writing, check:
 - Open questions are truly blocking. Move implementer-resolvable questions into story-brief inputs.
 - The document does not duplicate tracker status, owner, plan, PR fields, or detailed story-spec
   implementation decisions.
+- The **Canonical impact** section is present and non-empty, or contains an explicit
+  "no canonical changes" statement. An empty or absent section will prompt `plan-delivery-track`
+  to ask for clarification before proceeding.
 
 ## Step 5 - Write and hand off
 
-Write `<prdsDir>/<slug>/technical-solution.md`, list the file written, and suggest `/plan-delivery-track`
-as the next step. `plan-delivery-track` consumes this technical solution plus
-the PRD; it owns tracker rows and lightweight story briefs.
+Write `<designsDir>/<slug>.md` (resolved from `docs.paths.designsDir`), list the file
+written, and suggest `/plan-delivery-track` as the next step. `plan-delivery-track`
+consumes this technical design plus the PRD; it owns tracker rows and lightweight story
+briefs. Note the Canonical impact items in the summary so the planner can wire them into
+the terminal promote story.
 
 Do not auto-commit.
 

@@ -24,10 +24,19 @@ briefs do not invent high-level design one story at a time.
 Default path:
 
 ```text
-<prdsDir>/<slug>/technical-solution.md
+<designsDir>/<slug>.md
 ```
 
-`<prdsDir>` resolves from `paths.prdsDir` in `.workflow/config.yaml`, defaulting to `docs/prds`.
+`<designsDir>` resolves from `docs.paths.designsDir` in `.workflow/config.yaml`, defaulting to
+`docs/architecture/designs`. This is a staging area under the architecture pillar: the document
+carries a tracked `status` (`draft` → `approved` → `archived`) and is archived after promotion
+to canonical at track completion.
+
+**Back-compat:** the legacy location `<prdsDir>/<slug>/technical-solution.md` (where `<prdsDir>`
+resolves from `paths.prdsDir`, default `docs/prds`) remains readable. When `design-technical-solution`
+detects an existing file at the legacy path, it reads it as input and surfaces a migration action
+(write to `<designsDir>/<slug>.md`, confirm before proceeding). Downstream consumers
+(`plan-delivery-track`) should check both locations when the design is not found at the primary path.
 
 ## When a technical solution is required
 
@@ -50,15 +59,16 @@ required.
 
 ```yaml
 title: <Product name> technical solution
-status: approved        # draft | approved | archived
+status: approved        # draft | approved | shipped | archived
 owner: <name or "—">
 last-reviewed: <YYYY-MM-DD>
 related:
   - <path to PRD README>
 ```
 
-Use `approved` before `plan-delivery-track` consumes the document. Use `draft` while questions are
-still blocking.
+Use `draft` while blocking questions remain. Use `approved` before `plan-delivery-track` consumes
+the document. `plan-delivery-track` will not accept a design with `status: draft` without explicit
+confirmation. The promote step flips `status` to `archived` after canonical promotion completes.
 
 ## Required sections
 
@@ -118,6 +128,27 @@ blocking solution approval.
 List safe assumptions carried from the PRD, existing design docs, technical notes, or session
 context. Assumptions must be specific enough for `plan-delivery-track` to preserve or challenge
 them in story briefs.
+
+### Canonical impact
+
+Enumerate every canonical doc this design will create or change when it is promoted at track
+completion. This list is read by the terminal promote story (`promote-to-canonical`) so promotion
+does not have to reconstruct intent from the merged diff alone.
+
+For each item, provide the canonical doc path, the action (`create`, `update`, `new-adr`, or
+`archive`), and a one-line description of the change. Common entries:
+
+- `architecture/guidelines.md` — update when the design introduces a new architectural rule.
+- `architecture/domains/<domain>.md` — update invariants, public API, or gotchas; or `create`
+  if this is a new domain.
+- `architecture/decisions/NNNN-<slug>.md` — `new-adr` for each real, durable decision
+  captured in this design.
+- `product/<surface>.md` or `product/README.md` — update if product surfaces or status change.
+- `<prdsDir>/<slug>/README.md` — flip `status` to `shipped` on promotion.
+- `<designsDir>/<slug>.md` — `archive` (flip `status` to `archived`) on promotion.
+
+If no canonical doc changes are expected, state that explicitly. An empty or absent section
+signals to `plan-delivery-track` to ask for clarification before accepting the design.
 
 ### Inputs for delivery tracker/story briefs
 
