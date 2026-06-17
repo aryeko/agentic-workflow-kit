@@ -1,5 +1,16 @@
 # @agentic-workflow-kit/orchestrator
 
+## 0.7.0
+
+### Minor Changes
+
+- 38bd0e5: Add detached run-event subscriptions across the CLI and MCP product API. Hosts can now create durable
+  subscription records with stored filters and cursor state, watch wake signal artifacts, poll with
+  acknowledged `events.ndjson:<lineCount>` cursors, and close subscriptions without changing the
+  workflow config schema.
+- 37b72a7: Add an `orchestrator` pre-PR review mode. In this mode the implementing Codex child stops at the pre-PR checkpoint, writes a review-request packet, and ends its turn with an `awaiting_review` marker instead of self-reviewing or opening the PR. The supervising orchestrator session reviews the diff and replies a canonical `PASS`/`BLOCK` verdict (friendly aliases accepted) via `workflow_child_reply`, which the supervisor uses to resume the same Codex thread — opening the PR on `PASS` or applying findings and re-verifying on `BLOCK`, bounded by `maxLoops`. The review wait is exempt from the no-progress/max-runtime timeouts and instead bounded by the new `orchestrator.childReviewWaitTimeoutMs`; it is fail-closed (`pre_pr_review_blocked`) unless `implement.review.prePr.downgradeTo` (`subagent`/`inline`) is set. Additive and backward-compatible: the default mode stays `auto`, and the external Codex PR review remains the independent final gate. Gated to the `codex-mcp` driver in v1.
+- 9f79ae8: Add runtime and workflow config schema version surfaces across the CLI and MCP runtime. The CLI now reports package/runtime metadata and can inspect or explicitly upgrade workflow config schema versions, while the MCP server advertises the package version and exposes runtime/config status and upgrade tools. Legacy `version: 1` workflow configs remain readable and can be upgraded to the semver schema version `0.6.0`; unsupported older or newer semver configs now fail with actionable compatibility messages.
+
 ## 0.6.0
 
 ### Minor Changes
