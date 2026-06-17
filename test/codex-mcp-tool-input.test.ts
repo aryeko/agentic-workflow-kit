@@ -71,7 +71,7 @@ function config(): Pick<ResolvedWorkflowConfig, 'workspace' | 'git' | 'implement
     },
     implement: {
       review: {
-        prePr: { enabled: true, mode: 'subagent', maxLoops: 2, loopMode: 'incremental' },
+        prePr: { enabled: true, mode: 'subagent', maxLoops: 2, loopMode: 'incremental', downgradeTo: 'none' },
         semanticChecks: { enabled: true },
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },

@@ -122,6 +122,7 @@ describe('config.schema.json', () => {
       mode: 'auto',
       maxLoops: 2,
       loopMode: 'incremental',
+      downgradeTo: 'none',
     });
     expect(parsed.implement.review.semanticChecks).toEqual({ enabled: true });
     expect(parsed.implement.subagents).toEqual({ enabled: true, maxParallel: 2, allowWorkers: false });
@@ -137,6 +138,7 @@ describe('config.schema.json', () => {
     expect(parsed.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
     expect(parsed.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(parsed.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
+    expect(parsed.orchestrator.childReviewWaitTimeoutMs).toBe(1_800_000);
     expect(parsed.agents.bindings.implementStory).toBe('storyImplementer');
     expect(parsed.agents.profiles.storyImplementer.prompt.template).toBe('built-in/story-implementer');
     expect(parsed.agents.profiles.storyImplementer.budget.wallMs).toEqual({
@@ -254,6 +256,62 @@ describe('config.schema.json', () => {
         },
       }),
     ).toBe(false);
+  });
+  it('accepts the orchestrator pre-PR review mode', () => {
+    expect(
+      validateConfigContract({
+        ...goodConfig,
+        implement: {
+          ...goodConfig.implement,
+          review: {
+            ...goodConfig.implement.review,
+            prePr: { ...goodConfig.implement.review.prePr, mode: 'orchestrator' },
+          },
+        },
+      }),
+    ).toBe(true);
+  });
+  it('defaults orchestrator-mode downgradeTo to none (fail-closed)', () => {
+    const parsed = ConfigSchema.parse({
+      version: 1,
+      implement: { review: { prePr: { mode: 'orchestrator' } } },
+    });
+
+    expect(parsed.implement.review.prePr.mode).toBe('orchestrator');
+    expect(parsed.implement.review.prePr.downgradeTo).toBe('none');
+  });
+  it('accepts downgradeTo subagent and inline, rejects other values', () => {
+    for (const downgradeTo of ['none', 'subagent', 'inline']) {
+      expect(
+        validateConfigContract({
+          ...goodConfig,
+          implement: {
+            ...goodConfig.implement,
+            review: {
+              ...goodConfig.implement.review,
+              prePr: { ...goodConfig.implement.review.prePr, mode: 'orchestrator', downgradeTo },
+            },
+          },
+        }),
+      ).toBe(true);
+    }
+    expect(
+      validate({
+        ...goodConfig,
+        implement: {
+          ...goodConfig.implement,
+          review: {
+            ...goodConfig.implement.review,
+            prePr: { ...goodConfig.implement.review.prePr, downgradeTo: 'auto' },
+          },
+        },
+      }),
+    ).toBe(false);
+  });
+  it('rejects a non-positive childReviewWaitTimeoutMs', () => {
+    expect(validate({ ...goodConfig, orchestrator: { ...goodConfig.orchestrator, childReviewWaitTimeoutMs: 0 } })).toBe(
+      false,
+    );
   });
   it('rejects zero review loop limits', () => {
     expect(

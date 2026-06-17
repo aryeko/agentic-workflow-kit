@@ -4,6 +4,7 @@ import type {
   ChildProgressSource,
   ChildResultEvidence,
   ResolvedAgentProfile,
+  ReviewVerdict,
   WorkflowStory,
 } from '../types.js';
 
@@ -18,6 +19,11 @@ export interface ChildControlRequest {
   storyId?: string;
   message?: string;
   reason?: string;
+  /**
+   * Structured pre-PR review verdict. When present on a reply request, the verdict is
+   * deposited (artifact + journal) instead of sending a live reply to the child.
+   */
+  verdict?: ReviewVerdict;
 }
 
 export interface ChildControlResult {
@@ -61,6 +67,24 @@ export interface StoryRunRequest {
   onLifecycle?: (event: ChildLifecycleEvent) => Promise<void> | void;
 }
 
+/**
+ * Resume an existing Codex thread as a fresh MCP turn. Used by the orchestrator pre-PR review
+ * supervisor to continue a child that yielded at the `awaiting_review` checkpoint, after a
+ * PASS/BLOCK verdict has been deposited. The original `runStory` promise has already resolved,
+ * so this is a brand-new turn against the resumable `sessionId`/`threadId`.
+ */
+export interface ResumeStoryRequest {
+  sessionId: string;
+  message: string;
+  story: WorkflowStory;
+  cwd: string;
+  profile: ResolvedAgentProfile;
+  promptMetadata: StoryPromptMetadata;
+  metadata: Record<string, unknown>;
+  signal?: AbortSignal;
+  onLifecycle?: (event: ChildLifecycleEvent) => Promise<void> | void;
+}
+
 export interface StoryPromptMetadata {
   template: string;
   promptHash: string;
@@ -86,6 +110,7 @@ export interface DriverToolStatus {
 
 export interface StoryRunner {
   runStory(request: StoryRunRequest): Promise<StoryRunResult>;
+  resumeStory?(request: ResumeStoryRequest): Promise<StoryRunResult>;
   checkTools(): Promise<DriverToolStatus>;
   controlChild?(request: ChildControlRequest): Promise<ChildControlResult>;
   abort?(request: ChildControlRequest): Promise<ChildControlResult>;

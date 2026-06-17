@@ -1,7 +1,17 @@
-import type { ChildLifecycleEvent, ChildProgressSource, StoryRunResult } from '../drivers/StoryRunner.js';
+import { rm } from 'node:fs/promises';
+import path from 'node:path';
+import { classifyChildTurnOutcome } from '../drivers/codex-mcp/turnOutcome.js';
+import { renderResumeMessage } from '../drivers/promptRenderer.js';
+import type {
+  ChildLifecycleEvent,
+  ChildProgressSource,
+  ResumeStoryRequest,
+  StoryRunResult,
+} from '../drivers/StoryRunner.js';
 import { safeName } from '../internal/guards.js';
+import { awaitVerdict } from '../review/verdictInbox.js';
 import { releaseTrackerClaim } from '../tracks/trackerClaimer.js';
-import type { ChildLaunchRecord, RunState, WorkflowStory } from '../types.js';
+import type { ChildLaunchRecord, PrePrReviewAwaitingMarker, ReviewVerdict, RunState, WorkflowStory } from '../types.js';
 import { evaluateRecoveryGuard } from './RecoveryGuard.js';
 import type { SettledStoryRun } from './RunJournal.js';
 import type { ChildSupervisorContext, ChildTimer, PreparedChildLaunch } from './WorkflowRunnerContext.js';
@@ -27,16 +37,24 @@ class ChildSupervisorRun {
   private readonly maxRuntimeMs: number;
   private readonly timer: ChildTimer;
   private readonly startedAtMs: number;
+  /** Active implementation time consumed across all turns so far (excludes awaiting_review waits). */
+  private activeRuntimeConsumedMs = 0;
+  /** clock.nowMs() captured when the current turn's max-runtime timer was armed, or null when disarmed. */
+  private turnStartedAtMs: number | null = null;
   private readonly childAbortController = new AbortController();
   private startupTimeoutHandle: unknown;
   private noProgressTimeoutHandle: unknown;
   private maxRuntimeTimeoutHandle: unknown;
   private heartbeatHandle: unknown;
   private rejectNoProgressTimeout: ((error: Error) => void) | null = null;
+  private startupTimeout: Promise<StoryRunResult> = neverResolves();
+  private noProgressTimeout: Promise<StoryRunResult> = neverResolves();
+  private maxRuntimeTimeout: Promise<StoryRunResult> = neverResolves();
   private supervisorPollWrite: Promise<void> = Promise.resolve();
   private startupSettled = false;
   private childLaunchedRecorded = false;
   private terminalStartupFailure = false;
+  private phase: 'implementing' | 'awaiting_review' = 'implementing';
 
   constructor(
     private readonly runner: ChildSupervisorContext,
@@ -53,16 +71,17 @@ class ChildSupervisorRun {
   async execute(): Promise<SettledStoryRun> {
     this.runner.activeChildAbortControllers.set(this.story.id, this.childAbortController);
     try {
-      const run = this.runner.dependencies.storyRunner.runStory({
-        story: this.story,
-        prompt: this.launch.prompt,
-        cwd: this.launch.record.childCwd,
-        metadata: { runId: this.runner.state.runId, launchId: this.launch.record.launchId },
-        profile: this.launch.profile,
-        promptMetadata: this.launch.promptMetadata,
-        signal: this.childAbortController.signal,
-        onLifecycle: (event) => this.handleLifecycle(event),
-      });
+      const config = this.runner.dependencies.config;
+      const orchestratorReview =
+        config.implement.review.prePr.enabled &&
+        config.implement.review.prePr.mode === 'orchestrator' &&
+        config.orchestrator.driver === 'codex-mcp' &&
+        typeof this.runner.dependencies.storyRunner.resumeStory === 'function';
+      if (orchestratorReview) {
+        return await this.runOrchestratorReviewLoop();
+      }
+      const run = this.startStoryTurn();
+      this.armTurnTimeouts();
       const result = await this.waitForResult(run);
       this.stopSupervisorPolling();
       await this.supervisorPollWrite;
@@ -76,23 +95,204 @@ class ChildSupervisorRun {
     }
   }
 
-  private async waitForResult(run: Promise<StoryRunResult>): Promise<StoryRunResult> {
-    const maxRuntimeTimeout = new Promise<StoryRunResult>((_, reject) => {
+  private startStoryTurn(): Promise<StoryRunResult> {
+    return this.runner.dependencies.storyRunner.runStory({
+      story: this.story,
+      prompt: this.launch.prompt,
+      cwd: this.launch.record.childCwd,
+      metadata: { runId: this.runner.state.runId, launchId: this.launch.record.launchId },
+      profile: this.launch.profile,
+      promptMetadata: this.launch.promptMetadata,
+      signal: this.childAbortController.signal,
+      onLifecycle: (event) => this.handleLifecycle(event),
+    });
+  }
+
+  /** Arms the max-runtime, startup, and no-progress timeout promises and stores their handles. */
+  private armTurnTimeouts(): void {
+    // Bound cumulative ACTIVE runtime by childMaxRuntimeMs: arm with the remaining budget, not a
+    // fresh full cap. Each disarm accumulates the active interval; awaiting_review waits are
+    // excluded because the loop disarms before the verdict wait and re-arms after it.
+    this.turnStartedAtMs = this.runner.dependencies.clock.nowMs();
+    const remainingRuntimeMs = Math.max(1, this.maxRuntimeMs - this.activeRuntimeConsumedMs);
+    this.maxRuntimeTimeout = new Promise<StoryRunResult>((_, reject) => {
       this.maxRuntimeTimeoutHandle = this.timer.setTimeout(
         () => reject(new Error('child-max-runtime-timeout')),
-        this.maxRuntimeMs,
+        remainingRuntimeMs,
       );
     });
-    const startupTimeout = new Promise<StoryRunResult>((_, reject) => {
-      this.startupTimeoutHandle = this.timer.setTimeout(() => {
-        this.abortChildStartup('child-startup-timeout');
-        reject(new Error('child-startup-timeout'));
-      }, this.startupTimeoutMs);
-    });
-    const noProgressTimeout = new Promise<StoryRunResult>((_, reject) => {
+    // Startup timeout is armed once; subsequent turns (resume) keep the already-acknowledged child.
+    if (!this.startupSettled) {
+      this.startupTimeout = new Promise<StoryRunResult>((_, reject) => {
+        this.startupTimeoutHandle = this.timer.setTimeout(() => {
+          this.abortChildStartup('child-startup-timeout');
+          reject(new Error('child-startup-timeout'));
+        }, this.startupTimeoutMs);
+      });
+    }
+    this.noProgressTimeout = new Promise<StoryRunResult>((_, reject) => {
       this.rejectNoProgressTimeout = reject;
     });
-    return await Promise.race([run, startupTimeout, noProgressTimeout, maxRuntimeTimeout]);
+  }
+
+  /** Clears the three turn-timeout handles and nulls the no-progress rejecter. */
+  private disarmTurnTimeouts(): void {
+    // Accumulate the active runtime consumed by this turn so the next arm uses the remaining budget.
+    // Guarded by turnStartedAtMs !== null so a repeated disarm (e.g. enterAwaitingReview after the
+    // loop already disarmed) does not double-count.
+    if (this.turnStartedAtMs !== null) {
+      this.activeRuntimeConsumedMs += this.runner.dependencies.clock.nowMs() - this.turnStartedAtMs;
+      this.turnStartedAtMs = null;
+    }
+    if (this.startupTimeoutHandle !== undefined) this.timer.clearTimeout(this.startupTimeoutHandle);
+    if (this.noProgressTimeoutHandle !== undefined) this.timer.clearTimeout(this.noProgressTimeoutHandle);
+    if (this.maxRuntimeTimeoutHandle !== undefined) this.timer.clearTimeout(this.maxRuntimeTimeoutHandle);
+    this.startupTimeoutHandle = undefined;
+    this.noProgressTimeoutHandle = undefined;
+    this.maxRuntimeTimeoutHandle = undefined;
+    this.rejectNoProgressTimeout = null;
+  }
+
+  private async waitForResult(run: Promise<StoryRunResult>): Promise<StoryRunResult> {
+    return await Promise.race([run, this.startupTimeout, this.noProgressTimeout, this.maxRuntimeTimeout]);
+  }
+
+  private async runOrchestratorReviewLoop(): Promise<SettledStoryRun> {
+    const config = this.runner.dependencies.config;
+    const runPath = path.join(config.artifacts.runsDirAbs, this.runner.state.runId);
+    let turnPromise = this.startStoryTurn();
+    let lastSessionId: string | null = this.launch.record.sessionId;
+    let orchestratorReviewLoop = 0;
+
+    while (true) {
+      this.armTurnTimeouts();
+      let result: StoryRunResult;
+      try {
+        result = await this.waitForResult(turnPromise);
+      } catch (error) {
+        this.stopSupervisorPolling();
+        await this.supervisorPollWrite;
+        return await this.settleFailure(error);
+      }
+      this.disarmTurnTimeouts();
+      lastSessionId = result.sessionId ?? lastSessionId;
+
+      const outcome = classifyChildTurnOutcome(result, 'orchestrator');
+      if (outcome.kind === 'settled') {
+        this.stopSupervisorPolling();
+        await this.supervisorPollWrite;
+        return await this.settleSuccess(result);
+      }
+
+      orchestratorReviewLoop += 1;
+      await this.enterAwaitingReview(outcome.marker, orchestratorReviewLoop);
+
+      const verdict = await awaitVerdict(runPath, this.story.id, {
+        timeoutMs: config.orchestrator.childReviewWaitTimeoutMs,
+        signal: this.childAbortController.signal,
+      });
+
+      if (verdict === 'aborted') {
+        this.stopSupervisorPolling();
+        await this.supervisorPollWrite;
+        return await this.settleAbortDuringReview();
+      }
+
+      if (verdict === 'timeout') {
+        if (config.implement.review.prePr.downgradeTo === 'none') {
+          this.stopSupervisorPolling();
+          await this.supervisorPollWrite;
+          return await this.settleReviewWaitTimeout();
+        }
+        await this.leaveAwaitingReview(runPath);
+        await this.runner.journal.record('pre_pr_review_downgraded', {
+          storyId: this.story.id,
+          launchId: this.launch.record.launchId,
+          loop: orchestratorReviewLoop,
+          downgradeTo: config.implement.review.prePr.downgradeTo,
+        });
+        turnPromise = this.resumeStoryTurn(lastSessionId, this.renderDowngradeMessage());
+        continue;
+      }
+
+      await this.journalVerdict(verdict, orchestratorReviewLoop);
+      if (verdict.decision === 'BLOCK' && orchestratorReviewLoop >= config.implement.review.prePr.maxLoops) {
+        this.stopSupervisorPolling();
+        await this.supervisorPollWrite;
+        return await this.settleMaxLoopsExceeded(verdict, orchestratorReviewLoop);
+      }
+
+      await this.leaveAwaitingReview(runPath);
+      turnPromise = this.resumeStoryTurn(
+        lastSessionId,
+        renderResumeMessage(verdict, {
+          loop: orchestratorReviewLoop,
+          loopMode: config.implement.review.prePr.loopMode,
+        }),
+      );
+    }
+  }
+
+  private resumeStoryTurn(sessionId: string | null, message: string): Promise<StoryRunResult> {
+    const storyRunner = this.runner.dependencies.storyRunner;
+    if (!storyRunner.resumeStory) throw new Error('resumeStory is not supported by the configured driver');
+    const request: ResumeStoryRequest = {
+      sessionId: sessionId ?? this.launch.record.sessionId ?? '',
+      message,
+      story: this.story,
+      cwd: this.launch.record.childCwd,
+      metadata: { runId: this.runner.state.runId, launchId: this.launch.record.launchId },
+      profile: this.launch.profile,
+      promptMetadata: this.launch.promptMetadata,
+      signal: this.childAbortController.signal,
+      onLifecycle: (event) => this.handleLifecycle(event),
+    };
+    return storyRunner.resumeStory(request);
+  }
+
+  private renderDowngradeMessage(): string {
+    const downgradeTo = this.runner.dependencies.config.implement.review.prePr.downgradeTo;
+    return [
+      'Pre-PR review timed out: no orchestrator verdict was received in time.',
+      `Downgrading the pre-PR review to ${downgradeTo} mode for this story.`,
+      `Perform a ${downgradeTo} self-review using the full review checklist, record the downgrade in your evidence, then open the PR per the Git/PR policy if the review passes.`,
+      'Do not yield for orchestrator review again; complete the story under the downgraded review mode.',
+    ].join('\n');
+  }
+
+  private async enterAwaitingReview(marker: PrePrReviewAwaitingMarker, loop: number): Promise<void> {
+    this.phase = 'awaiting_review';
+    this.disarmTurnTimeouts();
+    this.stopSupervisorPolling();
+    await this.supervisorPollWrite;
+    this.launch.record = await this.runner.journal.updateChildLaunch(this.launch.record, {
+      status: 'awaiting_review',
+    });
+    await this.runner.journal.record('pre_pr_review_requested', {
+      storyId: this.story.id,
+      launchId: this.launch.record.launchId,
+      loop,
+      packetPath: marker.packetPath ?? null,
+      diffRef: marker.diffRef ?? null,
+    });
+    await this.runner.writeState();
+  }
+
+  private async leaveAwaitingReview(runPath: string): Promise<void> {
+    this.phase = 'implementing';
+    // Clear the consumed verdict artifact so the next loop's awaitVerdict cannot read a stale one.
+    await rm(path.join(runPath, 'children', `${safeName(this.story.id)}.verdict.json`), { force: true });
+    this.launch.record = await this.runner.journal.updateChildLaunch(this.launch.record, { status: 'launched' });
+  }
+
+  private async journalVerdict(verdict: ReviewVerdict, loop: number): Promise<void> {
+    await this.runner.journal.record('pre_pr_review_verdict', {
+      storyId: this.story.id,
+      launchId: this.launch.record.launchId,
+      decision: verdict.decision,
+      findingsCount: verdict.findings?.length ?? 0,
+      loop,
+    });
   }
 
   private async settleSuccess(result: StoryRunResult): Promise<SettledStoryRun> {
@@ -189,12 +389,76 @@ class ChildSupervisorRun {
     });
   }
 
+  /**
+   * Review-wait timeout with downgradeTo='none': block + notify, fail closed. Unlike
+   * supervision_lost this does NOT run the recovery guard / interrupt - the child thread stays
+   * resumable so an operator can deliver a late verdict and resume.
+   */
+  private async settleReviewWaitTimeout(): Promise<SettledStoryRun> {
+    return await this.settleReviewBlock('pre_pr_review_timeout', {});
+  }
+
+  /** BLOCK verdict at or beyond maxLoops: block + notify, thread stays resumable. */
+  private async settleMaxLoopsExceeded(verdict: ReviewVerdict, loop: number): Promise<SettledStoryRun> {
+    return await this.settleReviewBlock('pre_pr_review_max_loops', { loop, decision: verdict.decision });
+  }
+
+  private async settleReviewBlock(
+    reason: 'pre_pr_review_timeout' | 'pre_pr_review_max_loops',
+    extra: Record<string, unknown>,
+  ): Promise<SettledStoryRun> {
+    const completedAt = this.runner.metrics.complete(this.story.id);
+    this.runner.state = {
+      ...removeActiveChild(this.runner.state, this.story.id),
+      status: 'blocked',
+      blockedStoryId: this.story.id,
+      blockedReason: reason,
+    };
+    this.launch.record = await this.runner.journal.updateChildLaunch(this.launch.record, { status: 'settled' });
+    await this.runner.journal.record('pre_pr_review_blocked', {
+      storyId: this.story.id,
+      launchId: this.launch.record.launchId,
+      reason,
+      ...extra,
+    });
+    await this.runner.writeState();
+    return {
+      storyId: this.story.id,
+      ok: false,
+      sessionId: this.launch.record.sessionId,
+      error: reason,
+      completedAt,
+      baseShaAtLaunch: this.launch.record.baseShaAtLaunch,
+    };
+  }
+
+  /** Abort fired while awaiting a verdict. Mark the launch settled and return ok:false. */
+  private async settleAbortDuringReview(): Promise<SettledStoryRun> {
+    const completedAt = this.runner.metrics.complete(this.story.id);
+    this.runner.state = removeActiveChild(this.runner.state, this.story.id);
+    this.launch.record = await this.runner.journal.updateChildLaunch(this.launch.record, { status: 'settled' });
+    await this.runner.journal.record('pre_pr_review_aborted', {
+      storyId: this.story.id,
+      launchId: this.launch.record.launchId,
+    });
+    await this.runner.writeState();
+    return {
+      storyId: this.story.id,
+      ok: false,
+      sessionId: this.launch.record.sessionId,
+      error: 'aborted',
+      completedAt,
+      baseShaAtLaunch: this.launch.record.baseShaAtLaunch,
+    };
+  }
+
   private abortChildStartup(message: string): void {
     this.terminalStartupFailure = true;
     if (!this.childAbortController.signal.aborted) this.childAbortController.abort(new Error(message));
   }
 
   private refreshNoProgressTimeout(): void {
+    if (this.phase === 'awaiting_review') return;
     if (this.noProgressTimeoutHandle !== undefined) this.timer.clearTimeout(this.noProgressTimeoutHandle);
     this.noProgressTimeoutHandle = this.timer.setTimeout(() => {
       this.rejectNoProgressTimeout?.(new Error('child-no-progress-timeout'));
@@ -354,6 +618,11 @@ class ChildSupervisorRun {
 
 function heartbeatIntervalMs(timeoutMs: number): number {
   return Math.max(1, Math.floor(timeoutMs / 4));
+}
+
+/** A promise that never settles - the default for a timeout slot that has not been armed yet. */
+function neverResolves(): Promise<StoryRunResult> {
+  return new Promise<StoryRunResult>(() => {});
 }
 
 export function isSupervisionLostError(message: string): boolean {

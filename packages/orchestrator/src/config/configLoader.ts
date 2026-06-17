@@ -116,6 +116,7 @@ export async function loadResolvedConfig(
       childNoProgressTimeoutMs,
       childStartupTimeoutMs,
       childMaxRuntimeMs,
+      childReviewWaitTimeoutMs: config.orchestrator.childReviewWaitTimeoutMs,
     },
     childSession: resolvedChildSession,
     codex: { childSession: resolvedChildSession },
@@ -171,7 +172,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
     },
     implement: {
       review: {
-        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' },
+        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental', downgradeTo: 'none' },
         semanticChecks: { enabled: true },
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
@@ -191,6 +192,7 @@ export function resolveCwdOnlyConfig(cwd = process.cwd()): ResolvedWorkflowConfi
       childNoProgressTimeoutMs: 1_800_000,
       childStartupTimeoutMs: DEFAULT_CHILD_STARTUP_TIMEOUT_MS,
       childMaxRuntimeMs: 7_200_000,
+      childReviewWaitTimeoutMs: 1_800_000,
     },
     childSession: resolvedChildSession,
     codex: { childSession: resolvedChildSession },

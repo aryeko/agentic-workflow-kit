@@ -1,0 +1,5 @@
+---
+"@agentic-workflow-kit/orchestrator": minor
+---
+
+Add an `orchestrator` pre-PR review mode. In this mode the implementing Codex child stops at the pre-PR checkpoint, writes a review-request packet, and ends its turn with an `awaiting_review` marker instead of self-reviewing or opening the PR. The supervising orchestrator session reviews the diff and replies a canonical `PASS`/`BLOCK` verdict (friendly aliases accepted) via `workflow_child_reply`, which the supervisor uses to resume the same Codex thread — opening the PR on `PASS` or applying findings and re-verifying on `BLOCK`, bounded by `maxLoops`. The review wait is exempt from the no-progress/max-runtime timeouts and instead bounded by the new `orchestrator.childReviewWaitTimeoutMs`; it is fail-closed (`pre_pr_review_blocked`) unless `implement.review.prePr.downgradeTo` (`subagent`/`inline`) is set. Additive and backward-compatible: the default mode stays `auto`, and the external Codex PR review remains the independent final gate. Gated to the `codex-mcp` driver in v1.

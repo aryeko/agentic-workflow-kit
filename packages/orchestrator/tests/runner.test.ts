@@ -59,7 +59,7 @@ function config(): ResolvedWorkflowConfig {
     },
     implement: {
       review: {
-        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' },
+        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental', downgradeTo: 'none' },
         semanticChecks: { enabled: true },
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
@@ -74,6 +74,7 @@ function config(): ResolvedWorkflowConfig {
       childNoProgressTimeoutMs: 1_800_000,
       childStartupTimeoutMs: 60_000,
       childMaxRuntimeMs: 7_200_000,
+      childReviewWaitTimeoutMs: 1_800_000,
     },
     childSession: { cwdAbs: '/repo', speed: 'derive' },
     codex: { childSession: { cwdAbs: '/repo', speed: 'derive' } },
