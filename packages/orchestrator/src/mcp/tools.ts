@@ -264,9 +264,112 @@ const childControlBaseInputSchema = productBaseInputSchema.extend({
   storyId: z.string().optional().describe('Story id used with runPath to resolve children/<story>.launch.json.'),
 });
 
-const codexReplyInputSchema = childControlBaseInputSchema.extend({
-  message: z.string().min(1).describe('Reply message to send to the live Codex child session.'),
+const reviewFindingSchema = z.object({
+  title: z.string().describe('Short finding title.'),
+  severity: z.enum(['critical', 'high', 'medium', 'low']).optional().describe('Finding severity.'),
+  detail: z.string().optional().describe('Optional finding detail.'),
+  path: z.string().optional().describe('Optional file path the finding applies to.'),
 });
+
+const reviewVerdictSchema = z.object({
+  decision: z
+    .enum(['PASS', 'BLOCK'])
+    .describe('Canonical pre-PR review decision. PASS ~ approve, BLOCK ~ request-changes.'),
+  findings: z.array(reviewFindingSchema).optional().describe('Structured review findings.'),
+  summary: z.string().optional().describe('Short reviewer summary of the verdict.'),
+  loop: z.number().int().optional().describe('Echo of the review loop being judged.'),
+});
+
+/**
+ * Permissive verdict schema for the PUBLISHED MCP tool input. Identical to
+ * {@link reviewVerdictSchema} except `decision` is a free string so friendly aliases
+ * (approve/approved/lgtm/ship/pass, request-changes/request_changes/changes/reject/block,
+ * plus canonical PASS/BLOCK) survive MCP-boundary validation, which the SDK runs BEFORE
+ * the handler. The handler normalizes aliases to the canonical PASS/BLOCK vocabulary via
+ * {@link normalizeVerdictInput} (which still throws on unknown tokens).
+ */
+const reviewVerdictInputSchema = z.object({
+  decision: z
+    .string()
+    .describe(
+      'Pre-PR review decision. Accepts canonical PASS/BLOCK or friendly aliases ' +
+        '(PASS: approve, approved, lgtm, ship, pass; BLOCK: request-changes, request_changes, changes, reject, block). ' +
+        'Case-insensitive; normalized to PASS/BLOCK by the handler.',
+    ),
+  findings: z.array(reviewFindingSchema).optional().describe('Structured review findings.'),
+  summary: z.string().optional().describe('Short reviewer summary of the verdict.'),
+  loop: z.number().int().optional().describe('Echo of the review loop being judged.'),
+});
+
+/**
+ * Alias table mapping friendly decision tokens to the canonical PASS/BLOCK vocabulary.
+ * Case-insensitive: lookups are performed on the lower-cased token.
+ */
+const VERDICT_DECISION_ALIASES: Record<string, 'PASS' | 'BLOCK'> = {
+  approve: 'PASS',
+  approved: 'PASS',
+  lgtm: 'PASS',
+  ship: 'PASS',
+  pass: 'PASS',
+  'request-changes': 'BLOCK',
+  request_changes: 'BLOCK',
+  changes: 'BLOCK',
+  reject: 'BLOCK',
+  block: 'BLOCK',
+};
+
+/**
+ * Normalize a raw verdict object, mapping friendly decision aliases to the canonical
+ * PASS/BLOCK vocabulary before schema parsing. Exported for unit testing.
+ * Returns undefined when no verdict is supplied; throws on an unknown decision token.
+ */
+export function normalizeVerdictInput(raw: unknown): z.infer<typeof reviewVerdictSchema> | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== 'object') {
+    throw new Error('review verdict must be an object');
+  }
+  const record = raw as Record<string, unknown>;
+  const rawDecision = record.decision;
+  if (typeof rawDecision !== 'string') {
+    throw new Error('review verdict requires a decision');
+  }
+  const canonical = VERDICT_DECISION_ALIASES[rawDecision.trim().toLowerCase()];
+  if (!canonical) {
+    throw new Error(`unknown review decision: ${rawDecision}`);
+  }
+  return reviewVerdictSchema.parse({ ...record, decision: canonical });
+}
+
+/**
+ * Plain ZodObject for the reply tools. Kept as a ZodObject (not wrapped in
+ * .transform/.refine/.superRefine at the top level) so the MCP SDK can publish a JSON
+ * inputSchema with `.properties`. The "at least one of message/verdict" rule and verdict
+ * alias normalization are enforced in the handler via {@link validateReplyInput}.
+ */
+export const codexReplyInputSchema = childControlBaseInputSchema.extend({
+  message: z.string().min(1).optional().describe('Reply message to send to the live Codex child session.'),
+  verdict: reviewVerdictInputSchema
+    .optional()
+    .describe(
+      'Structured pre-PR review verdict. When present, the verdict is deposited (artifact + journal) instead of sending a live reply.',
+    ),
+});
+
+/**
+ * Handler-level validation for reply tool input. Enforces that at least one of `message`
+ * or `verdict` is present and normalizes verdict decision aliases to the canonical
+ * PASS/BLOCK vocabulary. Returns the normalized verdict (or undefined) for the caller to
+ * forward to the configured child driver. Throws a clear input error on violation.
+ */
+export function validateReplyInput(input: { message?: string; verdict?: unknown }): {
+  verdict: z.infer<typeof reviewVerdictSchema> | undefined;
+} {
+  const verdict = normalizeVerdictInput(input.verdict);
+  if (input.message === undefined && verdict === undefined) {
+    throw new Error('workflow_child_reply requires either a message or a structured verdict');
+  }
+  return { verdict };
+}
 
 const codexInterruptInputSchema = childControlBaseInputSchema.extend({
   reason: z.string().optional().describe('Optional operator-facing reason for interrupting the child session.'),
@@ -678,9 +781,10 @@ export function registerOrchestratorTools(server: McpServer): void {
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async (input) =>
-      handleTool('workflow_child_reply', input.responseFormat, () =>
-        controlConfiguredChild(input, { kind: 'reply', message: input.message }),
-      ),
+      handleTool('workflow_child_reply', input.responseFormat, () => {
+        const { verdict } = validateReplyInput(input);
+        return controlConfiguredChild(input, { kind: 'reply', message: input.message, verdict });
+      }),
   );
 
   server.registerTool(
@@ -723,9 +827,10 @@ export function registerOrchestratorTools(server: McpServer): void {
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     async (input) =>
-      handleTool('codex_reply', input.responseFormat, () =>
-        controlConfiguredChild(input, { kind: 'reply', message: input.message }),
-      ),
+      handleTool('codex_reply', input.responseFormat, () => {
+        const { verdict } = validateReplyInput(input);
+        return controlConfiguredChild(input, { kind: 'reply', message: input.message, verdict });
+      }),
   );
 
   server.registerTool(

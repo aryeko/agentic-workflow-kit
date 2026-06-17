@@ -76,7 +76,7 @@ export function assertWorkflowRepoContext(input: { cwd?: string; configPath?: st
 
 export async function controlConfiguredChild(
   input: { cwd?: string; configPath?: string; sessionId?: string; runPath?: string; storyId?: string },
-  request: Pick<ChildControlRequest, 'kind' | 'message' | 'reason'>,
+  request: Pick<ChildControlRequest, 'kind' | 'message' | 'reason' | 'verdict'>,
 ): Promise<ChildControlResult> {
   const cwd = resolveChildControlCwd(input);
   const config = await loadChildControlConfig(input, cwd);

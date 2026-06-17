@@ -22,6 +22,7 @@ const repoRelativePath = nonEmpty.regex(REPO_RELATIVE_PATH_PATTERN, {
 const DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS = 1_800_000;
 const DEFAULT_CHILD_STARTUP_TIMEOUT_MS = 60_000;
 const DEFAULT_CHILD_MAX_RUNTIME_MS = 7_200_000;
+const DEFAULT_CHILD_REVIEW_WAIT_TIMEOUT_MS = 1_800_000;
 const DEFAULT_WATCH_INTERVAL_MS = 300_000;
 const DEFAULT_WATCH_TIMEOUT_MS = 300_000;
 const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)$/;
@@ -318,9 +319,10 @@ export const ConfigSchema = z
             prePr: z
               .object({
                 enabled: z.boolean().default(true),
-                mode: z.enum(['auto', 'subagent', 'inline']).default('auto'),
+                mode: z.enum(['auto', 'subagent', 'inline', 'orchestrator']).default('auto'),
                 maxLoops: z.number().int().min(1).default(2),
                 loopMode: z.enum(['incremental', 'full']).default('incremental'),
+                downgradeTo: z.enum(['none', 'subagent', 'inline']).default('none'),
               })
               .strict()
               .prefault({}),
@@ -360,6 +362,7 @@ export const ConfigSchema = z
         childNoProgressTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_NO_PROGRESS_TIMEOUT_MS),
         childStartupTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_STARTUP_TIMEOUT_MS),
         childMaxRuntimeMs: z.number().int().min(1).default(DEFAULT_CHILD_MAX_RUNTIME_MS),
+        childReviewWaitTimeoutMs: z.number().int().min(1).default(DEFAULT_CHILD_REVIEW_WAIT_TIMEOUT_MS),
       })
       .strict()
       .prefault({}),

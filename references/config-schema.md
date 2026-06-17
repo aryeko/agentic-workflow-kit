@@ -157,9 +157,10 @@ state remains the only completion source.
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `review.prePr.enabled` | boolean | `true` | Run a pre-PR implementation review before tracker completion and PR creation. |
-| `review.prePr.mode` | `auto` \| `subagent` \| `inline` | `auto` | Preferred pre-PR review mode. See "Pre-PR review modes" below for downgrade and fail-closed behavior. |
+| `review.prePr.mode` | `auto` \| `subagent` \| `inline` \| `orchestrator` | `auto` | Preferred pre-PR review mode. See "Pre-PR review modes" below for downgrade and fail-closed behavior. |
 | `review.prePr.maxLoops` | integer | `2` | Maximum local pre-PR review fix batches before stopping for user input. |
 | `review.prePr.loopMode` | `incremental` \| `full` | `incremental` | Whether follow-up local review loops receive only fix-context deltas or the full review packet again. |
+| `review.prePr.downgradeTo` | `none` \| `subagent` \| `inline` | `none` | Fallback for `mode: orchestrator` when no supervising orchestrator is available to deliver a verdict. `none` fails closed (`pre_pr_review_blocked`); `subagent`/`inline` downgrade to in-session review. Ignored for non-orchestrator modes. |
 | `review.semanticChecks.enabled` | boolean | `true` | Require semantic checks for spec, plan, tests, tracker hygiene, and repo instructions. |
 | `subagents.enabled` | boolean | `true` | Allow bounded sidecar subagents for analysis/review. |
 | `subagents.maxParallel` | integer | `2` | Maximum concurrent sidecar subagents during interactive implementation. |
@@ -176,6 +177,15 @@ state remains the only completion source.
 - `subagent`: require a real spawned review agent result. `subagent` is fail-closed: if explicit
   delegation is missing, the subagent tool is unavailable, or the review agent cannot run, stop
   before PR creation and record `pre_pr_review_blocked`. `pre_pr_review_blocked` is reported as an analyzer blocker.
+- `orchestrator`: hand the review to the supervising orchestrator session instead of self-reviewing.
+  The child stops at the pre-PR checkpoint, writes a review-request packet, and ends its turn with an
+  `awaiting_review` result (a turn-boundary yield, not a blocking pause). The orchestrator reviews the
+  diff and replies a `PASS`/`BLOCK` verdict via `workflow_child_reply`; the child resumes the same Codex
+  thread to apply findings and re-verify (looping up to `maxLoops`) or open the PR on `PASS`. Gated to
+  the `codex-mcp` driver. `orchestrator` is fail-closed: when no orchestrator delivers a verdict within
+  `orchestrator.childReviewWaitTimeoutMs`, the child blocks with `pre_pr_review_blocked` unless
+  `review.prePr.downgradeTo` is set to `subagent` or `inline`. The external Codex PR review (`pr.review`)
+  is unchanged and remains the independent final gate.
 
 Recommended invocation text for hosts that require explicit delegation:
 
@@ -269,6 +279,7 @@ Consulted only when the orchestrator package is installed.
 | `childNoProgressTimeoutMs` | integer | `1800000` | Per-child no-progress timeout. Child session linkage, Codex `codex/event`, MCP `notifications/progress`, or observed child progress events reset this timer. Parent supervisor polls do not. |
 | `childStartupTimeoutMs` | integer | `60000` | Per-child startup acknowledgement timeout. A child must link a session or report progress within this window before it is treated as started. |
 | `childMaxRuntimeMs` | integer | `7200000` | Per-child wall-clock maximum runtime. The wall-clock maximum still bounds total child runtime even when progress resets the no-progress timeout. |
+| `childReviewWaitTimeoutMs` | integer | `1800000` | Maximum time a child may sit in `awaiting_review` (pre-PR `mode: orchestrator`) before the review-wait timeout escalates with block + notify. While awaiting review a child is exempt from `childNoProgressTimeoutMs` and `childMaxRuntimeMs`; this timeout bounds the wait instead, and never kills the child as `supervision_lost`. |
 
 Use `childStartupTimeoutMs` to fail empty child startup shells quickly when no session id, session
 log, Codex `codex/event` notification, MCP `notifications/progress`, heartbeat, result, or worktree

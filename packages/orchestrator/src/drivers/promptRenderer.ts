@@ -1,5 +1,5 @@
 import { renderExpectedBranch, renderExpectedWorktreePath } from '../runner/launchMetadata.js';
-import type { ResolvedWorkflowConfig, WorkflowStory } from '../types.js';
+import type { ResolvedWorkflowConfig, ReviewVerdict, WorkflowStory } from '../types.js';
 
 export function renderStoryImplementerPrompt(
   story: WorkflowStory,
@@ -88,6 +88,7 @@ export function renderStoryImplementerPrompt(
     '- If pre-PR review mode subagent cannot spawn a reviewer, fail closed and report the blocker.',
     '- Validate reviewer payloads before calling; use exactly one accepted shape and do not mix message and items.',
     '- Review context must include product docs, architecture docs, story brief, spec, and plan, and ask for correctness, code quality, and spec compliance.',
+    ...orchestratorCheckpointBlock(implement.review.prePr),
     '',
     'Instructions:',
     '1. Read repository instructions first, including AGENTS.md when present.',
@@ -105,6 +106,26 @@ export function renderStoryImplementerPrompt(
   ]
     .filter((line): line is string => line !== null)
     .join('\n');
+}
+
+/**
+ * Extra child-prompt lines for orchestrator pre-PR review mode. The child must yield at the
+ * pre-PR checkpoint (turn boundary) instead of self-reviewing or opening the PR, and resume on
+ * the supervising orchestrator's PASS/BLOCK verdict. Returns [] for every other mode so the
+ * non-orchestrator prompt text stays unchanged.
+ */
+function orchestratorCheckpointBlock(prePr: ResolvedWorkflowConfig['implement']['review']['prePr']): string[] {
+  if (!prePr.enabled || prePr.mode !== 'orchestrator') return [];
+  return [
+    `- Pre-PR review checkpoint (orchestrator mode, max ${prePr.maxLoops} loops, loop mode ${prePr.loopMode}):`,
+    '  - At the pre-PR checkpoint, do NOT self-review and do NOT open the PR. A supervising orchestrator owns the review.',
+    '  - Write a review-request packet (the diff, spec/plan refs, and the verification output) so the orchestrator can review without re-deriving context.',
+    '  - End the turn emitting `structuredContent.prePrReview = { "status": "awaiting_review", packetPath, loop, diffRef, summary }` pointing at that packet.',
+    '  - This is a turn-boundary yield, not a blocking pause: end the turn cleanly; the orchestrator will resume this thread with a PASS/BLOCK verdict.',
+    '  - On resume with PASS: review is approved; open the PR per the Git/PR policy above and report final evidence.',
+    `  - On resume with BLOCK: apply the findings, re-run the configured verification, and yield again (status awaiting_review) with an incremented loop, up to ${prePr.maxLoops} loops.`,
+    '  - Open the PR only after a PASS verdict; never open the PR without a PASS verdict from the orchestrator.',
+  ];
 }
 
 function reviewGateLine(review: ResolvedWorkflowConfig['pr']['review']): string {
@@ -133,4 +154,54 @@ function reviewGateDetails(review: ResolvedWorkflowConfig['pr']['review']): stri
     '- Do not require a GitHub PullRequestReview APPROVED or CHANGES_REQUESTED state from the review bot.',
     '- Do not re-request review after a +1 reaction has been observed.',
   ];
+}
+
+/**
+ * Builds the message the supervising orchestrator sends to resume a child waiting in
+ * `awaiting_review` (orchestrator pre-PR review mode). PASS approves and tells the child to
+ * open the PR; BLOCK enumerates findings and tells the child to fix, re-verify, and re-yield.
+ */
+export function renderResumeMessage(
+  verdict: ReviewVerdict,
+  opts?: { loop?: number; loopMode?: 'incremental' | 'full' },
+): string {
+  const loop = opts?.loop ?? verdict.loop;
+  const nextLoop = loop !== undefined ? loop + 1 : undefined;
+  const loopMode = opts?.loopMode;
+
+  if (verdict.decision === 'PASS') {
+    return [
+      'Pre-PR review verdict: PASS.',
+      verdict.summary ? `Reviewer summary: ${verdict.summary}` : null,
+      'The review is approved. Open the PR per the Git/PR policy and report final evidence (PR URL/number, CI status, verification results).',
+      loop !== undefined ? `(Resolved review loop ${loop}.)` : null,
+    ]
+      .filter((line): line is string => line !== null)
+      .join('\n');
+  }
+
+  const findings = verdict.findings ?? [];
+  const findingLines =
+    findings.length > 0
+      ? [
+          'Findings:',
+          ...findings.map((finding, index) => {
+            const meta = [finding.severity, finding.path].filter((part): part is string => Boolean(part)).join(', ');
+            const head = `${index + 1}. ${finding.title}${meta ? ` (${meta})` : ''}`;
+            return finding.detail ? `${head}: ${finding.detail}` : head;
+          }),
+        ]
+      : ['No specific findings were enumerated; address the summary before re-yielding.'];
+
+  return [
+    'Pre-PR review verdict: BLOCK.',
+    verdict.summary ? `Reviewer summary: ${verdict.summary}` : null,
+    ...findingLines,
+    'Apply these findings, re-run the configured verification, and re-yield for review (emit `structuredContent.prePrReview` with status awaiting_review).',
+    nextLoop !== undefined ? `Increment the review loop to loop ${nextLoop} for the next yield.` : null,
+    loopMode ? `Loop mode is ${loopMode}.` : null,
+    'Do not open the PR until the orchestrator returns a PASS verdict.',
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n');
 }

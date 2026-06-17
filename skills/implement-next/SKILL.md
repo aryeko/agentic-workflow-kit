@@ -133,8 +133,9 @@ Use an ISO timestamp run id with colons and periods replaced by hyphens. Keep th
 - `config.resolved.json`: resolved config snapshot, including `implement` and `pr` policy.
 - `state.json`: current status, blocked reason, active story, and `interactive` child metadata.
 - `events.ndjson`: append phase events such as `story_selected`, `claimed`, `spec_written`,
-  `plan_written`, `verification_passed`, `pre_pr_review_started`, `pre_pr_review_completed`,
-  `pre_pr_review_fix_batch_applied`, `pre_pr_review_downgraded`, `pre_pr_review_blocked`,
+  `plan_written`, `verification_passed`, `pre_pr_review_started`, `pre_pr_review_requested`,
+  `pre_pr_review_verdict`, `pre_pr_review_completed`, `pre_pr_review_fix_batch_applied`,
+  `pre_pr_review_downgraded`, `pre_pr_review_blocked`,
   `pr_created`, `pr_review_started`, `pr_review_findings`, `pr_review_fix_batch_started`,
   `pr_review_fix_batch_applied`, `pr_review_thread_resolved`, `pr_review_completed`,
   `final_verification_passed`, `pr_merged`, `cleanup_complete`, and `blocked`.
@@ -384,6 +385,15 @@ disabled it. `implement.review.prePr.mode` controls the reviewer:
   subagent tool is unavailable, or the review agent cannot run, fail closed before PR creation:
   append `pre_pr_review_blocked`, set the run blocked, and stop with this actionable wording:
   "You are explicitly authorized to delegate the pre-PR review to a read-only review subagent if configured."
+- `orchestrator`: do not self-review and do not open the PR at the checkpoint. Write the review
+  request packet, append `pre_pr_review_requested`, then end the turn emitting
+  `structuredContent.prePrReview = { status: "awaiting_review", packetPath, loop, diffRef, summary }`.
+  This is a turn-boundary yield, not a blocking pause: the supervising orchestrator session reviews
+  the diff and deposits a verdict, then resumes this same thread. On resume, follow the verdict
+  (recorded as `pre_pr_review_verdict`): on `PASS`, open the PR; on `BLOCK`, apply the findings,
+  rerun configured verification, and yield again with an incremented `loop` (up to
+  `implement.review.prePr.maxLoops`, counted orchestrator-side). Never open the PR without a `PASS`.
+  This mode is gated to the `codex-mcp` driver in v1.
 
 Never record `actualMode: "subagent"` or subagent review success unless a real spawned review agent
 returns a result. A manual inline review, even if thorough, is `actualMode: "inline"`.

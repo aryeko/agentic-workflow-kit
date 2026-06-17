@@ -191,6 +191,92 @@ describe('Codex child-control execution', () => {
     ]);
   });
 
+  it('deposits a structured verdict as an artifact and journal event without spawning the control tool', async () => {
+    const { sendChildReply } = await import('../src/drivers/codex-mcp/control');
+    const runPath = await tempRunPath();
+    mocks.tools = ['codex_reply'];
+
+    const result = await sendChildReply({
+      sessionId: '019e-session',
+      storyId: 'WK001',
+      runPath,
+      verdict: {
+        decision: 'BLOCK',
+        // Long summary: the secret sits beyond the 120-char preview window so it is dropped.
+        summary: `${'review notes '.repeat(12)}trailing secret sk-live-123 must not be journaled`,
+        findings: [{ title: 'leak', severity: 'high' }],
+        loop: 2,
+      },
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      tool: 'verdict-deposit',
+      sessionId: '019e-session',
+      storyId: 'WK001',
+      runPath,
+    });
+
+    // Must NOT spawn the live codex control tool.
+    expect(mocks.connects).toBe(0);
+    expect(mocks.calls).toEqual([]);
+    expect(mocks.transports).toEqual([]);
+
+    const verdictRaw = await readFile(path.join(runPath, 'children', 'WK001.verdict.json'), 'utf8');
+    const verdict = JSON.parse(verdictRaw) as Record<string, unknown>;
+    expect(verdict).toMatchObject({
+      decision: 'BLOCK',
+      loop: 2,
+      sessionId: '019e-session',
+    });
+    expect(typeof verdict.recordedAt).toBe('string');
+    expect((verdict.findings as unknown[]).length).toBe(1);
+
+    const [event] = await readEvents(runPath);
+    expect(event).toMatchObject({
+      type: 'pre_pr_review_verdict',
+      storyId: 'WK001',
+      sessionId: '019e-session',
+      tool: 'verdict-deposit',
+      decision: 'BLOCK',
+      findingsCount: 1,
+      loop: 2,
+      source: 'reply-tool',
+    });
+    expect(typeof event.messageSha256).toBe('string');
+    // Redaction discipline: only a short summary preview is stored, no secrets leak in full.
+    expect(JSON.stringify(event)).not.toContain('sk-live');
+  });
+
+  it('requires a resolvable runPath and storyId when depositing a verdict', async () => {
+    const { sendChildReply } = await import('../src/drivers/codex-mcp/control');
+
+    await expect(sendChildReply({ sessionId: '019e-session', verdict: { decision: 'PASS' } })).rejects.toThrow(
+      /verdict deposit requires runPath and storyId/i,
+    );
+
+    expect(mocks.connects).toBe(0);
+    expect(mocks.calls).toEqual([]);
+  });
+
+  it('derives a default deposit message from the verdict when none is supplied', async () => {
+    const { sendChildReply } = await import('../src/drivers/codex-mcp/control');
+    const runPath = await tempRunPath();
+
+    const result = await sendChildReply({
+      sessionId: '019e-session',
+      storyId: 'WK001',
+      runPath,
+      verdict: { decision: 'PASS' },
+    });
+
+    expect(result.tool).toBe('verdict-deposit');
+    const [event] = await readEvents(runPath);
+    expect(event.decision).toBe('PASS');
+    expect(event.findingsCount).toBe(0);
+    expect(mocks.connects).toBe(0);
+  });
+
   it('dispatches neutral child-control requests through reply and interrupt execution paths', async () => {
     const { controlChild } = await import('../src/drivers/codex-mcp/control');
     mocks.tools = ['codex_reply', 'codex_interrupt'];

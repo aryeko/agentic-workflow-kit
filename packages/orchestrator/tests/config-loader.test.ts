@@ -110,7 +110,7 @@ orchestrator:
     });
     expect(config.implement).toEqual({
       review: {
-        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' },
+        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental', downgradeTo: 'none' },
         semanticChecks: { enabled: true },
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
@@ -256,7 +256,7 @@ git:
     });
     expect(config.implement).toEqual({
       review: {
-        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental' },
+        prePr: { enabled: true, mode: 'auto', maxLoops: 2, loopMode: 'incremental', downgradeTo: 'none' },
         semanticChecks: { enabled: true },
       },
       subagents: { enabled: true, maxParallel: 2, allowWorkers: false },
@@ -478,6 +478,7 @@ orchestrator:
     expect(config.orchestrator.childNoProgressTimeoutMs).toBe(1_800_000);
     expect(config.orchestrator.childStartupTimeoutMs).toBe(60_000);
     expect(config.orchestrator.childMaxRuntimeMs).toBe(7_200_000);
+    expect(config.orchestrator.childReviewWaitTimeoutMs).toBe(1_800_000);
     expect(config.git).toEqual({
       strategy: 'worktree',
       branchPattern: '{track}/{id-lc}-{slug}',
