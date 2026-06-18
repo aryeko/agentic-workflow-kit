@@ -1,0 +1,216 @@
+---
+title: "Supervision & Liveness - design"
+id: "core-04"
+layer: "core"
+status: approved
+owner: "domain designer"
+last-reviewed: "2026-06-19"
+depends-on:
+  - "core-01-run-lifecycle-and-state"
+  - "prov-01-agent-execution"
+  - "prov-04-execution-host"
+---
+
+# Supervision & Liveness - design
+
+## 1. Purpose & boundaries
+
+Supervision & Liveness determines whether the current Agent worker for a Run is really making
+progress, records liveness state changes as run events, exposes a host-neutral wait primitive over
+the core-01 event cursor, and hands stale owned workers to the Execution Host for termination.
+
+Out of scope: Agent protocol event emission, approval adjudication, process signalling, containment,
+reap/prove-empty mechanics, recovery action selection, completion gates, Forge operations, Work
+Source status writes, and concrete Codex or Local driver behavior. This domain consumes the Agent and
+Execution Host contracts only.
+
+Owned requirements: FR-5, NFR-OBS, NFR-DET, and NFR-TEST.
+
+## 2. Required reading
+
+Read: [README.md](../../README.md), [requirements.md](../../requirements.md),
+[decisions.md](../../decisions.md), [architecture.md](../../architecture.md),
+[conventions.md](../../conventions.md), [glossary.md](../../glossary.md),
+[_templates/domain-design-template.md](../../_templates/domain-design-template.md),
+[charter.md](charter.md), approved [core-01 design](../core-01-run-lifecycle-and-state/design.md)
+and subfiles, approved [prov-01 Agent Execution design](../prov-01-agent-execution/design.md) and
+contract subfiles, and approved [prov-04 Execution Host design](../prov-04-execution-host/design.md)
+and contract subfiles. No core-03 draft, later core-domain draft, concrete Codex driver, concrete
+Local driver, or material outside the allowed source set is a design input.
+
+## 3. Context diagram
+
+```mermaid
+flowchart LR
+  subgraph CORE["Control plane"]
+    RL["Run Lifecycle & Event State"]
+    SUP["Supervision & Liveness"]
+    CAP["Capability & Safety"]
+    REC["Recovery, Reconciliation & Coordination"]
+    OBS["Observability & Analysis"]
+  end
+  subgraph EDGE["Edge"]
+    OP["Operator & Entry Surface"]
+  end
+  subgraph SEAMS["Provider contracts"]
+    AG["Agent contract"]
+    EH["Execution Host contract"]
+  end
+  AG -->|"worker events"| SUP
+  EH -->|"termination proof / host failures"| SUP
+  SUP -->|"append supervision facts"| RL
+  OP -->|"wait over cursor"| SUP
+  SUP -->|"degraded capability facts"| CAP
+  SUP -->|"terminal evidence"| REC
+  SUP -->|"state changes"| OBS
+```
+
+## 4. Design
+
+The normative low-level model is split into [Liveness Model](design/liveness-model.md). The key
+decisions are:
+
+- Liveness is a pure fold over committed run events plus an explicit clock input.
+- Only current-session Agent worker events advance liveness: startup linkage, progress, structured
+  tool completion, approval request, and terminal observation.
+- Parent polls, `waitRunEvents`, watch reconnects, projection reads, lifecycle transitions alone,
+  Operator decisions, runner-owned command events, Forge events, Work Source events, and raw host
+  output never refresh liveness.
+- Timers are `startup`, `idle`, `no-progress`, `per-tool`, `approval-SLA`, and `max-runtime`; proposed
+  defaults are 120 seconds, 15 minutes, 45 minutes, 30 minutes, 24 hours, and 8 hours.
+- Liveness states are `not_started`, `starting`, `active`, `waiting_for_approval`,
+  `approval_overdue`, `stale`, `supervision_lost`, `termination_requested`, and `terminated`.
+- Missing Agent progress guarantees, a missing cursor, ambiguous session linkage, unavailable
+  termination capability, and unproven termination fail closed to named reasons.
+- Termination is a handoff to `ExecutionHost.terminateWorker`; this domain does not signal, kill,
+  reap, or prove-empty directly.
+- `SupervisorStopped` is the single allowed terminal-summary fact. It is a non-lifecycle event
+  justified by core-01's approved post-terminal non-lifecycle append rule; it does not advance
+  liveness, refresh timers, request termination, or mutate core-01 lifecycle state.
+- `WorkerTerminated` must be recorded before terminal lifecycle closure or in the same barrier batch
+  that closes supervision. It is not a permitted post-terminal append.
+- After `SupervisorStopped`, core-04 emits no more supervisor, liveness, progress, timer,
+  termination, or terminal-summary facts for the Run.
+
+## 5. Contracts & interfaces
+
+Core-04 consumes:
+
+```ts
+interface SupervisionInputs { runLog: RunEventLog; agentEvents: AsyncIterable<AgentEvent>;
+  host: ExecutionHost; clock: Clock; timers: SupervisionTimerPolicy; }
+interface SupervisionTimerPolicy { startupMs: number; idleMs: number; noProgressMs: number;
+  perToolMs: number; approvalSlaMs: number; maxRuntimeMs: number; }
+interface SupervisionWaitRequest { runId: string; cursor: RunEventCursor; timeoutMs: number;
+  maxEvents?: number; }
+```
+
+`waitRunEvents(request)` is a thin wrapper over core-01 `RunEventLog.waitRunEvents`. It validates that
+`cursor.runId` matches the request, delegates to core-01, and returns committed events after
+`cursor.afterSequence` or `timedOut = true`. It never renews leases, appends events, reads
+projections, refreshes liveness, or treats a successful wait as proof that the worker is alive.
+Missing or failed cursor access is `event_cursor_unavailable`.
+
+## 6. Events & data
+
+Core-04 emits through `RunWriter`:
+
+| Event | Durability | Meaning |
+|---|---|---|
+| `SupervisorStarted` | `durable` | A supervisor began observing a Run from a cursor and session expectation. |
+| `LivenessAdvanced` | `durable` | A current-session worker event refreshed liveness; records source sequence and class. |
+| `LivenessTimerExpired` | `durable` | A timer deadline was exceeded from recorded evidence and clock input. |
+| `LivenessStateChanged` | `durable` | Projection-visible transition among liveness states. |
+| `SupervisionLost` | `barrier` | Liveness cannot be proven; includes the fail-closed reason. |
+| `SupervisorTerminationRequested` | `barrier` | Termination handed to Execution Host for an owned worker. |
+| `WorkerTerminated` | `barrier` | Agent/Host terminal observation or Host termination proof recorded before terminal lifecycle closure. |
+| `SupervisorStopped` | `barrier` | Single terminal-summary fact for core-04, allowed post-terminal only as a non-lifecycle summary under core-01 semantics. |
+
+Consumed events include current-session Agent events, core-01 lifecycle/linkage events, and Execution
+Host termination proof or failure events. Core-04 contributes the `liveness` projection; core-01
+continues to own `state`, `summary`, `metrics`, and `launch`.
+
+`SupervisorStopped` cites the terminal source event ids it summarizes. If supervision and termination
+close in core-04, `WorkerTerminated` and `SupervisorStopped` SHOULD be appended in one barrier batch.
+If another domain has already recorded a terminal lifecycle transition, core-04 MAY append only
+`SupervisorStopped` as a post-terminal non-lifecycle summary; no other core-04 event is allowed after
+that terminal lifecycle transition.
+
+## 7. Behavior diagram
+
+```mermaid
+sequenceDiagram
+  participant OP as Operator & Entry Surface
+  participant SUP as Supervision & Liveness
+  participant RL as Run Lifecycle & Event State
+  participant AG as Agent contract
+  participant EH as Execution Host contract
+  OP->>SUP: waitRunEvents(runId, cursor)
+  SUP->>RL: waitRunEvents(cursor, timeout)
+  RL-->>SUP: committed events or timedOut
+  AG-->>SUP: AgentProgressObserved(current session)
+  SUP->>RL: append LivenessAdvanced
+  SUP->>SUP: recompute timers from event log + clock
+  SUP->>RL: append LivenessTimerExpired(no_progress_timeout)
+  SUP->>RL: append SupervisorTerminationRequested
+  SUP->>EH: terminateWorker(handle, policy)
+  EH-->>SUP: TerminationResult(proof)
+  SUP->>RL: append WorkerTerminated + SupervisorStopped barrier batch
+```
+
+## 8. Failure & degraded modes
+
+- `event_cursor_unavailable`, `session_linkage_ambiguous`, or `agent_progress_unobservable`: core-04
+  cannot prove current worker liveness; state is `supervision_lost`.
+- `tool_tracking_unavailable`: a tool cannot be correlated to a current-session item; per-tool
+  coverage is not claimed and broader timers remain active.
+- `startup_timeout`, `idle_timeout`, `no_progress_timeout`, `tool_timeout`, or
+  `max_runtime_exceeded`: state is `stale`, then `termination_requested` when an owned worker and
+  positive termination capability are available.
+- `approval_sla_exceeded`: state is `approval_overdue`; it alerts/blocks for Operator attention but
+  does not by itself prove the worker stale.
+- `termination_unavailable` or `termination_unproven`: `canKill`/ownership is missing, or the
+  Execution Host did not prove containment empty; state is `supervision_lost`.
+
+Capability gates must treat `stale`, `supervision_lost`, `approval_overdue`, missing projections,
+wrong-scope attestations, ambiguous linkage, or unproven termination as autonomous capabilities absent.
+
+## 9. Testing strategy
+
+NFR-TEST: core-04 tests use an in-memory core-01 run log, a mock Agent event stream, a mock Execution
+Host, and a deterministic fake clock. No real processes, network, filesystem, Forge, Work Source, or
+concrete Agent/Host driver is used.
+
+Required tests: property-test deterministic replay from generated logs and clock samples; prove polls,
+waits, reconnects, projection reads, lifecycle-only events, and Operator decisions never refresh
+liveness; cover every timer default and override; fail closed for missing cursor, ambiguous linkage,
+missing Agent progress guarantee, missing `itemId`, missing `canKill`, observe-only ownership, and
+`termination-unproven`; prove termination handoff calls only the Execution Host contract; prove
+`WorkerTerminated` is never appended post-terminal; prove `SupervisorStopped` is the only allowed
+post-terminal core-04 event and no core-04 events append after it.
+
+FR-5 is satisfied by liveness from real worker events and host-neutral termination handoff. NFR-OBS is
+satisfied because every liveness state change, stale/supervision-lost transition, and termination
+handoff is an event. NFR-DET is satisfied because projection and timer decisions are pure functions of
+recorded events plus an explicit clock input.
+
+## 10. Open questions
+
+- Are the proposed defaults acceptable for v1, especially `approval-SLA = 24 hours` and
+  `max-runtime = 8 hours`?
+- Should a recorded approval answer start a short "decision delivered but not consumed" timer, or is
+  the existing idle/no-progress coverage sufficient until a current-session worker event follows?
+- Does the Agent contract need a future structured tool-start event, or is fail-closed
+  `tool_tracking_unavailable` acceptable for v1 drivers without stable `itemId` progress?
+
+## 11. Definition of done
+
+- [x] All sections complete; guidance notes removed.
+- [x] Files are focused; low-level liveness detail is split into `design/liveness-model.md`.
+- [x] Complies with the Dependency Rule; dependencies listed and justified.
+- [x] Uses glossary vocabulary.
+- [x] States the FR/NFR ids satisfied; shows how NFR-TEST is met.
+- [x] Failure/degraded modes defined (fail-closed).
+- [x] Provider-domain validation is not applicable to this core domain.
+- [x] Diagrams present and consistent with architecture.md naming.
+- [x] Open questions captured, not silently resolved.
