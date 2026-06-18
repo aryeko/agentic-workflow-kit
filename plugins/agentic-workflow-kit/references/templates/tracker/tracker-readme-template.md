@@ -114,8 +114,8 @@ never reused by another track.
 2. Claim it (set **Owner**; isolate per `git.strategy`) and flip **Status** to
    `statuses.inProgress`.
 3. Read the linked story file.
-4. Enrich the story file in place to implementation-ready (append implementation sections; advance
-   tracker row to `plan-approved`).
+4. Enrich the story file in place to implementation-ready (append implementation sections; tracker
+   row stays `statuses.inProgress` through enrichment, planning, implementation, and completion).
 5. If no plan exists, draft one under `<plansDir>` (default `docs/plans`).
 6. Execute. Before opening the PR, flip **Status** to `done` in this table in the same change.
 7. Fill the **PR** column once the PR exists.

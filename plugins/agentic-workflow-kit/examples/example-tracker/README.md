@@ -89,7 +89,8 @@ in a real repo) and is never reused.
    `plan-approved`.
 2. Claim it and flip **Status** to `implementing`.
 3. Read the linked story file.
-4. Enrich the story file in place to implementation-ready (advance tracker row to `plan-approved`).
+4. Enrich the story file in place to implementation-ready (file content only — tracker row stays
+   `implementing` through enrichment, planning, implementation, and completion).
 5. Draft an implementation plan under `docs/plans/` (the configured `plansDir`).
 6. Execute. Flip **Status** to `done` in this table in the same PR.
 
