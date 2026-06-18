@@ -71,6 +71,14 @@ These map to the three automation buckets in `config.yaml`:
 - `statuses.inProgress` (default `implementing`) — claimed.
 - `statuses.complete` (default `done`, `verified`) — finished / satisfies a dependency.
 
+**File maturity vs. tracker status**: tracker status and story-file content maturity are
+independent. A `specced` row links a brief-level story file. A `plan-approved` row may link a
+story file that has been enriched to implementation-ready by a separate planning pass — it is still
+eligible to be claimed. When `implement-next` claims a row (whether `specced` or `plan-approved`)
+it advances the row to `implementing` and keeps it there through enrichment (if needed), planning,
+implementation, and completion. Enrichment appends sections to the story file but does NOT change
+the tracker status back to `plan-approved`.
+
 ## Eligibility rule
 
 A story is **eligible** to be picked if and only if:

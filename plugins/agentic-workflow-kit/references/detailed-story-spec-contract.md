@@ -8,9 +8,15 @@ The story file is located at:
 <tracksDir>/<track>/stories/<ID>.md
 ```
 
-Once enriched, the tracker row advances to `plan-approved`, signalling that the story is
-implementation-ready. The brief-level note becomes accurate: the story has been enriched to
-`plan-approved` and the "not implementation-ready" note no longer applies.
+Enrichment is a file-content operation. The tracker row status does NOT change during enrichment:
+it stays at `statuses.inProgress` (`implementing`) through enrichment, planning, implementation,
+and completion. The `plan-approved` tracker status is a valid eligible (pre-claim) status that
+exists when a story has been enriched by a separate planning pass but not yet claimed for
+implementation. `implement-next` never reverts a claimed row from `implementing` to `plan-approved`.
+
+After enrichment the story file is implementation-ready. The brief-level note in the file —
+"not implementation-ready until enriched to plan-approved" — refers to file maturity, not tracker
+status. Once enriched, the file has passed that maturity threshold regardless of the tracker status.
 
 `paths.specsDir` (default `docs/specs`) is retained for backward compatibility. Existing trackers
 that already link a separate detailed spec directly remain valid; `implement-next` continues the

@@ -1,6 +1,6 @@
 ---
 name: implement-next
-description: Use when the user asks to pick, claim, implement, ship, or merge the next eligible agentic-workflow-kit tracker story, or names a specific tracker ID such as PC03, WK4, AR12, or TU11. Reads .workflow/config.yaml plus references/tracker-contract.md, discovers active trackers, validates dependencies and ownership, enriches brief-level story files in place to implementation-ready (plan-approved), writes implementation plans, then implements, verifies, updates tracker state, creates PRs, handles configured CI/review gates, optional merge, and cleanup. Do not use for creating trackers (use plan-delivery-track), writing PRDs (use define-product), or non-tracker one-off work.
+description: Use when the user asks to pick, claim, implement, ship, or merge the next eligible agentic-workflow-kit tracker story, or names a specific tracker ID such as PC03, WK4, AR12, or TU11. Reads .workflow/config.yaml plus references/tracker-contract.md, discovers active trackers, validates dependencies and ownership, claims the row (sets status to inProgress), enriches brief-level story files in place to implementation-ready (file content only — status stays inProgress), writes implementation plans, then implements, verifies, marks done, creates PRs, handles configured CI/review gates, optional merge, and cleanup. Do not use for creating trackers (use plan-delivery-track), writing PRDs (use define-product), or non-tracker one-off work.
 argument-hint: "[story-id]"
 arguments: story_id
 disable-model-invocation: true
@@ -291,7 +291,9 @@ If there is a blocker, pause for user input before planning or implementation.
 ## Phase 4: Enrich the story file to implementation-ready
 
 For story files at brief-level (`status: specced`), enrich the story file in place before writing
-any implementation plan or code.
+any implementation plan or code. Enrichment is a file-content operation: the tracker row status
+stays `statuses.inProgress` throughout enrichment, planning, implementation, and completion.
+Do NOT revert the tracker row to `plan-approved` after enrichment — that would break Phase 8.
 
 If the tracker row links a story file under `<tracksDir>/<track>/stories/<ID>.md` and the file is
 brief-level, append the implementation-ready sections to that same file following
@@ -308,26 +310,27 @@ as the template for the appended sections. The enriched story file must include:
 Every blocking technical question from the story file must be resolved or the story must stop as
 blocked. The `## Blocking technical questions` section must say `None` before planning or code.
 
-After enrichment, advance the tracker row's **Status** to `plan-approved` and update the **Spec**
-link if needed (the story file path does not change):
+Update the **Spec** link in the tracker row if needed (the story file path does not change):
 
 ```markdown
 [story](./stories/<ID>.md)
 ```
 
-Commit:
+Commit (tracker row status column is unchanged — it remains `statuses.inProgress`):
 
 ```bash
 git add <tracker README> <story file>
-git commit -m "chore(<id>): enrich story to plan-approved"
+git commit -m "chore(<id>): enrich story file to implementation-ready"
 ```
 
-If the row already links a detailed spec directly (not a story file), keep the legacy path:
-review/refine that spec instead of enriching in place.
+If the row was claimed with status `plan-approved` (already enriched by a prior planning pass),
+skip this phase — the file is already implementation-ready. If the row already links a detailed spec
+directly (not a story file), keep the legacy path: review/refine that spec instead of enriching in
+place.
 
 ## Phase 5: Write a plan when needed
 
-If the row was selected with Status `specced` and Plan `—`, write a plan under:
+If the row's **Plan** column is `—` (whether claimed at `specced` or `plan-approved`), write a plan under:
 
 ```text
 <plansDir>/<YYYY-MM-DD>-<id-lc>-<slug>.md
@@ -343,7 +346,7 @@ git add <tracker README> <plan file>
 git commit -m "chore(<id>): write implementation plan"
 ```
 
-If the row was already `plan-approved`, use the linked plan. Do not rewrite it unless the review
+If the row already has a Plan link, use the linked plan. Do not rewrite it unless the review
 found a concrete stale or unsafe step.
 
 ## Phase 6: Implement and verify locally
@@ -603,7 +606,7 @@ Report:
 
 - Hardcoding paths, branches, check commands, review bots, or merge methods.
 - Claiming more than one story.
-- Treating `plan-approved` as an execution status to write.
+- Reverting a claimed row to `plan-approved` after enrichment — enrichment is a file-content change, not a status transition.
 - Marking done before implementation, review, and configured verification pass.
 - Merging while configured gates are unsatisfied.
 - Leaving the PR column empty after PR creation.

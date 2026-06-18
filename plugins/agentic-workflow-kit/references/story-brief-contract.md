@@ -9,8 +9,16 @@ A story brief is the brief-level state of a grow-in-place story file produced by
 
 Story files grow in place: `plan-delivery-track` writes the brief-level sections; at pickup,
 `implement-next` enriches the same file to implementation-ready by appending the implementation
-sections. The tracker `status` column tracks maturity: `specced` = brief-level,
-`plan-approved` = implementation-ready.
+sections.
+
+**File maturity vs. tracker status** — these are independent:
+- *File maturity*: `specced` rows link a brief-level story file; a `plan-approved` row may link a
+  file that has already been enriched to implementation-ready by a separate planning pass.
+- *Tracker status lifecycle*: `specced` (brief, eligible) → `plan-approved` (enriched, still
+  eligible, not yet claimed) → `implementing` (claimed by `implement-next`) → `done` / `verified`.
+- `implement-next` sets the row to `implementing` when it claims the story and keeps it there
+  through enrichment, planning, implementation, and completion. Enrichment changes the file content
+  only; it does not revert the status to `plan-approved`.
 
 Every story file at brief-level (status `specced`) must include this exact note:
 
