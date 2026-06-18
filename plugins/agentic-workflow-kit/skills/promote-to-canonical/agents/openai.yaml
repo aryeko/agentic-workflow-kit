@@ -1,7 +1,7 @@
 interface:
   display_name: "Promote to Canonical"
   short_description: "Fold shipped track knowledge into the canonical knowledge base"
-  default_prompt: "Use $promote-to-canonical explicitly after a track ships to update canonical docs, mint ADRs, and archive the PRD."
+  default_prompt: "Use $promote-to-canonical explicitly after a track ships to update canonical docs, mint ADRs, flip the PRD to shipped, and archive the design doc."
 
 policy:
   allow_implicit_invocation: false
