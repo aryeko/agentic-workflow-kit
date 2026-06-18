@@ -8,8 +8,9 @@ PRD analog of `tracker-contract.md`.
 
 ## Layout
 
-A PRD is a directory `<prdsDir>/<slug>/` (`<prdsDir>` resolves from `paths.prdsDir`,
-default `docs/prds`) containing a README index and numbered section files:
+A PRD is a directory `<prdsDir>/<slug>/` (`<prdsDir>` resolves from `docs.paths.prdsDir`,
+default `docs/product/prds`; legacy fallback: `paths.prdsDir`, default `docs/prds`) containing a
+README index and numbered section files:
 
 ```
 <prdsDir>/<slug>/
