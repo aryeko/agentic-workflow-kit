@@ -91,23 +91,28 @@ Scaffold these files regardless of preset:
 
 1. **Master index** at `docs.index` (default `docs/README.md`) — seed from
    `${CLAUDE_PLUGIN_ROOT}/references/templates/index/master-readme-template.md`. Fill
-   placeholders: project name, pillar paths resolved from `docs.paths`, `docs.style` path.
+   placeholders: project name, pillar paths resolved from `docs.paths`, `docs.style` path. Fill
+   frontmatter: set `owner` to `—` (or a detected repo owner when available) and `last-reviewed`
+   to today's date.
 
 2. **Docs style** at `docs.style` (default `docs/docs-style.md`) — seed from
    `${CLAUDE_PLUGIN_ROOT}/references/templates/docs-style.md`. Update the `related` links
-   to match resolved paths.
+   to match resolved paths. Fill frontmatter: set `owner` to `—` (or a detected repo owner
+   when available) and `last-reviewed` to today's date.
 
 3. **Product pillar index** at `<docs.paths.productDir>/README.md` (default
    `docs/product/README.md`) — seed from
    `${CLAUDE_PLUGIN_ROOT}/references/templates/index/pillar-readme-template.md`. Fill
    pillar name as "Product", question as "What are we building, for whom, and why?",
-   and list `prdsDir` as the primary sub-directory.
+   and list `prdsDir` as the primary sub-directory. Fill frontmatter: set `owner` to `—` (or a
+   detected repo owner when available) and `last-reviewed` to today's date.
 
 4. **Architecture pillar index** at `<docs.paths.architectureDir>/README.md` (default
    `docs/architecture/README.md`) — seed from the same pillar index template. Fill pillar
    name as "Architecture", question as "How is it built — decisions, layering, conventions?",
    and list `guidelines.md`, `designs/`, `domains/`, and `decisions/` as entries
-   when they are enabled.
+   when they are enabled. Fill frontmatter: set `owner` to `—` (or a detected repo owner when
+   available) and `last-reviewed` to today's date.
 
 5. **Architecture guidelines stub** at
    `<docs.paths.architectureDir>/guidelines.md` (default
