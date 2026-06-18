@@ -405,6 +405,95 @@ describe('discoverMarkdownTracks', () => {
     expect(tracks[0].id).toBe('linkly');
     expect(tracks[0].stories.some((story) => story.id === 'L002' && story.eligible)).toBe(true);
   });
+
+  it('marks a story with kind:promote in its spec file as ineligible', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-promote-'));
+    await mkdir(path.join(root, 'docs/tracks/linkly/stories'), { recursive: true });
+
+    // Tracker with an extra promote story that has a spec link to a local story file
+    const trackerWithPromote = trackerMarkdown.replace(
+      '| L004 | Waiting | L999 | 3 | specced | [spec](../../specs/l004.md) | — | — | — |',
+      '| L004 | Waiting | L999 | 3 | specced | [spec](../../specs/l004.md) | — | — | — |\n' +
+        '| L005 | Promote | L001, L002, L003 | 4 | specced | [story](./stories/L005.md) | — | — | — |',
+    );
+    await writeFile(path.join(root, 'docs/tracks/linkly/README.md'), trackerWithPromote);
+    await writeFile(
+      path.join(root, 'docs/tracks/linkly/stories/L005.md'),
+      '---\ntitle: L005 promote story\nkind: promote\n---\n\n# L005',
+    );
+
+    const tracks = await discoverMarkdownTracks({
+      workspaceRoot: root,
+      tracksDir: 'docs/tracks',
+      archiveDir: 'docs/tracks/archive',
+      completeStatuses: ['done', 'verified'],
+      eligibleStatuses: ['specced', 'plan-approved'],
+      idPattern: '^[A-Z]{1,}[0-9]+$',
+    });
+
+    const promoteStory = tracks[0].stories.find((s) => s.id === 'L005');
+    expect(promoteStory).toBeDefined();
+    expect(promoteStory?.kind).toBe('promote');
+    expect(promoteStory?.eligible).toBe(false);
+    expect(promoteStory?.blockedReason).toContain('terminal promote story');
+  });
+
+  it('leaves a normal story unaffected when its spec file has no kind field', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-normal-'));
+    await mkdir(path.join(root, 'docs/tracks/linkly/stories'), { recursive: true });
+    await writeFile(path.join(root, 'docs/tracks/linkly/README.md'), trackerMarkdown);
+    // L002's spec is ../../specs/l002.md which does not exist — should be silently skipped
+    const tracks = await discoverMarkdownTracks({
+      workspaceRoot: root,
+      tracksDir: 'docs/tracks',
+      archiveDir: 'docs/tracks/archive',
+      completeStatuses: ['done', 'verified'],
+      eligibleStatuses: ['specced', 'plan-approved'],
+      idPattern: '^[A-Z]{1,}[0-9]+$',
+    });
+
+    const normalStory = tracks[0].stories.find((s) => s.id === 'L002');
+    expect(normalStory).toBeDefined();
+    expect(normalStory?.kind).toBeUndefined();
+    expect(normalStory?.eligible).toBe(true);
+  });
+
+  it('does not affect the track-complete path: promote story reaching done is not excluded', async () => {
+    // The CompletionGate checks story.status (not story.eligible) to determine completion.
+    // This test verifies that a promote story at status 'done' is present in the stories list
+    // with eligible=false but status correctly reflecting 'done', so the completion gate works.
+    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-done-promote-'));
+    await mkdir(path.join(root, 'docs/tracks/linkly/stories'), { recursive: true });
+
+    const trackerDonePromote = trackerMarkdown.replace(
+      '| L004 | Waiting | L999 | 3 | specced | [spec](../../specs/l004.md) | — | — | — |',
+      '| L004 | Waiting | L999 | 3 | specced | [spec](../../specs/l004.md) | — | — | — |\n' +
+        '| L005 | Promote | L001, L002, L003 | 4 | done | [story](./stories/L005.md) | — | — | — |',
+    );
+    await writeFile(path.join(root, 'docs/tracks/linkly/README.md'), trackerDonePromote);
+    await writeFile(
+      path.join(root, 'docs/tracks/linkly/stories/L005.md'),
+      '---\ntitle: L005 promote story\nkind: promote\n---\n\n# L005',
+    );
+
+    const tracks = await discoverMarkdownTracks({
+      workspaceRoot: root,
+      tracksDir: 'docs/tracks',
+      archiveDir: 'docs/tracks/archive',
+      completeStatuses: ['done', 'verified'],
+      eligibleStatuses: ['specced', 'plan-approved'],
+      idPattern: '^[A-Z]{1,}[0-9]+$',
+    });
+
+    const promoteStory = tracks[0].stories.find((s) => s.id === 'L005');
+    // The promote story must remain in the stories list with its matrix status preserved
+    // so that the CompletionGate can detect the track is complete.
+    expect(promoteStory).toBeDefined();
+    expect(promoteStory?.kind).toBe('promote');
+    expect(promoteStory?.status).toBe('done');
+    // eligible is still false — the runtime never dispatches it
+    expect(promoteStory?.eligible).toBe(false);
+  });
 });
 
 function validationContext() {

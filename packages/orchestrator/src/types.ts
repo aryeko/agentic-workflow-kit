@@ -503,6 +503,15 @@ export interface WorkflowStory {
   dependencies: string[];
   eligible: boolean;
   blockedReason: string | null;
+  /**
+   * Optional story kind read from the spec file's frontmatter. Only set by the
+   * disk-loading layer (discoverMarkdownTracks / enrichStoryKind). The pure
+   * parseTrackerStories parser does not set this field.
+   *
+   * `'promote'` — terminal promote story; excluded from runtime eligibility so
+   *  run-eligible and the scheduler never dispatch it as a normal child.
+   */
+  kind?: 'story' | 'promote';
   metadata: {
     trackId: string;
     trackTitle: string;

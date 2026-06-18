@@ -4,7 +4,7 @@ import matter from 'gray-matter';
 import { glob } from 'tinyglobby';
 import { isNodeError } from '../internal/guards.js';
 import type { StorySource, WorkflowStory, WorkflowTrack } from '../types.js';
-import { normalizeOwner, parseTrackerStories } from './markdownParser.js';
+import { normalizeOwner, parseTrackerStories, stripMarkdown } from './markdownParser.js';
 import type { DiscoverMarkdownTracksOptions } from './trackerTypes.js';
 
 export { parseTrackerStories, updateTrackerStoryRow } from './markdownParser.js';
@@ -60,7 +60,7 @@ export async function discoverMarkdownTracks(options: DiscoverMarkdownTracksOpti
     const relativePath = slash(path.relative(options.workspaceRoot, readmePath));
     const trackId = trackIdFromPath(tracksRoot, readmePath);
     const title = frontmatter.title ?? titleFromTrackId(trackId);
-    const stories = parseTrackerStories(markdown, {
+    const rawStories = parseTrackerStories(markdown, {
       completeStatuses: new Set(options.completeStatuses),
       eligibleStatuses: new Set(options.eligibleStatuses),
       idPattern: new RegExp(options.idPattern),
@@ -68,6 +68,7 @@ export async function discoverMarkdownTracks(options: DiscoverMarkdownTracksOpti
       trackTitle: title,
       trackerPath: relativePath,
     });
+    const stories = await enrichStoryKinds(rawStories, path.dirname(readmePath));
 
     if (stories.length === 0) continue;
 
@@ -98,6 +99,51 @@ function parseFrontmatter(markdown: string): { title?: string; status?: string; 
   const { data } = matter(markdown);
   const pick = (value: unknown): string | undefined => (typeof value === 'string' ? value.trim() : undefined);
   return { title: pick(data.title), status: pick(data.status), owner: pick(data.owner) };
+}
+
+/**
+ * Read each story's spec-linked file and pull the `kind` field from its
+ * YAML frontmatter. When `kind: promote` is found, force `eligible = false`
+ * and set a clear `blockedReason` so every runtime consumer (run-eligible,
+ * scheduler, facade, CLI) skips it automatically.
+ *
+ * Seam: this runs in the disk-loading layer where the tracker directory path
+ * is available. The pure `parseTrackerStories` parser is kept free of fs I/O.
+ *
+ * Missing or unreadable spec files are silently ignored — the story retains
+ * whatever eligibility the matrix computed.
+ */
+async function enrichStoryKinds(stories: WorkflowStory[], trackerDir: string): Promise<WorkflowStory[]> {
+  return Promise.all(
+    stories.map(async (story) => {
+      const specCell = story.metadata.spec;
+      if (!specCell) return story;
+
+      // Extract the href from a Markdown link such as [story](./stories/LK04.md)
+      const hrefMatch = specCell.match(/\]\(([^)]+)\)/);
+      const href = hrefMatch ? hrefMatch[1].trim() : stripMarkdown(specCell).trim();
+      if (!href) return story;
+
+      const specPath = path.resolve(trackerDir, href);
+      let content: string;
+      try {
+        content = await readFile(specPath, 'utf8');
+      } catch {
+        // Missing or unreadable spec file — leave story unchanged.
+        return story;
+      }
+
+      const { data } = matter(content);
+      if (data.kind !== 'promote') return story;
+
+      return {
+        ...story,
+        kind: 'promote' as const,
+        eligible: false,
+        blockedReason: 'terminal promote story — run /promote-to-canonical',
+      };
+    }),
+  );
 }
 
 function trackIdFromPath(tracksRoot: string, readmePath: string): string {
