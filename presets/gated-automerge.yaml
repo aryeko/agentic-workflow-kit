@@ -150,3 +150,26 @@ agents:
     analyzeRun: analyzer
     recoverRun: recovery
     migrateTracker: planner
+docs:
+  preset: full
+  index: docs/README.md
+  style: docs/docs-style.md
+  templatesDir: .workflow/templates
+  paths:
+    productDir: docs/product
+    prdsDir: docs/product/prds
+    architectureDir: docs/architecture
+    designsDir: docs/architecture/designs
+    domainsDir: docs/architecture/domains
+    decisionsDir: docs/architecture/decisions
+  types:
+    adr:
+      enabled: true
+    domain:
+      enabled: true
+    runbook:
+      enabled: false
+  promote:
+    strategy: terminal-story
+    gate: track-complete
+    breadcrumbs: required
