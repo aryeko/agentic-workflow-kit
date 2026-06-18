@@ -843,7 +843,7 @@
       "type": "object",
       "properties": {
         "preset": {
-          "default": "full",
+          "default": "lean",
           "type": "string",
           "enum": [
             "lean",

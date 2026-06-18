@@ -297,7 +297,7 @@ strategy the kit uses when producing and maintaining canonical docs.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `preset` | `lean` \| `full` | `full` | Documentation preset. `lean` omits optional doc types; `full` enables all supported types. |
+| `preset` | `lean` \| `full` | `lean` | Documentation preset. `lean` omits optional doc types; `full` enables all supported types. |
 | `index` | string | `docs/README.md` | Repo-relative path to the docs index file. |
 | `style` | string | `docs/docs-style.md` | Repo-relative path to the docs style guide. |
 | `templatesDir` | string | `.workflow/templates` | Repo-relative directory for custom doc templates. |

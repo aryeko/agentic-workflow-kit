@@ -151,7 +151,7 @@ agents:
     recoverRun: recovery
     migrateTracker: planner
 docs:
-  preset: full
+  preset: lean
   index: docs/README.md
   style: docs/docs-style.md
   templatesDir: .workflow/templates

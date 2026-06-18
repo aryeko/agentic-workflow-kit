@@ -403,7 +403,7 @@ export const ConfigSchema = z
       }),
     docs: z
       .object({
-        preset: z.enum(['lean', 'full']).default('full'),
+        preset: z.enum(['lean', 'full']).default('lean'),
         index: repoRelativePath.default('docs/README.md'),
         style: repoRelativePath.default('docs/docs-style.md'),
         templatesDir: repoRelativePath.default('.workflow/templates'),
