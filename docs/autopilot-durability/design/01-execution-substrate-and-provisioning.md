@@ -39,7 +39,7 @@ consistent with §1.
 
 ## 3. The approval relay (Themes A + B) — the heart of D1
 
-This is the mechanism that stalled both runs. It is now grounded in the protocol spike.
+This is the mechanism that stalled both runs. It is now grounded in the [runtime findings](notes/codex-runtime-findings.md).
 
 ### 3.1 What actually broke
 
@@ -97,7 +97,7 @@ Deterministic, rule-based, inspectable; rules ship as built-ins + repo overrides
 
 Each request's tier is recorded with the rule that matched.
 
-### 3.5 Scoped grants (Theme A — grounded in the spike)
+### 3.5 Scoped grants (Theme A — grounded in the [runtime findings](notes/codex-runtime-findings.md))
 
 Grant the **tightest** scope that works, keeping the sandbox otherwise `workspace-write`/no-network:
 
@@ -153,7 +153,7 @@ becomes impossible *and* inspectable. Resolved fields: model, reasoning, sandbox
 structuredOutput, budget, `escalationPolicy`, approval `mode`.
 
 **Default `approvalPolicy` is `on-request`, not `never`** — under `never` no approval request is ever raised,
-so the relay has nothing to answer and network work is silently denied (spike finding). Children that may
+so the relay has nothing to answer and network work is silently denied (per the runtime findings). Children that may
 need network must run `on-request` (or `untrusted`).
 
 ## 5. Capability ties (defined in D0, evaluated here)

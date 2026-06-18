@@ -16,13 +16,13 @@ supervision). Builds on the [spine](00-overview.md): the channel, event-sourced 
 ## 1. Principle — own the process, never borrow it
 
 The kit **spawns and owns** the child OS process and retains its handle/pid. Reliable control is a property
-of *process ownership*, not of any Codex feature (controllability spike). Sessions the kit does **not** own
+of *process ownership*, not of any Codex feature ([runtime findings](notes/codex-runtime-findings.md)). Sessions the kit does **not** own
 — the Codex desktop app, `resume`-from-disk — are **observe-only** and surfaced as `not-controllable`; the
 control plane refuses to promise interrupt/kill it can't deliver.
 
 ## 2. Runtime/protocol target (the deferred fork) — RECOMMENDATION, confirm on review
 
-The spike pinned the tradeoff. Both options keep the kit-owned process; they differ on control fidelity and
+The [runtime findings](notes/codex-runtime-findings.md) pinned the tradeoff. Both options keep the kit-owned process; they differ on control fidelity and
 maturity:
 
 | | `codex mcp-server` v1 + elicitation handler | `codex app-server` v2 (stdio) |

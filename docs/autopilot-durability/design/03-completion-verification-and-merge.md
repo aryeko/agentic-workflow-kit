@@ -17,7 +17,7 @@ gates, structured `child-run-result`) and [D2](02-lifecycle-and-control-plane.md
 ## 1. Principle — evidence + policy, not prose
 
 Completion and merge are decided by **independently-gathered evidence** and **explicit repo policy**. The
-child's self-report is a *hint*, not the authority. This fixes **F3** (on-class RV01 returned `done` with no
+child's self-report is a *hint*, not the authority. This fixes **Theme H** (raw RR3 F3 — on-class RV01 returned `done` with no
 gate run — it would have cleared the old gate; only RV03's honesty saved the run) and **#19** (pathway's
 merge-while-blocked was a coherent but *implicit, operator-improvised* decision).
 

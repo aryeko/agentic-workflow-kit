@@ -1,6 +1,6 @@
 ---
 title: Autopilot unified issue report (RR3 + Pathway)
-status: diagnosis complete; remediation not yet designed
+status: diagnosis complete; remediation now designed under ../design (this report stays diagnosis-only)
 last-reviewed: 2026-06-18
 synthesizes:
   - ./2026-06-17-autopilot-rr3-runs.md
@@ -15,6 +15,9 @@ feeds:
 problem statement that a design session can act on. It **characterizes** failures and states design
 tensions; it deliberately **does not prescribe fixes** — that is the next session's job, and it should
 feed the existing redesign under `docs/prds/agentic-workflow-kit-redesign/technical-solution/`.
+
+> **Design status (added 2026-06-18):** this report stays the **diagnosis-only** artifact. The remediation
+> it called for is now designed under [`../design`](../design/) — start at [`../README.md`](../README.md).
 
 **Scope.** All fixes land in **this repo** (`agentic-workflow-kit`). The target apps (`on-class-web`,
 `pathway`) are only the scenes of the incidents; their application code is out of scope.

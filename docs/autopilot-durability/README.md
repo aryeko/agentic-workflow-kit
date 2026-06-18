@@ -122,6 +122,8 @@ under *both* orchestrators are kit-substrate defects.
 - **Diagnosis:** complete (3 postmortems). **Design:** all six domain docs (D0–D5) drafted and
   self-consistent; under review. Open decisions to confirm are flagged in-doc (D2 §2 protocol; D3 §7 merge;
   D4 §6 recovery).
+- **Runtime evidence:** the control + approval design is backed by committed findings in
+  [design/notes/codex-runtime-findings.md](design/notes/codex-runtime-findings.md) (Codex 0.139.0, read-only spikes).
 - Code references throughout were verified against kit **v0.7.0** `main` on 2026-06-18.
 - This effort builds on, but does not replace, the existing redesign under
   [`docs/prds/agentic-workflow-kit-redesign/`](../prds/agentic-workflow-kit-redesign/) — it reconciles that

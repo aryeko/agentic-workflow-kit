@@ -1,6 +1,6 @@
 ---
 title: D0 — Architecture spine & contracts
-status: draft (approved in concept)
+status: draft — spine concept approved by owner (2026-06-18); written doc under review
 last-reviewed: 2026-06-18
 part-of: autopilot-durability
 themes: [E, G, I, "enables D", "enables H"]
@@ -57,7 +57,7 @@ evidence; if any fails, the capability is **disabled** and the run degrades to i
 - Each evaluation emits a durable **`CapabilityGateRecord`** — `{capability, decision: allow|deny,
   guarantees: [{name, ok, evidenceRef}], at}` — written to the event log.
 - The operator (and `analyze_run`) can therefore always answer *"why did/didn't the autopilot do X?"* by
-  reading the gate record. This is the structural antidote to themes **F3/H**: autonomous decisions become
+  reading the gate record. This is the structural antidote to **Theme H**: autonomous decisions become
   evidence-gated **and** inspectable.
 
 ### Conservative defaults
@@ -71,8 +71,9 @@ child couldn't be stopped) is **unreachable by default**.
 ## 2. Keystone — one bidirectional child↔orchestrator channel
 
 D1's approval relay and D2's control plane are **the same channel**, carried over a **kit-owned child
-process**. Owning the OS process is what makes everything below reliable (verified in the controllability
-spike: reliable kill is a property of process *ownership*, not of any Codex feature).
+process**. Owning the OS process is what makes everything below reliable (verified in the
+[runtime findings](notes/codex-runtime-findings.md) — reliable kill is a property of process *ownership*,
+not of any Codex feature).
 
 ```
         ┌──────────── kit-owned process (driver retains pid) ────────────┐
@@ -185,7 +186,7 @@ Defined here at the spine level; field-level detail lives with the owning domain
 ## 7. Open questions (D0)
 
 1. **`app-server` daemon path:** prototype true live-interrupt behind a flag with a per-version capability
-   probe? (Spike says it's the only live-control surface but is experimental and version-churny.)
+   probe? (The [runtime findings](notes/codex-runtime-findings.md) show it is the only live-control surface, but experimental and version-churny.)
 2. **Exact v1 capability set:** is the four-capability registry above complete, or do we split (e.g.
    `auto-pr` vs `auto-merge`)?
 3. **Projection store:** keep per-projection files (rebuilt) or a single derived snapshot? (Testability and
@@ -214,5 +215,5 @@ Defined here at the spine level; field-level detail lives with the owning domain
 | G | `state`/`summary`/`metrics` are projections of one log → divergence impossible; recovery via events, no manual edits |
 | I | Structured `child-run-result` replaces free-text evidence parsing |
 | D (enables) | Process ownership + two-tier control channel make a child killable; `auto-merge` gated on it |
-| H/F3 (enables) | Capability gates make completion/merge evidence-gated and inspectable |
+| H (enables) | Capability gates make completion/merge evidence-gated and inspectable |
 | C (sets up) | Deterministic override precedence declared here; specified in D1 |
