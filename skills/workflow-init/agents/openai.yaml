@@ -1,7 +1,0 @@
-interface:
-  display_name: "Workflow Init"
-  short_description: "Scaffold agentic-workflow-kit config"
-  default_prompt: "Use $workflow-init to set up agentic-workflow-kit in this repo."
-
-policy:
-  allow_implicit_invocation: true

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Workflow Autopilot"
-  short_description: "Operate orchestrator runs"
-  default_prompt: "Use $workflow-autopilot to inspect eligible dispatch with the plugin-provided MCP runtime, dry-run first, then fall back to the CLI if MCP tools are unavailable."
-
-policy:
-  allow_implicit_invocation: false

@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "agentic-workflow-kit": {
-      "command": "npx",
-      "args": ["-y", "--package", "@agentic-workflow-kit/orchestrator@0.7.0", "agentic-workflow-kit-mcp"]
-    }
-  }
-}

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Define Product"
-  short_description: "Draft a PRD and route next planning step"
-  default_prompt: "Use $define-product to define the product requirements, ask only blocking questions, and recommend the next planning step."
-
-policy:
-  allow_implicit_invocation: true

@@ -1,7 +1,0 @@
-interface:
-  display_name: "Design Technical Solution"
-  short_description: "Write the technical solution gate"
-  default_prompt: "Use $design-technical-solution to write a technical solution document from an approved PRD before delivery-track planning."
-
-policy:
-  allow_implicit_invocation: true
