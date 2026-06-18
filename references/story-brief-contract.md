@@ -14,11 +14,15 @@ sections.
 **File maturity vs. tracker status** — these are independent:
 - *File maturity*: `specced` rows link a brief-level story file; a `plan-approved` row may link a
   file that has already been enriched to implementation-ready by a separate planning pass.
-- *Tracker status lifecycle*: `specced` (brief, eligible) → `plan-approved` (enriched, still
-  eligible, not yet claimed) → `implementing` (claimed by `implement-next`) → `done` / `verified`.
-- `implement-next` sets the row to `implementing` when it claims the story and keeps it there
-  through enrichment, planning, implementation, and completion. Enrichment changes the file content
-  only; it does not revert the status to `plan-approved`.
+- *Tracker status lifecycle* (default path): `specced` (brief, eligible) → (claimed by
+  `implement-next`) `implementing` → `done` / `verified`. The `plan-approved` state is
+  **optional**: it is reached only by a separate, explicit planning pass before the story is
+  claimed. When it exists, the row is still in `statuses.eligible` and `implement-next` claims it
+  by advancing directly to `implementing`.
+- `implement-next` sets the row to `implementing` when it claims the story (whether from `specced`
+  or `plan-approved`) and keeps it there through enrichment, planning, implementation, and
+  completion. Enrichment changes the file content only; it does not revert the status to
+  `plan-approved`.
 
 Every story file at brief-level (status `specced`) must include this exact note:
 
