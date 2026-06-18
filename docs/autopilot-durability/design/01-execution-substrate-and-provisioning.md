@@ -106,20 +106,40 @@ Grant the **tightest** scope that works, keeping the sandbox otherwise `workspac
    known host (e.g. `registry.npmjs.org`);
 3. **session scope** only when necessary; **never** blanket `danger-full-access` via the relay.
 
-The **default `escalationPolicy` pre-approves standard dependency install** as a per-host network grant to
-declared registries for declared package managers — so `pnpm install` auto-grants (`by: policy`, audited)
-with no human or orchestrator in the loop. Off-policy network and privileged ops still escalate.
+The **default `escalationPolicy` pre-approves standard dependency install — narrowly:** only a **declared
+package manager** running a **lockfile-respecting** install (e.g. `pnpm install --frozen-lockfile` / `npm ci`),
+granted as a **per-host network amendment to declared registry hosts only**, with **no secret access and no
+arbitrary egress**. It auto-grants (`by: policy`, audited) with no human in the loop. **Dependency *lifecycle*
+scripts (post-install hooks) are NOT covered by this grant** — they are arbitrary code (the supply-chain
+surface) and **escalate separately** (medium by default, §3.4). Anything off the declared
+registries/package-manager, or needing more than the lockfile install, escalates.
 
 ### 3.6 Park & resume — the `awaiting-approval` state
 
-When a request needs a human (`manual`, out-of-bounds in `auto`, or the orchestrator defers):
+When a request needs a human (`manual`, out-of-bounds in `auto`, or the orchestrator defers), the run parks
+in a recoverable `awaiting-approval` state. The hard part is surviving **human latency** (minutes to hours) —
+longer than any live transport will hold an in-flight request open. So park/resume does **not** depend on
+keeping the live approval request alive:
 
-- The run **parks** in a recoverable `awaiting-approval` state. The child's turn is **suspended, not
-  killed**; the request is surfaced to the operator; the supervisor is released (no busy-wait — it uses the
-  D0/D5 subscription wake).
-- On the human decision, the relay returns the **scoped** decision and the child **resumes the same turn**.
-- The relay **time-boxes its own decision** so the child never hangs forever; on timeout it parks (or denies
-  per policy). (Codex's decision enum includes `timed_out`.)
+- **Durable pending-approval record.** The normalized request is persisted as an event
+  (`approval-pending {requestId, riskTier, host?, command?, scopeNeeded}`) *before* anything else. The parked
+  state is fully reconstructable from the log alone.
+- **Decouple human latency from the transport.** The relay never blocks the live request on a human. It
+  **time-boxes its own answer**; when no in-bounds auto-decision applies it returns a **clean close** for that
+  turn (decline-this-exec / `timed_out`) so the child stops gracefully, and the run parks. The supervisor is
+  released (no busy-wait; D0/D5 wake).
+- **Resume by continuing the session, not by reviving a stale request.** On the human decision
+  (`approval-resolved` event) the run **resumes the owned child** — same session via `codex resume`/app-server
+  (D2 + D4) — with the grant **pre-loaded** (e.g. a session-scoped `network_policy_amendment` or a
+  pre-authorized escalation entry), so the child re-attempts the step and it now succeeds. Same session, fresh
+  turn; no dependence on a request held open for hours.
+- **Process death while parked is safe.** Because pending-approval and linkage are events (not in-memory
+  state), a parked run survives a supervisor or child exit: on resume the kit relaunches/resumes the owned
+  session from the log and applies the grant. Nothing is lost.
+- **Phase 0 feasibility.** v1 `mcp-server` cannot hold an `elicitation/create` request open across human
+  latency — so Phase 0 *is* this decline-cleanly-then-resume model (short auto-decisions answer the live
+  request; anything needing a human parks and resumes via a fresh turn). v2 `app-server` can additionally keep
+  a request pending longer, but the durable park/resume contract is identical either way.
 
 Park/resume is the approval use of the same bidirectional channel D2 owns; it is why D1 and D2 are
 co-designed.

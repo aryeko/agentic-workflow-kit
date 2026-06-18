@@ -32,10 +32,15 @@ only *after* the child already claims complete (`CompletionGate.ts:59-141`). Aut
 |---|---|
 | **GitInspector** | branch exists; commits present; base current / ancestry ok |
 | **CollaborationInspector** (GitHub) | PR exists + state; CI checks status; required reviews satisfied; unresolved bot/review findings; branch state |
-| **VerificationInspector** | the repo verify-gate result, taken from the structured `child-run-result` and **cross-checked**, not trusted as prose |
+| **VerificationInspector** | the verify-gate **command, exit code, and output captured by the driver / tool wrapper (observed, not child-declared)**; if unavailable, the runner **re-runs the verify command** or reads the **CI artifact**. The `child-run-result` claim is only a hint, cross-checked against captured/CI evidence |
 
 The child's returned status is recorded as a hint and **reconciled** against evidence. A mismatch
 (claims `done`, evidence absent) → recoverable **`claim-evidence-mismatch`** state — never silent acceptance.
+
+**Verification authority rule:** a child-declared green gate with **no driver-captured or CI evidence** is
+treated as **unverified** and satisfies neither the completion nor the `auto-merge` gate. Verification must be
+*observed* (tool-wrapper capture of command/exit/output), *re-run* by the runner, or *CI-derived* — never
+merely asserted by the child.
 
 ## 3. Completion gate logic
 

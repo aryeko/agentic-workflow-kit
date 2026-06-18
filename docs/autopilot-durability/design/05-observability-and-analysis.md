@@ -45,8 +45,10 @@ escalation).
 **The fix:**
 
 - **Auto-fire:** every terminal/`blocked`/`supervision-lost` transition **automatically** produces
-  `analysis.json` + `report.md` (an event-driven step, not an operator call). **No terminal run without an
-  analysis artifact.**
+  `analysis.json` + `report.md` (an event-driven step, not an operator call). **Analysis never blocks
+  terminalization:** if the analyzer itself fails, the run **still terminalizes** and emits an
+  **`analysis-failed`** event (error + evidence refs) plus a stub report. The invariant is *"every terminal run
+  has an analysis **or** an `analysis-failed` record"* — never a hang, never a silent gap.
 - **Correlate:** the analyzer consumes the event log + projections + inspector evidence and **emits issues by
   correlating facts**, e.g.:
   - linkage event present but a projection lacks it → flag *(would have caught **E**)*;

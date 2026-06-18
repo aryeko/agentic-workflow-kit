@@ -56,7 +56,8 @@ emits an explicit decision (recorded as events):
 
 Each decision is `{ auto-recoverable | needs-operator, recommendedAction, evidenceRef }`. When evidence shows
 the situation is **safe-to-take-over** (e.g. worktree clean / action reversible), `auto-recover` may proceed —
-gated by the capability (run-state coherent + no live un-owned child + evidence safe). Otherwise the run
+gated by the capability (run-state coherent + **no live child, or exactly one owned child under the same
+handle being resumed / terminated-then-reaped** + evidence safe). Otherwise the run
 **stops in a diagnosable recovery state** with evidence + recommended action surfaced. **Never blind relaunch.**
 
 ## 4. Duplicate-launch & reconciliation via supported controls (Theme G)
@@ -77,9 +78,11 @@ gated by the capability (run-state coherent + no live un-owned child + evidence 
 ## 5. Re-dispatch semantics (on-class learning)
 
 On-class showed re-dispatch **restarted the child from scratch** (new session, lost work). Design:
-re-dispatch **resumes the linked session** where the runtime supports it (D2 linkage + `codex resume`/
-app-server), else it clearly records that work is **restarted**. The recovery decision states which — no
-silent loss. *(Depends on runtime resume support; coordinate with D2.)*
+re-dispatch **resumes the linked session** where the runtime supports it by **spawning `codex resume <id>`
+(or app-server) as a new kit-owned process** — so the resumed child is **owned** (controllable/killable per
+[D2 §1](02-lifecycle-and-control-plane.md)), continuing prior session state. Any prior child under the handle
+is **terminated and reaped first** (no double-runner). If resume is unsupported, the kit clearly records work
+is **restarted** — no silent loss. *(Owned-resume classification is defined in D2 §1.)*
 
 ## 6. Decisions-to-confirm (safety-first defaults I've chosen)
 

@@ -45,7 +45,7 @@ evidence; if any fails, the capability is **disabled** and the run degrades to i
 | `escalation-auto-grant` | request matches the repo `escalationPolicy` allowlist | next tier (orchestrator/human) — D1 |
 | `orchestrator-decide-approvals` (`auto` mode) | mode = `auto` **and** request risk-tier ≤ `autoMaxRiskTier` (low, or low+medium) | escalate to human (park) — D1 |
 | `auto-merge` | CI green via independent inspector + required reviews satisfied + **child is killable (owned process)** + run-state coherent | hold merge; park recoverable — D3 |
-| `auto-recover` / `auto-relaunch` | run-state coherent + no live **un-owned** child + evidence classified safe-to-take-over | stop; require operator — D4 |
+| `auto-recover` / `auto-relaunch` | run-state coherent + **no live child, or exactly one owned child under the same handle being resumed / terminated-then-reaped** + evidence classified safe-to-take-over | stop; require operator — D4 |
 | `unattended-run` | every escalation is policy-covered **or** orchestrator-decidable within risk bounds | park at first request that is neither — D1 |
 
 > **Approval modes** (operator-selectable per run; full spec in [D1](01-execution-substrate-and-provisioning.md)): `manual` (every escalation → human) · `assisted` (policy → human) · `auto` (policy → risk-tiered orchestrator-decide → human). Default `assisted`; `auto` is opt-in.
@@ -101,11 +101,26 @@ holds the pid → fully controllable) or **un-owned** (desktop app, resume-from-
 only). The control plane **refuses to promise** control over un-owned sessions rather than attempting a
 kill/interrupt that physically can't land. `auto-merge` and `auto-recover` require an owned child.
 
-**Driver contract (host-neutral) implications:** the driver must (a) own the subprocess and expose its pid
-(the MCP SDK transport already exposes one; or spawn directly), (b) carry the three message classes,
-(c) report an ownership class. A future true-live-interrupt path (Codex experimental `app-server` daemon +
-control socket) is an **optional, flag-gated** driver capability, probed per Codex version — not a
-dependency of the spine.
+**Driver contract (host-neutral) implications:** the driver must (a) own the subprocess **group** and expose
+its identifiers (the MCP SDK transport exposes a pid; spawn as a session leader for the group), (b) carry the
+three message classes, (c) report an ownership class. A future true-live-interrupt path (Codex experimental
+`app-server` daemon + control socket) is an **optional, flag-gated** driver capability, probed per Codex
+version — not a dependency of the spine.
+
+### Ownership is multi-dimensional (invariants)
+
+"Owned" means more than holding a pid. Each dimension below is a **first-class invariant** a domain must
+guarantee — implementation must satisfy every one, so it cannot meet the letter while missing the guarantee.
+
+| Dimension | Invariant | Owner |
+|---|---|---|
+| **Process tree** | the child's **process group / session** is owned; termination kills **and reaps every descendant** (no surviving `pnpm`/`git`/shell/test-server) | D2 |
+| **Protocol handle** | the live request/response channel is held by the supervisor; control/approval never route through a separately-spawned helper | D2 |
+| **Session linkage** | `sessionId` / log path is an append-only fact — monotonic, never clobbered | D2 |
+| **Pending approval** | a parked approval is **durably persisted** and survives human latency and process death | D1 |
+| **Event writer** | a single **leased** writer with monotonic `seq`; stale writers fenced after a terminal event | D0 §3 |
+| **Lifecycle timers** | supervisor/timers are bound to run lifecycle; a terminal run emits nothing further | D2 / D4 |
+| **Recovery authority** | exactly one authority may resume/relaunch, and it owns (or has reaped) the prior child | D4 |
 
 ---
 
@@ -130,6 +145,18 @@ Mechanics: atomic append (one event = one durable line); deterministic projectio
 (also the migration path for legacy runs); tolerance for a malformed trailing line (skip + keep
 supervising). The **structured `child-run-result`** is the only completion-evidence source — retiring the
 free-text evidence parser (theme **I/F6**).
+
+**Writer model (the invariant that makes append-only safe):**
+
+- **Single writer per run.** One supervisor holds a **writer lease** (lock file / advisory lock); only the
+  lease-holder appends. Concurrent or stale supervisors cannot write.
+- **Monotonic sequence.** The lease-holder allocates a strictly increasing `seq`; readers detect gaps and
+  build projections only from a contiguous prefix.
+- **Writer identity + fencing.** Each event stamps `writerId` + lease epoch. After a **terminal** event, or
+  once the lease is superseded, **late writes from a stale writer are rejected** — the structural fix for the
+  pathway #5 stale-supervisor rewrite (it can no longer overwrite a recovered run).
+- **Partial-write recovery.** Append is atomic per line; a torn trailing line is detected and discarded on
+  read, then re-appended. Projections never consume an uncommitted tail.
 
 ---
 

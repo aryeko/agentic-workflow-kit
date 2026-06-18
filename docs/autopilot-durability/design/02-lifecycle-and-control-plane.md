@@ -15,10 +15,14 @@ supervision). Builds on the [spine](00-overview.md): the channel, event-sourced 
 
 ## 1. Principle — own the process, never borrow it
 
-The kit **spawns and owns** the child OS process and retains its handle/pid. Reliable control is a property
-of *process ownership*, not of any Codex feature ([runtime findings](notes/codex-runtime-findings.md)). Sessions the kit does **not** own
-— the Codex desktop app, `resume`-from-disk — are **observe-only** and surfaced as `not-controllable`; the
-control plane refuses to promise interrupt/kill it can't deliver.
+The kit **spawns and owns** the child as its own **process group / session leader**, retaining the group id
+(not just a single pid). Reliable control is a property of *process ownership*, not of any Codex feature
+([runtime findings](notes/codex-runtime-findings.md)). **Ownership is defined by who spawned the process, not
+by how the session began:** a child the kit launches via `codex mcp-server`, `app-server`, **or
+`codex resume <id>`** is **owned** — controllable and killable — even though `resume` reconstructs prior
+session state. **Un-owned** means the kit does not hold the process: the Codex **desktop app**, or a session
+the kit **attaches to / observes but did not spawn**. Those are **observe-only**, surfaced as
+`not-controllable`, and the control plane refuses to promise interrupt/kill it can't deliver.
 
 ## 2. Runtime/protocol target (the deferred fork) — RECOMMENDATION, confirm on review
 
@@ -67,16 +71,20 @@ process handle is retained — so a hung child orphaned for ~94 min (`ChildSuper
 operator abort):
 
 ```
-1. signal AbortSignal + attempt graceful interrupt (best-effort, time-boxed)   // may be unsupported (Phase 0)
-2. SIGTERM the owned pid → wait grace window
-3. SIGKILL if still alive
+1. signal AbortSignal + attempt graceful interrupt (best-effort, time-boxed)        // may be unsupported (Phase 0)
+2. SIGTERM the **owned process group** (`kill(-pgid)`) → wait grace window
+3. SIGKILL the **whole group** if any member survives → wait + reap
+4. verify no descendant survives (group is empty); else escalate/alert
 ```
 
-Termination is **guaranteed within a bounded time** because the kit owns the pid (independent of any Codex
-interrupt verb). `settleSupervisionLost` **must terminate**, not just set state. Each step records a
-`ControlRequest`/`ControlOutcome` event. On run end/abort the owned process is **reaped** — an orphan is
-structurally impossible for an owned child. Un-owned children can't be killed; the run records
-`not-controllable` and stops (recovery is D4's concern).
+Termination targets the **process group / session tree**, not a single pid — Codex and tool commands spawn
+descendants (`pnpm`, `git`, shells, test servers), and killing only the parent leaves orphans. Because the
+kit spawned the child as a **session leader** it owns the whole group, so it can signal and **reap the entire
+tree** within a bounded time, independent of any Codex interrupt verb. `settleSupervisionLost` **must
+terminate the group**, not just set state. Each step records a `ControlRequest`/`ControlOutcome` event. The
+guarantee is **"the owned process group is terminated and reaped, with no surviving descendants"** — and it is
+**tested** by asserting zero group members remain after kill. Un-owned children can't be killed; the run
+records `not-controllable` and stops (recovery is D4's concern).
 
 ## 5. Session linkage as an append-only fact (Theme E)
 
