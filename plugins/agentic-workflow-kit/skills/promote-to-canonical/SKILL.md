@@ -86,8 +86,10 @@ Read in order:
 1. The tracker README (`<tracksDir>/<track>/README.md`) — status matrix, dependency graph, all
    story IDs, and the terminal promote story's `Depends on` list.
 2. The PRD at `<docs.paths.prdsDir>/<slug>/` (or `<paths.prdsDir>/<slug>/` for legacy layout) —
-   confirm the PRD slug and current `status`. Call the directory where the PRD was actually found
-   `<prdDir>` and carry it forward to Step 5, rather than assuming the default `docs.paths.prdsDir`.
+   confirm the PRD slug and current `status`. Call the resolved base PRDs directory `<prdDir>`
+   (`docs.paths.prdsDir`, or the legacy `paths.prdsDir` when the PRD was found there); the PRD
+   lives at `<prdDir>/<slug>/`. Carry `<prdDir>` forward to Step 5, rather than assuming the
+   default `docs.paths.prdsDir`.
 3. The technical design at `<docs.paths.designsDir>/<slug>.md` — read the **Canonical impact**
    section which lists every canonical doc this track will create or change. If the design doc is
    absent or has no Canonical impact section, reconstruct intent from the per-story breadcrumbs and
@@ -174,8 +176,9 @@ publishing a weak ADR.
 
 ### Step 5 — Flip the PRD to `shipped`
 
-In `<prdDir>/<slug>/README.md` (the PRD directory resolved in Step 1, which may be the legacy
-`paths.prdsDir` location), update the frontmatter `status` to `shipped`. Update the **Status and
+In `<prdDir>/<slug>/README.md` (the base PRDs directory resolved in Step 1, with the PRD slug
+appended exactly once; `<prdDir>` may be the legacy `paths.prdsDir` location), update the
+frontmatter `status` to `shipped`. Update the **Status and
 next steps** section to reference the terminal promote story and the date of promotion. Do not alter
 acceptance-criteria content or other section files.
 
