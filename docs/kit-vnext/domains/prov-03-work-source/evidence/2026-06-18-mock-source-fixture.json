@@ -1,0 +1,48 @@
+{
+  "workSourceId": "mock-scripted",
+  "statusBuckets": {
+    "eligible": ["ready"],
+    "inProgress": ["claimed"],
+    "complete": ["done"],
+    "blocked": ["blocked"]
+  },
+  "tracks": [
+    {
+      "trackId": "intake",
+      "tasks": [
+        {
+          "taskId": "WS-1",
+          "status": { "native": "ready", "bucket": "eligible" },
+          "target": { "project": "workflow-kit" },
+          "dependencies": [],
+          "scriptedFailures": []
+        },
+        {
+          "taskId": "WS-2",
+          "status": { "native": "blocked", "bucket": "blocked" },
+          "target": { "project": "workflow-kit" },
+          "dependencies": [
+            { "workSourceId": "mock-scripted", "trackId": "intake", "taskId": "WS-1" }
+          ],
+          "scriptedFailures": ["status-write-conflict", "stale-task-view"]
+        },
+        {
+          "taskId": "WS-3",
+          "status": { "native": "mystery", "bucket": "unknown" },
+          "target": { "project": "workflow-kit" },
+          "dependencies": [],
+          "scriptedFailures": ["status-bucket-unknown"]
+        },
+        {
+          "taskId": "WS-4",
+          "status": { "native": "ready", "bucket": "eligible" },
+          "target": { "project": "workflow-kit" },
+          "dependencies": [
+            { "workSourceId": "mock-scripted", "trackId": "intake", "taskId": "WS-3" }
+          ],
+          "scriptedFailures": ["dependency-unknown"]
+        }
+      ]
+    }
+  ]
+}
