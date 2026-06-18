@@ -38,14 +38,18 @@ PRD -> Technical solution -> Delivery tracker + story briefs -> Detailed story s
 ## Config
 
 Read `.workflow/config.yaml` if present; otherwise use defaults. Keys used:
-`paths.prdsDir` (default `docs/prds`), `paths.tracksDir` (`docs/tracks`), `statuses.*`, and
+`docs.paths.prdsDir` (default `docs/product/prds`; fall back to `paths.prdsDir`, default
+`docs/prds`), `docs.paths.designsDir` (default `docs/architecture/designs`),
+`paths.tracksDir` (`docs/tracks`), `statuses.*`, and
 `tracker.idPattern` (default `^[A-Z]{2,}[0-9]+$`). This skill writes no config.
 
 ## The recipe
 
 ### Step 1 - Source context gate
 
-Resolve `paths.prdsDir`. Locate the PRD for this work (`<prdsDir>/<slug>/`, conforming to
+Resolve `docs.paths.prdsDir` (default `docs/product/prds`); fall back to `paths.prdsDir`
+(default `docs/prds`) when `docs.paths.prdsDir` is absent. Call the resolved value `<prdsDir>`.
+Locate the PRD for this work (`<prdsDir>/<slug>/`, conforming to
 `references/prd-contract.md`) when a PRD slug or path is supplied. Read `08-acceptance-criteria.md`;
 every story brief maps to one or more PRD criteria when PRD criteria exist.
 
@@ -67,8 +71,11 @@ If technical solution is required and missing, stop and tell the user to run
 `/design-technical-solution` first unless explicit external design context already covers the same
 high-level how. Do not decompose complex technical work directly from a thin PRD.
 
-If the technical solution is present, read `<prdsDir>/<slug>/technical-solution.md` and confirm it
-conforms to `references/technical-solution-contract.md`. Use it as the source for story boundaries,
+If the technical solution is present, resolve `docs.paths.designsDir` (default
+`docs/architecture/designs`; fall back to `docs/architecture/designs` when absent). Read the
+technical design at `<docs.paths.designsDir>/<slug>.md` first; if that file is absent, fall back to
+the legacy `<prdsDir>/<slug>/technical-solution.md`. Confirm the located document conforms to
+`references/technical-solution-contract.md`. Use it as the source for story boundaries,
 sequencing, validation expectations, file-contention constraints, and required section citations.
 For technical-solution-only or backlog/design-context planning, cite the supplied document headings
 or context labels in the story brief's technical solution sections.

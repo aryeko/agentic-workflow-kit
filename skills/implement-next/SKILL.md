@@ -65,6 +65,7 @@ invalid, or missing config versions until the user resolves the compatibility is
 
 Use these keys:
 
+- `docs.paths.prdsDir` (default `docs/product/prds`; fall back to `paths.prdsDir`, default `docs/prds`), `docs.paths.designsDir` (default `docs/architecture/designs`)
 - `paths.tracksDir`, `paths.specsDir`, `paths.plansDir`, `paths.archiveDir`
 - `statuses.eligible`, `statuses.inProgress`, `statuses.complete`
 - `tracker.idPattern`
@@ -422,7 +423,7 @@ out-of-scope additions as review findings.
 For subagent/auto-subagent review, build a review context packet containing:
 
 - repo instructions and relevant local docs,
-- PRD/product docs and architecture or technical-solution docs when present,
+- PRD/product docs from `<docs.paths.prdsDir>/<slug>/` (fall back to `<paths.prdsDir>/<slug>/`) and architecture or technical design docs from `<docs.paths.designsDir>/<slug>.md` (fall back to `<prdsDir>/<slug>/technical-solution.md`) when present,
 - tracker row, story brief, detailed story spec, and implementation plan,
 - implementation diff,
 - latest verification commands and output.
