@@ -14,7 +14,8 @@
       "!**/node_modules",
       "!**/dist",
       "!**/.tsbuild",
-      "!**/coverage"
+      "!**/coverage",
+      "!**/docs"
     ]
   },
   "formatter": {

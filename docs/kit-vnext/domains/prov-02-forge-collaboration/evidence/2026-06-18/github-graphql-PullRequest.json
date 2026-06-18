@@ -1,0 +1,2361 @@
+{
+  "data": {
+    "__type": {
+      "enumValues": null,
+      "fields": [
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "activeLockReason",
+          "type": {
+            "kind": "ENUM",
+            "name": "LockReason",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "additions",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "assignedActors",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "AssigneeConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "assignees",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "UserConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "author",
+          "type": {
+            "kind": "INTERFACE",
+            "name": "Actor",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "authorAssociation",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "ENUM",
+              "name": "CommentAuthorAssociation",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "autoMergeRequest",
+          "type": {
+            "kind": "OBJECT",
+            "name": "AutoMergeRequest",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "baseRef",
+          "type": {
+            "kind": "OBJECT",
+            "name": "Ref",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "baseRefName",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "baseRefOid",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "GitObjectID",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "baseRepository",
+          "type": {
+            "kind": "OBJECT",
+            "name": "Repository",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "body",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "bodyHTML",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "HTML",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "bodyText",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "canBeRebased",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "changedFiles",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "checksResourcePath",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "URI",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "checksUrl",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "URI",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "closed",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "closedAt",
+          "type": {
+            "kind": "SCALAR",
+            "name": "DateTime",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "userLinkedOnly",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            },
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "orderBy",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "IssueOrder",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "closingIssuesReferences",
+          "type": {
+            "kind": "OBJECT",
+            "name": "IssueConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "orderBy",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "IssueCommentOrder",
+                "ofType": null
+              }
+            },
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "comments",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "IssueCommentConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "commits",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "PullRequestCommitConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "createdAt",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "DateTime",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "createdViaEmail",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": true,
+          "name": "databaseId",
+          "type": {
+            "kind": "SCALAR",
+            "name": "Int",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "deletions",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "editor",
+          "type": {
+            "kind": "INTERFACE",
+            "name": "Actor",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "files",
+          "type": {
+            "kind": "OBJECT",
+            "name": "PullRequestChangedFileConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "fullDatabaseId",
+          "type": {
+            "kind": "SCALAR",
+            "name": "BigInt",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "headRef",
+          "type": {
+            "kind": "OBJECT",
+            "name": "Ref",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "headRefName",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "headRefOid",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "GitObjectID",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "headRepository",
+          "type": {
+            "kind": "OBJECT",
+            "name": "Repository",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "headRepositoryOwner",
+          "type": {
+            "kind": "INTERFACE",
+            "name": "RepositoryOwner",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "includeNotificationContexts",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "hovercard",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "Hovercard",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "id",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "includesCreatedEdit",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "isCrossRepository",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "isDraft",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "isInMergeQueue",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "isMergeQueueEnabled",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "isReadByViewer",
+          "type": {
+            "kind": "SCALAR",
+            "name": "Boolean",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "orderBy",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "LabelOrder",
+                "ofType": null
+              }
+            },
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "labels",
+          "type": {
+            "kind": "OBJECT",
+            "name": "LabelConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "lastEditedAt",
+          "type": {
+            "kind": "SCALAR",
+            "name": "DateTime",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "writersOnly",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "latestOpinionatedReviews",
+          "type": {
+            "kind": "OBJECT",
+            "name": "PullRequestReviewConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "latestReviews",
+          "type": {
+            "kind": "OBJECT",
+            "name": "PullRequestReviewConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "locked",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "maintainerCanModify",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "mergeCommit",
+          "type": {
+            "kind": "OBJECT",
+            "name": "Commit",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "mergeQueue",
+          "type": {
+            "kind": "OBJECT",
+            "name": "MergeQueue",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "mergeQueueEntry",
+          "type": {
+            "kind": "OBJECT",
+            "name": "MergeQueueEntry",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "mergeStateStatus",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "ENUM",
+              "name": "MergeStateStatus",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "mergeable",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "ENUM",
+              "name": "MergeableState",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "merged",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "mergedAt",
+          "type": {
+            "kind": "SCALAR",
+            "name": "DateTime",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "mergedBy",
+          "type": {
+            "kind": "INTERFACE",
+            "name": "Actor",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "milestone",
+          "type": {
+            "kind": "OBJECT",
+            "name": "Milestone",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "number",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Int",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "participants",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "UserConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "permalink",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "URI",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "potentialMergeCommit",
+          "type": {
+            "kind": "OBJECT",
+            "name": "Commit",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "archivedStates",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "ENUM",
+                  "name": "ProjectCardArchivedState",
+                  "ofType": null
+                }
+              }
+            }
+          ],
+          "isDeprecated": true,
+          "name": "projectCards",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "ProjectCardConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "includeArchived",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Boolean",
+                "ofType": null
+              }
+            },
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "projectItems",
+          "type": {
+            "kind": "OBJECT",
+            "name": "ProjectV2ItemConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "number",
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Int",
+                  "ofType": null
+                }
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "projectV2",
+          "type": {
+            "kind": "OBJECT",
+            "name": "ProjectV2",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "query",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "orderBy",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ProjectV2Order",
+                "ofType": null
+              }
+            },
+            {
+              "name": "minPermissionLevel",
+              "type": {
+                "kind": "ENUM",
+                "name": "ProjectV2PermissionLevel",
+                "ofType": null
+              }
+            },
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "projectsV2",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "ProjectV2Connection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "publishedAt",
+          "type": {
+            "kind": "SCALAR",
+            "name": "DateTime",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "reactionGroups",
+          "type": {
+            "kind": "LIST",
+            "name": null,
+            "ofType": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "OBJECT",
+                "name": "ReactionGroup",
+                "ofType": null
+              }
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "content",
+              "type": {
+                "kind": "ENUM",
+                "name": "ReactionContent",
+                "ofType": null
+              }
+            },
+            {
+              "name": "orderBy",
+              "type": {
+                "kind": "INPUT_OBJECT",
+                "name": "ReactionOrder",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "reactions",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "ReactionConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "repository",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "Repository",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "resourcePath",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "URI",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "revertResourcePath",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "URI",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "revertUrl",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "URI",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "reviewDecision",
+          "type": {
+            "kind": "ENUM",
+            "name": "PullRequestReviewDecision",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "reviewRequests",
+          "type": {
+            "kind": "OBJECT",
+            "name": "ReviewRequestConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "reviewThreads",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "PullRequestReviewThreadConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "states",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "ENUM",
+                    "name": "PullRequestReviewState",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "name": "author",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "reviews",
+          "type": {
+            "kind": "OBJECT",
+            "name": "PullRequestReviewConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "state",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "ENUM",
+              "name": "PullRequestState",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "statusCheckRollup",
+          "type": {
+            "kind": "OBJECT",
+            "name": "StatusCheckRollup",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "query",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "suggestedActors",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "AssigneeConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "query",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "suggestedReviewerActors",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "SuggestedReviewerActorConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "suggestedReviewers",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "kind": "OBJECT",
+                "name": "SuggestedReviewer",
+                "ofType": null
+              }
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "since",
+              "type": {
+                "kind": "SCALAR",
+                "name": "DateTime",
+                "ofType": null
+              }
+            },
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": true,
+          "name": "timeline",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "PullRequestTimelineConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "since",
+              "type": {
+                "kind": "SCALAR",
+                "name": "DateTime",
+                "ofType": null
+              }
+            },
+            {
+              "name": "skip",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "itemTypes",
+              "type": {
+                "kind": "LIST",
+                "name": null,
+                "ofType": {
+                  "kind": "NON_NULL",
+                  "name": null,
+                  "ofType": {
+                    "kind": "ENUM",
+                    "name": "PullRequestTimelineItemsItemType",
+                    "ofType": null
+                  }
+                }
+              }
+            },
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "timelineItems",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "PullRequestTimelineItemsConnection",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "title",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "titleHTML",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "HTML",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "totalCommentsCount",
+          "type": {
+            "kind": "SCALAR",
+            "name": "Int",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "updatedAt",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "DateTime",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "url",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "URI",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "userContentEdits",
+          "type": {
+            "kind": "OBJECT",
+            "name": "UserContentEditConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanApplySuggestion",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanClose",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanDeleteHeadRef",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanDisableAutoMerge",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanEditFiles",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanEnableAutoMerge",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanLabel",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanMergeAsAdmin",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanReact",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanReopen",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanSubscribe",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanUpdate",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCanUpdateBranch",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerCannotUpdateReasons",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "LIST",
+              "name": null,
+              "ofType": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "ENUM",
+                  "name": "CommentCannotUpdateReason"
+                }
+              }
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerDidAuthor",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerLatestReview",
+          "type": {
+            "kind": "OBJECT",
+            "name": "PullRequestReview",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerLatestReviewRequest",
+          "type": {
+            "kind": "OBJECT",
+            "name": "ReviewRequest",
+            "ofType": null
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "mergeType",
+              "type": {
+                "kind": "ENUM",
+                "name": "PullRequestMergeMethod",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "viewerMergeBodyText",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "mergeType",
+              "type": {
+                "kind": "ENUM",
+                "name": "PullRequestMergeMethod",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "viewerMergeHeadlineText",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "viewerSubscription",
+          "type": {
+            "kind": "ENUM",
+            "name": "SubscriptionState",
+            "ofType": null
+          }
+        }
+      ],
+      "inputFields": null,
+      "kind": "OBJECT",
+      "name": "PullRequest"
+    }
+  }
+}

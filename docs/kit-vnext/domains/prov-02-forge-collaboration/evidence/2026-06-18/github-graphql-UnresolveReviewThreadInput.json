@@ -1,0 +1,34 @@
+{
+  "data": {
+    "__type": {
+      "enumValues": null,
+      "fields": null,
+      "inputFields": [
+        {
+          "defaultValue": null,
+          "name": "clientMutationId",
+          "type": {
+            "kind": "SCALAR",
+            "name": "String",
+            "ofType": null
+          }
+        },
+        {
+          "defaultValue": null,
+          "name": "threadId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            }
+          }
+        }
+      ],
+      "kind": "INPUT_OBJECT",
+      "name": "UnresolveReviewThreadInput"
+    }
+  }
+}

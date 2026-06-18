@@ -1,0 +1,1 @@
+{"child_alive_after_reap_check": false, "child_pid_recorded": true, "containment_primitive": "process-group-session", "forced_kill_used": false, "parent_exit_observed": true, "parent_pid_recorded": true, "termination_signal": "SIGTERM"}

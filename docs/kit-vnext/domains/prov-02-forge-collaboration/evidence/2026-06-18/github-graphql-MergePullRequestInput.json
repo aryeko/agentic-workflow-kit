@@ -1,0 +1,79 @@
+{
+  "data": {
+    "__type": {
+      "enumValues": null,
+      "fields": null,
+      "inputFields": [
+        {
+          "defaultValue": null,
+          "name": "clientMutationId",
+          "type": {
+            "kind": "SCALAR",
+            "name": "String",
+            "ofType": null
+          }
+        },
+        {
+          "defaultValue": null,
+          "name": "pullRequestId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "defaultValue": null,
+          "name": "commitHeadline",
+          "type": {
+            "kind": "SCALAR",
+            "name": "String",
+            "ofType": null
+          }
+        },
+        {
+          "defaultValue": null,
+          "name": "commitBody",
+          "type": {
+            "kind": "SCALAR",
+            "name": "String",
+            "ofType": null
+          }
+        },
+        {
+          "defaultValue": null,
+          "name": "expectedHeadOid",
+          "type": {
+            "kind": "SCALAR",
+            "name": "GitObjectID",
+            "ofType": null
+          }
+        },
+        {
+          "defaultValue": "MERGE",
+          "name": "mergeMethod",
+          "type": {
+            "kind": "ENUM",
+            "name": "PullRequestMergeMethod",
+            "ofType": null
+          }
+        },
+        {
+          "defaultValue": null,
+          "name": "authorEmail",
+          "type": {
+            "kind": "SCALAR",
+            "name": "String",
+            "ofType": null
+          }
+        }
+      ],
+      "kind": "INPUT_OBJECT",
+      "name": "MergePullRequestInput"
+    }
+  }
+}
