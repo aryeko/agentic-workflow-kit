@@ -1,0 +1,7 @@
+schema-ok=true
+capabilities=4
+operations=7
+adversarialCases=9
+credentialPhases=PR create/update|evidence refresh, review metadata|merge|push
+exactHeadOps=collectEvidence|updateBranch|enqueue|merge
+degradedStates=forge-admin-bypass-refused|forge-auth-denied|forge-credential-unavailable|forge-head-mismatch|forge-merge-queue-unavailable|forge-review-threads-uninspectable|forge-rulesets-unattested|forge-state-unknown

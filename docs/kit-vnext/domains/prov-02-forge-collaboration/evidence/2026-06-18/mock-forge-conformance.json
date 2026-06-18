@@ -1,0 +1,31 @@
+{
+  "date": "2026-06-18",
+  "driver": "mock-forge",
+  "source": "prov-02 design conformance snapshot",
+  "capabilities": [
+    "supportsRulesets",
+    "supportsMergeQueue",
+    "supportsThreadResolution",
+    "canInspectProtection"
+  ],
+  "operations": [
+    { "name": "pushBranch", "credentialPhase": "push", "headBinding": "localHeadSha-to-remoteHeadSha" },
+    { "name": "upsertPullRequest", "credentialPhase": "PR create/update", "headBinding": "observedHeadSha" },
+    { "name": "publishComment", "credentialPhase": "PR create/update", "headBinding": "observedHeadSha" },
+    { "name": "collectEvidence", "credentialPhase": "evidence refresh, review metadata", "headBinding": "expectedHeadSha" },
+    { "name": "updateBranch", "credentialPhase": "PR create/update", "headBinding": "expectedHeadSha" },
+    { "name": "enqueue", "credentialPhase": "merge", "headBinding": "expectedHeadSha" },
+    { "name": "merge", "credentialPhase": "merge", "headBinding": "expectedHeadSha" }
+  ],
+  "adversarialCases": [
+    { "id": "missing-head", "signal": "head SHA absent", "expected": "forge-state-unknown" },
+    { "id": "head-mismatch", "signal": "observed head differs from expectedHeadSha", "expected": "forge-head-mismatch" },
+    { "id": "ci-omitted", "signal": "status/check rollup absent", "expected": "forge-state-unknown" },
+    { "id": "review-thread-omitted", "signal": "review threads unavailable", "expected": "forge-review-threads-uninspectable" },
+    { "id": "rulesets-unknown", "signal": "ruleset probe stale or negative", "expected": "forge-rulesets-unattested" },
+    { "id": "queue-unavailable", "signal": "merge queue unsupported or hidden", "expected": "forge-merge-queue-unavailable" },
+    { "id": "credential-denied", "signal": "fnd-04 denies runner Forge credential", "expected": "forge-credential-unavailable" },
+    { "id": "auth-rejected", "signal": "provider rejects scoped credential", "expected": "forge-auth-denied" },
+    { "id": "admin-bypass", "signal": "success requires admin or bypass", "expected": "forge-admin-bypass-refused" }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "data": {
+    "__type": {
+      "enumValues": null,
+      "fields": null,
+      "inputFields": [
+        {
+          "defaultValue": null,
+          "name": "clientMutationId",
+          "type": {
+            "kind": "SCALAR",
+            "name": "String",
+            "ofType": null
+          }
+        },
+        {
+          "defaultValue": null,
+          "name": "subjectId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "defaultValue": null,
+          "name": "body",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        }
+      ],
+      "kind": "INPUT_OBJECT",
+      "name": "AddCommentInput"
+    }
+  }
+}

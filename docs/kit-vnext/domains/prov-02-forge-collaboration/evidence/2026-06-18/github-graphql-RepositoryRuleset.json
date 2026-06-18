@@ -1,0 +1,224 @@
+{
+  "data": {
+    "__type": {
+      "enumValues": null,
+      "fields": [
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "bypassActors",
+          "type": {
+            "kind": "OBJECT",
+            "name": "RepositoryRulesetBypassActorConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "conditions",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "OBJECT",
+              "name": "RepositoryRuleConditions",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "createdAt",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "DateTime",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "databaseId",
+          "type": {
+            "kind": "SCALAR",
+            "name": "Int",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "enforcement",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "ENUM",
+              "name": "RuleEnforcement",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "id",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "ID",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "name",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [
+            {
+              "name": "after",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "before",
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              }
+            },
+            {
+              "name": "first",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "last",
+              "type": {
+                "kind": "SCALAR",
+                "name": "Int",
+                "ofType": null
+              }
+            },
+            {
+              "name": "type",
+              "type": {
+                "kind": "ENUM",
+                "name": "RepositoryRuleType",
+                "ofType": null
+              }
+            }
+          ],
+          "isDeprecated": false,
+          "name": "rules",
+          "type": {
+            "kind": "OBJECT",
+            "name": "RepositoryRuleConnection",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "source",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "UNION",
+              "name": "RuleSource",
+              "ofType": null
+            }
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "target",
+          "type": {
+            "kind": "ENUM",
+            "name": "RepositoryRulesetTarget",
+            "ofType": null
+          }
+        },
+        {
+          "args": [],
+          "isDeprecated": false,
+          "name": "updatedAt",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "DateTime",
+              "ofType": null
+            }
+          }
+        }
+      ],
+      "inputFields": null,
+      "kind": "OBJECT",
+      "name": "RepositoryRuleset"
+    }
+  }
+}
