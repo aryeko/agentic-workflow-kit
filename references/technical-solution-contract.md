@@ -32,11 +32,14 @@ Default path:
 carries a tracked `status` (`draft` → `approved` → `archived`) and is archived after promotion
 to canonical at track completion.
 
-**Back-compat:** the legacy location `<prdsDir>/<slug>/technical-solution.md` (where `<prdsDir>`
-resolves from `paths.prdsDir`, default `docs/prds`) remains readable. When `design-technical-solution`
-detects an existing file at the legacy path, it reads it as input and surfaces a migration action
-(write to `<designsDir>/<slug>.md`, confirm before proceeding). Downstream consumers
-(`plan-delivery-track`) should check both locations when the design is not found at the primary path.
+**Back-compat:** the legacy location is `<legacy-prdsDir>/<slug>/technical-solution.md`, where
+`<legacy-prdsDir>` resolves from `paths.prdsDir` (default `docs/prds`). This is the old in-PRD
+design sub-path from before `docs.paths.designsDir` was introduced. The primary location is
+`docs.paths.designsDir/<slug>.md` (default `docs/architecture/designs/<slug>.md`). When
+`design-technical-solution` detects an existing file at the legacy path, it reads it as input and
+surfaces a migration action (write to `<designsDir>/<slug>.md`, confirm before proceeding).
+Downstream consumers (`plan-delivery-track`) should check both locations when the design is not
+found at the primary path.
 
 ## When a technical solution is required
 
