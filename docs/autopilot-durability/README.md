@@ -1,6 +1,6 @@
 ---
 title: Autopilot durability — incidents, diagnosis, and design
-status: diagnosis complete; design in progress
+status: diagnosis complete; design drafted (under review)
 last-reviewed: 2026-06-18
 ---
 
@@ -112,15 +112,16 @@ under *both* orchestrators are kit-substrate defects.
 |---|---|---|---|---|
 | D0 | [design/00-overview.md](design/00-overview.md) | cross-cutting | Safety model + shared channel + vNext contracts + migration | drafted |
 | D1 | [design/01-execution-substrate-and-provisioning.md](design/01-execution-substrate-and-provisioning.md) | A, B, C | Provisioning a capable, correctly-permissioned child + the tiered approval relay | drafted |
-| D2 | design/02-lifecycle-and-control-plane.md | D, E, F | Own the process: observe / interrupt / kill; append-only linkage; live supervision | planned |
-| D3 | design/03-completion-verification-and-merge.md | H (+ A) | Evidence-based completion + irreversible-action (merge) safety | planned |
-| D4 | design/04-run-state-and-recovery.md | G, K | Coherent run state + first-class in-band recovery, no manual artifact edits | planned |
-| D5 | design/05-observability-and-analysis.md | I, J | Structured telemetry + analysis that auto-fires and correlates | planned |
+| D2 | [design/02-lifecycle-and-control-plane.md](design/02-lifecycle-and-control-plane.md) | D, E, F | Own the process: observe / interrupt / kill; append-only linkage; live supervision | drafted |
+| D3 | [design/03-completion-verification-and-merge.md](design/03-completion-verification-and-merge.md) | H (+ A) | Evidence-based completion + irreversible-action (merge) safety | drafted |
+| D4 | [design/04-run-state-and-recovery.md](design/04-run-state-and-recovery.md) | G, K | Coherent run state + first-class in-band recovery, no manual artifact edits | drafted |
+| D5 | [design/05-observability-and-analysis.md](design/05-observability-and-analysis.md) | I, J | Structured telemetry + analysis that auto-fires and correlates | drafted |
 
 ## Status & provenance
 
-- **Diagnosis:** complete (3 postmortems). **Design:** spine approved; domain docs being written
-  (statuses tracked in the domain map above).
+- **Diagnosis:** complete (3 postmortems). **Design:** all six domain docs (D0–D5) drafted and
+  self-consistent; under review. Open decisions to confirm are flagged in-doc (D2 §2 protocol; D3 §7 merge;
+  D4 §6 recovery).
 - Code references throughout were verified against kit **v0.7.0** `main` on 2026-06-18.
 - This effort builds on, but does not replace, the existing redesign under
   [`docs/prds/agentic-workflow-kit-redesign/`](../prds/agentic-workflow-kit-redesign/) — it reconciles that
