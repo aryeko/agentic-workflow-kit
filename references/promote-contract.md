@@ -123,17 +123,23 @@ New domains created by the shipped track get a new domain reference file created
 - Overwrite accepted ADR content.
 - Remove or move canonical docs (deprecate via `status: deprecated` instead).
 
-## Promotion-readiness check
+## Promotion-readiness check and claim
 
-Before writing any output, `promote-to-canonical` confirms that:
+Before writing any canonical output, `promote-to-canonical` confirms that:
 
 1. Every implementation story row in the tracker has Status in `statuses.complete`.
 2. The terminal promote story row's `Depends on` is satisfied (all IDs are in `statuses.complete`).
-3. The terminal promote story row's Status is in `statuses.eligible`.
+3. The terminal promote story row's Status is in `statuses.eligible` (new run) OR is already in
+   `statuses.inProgress` owned by this session (resume after partial failure).
 
 If any check fails, the skill stops and reports which stories are incomplete. It does not partially
 promote: canonical docs are not left in an intermediate state where some stories' changes are folded
 in and others are not.
+
+After confirming readiness, the skill claims the promote story row (Status → `statuses.inProgress`,
+Owner → session label) before writing any canonical files. On completion (Step 8), the row advances
+to `statuses.complete[0]` (`done`). The promote story lifecycle is `eligible → implementing → done`,
+identical to every other story in the tracker.
 
 ## Idempotency
 

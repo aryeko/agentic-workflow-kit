@@ -59,13 +59,27 @@ the authoring standard, templates, or doc paths.
 
 ## The recipe
 
-### Step 1 — Load context
+### Step 1 — Load context and claim the promote story
 
 Resolve the track. If an argument is supplied, treat it as the track directory basename or PRD slug;
 otherwise discover the most recently completed track. A track is ready for promotion when:
 
 1. every implementation story row has a Status in `statuses.complete`, **and**
-2. the terminal promote story itself is in `statuses.eligible` (i.e. its dependencies are satisfied).
+2. the terminal promote story row's Status is in `statuses.eligible` (new run), or is already in
+   `statuses.inProgress` owned by this session (resume after partial failure).
+
+If either condition fails, stop and report which stories are incomplete. Do not partially promote.
+
+After confirming readiness, **claim the promote story row** before reading or writing any canonical
+files:
+
+- Set the promote story row's **Status** to `statuses.inProgress` and **Owner** to a clear session
+  label.
+
+```bash
+git add <tracker README>
+git commit -m "chore(<promote-story-id>): claim promote story"
+```
 
 Read in order:
 
@@ -188,8 +202,10 @@ heading before adding the row.
 
 ### Step 8 — Mark the promote story complete
 
-Re-read the tracker README. Set the terminal promote story row's Status to the first value in
+Re-read the tracker README. The promote story row should be `statuses.inProgress` owned by this
+session (claimed in Step 1). Set the terminal promote story row's Status to the first value in
 `statuses.complete` (default `done`). Update `last-reviewed` on the tracker README frontmatter.
+The promote story lifecycle is `eligible → implementing → done`, identical to every other story.
 
 ```bash
 git add <tracker README>
@@ -216,6 +232,13 @@ Do not auto-commit canonical doc changes in a single bulk commit unless the repo
 `.workflow/config.yaml` explicitly permits it. Prefer one logical commit per output type (one for
 docs updates, one for ADRs, one for PRD/design-doc status flips, one for tracker close-out) so the
 history is reviewable.
+
+## Lean-preset repos
+
+Lean-preset repos (`docs.preset: lean`) do not pre-scaffold `decisions/` or `domains/` directories.
+`promote-to-canonical` creates them on demand when a real ADR or domain change occurs during
+promotion, and always respects `docs.types.*.enabled` flags before creating or updating those doc
+types.
 
 ## Hard rules
 

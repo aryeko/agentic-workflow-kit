@@ -205,8 +205,21 @@ If an argument looks like a story ID, normalize common forms:
 Find the row whose first-column ID matches. If the prefix or exact ID is not found, report the
 discovered prefixes and stop.
 
+**Terminal promote story detection:** after identifying a candidate story row, read its story file
+frontmatter. If the story file carries `kind: promote`, do NOT run the normal enrich/plan/code
+flow. Stop and instruct the user:
+
+> This is the terminal promote story (`kind: promote`). It is run by `promote-to-canonical`, not
+> by `implement-next`. Run `/promote-to-canonical <track>` to execute it.
+
+This hand-off also applies when `implement-next` is dispatched by the orchestrator or
+`workflow-autopilot`: the hand-off surfaces the same message, letting the supervising session
+invoke `promote-to-canonical` explicitly.
+
 If no ID is provided, discover all active trackers and list eligible rows grouped by tracker.
-Recommend one row using these heuristics:
+When listing rows, mark any row whose story file carries `kind: promote` with a note: "terminal
+promote story — run `/promote-to-canonical <track>` instead".
+Recommend one non-promote row using these heuristics:
 
 - prefer foundation or pilot rows that unblock downstream rollout work,
 - prefer rows with the most downstream dependents,
@@ -248,7 +261,9 @@ Before editing, run a child preflight in two phases:
 If any post-creation value does not match the resolved git policy, stop and report the mismatch
 before editing.
 
-Before editing the tracker, re-read the row and confirm it is still eligible. Then update:
+Before editing the tracker, re-read the row and confirm it is still eligible. Also re-read the
+story file frontmatter: if `kind: promote` is present, stop and hand off to `promote-to-canonical`
+(same as Phase 1 detection). Then update:
 
 - **Status** -> `statuses.inProgress`,
 - **Owner** -> a clear session label.
@@ -426,7 +441,7 @@ out-of-scope additions as review findings.
 For subagent/auto-subagent review, build a review context packet containing:
 
 - repo instructions and relevant local docs,
-- PRD/product docs from `<docs.paths.prdsDir>/<slug>/` (fall back to `<paths.prdsDir>/<slug>/`) and architecture or technical design docs from `<docs.paths.designsDir>/<slug>.md` (fall back to `<prdsDir>/<slug>/technical-solution.md`) when present,
+- PRD/product docs from `<docs.paths.prdsDir>/<slug>/` (fall back to `<paths.prdsDir>/<slug>/`) and architecture or technical design docs from `<docs.paths.designsDir>/<slug>.md` (fall back to `<legacy-prdsDir>/<slug>/technical-solution.md`, where `<legacy-prdsDir>` is `paths.prdsDir`, default `docs/prds`) when present,
 - tracker row, story brief, detailed story spec, and implementation plan,
 - implementation diff,
 - latest verification commands and output.

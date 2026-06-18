@@ -40,11 +40,30 @@ wave. The promote story:
 - has `Depends on` set to the full set of implementation story IDs in the tracker,
 - is placed in the final wave (after all implementation stories),
 - links its own story file as Spec,
-- runs `promote-to-canonical` when executed.
+- carries `kind: promote` in its story file frontmatter (normal stories omit `kind` or use
+  `kind: story`),
+- is run by `promote-to-canonical`, not `implement-next`.
 
 The track is not complete until the promote story reaches a `statuses.complete` status
 (`done` or `verified`). This is an exit-bar rule: the tracker (and its PRD) cannot be marked
 complete while the promote story is unfinished.
+
+### Execution mechanism
+
+The terminal promote story follows the same `eligible → implementing → done` lifecycle as every
+other story, but it is run by `promote-to-canonical` (explicit invocation only), not by
+`implement-next`.
+
+- **`promote-to-canonical`** reads the story's `kind: promote` frontmatter, claims the promote
+  story row (sets Status to `statuses.inProgress`, sets Owner) after the readiness gate passes,
+  performs canonical promotion, then sets the row to `statuses.complete[0]` (`done`).
+- **`implement-next`** detects `kind: promote` in a candidate story file and does NOT run the
+  normal enrich/plan/code flow. Instead it stops and instructs the user to run
+  `/promote-to-canonical <track>` — the terminal promote story is explicit-invocation-only.
+- The promote story still counts toward the track-complete gate via `statuses.complete`.
+
+The `kind: promote` field is the authoritative marker. Automation must read the story file
+frontmatter to distinguish a terminal promote story from a normal implementation story.
 
 ## Dependency graph
 

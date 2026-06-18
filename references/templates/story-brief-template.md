@@ -1,5 +1,6 @@
 ---
 title: <ID> story brief
+# kind: promote   # Uncomment ONLY for the terminal promote story; normal stories omit this field
 owner: <name or "—">
 last-reviewed: <YYYY-MM-DD>
 related:
