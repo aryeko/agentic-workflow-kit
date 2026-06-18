@@ -1,0 +1,72 @@
+name: check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - v-next
+
+jobs:
+  # ── Required hermetic gate ─────────────────────────────────────────────────
+  # Runs on every PR and push. Must pass before merge.
+  # Does NOT run smoke-real (network/process-spawning) tests — those live in
+  # the `smoke` job below, which is gated separately.
+  check:
+    name: check (format · lint · deps · typecheck · unit · int · conformance)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: check gate (format · lint · deps · typecheck · unit · int · conf)
+        run: pnpm check
+
+      - name: Pack dry-run (publishability check)
+        run: pnpm pack:dry-run
+
+  # ── Smoke lane (gated placeholder) ────────────────────────────────────────
+  # This lane is inert until real drivers and the native containment helper
+  # land. It currently has no tests and passes via passWithNoTests: true.
+  # Activated automatically on pushes to main/v-next and on PRs labelled
+  # "smoke". Do not add it to branch-protection required checks yet.
+  smoke:
+    name: smoke (real processes · network)
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.labels.*.name, 'smoke')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: smoke tests (real drivers + network — inert until packages land)
+        run: pnpm test:smoke

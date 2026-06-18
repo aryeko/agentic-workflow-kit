@@ -6,7 +6,16 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**/*.ts", "!**/node_modules", "!**/dist", "!examples", "!references/config.schema.json"]
+    "includes": [
+      "**/*.ts",
+      "**/*.cjs",
+      "**/*.mjs",
+      "**/*.json",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.tsbuild",
+      "!**/coverage"
+    ]
   },
   "formatter": {
     "enabled": true,
