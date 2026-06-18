@@ -13,7 +13,8 @@ jobs:
   # Does NOT run smoke-real (network/process-spawning) tests — those live in
   # the `smoke` job below, which is gated separately.
   check:
-    name: check (format · lint · deps · typecheck · unit · int · conformance)
+    # Job name == required status-check context "check" (matches main's ruleset).
+    name: check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,7 +46,7 @@ jobs:
   # Activated automatically on pushes to main/v-next and on PRs labelled
   # "smoke". Do not add it to branch-protection required checks yet.
   smoke:
-    name: smoke (real processes · network)
+    name: smoke
     runs-on: ubuntu-latest
     if: >-
       github.event_name == 'push' ||
