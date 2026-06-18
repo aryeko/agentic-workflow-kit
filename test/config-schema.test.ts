@@ -114,6 +114,11 @@ describe('config.schema.json', () => {
   it('accepts a version-only config because all other fields have defaults', () => {
     expect(validateConfigContract({ version: '0.7.0' })).toBe(true);
   });
+  it('accepts the minimum supported config schema version 0.6.0 against the JSON schema', () => {
+    // The JSON schema must accept every version in [MIN_SUPPORTED..CURRENT], not just CURRENT.
+    // A 0.6.0 config is still runtime-compatible and must not fail JSON-schema validation.
+    expect(validate({ version: '0.6.0' })).toBe(true);
+  });
   it('applies runtime defaults for interactive review and subagent policy', () => {
     const parsed = ConfigSchema.parse({ version: '0.7.0' });
 

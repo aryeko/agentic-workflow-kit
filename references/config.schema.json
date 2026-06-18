@@ -8,6 +8,10 @@
       "anyOf": [
         {
           "type": "string",
+          "const": "0.6.0"
+        },
+        {
+          "type": "string",
           "const": "0.7.0"
         },
         {
