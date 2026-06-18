@@ -9,6 +9,7 @@ const skillNames = [
   'design-technical-solution',
   'plan-delivery-track',
   'implement-next',
+  'promote-to-canonical',
   'workflow-autopilot',
 ] as const;
 
@@ -25,10 +26,11 @@ const implicitPolicy: Record<SkillName, boolean> = {
   'design-technical-solution': true,
   'plan-delivery-track': true,
   'implement-next': false,
+  'promote-to-canonical': false,
   'workflow-autopilot': false,
 };
 
-const sideEffectfulSkills = new Set<SkillName>(['implement-next', 'workflow-autopilot']);
+const sideEffectfulSkills = new Set<SkillName>(['implement-next', 'promote-to-canonical', 'workflow-autopilot']);
 
 const skillsWithArguments: Partial<Record<SkillName, string>> = {
   'define-product': 'slug_or_notes',

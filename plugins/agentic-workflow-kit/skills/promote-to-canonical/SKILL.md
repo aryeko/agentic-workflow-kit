@@ -2,6 +2,7 @@
 name: promote-to-canonical
 description: "Use after a delivery track ships to fold durable knowledge back into the canonical knowledge base. Trigger phrases: promote to canonical, update canonical docs, run the promote story, or invoke directly as /promote-to-canonical. Reads the shipped track and its per-story canonical-impact breadcrumbs, updates product narrative and architecture docs, mints ADRs for real decisions, flips the PRD to shipped, archives the design doc, and refreshes pillar indexes. Required as the terminal story in every tracker produced by plan-delivery-track."
 argument-hint: "[track or prd-slug]"
+disable-model-invocation: true
 user-invocable: true
 ---
 
