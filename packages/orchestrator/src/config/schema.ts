@@ -416,13 +416,24 @@ export const ConfigSchema = z
             domainsDir: repoRelativePath.default('docs/architecture/domains'),
             decisionsDir: repoRelativePath.default('docs/architecture/decisions'),
           })
+          .strict()
           .prefault({}),
         types: z
           .object({
-            adr: z.object({ enabled: z.boolean().default(true) }).prefault({}),
-            domain: z.object({ enabled: z.boolean().default(true) }).prefault({}),
-            runbook: z.object({ enabled: z.boolean().default(false) }).prefault({}),
+            adr: z
+              .object({ enabled: z.boolean().default(true) })
+              .strict()
+              .prefault({}),
+            domain: z
+              .object({ enabled: z.boolean().default(true) })
+              .strict()
+              .prefault({}),
+            runbook: z
+              .object({ enabled: z.boolean().default(false) })
+              .strict()
+              .prefault({}),
           })
+          .strict()
           .prefault({}),
         promote: z
           .object({
@@ -430,8 +441,10 @@ export const ConfigSchema = z
             gate: z.enum(['track-complete', 'off']).default('track-complete'),
             breadcrumbs: z.enum(['required', 'optional', 'off']).default('required'),
           })
+          .strict()
           .prefault({}),
       })
+      .strict()
       .prefault({}),
   })
   .strict()

@@ -506,10 +506,10 @@ orchestrator:
 
     const config = await loadResolvedConfig({}, root);
 
-    expect(config.docs!.preset).toBe('full');
-    expect(config.docs!.paths.designsDir).toBe('docs/architecture/designs');
-    expect(config.docs!.types.adr.enabled).toBe(true);
-    expect(config.docs!.promote.gate).toBe('track-complete');
+    expect(config.docs?.preset).toBe('full');
+    expect(config.docs?.paths.designsDir).toBe('docs/architecture/designs');
+    expect(config.docs?.types.adr.enabled).toBe(true);
+    expect(config.docs?.promote.gate).toBe('track-complete');
   });
 
   it('reports all Zod validation issues when multiple fields are invalid', async () => {
