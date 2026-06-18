@@ -210,11 +210,11 @@ export async function planWorkflowConfigUpgrade(
     };
   }
   const status = classifyWorkflowConfigVersion(rawConfig);
-  const legacyVersion = isRecord(rawConfig) ? rawConfig.version : undefined;
-  const canRewriteVersion = status.status === 'legacy-upgradeable';
+  const detectedVersion = isRecord(rawConfig) ? rawConfig.version : undefined;
+  const canRewriteVersion = status.status === 'legacy-upgradeable' || status.status === 'supported-stale';
   const changes =
-    canRewriteVersion && legacyVersion !== CURRENT_CONFIG_SCHEMA_VERSION
-      ? [{ path: 'version', from: legacyVersion, to: CURRENT_CONFIG_SCHEMA_VERSION }]
+    canRewriteVersion && detectedVersion !== CURRENT_CONFIG_SCHEMA_VERSION
+      ? [{ path: 'version', from: detectedVersion, to: CURRENT_CONFIG_SCHEMA_VERSION }]
       : [];
 
   return {

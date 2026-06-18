@@ -112,6 +112,34 @@ describe('workflow config version compatibility', () => {
     expect(await readFile(configPath, 'utf8')).toContain('full: pnpm check');
   });
 
+  it('plans and applies the supported-stale semver config upgrade without changing other fields', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'workflow-config-upgrade-stale-'));
+    const configPath = await writeWorkflowConfig(
+      root,
+      ['version: "0.6.0"', 'paths:', '  tracksDir: custom/tracks', 'verify:', '  full: pnpm check', ''].join('\n'),
+    );
+
+    const plan = await planWorkflowConfigUpgrade({ cwd: root });
+
+    expect(plan).toMatchObject({
+      status: 'supported-stale',
+      detectedVersion: '0.6.0',
+      targetVersion: '0.7.0',
+      writeRequired: true,
+      changes: [{ path: 'version', from: '0.6.0', to: '0.7.0' }],
+    });
+    expect(await readFile(configPath, 'utf8')).toContain('version: "0.6.0"');
+
+    const result = await applyWorkflowConfigUpgrade({ cwd: root });
+
+    expect(result).toMatchObject({ wrote: true, targetVersion: '0.7.0' });
+    const written = await readFile(configPath, 'utf8');
+    expect(written).toMatch(/version:.*0\.7\.0/);
+    expect(written).toContain('tracksDir: custom/tracks');
+    expect(written).toContain('full: pnpm check');
+    expect(written).not.toContain('0.6.0');
+  });
+
   it('does not rewrite unsupported old configs without a real migration', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'workflow-config-unsupported-old-'));
     const configPath = await writeWorkflowConfig(root, 'version: "0.5.0"\n');
