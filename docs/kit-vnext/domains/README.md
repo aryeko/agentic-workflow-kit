@@ -18,7 +18,7 @@ required reading, deliverable, and definition of done.
 | ID | Domain | Layer | Responsibility | Key dependencies |
 |---|---|---|---|---|
 | [edge-01](edge-01-operator-surface/charter.md) | Operator & Entry Surface | Edge | Human-first surface (MCP + CLI), triggers, outbound attention, "why did/didn't X" | Control plane |
-| [core-01](core-01-run-lifecycle-and-state/charter.md) | Run Lifecycle & Event State | Core | Event log + projections + writer model + run state machine + task snapshot | fnd-02 (storage) |
+| [core-01](core-01-run-lifecycle-and-state/charter.md) | Run Lifecycle & Event State | Core | Event log + projections + writer model + run state machine + task snapshot | fnd-01 (config); fnd-02 (storage) |
 | [core-02](core-02-capability-and-safety/charter.md) | Capability & Safety | Core | Capability registry + gates over **attestations** ("earn autonomy"), modes | core-01; attestations |
 | [core-03](core-03-approval-and-escalation/charter.md) | Approval & Escalation | Core | Risk classify, mode ladder, policy, park/resume; judgment as recorded input | core-01, core-02; Agent |
 | [core-04](core-04-supervision-and-liveness/charter.md) | Supervision & Liveness | Core | Real-progress staleness, timers, wait primitive | core-01; Agent, Execution Host |
