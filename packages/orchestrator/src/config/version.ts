@@ -120,7 +120,7 @@ export function classifyWorkflowConfigVersion(rawConfig: unknown): WorkflowConfi
       targetVersion: CURRENT_CONFIG_SCHEMA_VERSION,
       upgradeAvailable: true,
       blocking: false,
-      message: 'Workflow config uses legacy numeric version 1 and can be upgraded to 0.6.0.',
+      message: `Workflow config uses legacy numeric version 1 and can be upgraded to ${CURRENT_CONFIG_SCHEMA_VERSION}.`,
     });
   }
 
