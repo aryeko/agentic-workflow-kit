@@ -127,7 +127,7 @@ export const createEgressLeakMockExecutionHost = (
 class InMemoryMockExecutionHost implements MockExecutionHost {
   readonly #options: MockExecutionHostOptions;
   readonly #artifacts = new Map<string, StoredArtifact>();
-  readonly #attestations = new Map<string, HostCapabilityAttestation>();
+  readonly #attestationsByEventId = new Map<string, HostCapabilityAttestation>();
   readonly #workspaces = new Map<string, HostWorkspaceHandle>();
   readonly #workers = new Map<string, WorkerRecord>();
   readonly #operationMaterials = new Map<string, ReadonlySet<string>>();
@@ -238,6 +238,37 @@ class InMemoryMockExecutionHost implements MockExecutionHost {
   }
 
   terminateWorker(handle: WorkerHandle, policy: TerminationPolicy): TerminationResult {
+    const worker = this.#workers.get(handle.handleId);
+    if (!worker || !sameWorkerHandle(worker.handle, handle)) {
+      const proofBase = {
+        signalSent: false,
+        graceObserved: false,
+        forceKillSent: false,
+        reaped: false,
+      };
+      const evidenceRef = this.#artifact(
+        {
+          handleId: handle.handleId,
+          policy,
+          proof: proofBase,
+          containmentEmpty: false,
+          knownWorker: false,
+        },
+        'application/json',
+        'termination-proof',
+      );
+      return {
+        handleId: handle.handleId,
+        proof: {
+          ...proofBase,
+          containmentEmpty: false,
+          evidenceRef,
+          checkedAt: this.#options.clock.nowIso(),
+        },
+        failure: this.#failure('termination-unproven', 'worker handle is unknown to this host', true),
+      };
+    }
+
     const omitted = new Set(this.#options.termination?.omitSteps ?? []);
     const proofBase = {
       signalSent: !omitted.has('signalSent'),
@@ -368,8 +399,9 @@ class InMemoryMockExecutionHost implements MockExecutionHost {
   #attestationFor(capability: HostCapability, scope: HostProbeScope): HostCapabilityAttestation {
     const details = this.#attestationDetails(capability, scope);
     const result = this.#attestationResult(capability, scope);
+    const eventId = this.#options.idGenerator.nextId('host-attestation-event');
     const evidenceRef = this.#artifact(
-      { capability, result, details, ...this.#attestationEvidence(capability) },
+      { eventId, capability, result, details, ...this.#attestationEvidence(capability) },
       'application/json',
       'capability-attestation',
     );
@@ -381,6 +413,7 @@ class InMemoryMockExecutionHost implements MockExecutionHost {
       scopeDigest: scope.egressPolicy?.requiredAttesters[0]?.scopeDigest,
     });
     const parsed = hostCapabilityAttestationSchema.parse({
+      eventId,
       capability,
       probeMethod: `mock-${capability}-probe`,
       result,
@@ -393,7 +426,7 @@ class InMemoryMockExecutionHost implements MockExecutionHost {
       at: this.#options.clock.nowIso(),
       ...(details ? { details } : {}),
     });
-    this.#attestations.set(parsed.evidenceRef.id, parsed);
+    this.#attestationsByEventId.set(eventId, parsed);
     return parsed;
   }
 
@@ -480,15 +513,33 @@ class InMemoryMockExecutionHost implements MockExecutionHost {
       );
     }
 
+    if (!this.#injectionIsFresh(injection)) {
+      return this.#failure('credential-injection-rejected', 'credential injection context is expired', false);
+    }
+
     return this.#hasPositiveEgressAttestation(injection)
       ? undefined
       : this.#failure('egress-confinement-unattested', 'egress confinement is not positively attested', false);
   }
 
+  #injectionIsFresh(injection: HostInjectionContext): boolean {
+    const nowMs = Date.parse(this.#options.clock.nowIso());
+    if (!Number.isFinite(nowMs)) {
+      return false;
+    }
+
+    return [injection.expiresAt, injection.egressPolicy.expiresAt, injection.redactionSet.expiresAt].every(
+      (expiresAt) => {
+        const expiryMs = Date.parse(expiresAt);
+        return Number.isFinite(expiryMs) && expiryMs > nowMs;
+      },
+    );
+  }
+
   #hasPositiveEgressAttestation(injection: HostInjectionContext): boolean {
     const policy = injection.egressPolicy;
     return injection.attestationEventIds.some((attestationId) => {
-      const attestation = this.#attestations.get(attestationId);
+      const attestation = this.#attestationsByEventId.get(attestationId);
       return (
         attestation?.capability === 'egress-confinement' &&
         attestation.result === 'positive' &&
@@ -580,6 +631,15 @@ const compactRecord = (
   Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as Readonly<
     Record<string, string | number | boolean | null>
   >;
+
+const sameWorkerHandle = (left: WorkerHandle, right: WorkerHandle): boolean =>
+  left.handleId === right.handleId &&
+  left.runId === right.runId &&
+  left.operationId === right.operationId &&
+  left.workspaceHandleId === right.workspaceHandleId &&
+  left.ownershipClass === right.ownershipClass &&
+  left.containmentRef === right.containmentRef &&
+  left.startedAt === right.startedAt;
 
 const normalizePath = (value: string): string => {
   const path = value.replace(/\\/g, '/');

@@ -34,6 +34,7 @@ const baseCommandResult = (): CommandResult => ({
 });
 
 const attestation = (result: 'positive' | 'negative' = 'positive'): HostCapabilityAttestation => ({
+  eventId: 'attestation-event-1',
   capability: 'containmentStrength',
   probeMethod: 'mock-containment-probe',
   result,
@@ -167,6 +168,7 @@ describe('Execution Host contract schemas', () => {
     const parsed = hostCapabilityAttestationSchema.parse(attestation());
 
     expect(w2CapabilityAttestationSchema.parse(parsed)).toEqual(parsed);
+    expect(parsed.eventId).toBe('attestation-event-1');
     expect(getAttestedContainmentStrength(parsed)).toBe('kernel-tree');
     expect(getAttestedContainmentStrength(attestation('negative'))).toBeUndefined();
   });

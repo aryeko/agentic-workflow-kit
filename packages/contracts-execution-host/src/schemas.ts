@@ -147,6 +147,7 @@ export const hostObservationSchema: z.ZodType<HostObservation> = z.discriminated
 
 export const hostCapabilityAttestationSchema: z.ZodType<HostCapabilityAttestation> = z
   .object({
+    eventId: z.string().min(1).optional(),
     capability: z.enum(['canKill', 'containmentStrength', 'emitsStructuredToolExit', 'egress-confinement']),
     probeMethod: z.string().min(1),
     result: z.enum(['positive', 'negative']),

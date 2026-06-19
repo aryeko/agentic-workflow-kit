@@ -219,6 +219,7 @@ export interface HostCapabilityAttestationDetails {
 }
 
 export interface HostCapabilityAttestation {
+  readonly eventId?: string;
   readonly capability: HostCapability;
   readonly probeMethod: string;
   readonly result: 'positive' | 'negative';

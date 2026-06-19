@@ -160,7 +160,10 @@ const attestedInjection = (host: MockExecutionHost, party: 'runner' | 'worker', 
     ...probeScope(['egress-confinement']),
     egressPolicy: egressPolicy(party, operationId),
   });
-  return injection(party, operationId, [attestation.evidenceRef.id]);
+  if (!attestation.eventId) {
+    throw new Error('missing attestation event id');
+  }
+  return injection(party, operationId, [attestation.eventId]);
 };
 
 const commandRequest = (host: MockExecutionHost, workspace = attach(host)): HostCommandRequest => ({
@@ -252,6 +255,50 @@ describe('Mock Execution Host', () => {
         forceKillSent: true,
         reaped: true,
         containmentEmpty: true,
+      },
+    });
+
+    expect(
+      host.terminateWorker(
+        {
+          ...worker,
+          handleId: 'worker-stale',
+        },
+        {
+          initialSignal: 'SIGTERM',
+          graceSeconds: 1,
+          forceKill: true,
+          proveEmptyTimeoutSeconds: 1,
+        },
+      ),
+    ).toMatchObject({
+      proof: {
+        containmentEmpty: false,
+      },
+      failure: {
+        reason: 'termination-unproven',
+      },
+    });
+
+    expect(
+      host.terminateWorker(
+        {
+          ...worker,
+          containmentRef: 'containment-forged',
+        },
+        {
+          initialSignal: 'SIGTERM',
+          graceSeconds: 1,
+          forceKill: true,
+          proveEmptyTimeoutSeconds: 1,
+        },
+      ),
+    ).toMatchObject({
+      proof: {
+        containmentEmpty: false,
+      },
+      failure: {
+        reason: 'termination-unproven',
       },
     });
 
@@ -374,8 +421,37 @@ describe('Mock Execution Host', () => {
         ...requestWithNegativeAttestation,
         injection: {
           ...requestWithNegativeAttestation.injection,
-          attestationEventIds: [noProbeAttestation.evidenceRef.id],
+          attestationEventIds: noProbeAttestation.eventId ? [noProbeAttestation.eventId] : [],
         },
+      }),
+    ).toMatchObject({
+      reason: 'egress-confinement-unattested',
+    });
+  });
+
+  it('AC-4 accepts planner attestation event ids but not evidence artifact ids', () => {
+    const host = createHost();
+    const [attestation] = host.probeCapabilities(probeScope(['egress-confinement']));
+    if (!attestation.eventId) {
+      throw new Error('missing attestation event id');
+    }
+
+    const workspace = attach(host);
+    const request = commandRequest(host, workspace);
+
+    expect(
+      host.runCommand({
+        ...request,
+        injection: injection('runner', 'op-1', [attestation.eventId]),
+      }),
+    ).toMatchObject({
+      operationId: 'op-1',
+    });
+
+    expect(
+      host.runCommand({
+        ...request,
+        injection: injection('runner', 'op-1', [attestation.evidenceRef.id]),
       }),
     ).toMatchObject({
       reason: 'egress-confinement-unattested',
@@ -454,6 +530,39 @@ describe('Mock Execution Host', () => {
         reason: 'credential-injection-rejected',
       });
       expect(commandHost.inspect().commandCount).toBe(0);
+    }
+  });
+
+  it('AC-6 rejects expired injection, egress policy, and redaction contexts before tracking material', () => {
+    const expired = '2026-06-19T07:59:59.999Z';
+    const expiryCases = [
+      (context: HostInjectionContext): HostInjectionContext => ({ ...context, expiresAt: expired }),
+      (context: HostInjectionContext): HostInjectionContext => ({
+        ...context,
+        egressPolicy: { ...context.egressPolicy, expiresAt: expired },
+      }),
+      (context: HostInjectionContext): HostInjectionContext => ({
+        ...context,
+        redactionSet: { ...context.redactionSet, expiresAt: expired },
+      }),
+    ];
+
+    for (const mutate of expiryCases) {
+      const commandHost = createHost();
+      const command = commandRequest(commandHost);
+      expect(commandHost.runCommand({ ...command, injection: mutate(command.injection) })).toMatchObject({
+        reason: 'credential-injection-rejected',
+      });
+      expect(commandHost.inspect().commandCount).toBe(0);
+      expect(commandHost.inspect().activeInjectedMaterialCount).toBe(0);
+
+      const spawnHost = createHost();
+      const spawn = spawnRequest(spawnHost);
+      expect(spawnHost.spawnWorker({ ...spawn, injection: mutate(spawn.injection) })).toMatchObject({
+        reason: 'credential-injection-rejected',
+      });
+      expect(spawnHost.inspect().activeWorkerCount).toBe(0);
+      expect(spawnHost.inspect().activeInjectedMaterialCount).toBe(0);
     }
   });
 

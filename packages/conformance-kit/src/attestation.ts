@@ -55,6 +55,7 @@ const artifactRefSchema: z.ZodType<ArtifactRef> = z.object({
 
 export const capabilityAttestationSchema = z
   .object({
+    eventId: z.string().min(1).optional(),
     capability: z.string().min(1),
     probeMethod: z.string().min(1),
     result: z.enum(['positive', 'negative']),

@@ -42,6 +42,7 @@ const evidenceRef = {
 };
 
 const validAttestation = (): CapabilityAttestation => ({
+  eventId: 'capability-attestation-event-1',
   capability: 'execution-host.canKill',
   probeMethod: 'mock-schema-probe',
   result: 'positive',

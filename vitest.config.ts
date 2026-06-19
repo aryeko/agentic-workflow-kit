@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
 const aliases = {
+  '@kit-vnext/conformance-kit': new URL('./packages/conformance-kit/src/index.ts', import.meta.url).pathname,
   '@kit-vnext/contracts-execution-host': new URL('./packages/contracts-execution-host/src/index.ts', import.meta.url)
     .pathname,
   '@kit-vnext/drivers-mocks': new URL('./packages/drivers-mocks/src/index.ts', import.meta.url).pathname,
