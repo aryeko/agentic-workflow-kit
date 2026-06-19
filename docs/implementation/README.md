@@ -67,7 +67,7 @@ W2  Seam contracts + mocks + ...... prov-01..04 contracts, mocks,   <== KEYSTONE
 | [W0 — Truth & Substrate](./waves/wave-0-truth-and-substrate/charter.md) | corpus reconciliation, package map, depcruise rules, policy docs | — | authored |
 | [W1 — Foundation](./waves/wave-1-foundation/charter.md) | fnd-01..04 packages | W0 | authored |
 | [W2 — Seam Contracts, Mocks & Conformance](./waves/wave-2-seams-and-conformance/charter.md) | prov-01..04 contracts + mocks + conformance kit | W0, W1 | authored |
-| W3 — Core spine & safety | core-01, core-02 | W2 | charter pending |
+| [W3 — Core spine & safety](./waves/wave-3-core-spine-and-safety/charter.md) | core-01, core-02 | W2 | authored |
 | W4 — Core flows | core-03, core-04, core-07 | W3 | charter pending |
 | W5 — Completion & merge | core-05 | W4 | charter pending |
 | W6 — Recovery & coordination | core-06 | W5 | charter pending |
