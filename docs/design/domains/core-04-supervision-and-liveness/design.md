@@ -85,8 +85,9 @@ decisions are:
 - Termination is a handoff to `ExecutionHost.terminateWorker`; this domain does not signal, kill,
   reap, or prove-empty directly.
 - `SupervisorStopped` is the single allowed terminal-summary fact. It is a non-lifecycle event
-  justified by core-01's approved post-terminal non-lifecycle append rule; it does not advance
-  liveness, refresh timers, request termination, or mutate core-01 lifecycle state.
+  justified by core-01's ratified post-terminal append rule (reuse the terminal epoch until lease
+  expiry); it does not advance liveness, refresh timers, request termination, or mutate core-01
+  lifecycle state.
 - `WorkerTerminated` must be recorded before terminal lifecycle closure or in the same barrier batch
   that closes supervision. It is not a permitted post-terminal append.
 - After `SupervisorStopped`, core-04 emits no more supervisor, liveness, progress, timer,
@@ -124,7 +125,7 @@ Core-04 emits through `RunWriter`:
 | `SupervisionLost` | `barrier` | Liveness cannot be proven; includes the fail-closed reason. |
 | `SupervisorTerminationRequested` | `barrier` | Termination handed to Execution Host for an owned worker. |
 | `WorkerTerminated` | `barrier` | Agent/Host terminal observation or Host termination proof recorded before terminal lifecycle closure. |
-| `SupervisorStopped` | `barrier` | Single terminal-summary fact for core-04, allowed post-terminal only as a non-lifecycle summary under core-01 semantics. |
+| `SupervisorStopped` | `barrier` | Single terminal-summary fact for core-04, allowed post-terminal only as a non-lifecycle summary under core-01's ratified terminal-epoch reuse semantics. |
 
 Consumed events include current-session Agent events, core-01 lifecycle/linkage events, and Execution
 Host termination proof or failure events. Core-04 contributes the `liveness` projection; core-01
@@ -200,8 +201,9 @@ recorded events plus an explicit clock input.
   `max-runtime = 8 hours`?
 - Should a recorded approval answer start a short "decision delivered but not consumed" timer, or is
   the existing idle/no-progress coverage sufficient until a current-session worker event follows?
-- Does the Agent contract need a future structured tool-start event, or is fail-closed
-  `tool_tracking_unavailable` acceptable for v1 drivers without stable `itemId` progress?
+- Resolved for v1: the per-tool timer keys off `AgentToolObserved.itemId`. When `itemId` is absent
+  or unstable, core-04 fails closed to `tool_tracking_unavailable`; idle, no-progress, and
+  max-runtime timers remain active. No new Agent tool-start event is required in v1.
 
 ## 11. Definition of done
 

@@ -51,9 +51,7 @@ post-merge outcome evidence is absent or ambiguous.
 type AnalysisTriggerKind =
   | "terminal-lifecycle" | "blocked-transition" | "supervision-lost"
   | "stale-progress" | "recovery-decision";
-type EvidenceEventRef = {
-  eventId: string; sequence: number; payloadDigest: string; type: string;
-};
+// EvidenceEventRef is imported from core-01's Run Lifecycle & Event State contracts.
 type AnalysisTrigger = { kind: AnalysisTriggerKind; eventRef: EvidenceEventRef; reason: string };
 type AnalysisFailureReason =
   | "analysis-input-degraded" | "analysis-artifact-unavailable"
@@ -220,7 +218,8 @@ replay-only recovery with the same event id and payload digest.
 - `analysis-input-degraded`: replay health is `interior_corrupt` or `event_log_unavailable`, or
   projections are missing.
 - `analysis-artifact-unavailable`: fnd-02 cannot store a redacted report artifact.
-- `analysis-redaction-unavailable`: fnd-04 cannot prove selected content safe.
+- `analysis-redaction-unavailable`: selected redacted content or required redaction evidence is
+  unavailable.
 - `analysis-rule-error`: a rule is malformed or non-total.
 - `analysis-record-unwritable`: no analysis outcome can be appended.
 - `analysis-invariant-missing`: a terminal usable replay has no analysis fact after terminal

@@ -11,9 +11,7 @@ last-reviewed: "2026-06-19"
 Every input is selected from a core-01 replay ending at an immutable cursor:
 
 ```ts
-type EvidenceEventRef = {
-  eventId: string; sequence: number; payloadDigest: string; type: string;
-};
+// EvidenceEventRef is imported from core-01's Run Lifecycle & Event State contracts.
 type CompletionReplayAnchor = {
   runId: string; evaluatedThrough: RunEventCursor; writerEpoch?: number;
   headSha: string; evidenceRefs: EvidenceEventRef[];
@@ -58,8 +56,10 @@ evidence can produce `claim-evidence-mismatch` for that merge-readiness claim.
 
 Verification is fresh for `headSha` only when the runner-owned `verify` command result is bracketed by
 pre- and post-command local git evidence for the same head, the command capture is complete, exit code
-is `0`, and the post-command worktree is clean. A command failure is a verification failure; incomplete
-capture or host failure is `verification-uncertain`.
+is `0`, and the post-command worktree is clean. The verify command identity is prov-04
+`CommandResult.commandDigest`; prov-04 exposes no raw argv, so core-05 relies on the digest unless
+prov-04 later adds redacted argv. A command failure is a verification failure; incomplete capture or
+host failure is `verification-uncertain`.
 
 Forge evidence is fresh only when `ForgeEvidenceCollected.expectedHeadSha`, PR head, branch head, and
 all action-observed heads equal `headSha`. If Forge reports a different or unknown head, the evidence

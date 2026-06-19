@@ -75,9 +75,10 @@ and blocker PR rules are in [Evidence model and predicates](design/evidence-mode
 - Forge evidence is usable only when PR head, branch head, action-observed head, and `expectedHeadSha`
   all equal the candidate head.
 - The changed-file anti-gaming gate compares Workspace `changedPaths` against
-  `ProtectedPolicySnapshotRecorded` and a task/change allowlist. Protected policy changes require
-  recorded Operator approval and fresh verification under the valid policy; outside-allowlist paths
-  fail closed.
+  `ProtectedPolicySnapshotRecorded` and the fnd-01 resolved task/change allowlist. Protected policy
+  changes require core-03 `ApprovalDecisionRecorded` approval for
+  `ApprovalSubject = "protected-policy-change"` and fresh verification under the valid policy;
+  outside-allowlist paths fail closed.
 - Completion and merge are separate decisions. `completion-verified` means the candidate head has
   independent local and verification evidence; `merge-ready` additionally requires fresh Forge
   evidence, required checks, review/thread state, protection/rulesets, branch/head freshness, policy,
@@ -188,10 +189,11 @@ intents, named fail-closed states, pure replay/cursor decisions, and mocks only.
 
 - Trusted-check source configuration remains open in Forge; until resolved, required checks come from
   Forge protection/ruleset evidence plus existing merge-policy `requiredEvidence`.
-- The exact producer of recorded Operator approval for protected-policy changes is not yet approved;
-  until an approved event exists, protected-policy changes fail closed.
-- The exact task/change allowlist source needs chief-architect confirmation. If absent, the gate
-  returns `changed-file-policy-absent`.
+- Protected-policy-change approval is owned by core-03: a committed `ApprovalDecisionRecorded` for
+  `ApprovalSubject = "protected-policy-change"` is required. If absent, protected policy changes fail
+  closed as `protected-policy-change-unapproved`.
+- The task/change allowlist is owned by fnd-01 resolved policy (`ChangePolicy.allowedChangePaths`).
+  If absent, the gate returns `changed-file-policy-absent`.
 
 ## 11. Definition of done
 

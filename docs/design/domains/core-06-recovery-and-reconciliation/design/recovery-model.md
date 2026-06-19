@@ -24,9 +24,7 @@ type RecoveryState =
   | "log-corrupt" | "launch-duplicate-active" | "owner-ambiguous"
   | "termination-ambiguous" | "supervision-stale-ambiguous" | "merge-outcome-ambiguous"
   | "provider-evidence-gap" | "manual-edits-forbidden" | "terminal-no-recovery";
-interface EvidenceEventRef {
-  eventId: string; sequence: number; payloadDigest: string; type: string;
-}
+// EvidenceEventRef is imported from core-01's Run Lifecycle & Event State contracts.
 interface RecoveryEvidenceSnapshot {
   runId: string;
   evaluatedThrough: RunEventCursor;

@@ -27,7 +27,8 @@ the same work is never run twice. No manual artifact edits, ever.
 FR-8 (recovery, reconciliation & coordination), NFR-SAFE, NFR-DET, NFR-SCALE.
 
 ## Dependencies (Dependency Rule)
-- Depends on: core-01 (events), core-02 (the `auto-recover` gate), fnd-02 (the lease/lock primitive);
+- Depends on: core-01 (events), core-02 (the `auto-recover` gate), core-04 (liveness and supervision
+  evidence), core-05 (completion, merge, and post-merge evidence), fnd-02 (the lease/lock primitive);
   all four seams (for recovery evidence).
 - Must NOT: depend on a concrete driver.
 
@@ -45,4 +46,5 @@ Standard set + [core-01](../core-01-run-lifecycle-and-state/charter.md),
 - Duplicate launches are caught across processes; recovery is appended events, no manual edits.
 
 ## Open questions
-- Which recovery states are `auto-recover` by default. (Scheduler/admission deferred, not in v1.)
+- None for v1. Auto-recover eligibility is resolved by the design's action-safety matrix; execution
+  still requires the core-02 `auto-recover` gate. Scheduler/admission remains deferred.
