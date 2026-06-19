@@ -41,6 +41,8 @@ type PolicyLayer = {
   escalationPolicy: EscalationPolicy;
   changePolicy: ChangePolicy;
   capabilities: CapabilityPolicy;
+  credentialRefs: CredentialReferencePolicy;
+  egress: EgressPolicySource;
   merge: MergePolicy;
 };
 type PolicyLayerPatch = DeepPartial<PolicyLayer>;
@@ -89,6 +91,46 @@ type ChangePolicy = {
   allowedChangePaths: string[];
 };
 
+type CredentialReferencePolicy = {
+  refs: CredentialRefSource[];
+};
+type CredentialRefSource = {
+  id: string;
+  kind: "forge" | "registry-read" | "registry-publish" | "tool-api" | "verification";
+  purpose: string;
+  secret: { source: "env" | "secret-manager"; key: string; version?: string };
+  allowedParties: Array<"runner" | "worker">;
+  allowedPhases: string[];
+  allowedHosts: string[];
+  ttlSeconds: number;
+};
+
+type EgressPolicySource = {
+  defaultAction: "deny";
+  rules: EgressRuleSource[];
+  negativeProbes: NegativeProbeSource[];
+  requiredAttesters: RequiredAttesterSource[];
+};
+type EgressRuleSource = {
+  credentialRefIds: string[];
+  protocols: Array<"https" | "ssh">;
+  hosts: string[];
+  ports?: number[];
+  phase: string;
+  purpose: string;
+};
+type NegativeProbeSource = {
+  host: string;
+  protocol: "https" | "ssh";
+  expected: "blocked";
+  reason: string;
+};
+type RequiredAttesterSource = {
+  point: "execution-host";
+  capability: "egress-confinement";
+  driverId: string;
+};
+
 type CapabilityPolicy = {
   "auto-merge": CapabilitySetting;
   "auto-recover": CapabilitySetting;
@@ -121,13 +163,22 @@ The built-in defaults are complete and intentionally supervised:
 - `escalationPolicy.denyByDefault = true`; default maximum scope is `per-command-prefix`.
 - `changePolicy.allowedChangePaths = []`; no changed file path is allowed unless a profile or
   operator override grants it explicitly.
+- `credentialRefs.refs = []`; no credential is available unless a profile or operator override
+  names an explicit reference.
+- `egress.defaultAction = "deny"` with no rules, no negative probes, and no required attesters until
+  credentialed use is configured.
 - `merge.runnerMayPush = true`, `runnerMayOpenPr = true`, `runnerMayMerge = false`; required
   evidence includes verification, CI, review, resolved threads, and protection.
 
 No default silently enables an autonomous power. A capability is available only when both config
 desires it and Capability & Safety has fresh positive attestations for the scoped provider guarantees.
 `orchestrator-decide` is not in the v1 schema because AD-14 defers that capability. If any config,
-profile, or override supplies it, validation fails with `unsupported_deferred_capability`.
+profile, or override supplies it, validation fails with `unsupported-deferred-capability`.
+
+Credential references and egress policy sources are inert without fnd-04. fnd-01 validates and
+records provenance for those source fields; fnd-04 validates them into `CredentialRef` and
+`EgressPolicy` contracts, computes policy digests, resolves secret material at use time, and requires
+Execution Host egress attestations before confined credential injection.
 
 ## Deterministic precedence
 
@@ -184,4 +235,4 @@ config, run event logs, projections, resolved-policy snapshots, capability-attes
 launch artifacts. Any artifact in those locations without a recognized marker, or with a known
 non-vNext marker, returns an `AdoptionDiagnosticEmitted` append intent and blocks launch. The owning
 core domain appends returned diagnostic/failure intents through core-01's single RunWriter. If those
-intents cannot be recorded, launch remains blocked as `adoption_diagnostic_unrecorded`.
+intents cannot be recorded, launch remains blocked as `adoption-diagnostic-unrecorded`.

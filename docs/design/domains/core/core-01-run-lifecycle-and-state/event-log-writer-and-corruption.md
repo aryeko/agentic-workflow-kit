@@ -55,7 +55,7 @@ Before calling `EventLogStore.append`, the writer validates:
 - envelope `writerEpoch` equals the lease epoch;
 - batch sequences are contiguous and begin at the expected sequence;
 - every `RunLifecycleTransitioned` payload is legal from the current replayed state;
-- `created`, `configured`, and `task_snapshotted` state changes are represented by
+- `created`, `configured`, and `task-snapshotted` state changes are represented by
   `RunLifecycleTransitioned` events that reference the factual `RunCreated`, `RunPolicyBound`, and
   `TaskSnapshotRecorded` event ids in the same committed history;
 - terminal lifecycle events are idempotent only by exact `eventId` and digest;
@@ -65,7 +65,7 @@ Before calling `EventLogStore.append`, the writer validates:
 The writer then normalizes the batch to fnd-02's single-batch durability. The effective durability is
 the strongest requested durability across the intents (`barrier` stronger than `durable`). Every
 intent must still request at least the minimum durability required by its event type; for example, a
-terminal lifecycle event requested as `durable` is rejected with `durability_insufficient` even if
+terminal lifecycle event requested as `durable` is rejected with `durability-insufficient` even if
 another intent in the batch requested `barrier`. After validation, the writer constructs one fnd-02
 `AppendBatch` with that effective durability, serializes every envelope with the same effective
 durability value, and appends the batch atomically. It never splits one `RunWriter.append` call into
@@ -89,7 +89,7 @@ If a caller loses acknowledgement after append, recovery is replay-only:
 2. Reacquire or renew `run-writer:<runId>`.
 3. If the lost batch appears with identical ids and digests, report it committed.
 4. If the batch is absent, append a fresh batch at the next sequence.
-5. If a conflicting id or digest appears, fail closed with `sequence_conflict`.
+5. If a conflicting id or digest appears, fail closed with `sequence-conflict`.
 
 The writer never scans bytes directly and never repairs frames. It consumes fnd-02 replay health.
 
@@ -106,13 +106,13 @@ coordination, lifecycle, evidence, or recovery impact.
 | `barrier` | Run creation, resolved policy binding, task snapshot, session linkage, approval parked/resumed facts, lifecycle terminal events, corruption records, and any fact that gates an irreversible action. |
 
 If policy or a caller requests weaker durability than the mapping allows, append fails with
-`durability_insufficient`. If a caller attempts to append a canonical Run event with fnd-02
+`durability-insufficient`. If a caller attempts to append a canonical Run event with fnd-02
 `buffered`, the writer rejects it before storage append.
 
 `RunAppendRejected` is authored only by the currently fenced writer for semantic pre-storage
-rejections while the log remains writable, such as `illegal_lifecycle_transition` or
-`durability_insufficient`. A stale writer cannot append its own rejection; `stale_writer_fenced`
-returns only as `RunAppendFailure`. Likewise, `interior_corrupt` and `event_log_unavailable` cannot be
+rejections while the log remains writable, such as `illegal-lifecycle-transition` or
+`durability-insufficient`. A stale writer cannot append its own rejection; `stale-writer-fenced`
+returns only as `RunAppendFailure`. Likewise, `interior-corrupt` and `event-log-unavailable` cannot be
 recorded by appending a rejection because authoritative append is already unavailable.
 
 ## Corruption handling
@@ -121,10 +121,10 @@ Core-01 accepts fnd-02 health as authoritative:
 
 - `log-tail-repaired`: append `RunLogTailRepaired` at `barrier` durability when a writer is available,
   then continue from the last committed sequence.
-- `log-interior-corrupt`: mark projections `degradedHealth = "interior_corrupt"`, refuse lifecycle
+- `log-interior-corrupt`: mark projections `degradedHealth = "interior-corrupt"`, refuse lifecycle
   mutation and authoritative appends, and require recovery coordination to start from read-only
   evidence.
 - `network-fs-degraded`, `read-only`, or `unusable`: refuse authoritative append and expose
-  `event_log_unavailable`.
+  `event-log-unavailable`.
 
 Core-01 never edits the log to repair semantic mistakes. Semantic corrections are new events.

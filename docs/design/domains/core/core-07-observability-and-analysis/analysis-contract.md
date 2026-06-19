@@ -210,21 +210,24 @@ Retries first replay the log:
 
 If fnd-02 stores the report artifact but `RunWriter.append` fails, the artifact is an unreferenced
 redacted artifact until retry records the event. Scratch refs, raw refs, and non-redacted artifacts
-cannot be substituted. If append returns core-01 `partial_ack_unknown`, retry follows core-01
+cannot be substituted. If append returns core-01 `partial-ack-unknown`, retry follows core-01
 replay-only recovery with the same event id and payload digest.
 
 ## Failure catalog
 
-- `analysis-input-degraded`: replay health is `interior_corrupt` or `event_log_unavailable`, or
+- `analysis-input-degraded`: replay health is `interior-corrupt` or `event-log-unavailable`, or
   projections are missing.
 - `analysis-artifact-unavailable`: fnd-02 cannot store a redacted report artifact.
 - `analysis-redaction-unavailable`: selected redacted content or required redaction evidence is
   unavailable.
 - `analysis-rule-error`: a rule is malformed or non-total.
 - `analysis-record-unwritable`: no analysis outcome can be appended.
-- `analysis-invariant-missing`: a terminal usable replay has no analysis fact after terminal
-  lifecycle sequence.
+- `analysis-invariant-missing`: a terminal usable replay with a writable Run log has no analysis fact
+  after terminal lifecycle sequence.
 
 When the log is writable, every failure except `analysis-record-unwritable` is recorded as
 `AnalysisFailed` with barrier durability. Error payloads use stable reason codes and evidence refs;
 they do not store raw exceptions, provider text, prompts, or secret-bearing strings.
+If replay is corrupt or the log is unwritable, the terminal-analysis invariant is reported as unmet
+instead of satisfied: recovery and observability-dependent gates treat the missing analysis as a
+blocking degraded state until a supported writer records `AnalysisFailed` or `AnalysisRecorded`.

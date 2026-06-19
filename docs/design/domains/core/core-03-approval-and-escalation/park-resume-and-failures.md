@@ -15,8 +15,8 @@ failure.
 States:
 
 - `pending`: request and answer channel are durably recorded before any decision.
-- `auto_granted`: assisted low-risk policy allowlist and committed `escalation-auto-grant` allow.
-- `human_required`: human input is required because mode, risk, policy, or gate denial requires it.
+- `auto-granted`: assisted low-risk policy allowlist and committed `escalation-auto-grant` allow.
+- `human-required`: human input is required because mode, risk, policy, or gate denial requires it.
 - `parked`: live answer window elapsed or channel is live-only; the Run may transition
   `running -> parked` using the approval event as source evidence.
 - `resumed`: owned session is resumed with the selected grant pre-loaded and a fresh `SessionLinked`
@@ -35,26 +35,36 @@ worker execution continues.
 
 ```mermaid
 stateDiagram-v2
-  [*] --> pending: ApprovalPendingPersisted
-  pending --> auto_granted: assisted low risk + gate allow
-  pending --> human_required: manual / high / policy / gate deny
-  pending --> parked: live window elapsed
-  human_required --> parked: waiting for Operator
-  human_required --> denied: Operator denial
-  human_required --> resumed: Operator grant + owned resume
-  auto_granted --> answered: Agent accepts grant
-  auto_granted --> failed: Agent answer failure
-  parked --> resumed: owned session resumed before expiry
-  parked --> expired: decision window elapsed
-  resumed --> answered: Agent accepts pre-loaded grant
-  resumed --> failed: Agent answer failure
-  pending --> blocked: missing guarantee
-  human_required --> blocked: no human path available
-  expired --> [*]
-  answered --> [*]
-  denied --> [*]
-  blocked --> [*]
-  failed --> [*]
+  state "pending" as Pending
+  state "auto-granted" as AutoGranted
+  state "human-required" as HumanRequired
+  state "parked" as Parked
+  state "resumed" as Resumed
+  state "answered" as Answered
+  state "denied" as Denied
+  state "expired" as Expired
+  state "blocked" as Blocked
+  state "failed" as Failed
+  [*] --> Pending: ApprovalPendingPersisted
+  Pending --> AutoGranted: assisted low risk + gate allow
+  Pending --> HumanRequired: manual / high / policy / gate deny
+  Pending --> Parked: live window elapsed
+  HumanRequired --> Parked: waiting for Operator
+  HumanRequired --> Denied: Operator denial
+  HumanRequired --> Resumed: Operator grant + owned resume
+  AutoGranted --> Answered: Agent accepts grant
+  AutoGranted --> Failed: Agent answer failure
+  Parked --> Resumed: owned session resumed before expiry
+  Parked --> Expired: decision window elapsed
+  Resumed --> Answered: Agent accepts pre-loaded grant
+  Resumed --> Failed: Agent answer failure
+  Pending --> Blocked: missing guarantee
+  HumanRequired --> Blocked: no human path available
+  Expired --> [*]
+  Answered --> [*]
+  Denied --> [*]
+  Blocked --> [*]
+  Failed --> [*]
 ```
 
 ## Failure and degraded modes
@@ -87,7 +97,7 @@ type ApprovalFailureState =
 - `approval-owner-missing`: current session is not owned or owned-remote for a resumable request;
   fail closed to `blocked`.
 - `approval-policy-unavailable`: fnd-01 resolved policy, `ConfigResolved`, or per-field provenance is
-  missing or failed with `provenance_write_failed`; fail closed to `blocked` before classification or
+  missing or failed with `provenance-write-failed`; fail closed to `blocked` before classification or
   decision.
 - `approval-risk-high`: high risk requires human; assisted auto-grant is unavailable.
 - `approval-gate-denied`: `escalation-auto-grant` denied; require human or deny per policy.

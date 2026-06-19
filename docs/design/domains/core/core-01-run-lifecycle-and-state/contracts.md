@@ -11,10 +11,10 @@ Core-01 exposes this host-neutral run log contract:
 ```ts
 type Result<TValue, TFailure> = { ok: true; value: TValue } | { ok: false; error: TFailure };
 type RunDurabilityClass = "durable" | "barrier";
-type RunLifecycleState = "created" | "configured" | "task_snapshotted" | "workspace_ready" |
-  "worker_starting" | "running" | "parked" | "runner_verifying" | "forge_waiting" |
-  "merge_waiting" | "settling" | "completed" | "blocked" | "failed" | "canceled";
-type RunDegradedHealth = "ok" | "tail_repaired" | "interior_corrupt" | "event_log_unavailable";
+type RunLifecycleState = "created" | "configured" | "task-snapshotted" | "workspace-ready" |
+  "worker-starting" | "running" | "parked" | "runner-verifying" | "forge-waiting" |
+  "merge-waiting" | "settling" | "completed" | "blocked" | "failed" | "canceled";
+type RunDegradedHealth = "ok" | "tail-repaired" | "interior-corrupt" | "event-log-unavailable";
 type RunEventEnvelope<TPayload = unknown> = {
   schema: "kit-vnext.run-event.v1"; runId: string; eventId: string; sequence: number;
   writerEpoch: number; domain: string; type: string; durability: RunDurabilityClass;
@@ -65,13 +65,13 @@ type RunMetricsProjection = { eventCount: number; retryCount: number; parkedMs: 
 type RunLaunchProjection = { policyDigest?: string; taskSnapshotDigest?: string;
   linkage: "known" | "unknown" | "ambiguous"; currentSession?: SessionLinkedPayload;
   linkHistory: SessionLinkedPayload[]; };
-type RunAppendFailureCode = "stale_writer_fenced" | "sequence_conflict" |
-  "illegal_lifecycle_transition" | "durability_insufficient" | "partial_ack_unknown" |
-  "interior_corrupt" | "event_log_unavailable";
+type RunAppendFailureCode = "stale-writer-fenced" | "sequence-conflict" |
+  "illegal-lifecycle-transition" | "durability-insufficient" | "partial-ack-unknown" |
+  "interior-corrupt" | "event-log-unavailable";
 type RunAppendFailure = { code: RunAppendFailureCode; message: string; retryable: boolean;
   rejection?: RunAppendRejectedPayload; };
-type RunReplayFailure = { code: "malformed_envelope" | "interior_corrupt" |
-  "event_log_unavailable" | "malformed_declared_payload"; message: string;
+type RunReplayFailure = { code: "malformed-envelope" | "interior-corrupt" |
+  "event-log-unavailable" | "malformed-declared-payload"; message: string;
   healthRecords: RunLogHealthRecord[]; };
 type RunCreatedPayload = { idempotencyKey: string; operatorRef?: string; requestedBy: string };
 type RunPolicyBoundPayload = { policyDigest: string; provenanceRef: string; profile?: string };
@@ -89,10 +89,10 @@ type RunAppendRejectedPayload = { attemptedEventId?: string; attemptedType: stri
   observedSequence?: number; writerEpoch?: number; recordedReason: string; };
 type RunLogTailRepairedPayload = { repairedAt: string; lastCommittedSequence: number;
   quarantinedBytes: number; storageHealth: "log-tail-repaired"; };
-type RunLogCorruptionRecord = { kind: "tail_repaired" | "interior_corrupt";
+type RunLogCorruptionRecord = { kind: "tail-repaired" | "interior-corrupt";
   detectedAt: string; firstAffectedSequence?: number; lastValidSequence?: number;
   storageHealth: "log-tail-repaired" | "log-interior-corrupt"; detail: string; };
-type RunLogHealthRecord = RunLogCorruptionRecord | { kind: "event_log_unavailable";
+type RunLogHealthRecord = RunLogCorruptionRecord | { kind: "event-log-unavailable";
   detectedAt: string; storageHealth: "network-fs-degraded" | "read-only" | "unusable";
   detail: string; };
 interface RunEventLog { createRun(input: CreateRunInput): Result<RunWriter, RunAppendFailure>;

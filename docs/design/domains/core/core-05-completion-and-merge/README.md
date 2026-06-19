@@ -139,7 +139,7 @@ and blocker PR rules are in [Evidence model and predicates](evidence-model-and-p
   and an allowed `auto-merge` `CapabilityGateRecord`.
 - After a Forge merge action returns, core-05 records a post-merge outcome fact. Core-01 owns the
   lifecycle transition that cites that fact: exact-head merged settles to `completed`; recoverable
-  refusal returns to `merge_waiting`; durable policy/evidence blockers record `blocked`; invariant or
+  refusal returns to `merge-waiting`; durable policy/evidence blockers record `blocked`; invariant or
   integrity violations record `failed`.
 - Blocker-evidence PRs require a safe exact head and runner push/PR policy; they publish blocker
   states and never imply Task completion, queue, or merge.

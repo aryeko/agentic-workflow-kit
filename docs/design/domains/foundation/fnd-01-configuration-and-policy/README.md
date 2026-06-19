@@ -16,17 +16,18 @@ depends-on: []
 blocks the control plane consumes. Depended on by everything; depends on nothing above.
 
 ### Responsibilities (in scope)
-- The config schema: `provisioning`, `approval`, `escalationPolicy`, `capabilities` (and run/profile
-  fields).
+- The config schema: `provisioning`, `approval`, `escalationPolicy`, `capabilities`,
+  `credentialRefs`, `egress` (and run/profile fields).
 - **Deterministic precedence**: operator per-run override > profile > defaults — with **per-field
   provenance** recorded (which layer set each field). Operator overrides always win.
 - Safe defaults (capabilities off; approval `assisted`; narrow dependency-install grant).
-- The policy shapes consumed by core-02 (capabilities), core-03 (approval/escalation), core-05 (merge).
+- The policy shapes consumed by core-02 (capabilities), core-03 (approval/escalation), core-05
+  (merge), and fnd-04 (credential-reference and egress-policy source data).
 - **Adoption diagnostics**: detect legacy/incompatible config + artifacts and **refuse to run** (fail
   closed) with adoption guidance — never silently mishandle them (FR-13, AD-1).
 
 ### Out of scope
-- Applying policy (the consuming core domains); credentials/secrets (fnd-04).
+- Applying policy (the consuming core domains); resolving or injecting credentials/secrets (fnd-04).
 
 ### Requirements owned
 Policy side of FR-4 and FR-7; **FR-13 (adoption diagnostics)**; NFR-SAFE, NFR-DET, NFR-SOLID.
@@ -54,10 +55,16 @@ the capability default-off model; the escalation/approval/merge policy shapes.
 
 Configuration & Policy defines the vNext config schema, deterministic policy resolution, per-field
 provenance, safe defaults, and adoption diagnostics. It is the foundation source that the Control
-plane, provider contracts, and drivers read before deciding what powers are available.
+plane, provider contracts, drivers, and Credentials & Secrets read before deciding what powers are
+available.
 
 Out of scope: applying approval, escalation, capability, verification, or merge decisions. Those are
-owned by consuming core domains. Credentials and secrets are owned by Credentials & Secrets.
+owned by consuming core domains. Credential resolution, injection, redaction, and egress attestation
+are owned by Credentials & Secrets and Execution Host.
+
+Reconciliation note (2026-06-19): credential references and egress source policy are configuration
+facts resolved here with provenance. fnd-04 consumes those resolved facts to issue credential and
+egress contracts; fnd-01 does not resolve secret material or enforce egress.
 
 ## 2. Required reading
 
@@ -106,7 +113,8 @@ Core design decisions:
 - Resolution has exactly three layers: operator per-run override, selected profile, then immutable
   built-in defaults.
 - Operator overrides always win; unknown fields are rejected instead of ignored.
-- Defaults are complete, supervised, and safe: capabilities off, approval assisted, runner merge off.
+- Defaults are complete, supervised, and safe: capabilities off, approval assisted, no credential
+  references, default-deny egress, runner merge off.
 - Capability config expresses desired powers only; actual availability still requires fresh positive
   Capability attestation.
 - Adoption diagnostics are marker-first and fail closed. Non-vNext or unknown artifacts refuse to
@@ -185,16 +193,16 @@ sequenceDiagram
 
 Fail-closed states:
 
-- `adoption_incompatible`: config has a non-vNext marker.
-- `adoption_unknown_artifact`: config or artifact has no recognized vNext marker.
-- `adoption_diagnostic_unrecorded`: returned diagnostic/failure intents were not appended by the
+- `adoption-incompatible`: config has a non-vNext marker.
+- `adoption-unknown-artifact`: config or artifact has no recognized vNext marker.
+- `adoption-diagnostic-unrecorded`: returned diagnostic/failure intents were not appended by the
   owning core writer.
-- `config_loaded_unrecorded`: pre-run `ConfigLoaded` could not be committed by the foundation writer.
-- `config_invalid`: schema validation failed.
-- `profile_unknown`: requested profile does not exist.
-- `override_invalid`: operator override has an unknown or invalid field.
-- `unsupported_deferred_capability`: config attempts to set `orchestrator-decide` in v1.
-- `provenance_write_failed`: resolved policy was computed but not activated because the returned
+- `config-loaded-unrecorded`: pre-run `ConfigLoaded` could not be committed by the foundation writer.
+- `config-invalid`: schema validation failed.
+- `profile-unknown`: requested profile does not exist.
+- `override-invalid`: operator override has an unknown or invalid field.
+- `unsupported-deferred-capability`: config attempts to set `orchestrator-decide` in v1.
+- `provenance-write-failed`: resolved policy was computed but not activated because the returned
   provenance payloads were not appended through core-01.
 
 Capability gates treat any missing resolved policy, failed diagnostic, or missing provenance event as

@@ -117,7 +117,7 @@ Core decisions:
 - The Event log is the only authored run state. Projections are read-only outputs from replay and are
   never written directly.
 - `RunLifecycleTransitioned` is the only event type that authors lifecycle state, including the
-  initial `created`, `configured`, and `task_snapshotted` transitions. `RunCreated`,
+  initial `created`, `configured`, and `task-snapshotted` transitions. `RunCreated`,
   `RunPolicyBound`, and `TaskSnapshotRecorded` are factual payload events consumed by summary and
   launch projections; they do not move lifecycle state on their own.
 - Every authored event uses the `RunEventEnvelope` schema and a contiguous per-Run `sequence`.
@@ -180,20 +180,32 @@ details are in [Projections, lifecycle, and tests](projections-lifecycle-and-tes
 
 ```mermaid
 stateDiagram-v2
-  [*] --> created: lifecycle(created) after RunCreated
-  created --> configured: lifecycle(configured) after RunPolicyBound
-  configured --> task_snapshotted: lifecycle(task_snapshotted) after TaskSnapshotRecorded
-  task_snapshotted --> workspace_ready: lifecycle
-  workspace_ready --> worker_starting: lifecycle
-  worker_starting --> running: lifecycle after SessionLinked
-  running --> parked: approval/session wait
-  parked --> running: resume fact
-  running --> runner_verifying: worker done fact
-  runner_verifying --> forge_waiting: verification evidence fact
-  forge_waiting --> merge_waiting: PR/gate evidence fact
-  merge_waiting --> settling: merge fact
-  settling --> completed: terminal barrier
-  completed --> [*]
+  state "created" as Created
+  state "configured" as Configured
+  state "task-snapshotted" as TaskSnapshotted
+  state "workspace-ready" as WorkspaceReady
+  state "worker-starting" as WorkerStarting
+  state "running" as Running
+  state "parked" as Parked
+  state "runner-verifying" as RunnerVerifying
+  state "forge-waiting" as ForgeWaiting
+  state "merge-waiting" as MergeWaiting
+  state "settling" as Settling
+  state "completed" as Completed
+  [*] --> Created: lifecycle(created) after RunCreated
+  Created --> Configured: lifecycle(configured) after RunPolicyBound
+  Configured --> TaskSnapshotted: lifecycle(task-snapshotted) after TaskSnapshotRecorded
+  TaskSnapshotted --> WorkspaceReady: lifecycle
+  WorkspaceReady --> WorkerStarting: lifecycle
+  WorkerStarting --> Running: lifecycle after SessionLinked
+  Running --> Parked: approval/session wait
+  Parked --> Running: resume fact
+  Running --> RunnerVerifying: worker done fact
+  RunnerVerifying --> ForgeWaiting: verification evidence fact
+  ForgeWaiting --> MergeWaiting: PR/gate evidence fact
+  MergeWaiting --> Settling: merge fact
+  Settling --> Completed: terminal barrier
+  Completed --> [*]
 ```
 
 This diagram shows the main flow only. The authoritative transition contract, including terminal and
@@ -202,20 +214,24 @@ recovery-classified edges, is the legal transition table in
 
 ## 8. Failure & degraded modes
 
-Named fail-closed modes: `stale_writer_fenced`, `sequence_conflict`,
-`illegal_lifecycle_transition`, `durability_insufficient`, `partial_ack_unknown`, `tail_repaired`,
-`malformed_envelope`, `interior_corrupt`, `event_log_unavailable`, and
-`malformed_declared_payload`.
+Named fail-closed modes: `stale-writer-fenced`, `sequence-conflict`,
+`illegal-lifecycle-transition`, `durability-insufficient`, `partial-ack-unknown`, `tail-repaired`,
+`malformed-envelope`, `interior-corrupt`, `event-log-unavailable`, and
+`malformed-declared-payload`.
 
-Capability gates must treat `malformed_envelope`, `interior_corrupt`, `event_log_unavailable`,
-`malformed_declared_payload`, missing projections, stale writer rejection, or ambiguous session
+Capability gates must treat `malformed-envelope`, `interior-corrupt`, `event-log-unavailable`,
+`malformed-declared-payload`, missing projections, stale writer rejection, or ambiguous session
 linkage as autonomous capabilities absent.
 
 ## 9. Testing strategy
 
-Satisfies FR-1 for durable task snapshot recording, FR-11 for separated run-activity authority,
+Supports FR-1 only by durably recording the Work Source `TaskSnapshot` after claim; Work Source owns
+task intake and status authority. Satisfies FR-11 for separated run-activity authority,
 NFR-OBS for evented state changes, NFR-DET for pure replay, NFR-SAFE for coherent fail-closed state,
 NFR-SOLID for foundation-only dependencies, and NFR-TEST for mock-only core execution.
+
+Reconciliation note (2026-06-19): core-01 does not own FR-1. Its contract supplies durable
+task-snapshot evidence for the run log; prov-03 remains the owner of task intake and claim semantics.
 
 Tests use only mock/fake fnd-01 policy inputs and a deterministic in-memory fnd-02 implementation with
 fault injection. No real processes, network, Forge, Agent, Work Source, or filesystem are used in
