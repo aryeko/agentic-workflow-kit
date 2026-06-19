@@ -24,6 +24,12 @@ Provider gaps below are tracked readiness state, not defects in the design-appro
 | `n/a` | The axis does not apply to that domain or driver. |
 | `not claimed` | This initial tracker does not have enough scoped evidence to assert the axis. Treat as not ready. |
 
+## Shared substrate readiness
+
+| Component | package implemented | conformance/self-test | open gaps | runtime attestation |
+|---|---:|---:|---|---:|
+| Provider conformance kit | yes | yes | Real-driver smoke slots are registered but intentionally skipped in the mock lane until driver waves. Evidence: `pnpm exec vitest run --project conformance-mock packages/conformance-kit/tests/conformance-kit.conformance.test.ts --coverage '--coverage.include=packages/conformance-kit/src/**/*.ts' --coverage.thresholds.lines=90 --coverage.thresholds.branches=90` passed with 100% lines and 94.02% branches; depcruise passed for `packages/conformance-kit`. | n/a |
+
 ## Domain readiness
 
 | Domain | design-approved | package implemented | mock conformance | real-driver smoke | negative/egress probes | open capability gaps | runtime attestation |
