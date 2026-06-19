@@ -90,7 +90,7 @@ type ForgeCapability =
   | "canInspectProtection";
 
 interface ForgeContract {
-  attestCapabilities(scope: ForgeScope): CapabilityAttestation[];
+  probeCapabilities(scope: ForgeScope): CapabilityAttestation[];
   pushBranch(req: PushBranchRequest): ForgeActionResult;
   upsertPullRequest(req: PullRequestUpsertRequest): ForgeActionResult;
   publishComment(req: PullRequestCommentRequest): ForgeActionResult;
@@ -130,7 +130,7 @@ sequenceDiagram
   participant FG as Forge
   participant C as Credentials & Secrets
   participant GH as GitHub driver
-  CP->>FG: attestCapabilities(scope)
+  CP->>FG: probeCapabilities(scope)
   FG-->>CP: CapabilityAttestation events
   CP->>FG: pushBranch(localHeadSha, runner scope)
   FG->>C: resolve runner Forge credential

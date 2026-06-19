@@ -44,7 +44,7 @@ flowchart LR
   end
   RL -->|"list, claim, snapshot, release"| WS
   CMP -->|"write task status"| WS
-  CAP -->|"capability probes"| WS
+  CAP -->|"probeCapabilities (CapabilityAttestation)"| WS
   MD -.implements.-> WS
   MOCK -.implements.-> WS
   MD -->|"leases + artifact refs"| STA
@@ -104,6 +104,29 @@ Sync/import/export boundaries:
 type StatusBucket = "eligible" | "inProgress" | "complete" | "blocked" | "unknown";
 type WorkSourceCapability =
   | "supportsTracks" | "supportsClaim" | "supportsStatusWrite" | "supportsDependencies";
+interface WorkSourceProbeScope {
+  driverId: string;
+  driverVersion: string;
+  platform: string;
+  sourceKind: "markdown" | "mock";
+  freshnessKey: string;
+  capabilities: WorkSourceCapability[];
+  trackIds?: string[];
+  at: string;
+}
+interface CapabilityAttestation {
+  capability: WorkSourceCapability;
+  probeMethod: string;
+  result: "positive" | "negative";
+  evidenceRef: string;
+  scope: string;
+  expiry: string;
+  driverVersion: string;
+  platform: string;
+  freshnessKey: string;
+  at: string;
+  details?: Record<string, unknown>;
+}
 type TaskKey = { workSourceId: string; trackId: string; taskId: string };
 type SpecRef = { kind: "path" | "url"; ref: string; label?: string; declaredDigest?: string };
 type TaskStatus = { native: string; bucket: StatusBucket };
@@ -114,7 +137,7 @@ type TaskView = { key: TaskKey; title: string; status: TaskStatus; target: { pro
 type TaskSnapshot = { task: TaskView; sourcePath: string; sourceRevision: string;
   sourceBytesDigest: string; inlineSpecDigest?: string; rawExcerptDigest: string; createdAt: string };
 interface WorkSource {
-  probe(): CapabilityProbeResult[];
+  probeCapabilities(scope: WorkSourceProbeScope): CapabilityAttestation[];
   listTracks(): TrackView[] | WorkSourceError;
   listTasks(trackId: string): TaskView[] | WorkSourceError;
   nextEligible(input: { trackIds?: string[]; targetProject?: string }): TaskView | null | WorkSourceError;
@@ -126,20 +149,22 @@ interface WorkSource {
 }
 type ClaimResult = { task: TaskView; snapshotRef: ArtifactRef; snapshotDigest: string };
 ```
-Capabilities are attested by probes, not declarations: `supportsTracks` enumerates Tracks and detects
-malformed Track files; `supportsClaim` acquires a Track lease, performs digest-checked claim, and
-rejects stale writes; `supportsStatusWrite` writes and verifies status under the same precondition
-model; `supportsDependencies` parses simple TaskKey dependencies and excludes incomplete dependencies.
+Capabilities are attested by `probeCapabilities`, not declarations: `supportsTracks` enumerates
+Tracks and detects malformed Track files; `supportsClaim` acquires a Track lease, performs
+digest-checked claim, and rejects stale writes; `supportsStatusWrite` writes and verifies status
+under the same precondition model; `supportsDependencies` parses simple TaskKey dependencies and
+excludes incomplete dependencies.
 
 Consumed Foundation contract: fnd-02 `LeaseStore` for fenced Track mutation and `ArtifactStore` for
 TaskSnapshot, parse diagnostics, and probe evidence. This design introduces no dependency on the
 Control plane or concrete consumers.
 
 ## 6. Events & data
-Work Source does not append Control plane events directly. It returns capability probe results, Track
-inventory, TaskView, ClaimResult, release result, status write result, conflicts, degraded states, and
-artifact refs for the Control plane to record. Data authored here: Task record edits, claim metadata,
-status labels, TaskSnapshot artifacts, parse/probe diagnostic artifacts, and conformance snapshots.
+Work Source does not append Control plane events directly. It returns `CapabilityAttestation`
+results, Track inventory, TaskView, ClaimResult, release result, status write result, conflicts,
+degraded states, and artifact refs for the Control plane to record. Data authored here: Task record
+edits, claim metadata, status labels, TaskSnapshot artifacts, parse/probe diagnostic artifacts, and
+conformance snapshots.
 
 ## 7. Behavior diagram
 ```mermaid
