@@ -45,7 +45,7 @@ Provider gaps below are tracked readiness state, not defects in the design-appro
 | prov-01 Agent Execution | yes | no | partial | no | n/a | Live approval relay, approval persistence, owned resume, structured tool exit, Guardian stability, and host parentage remain open. | no |
 | prov-02 Forge / Collaboration | yes | no | partial | no | n/a | GitHub write-side smoke for push, PR/comment writes, update branch, queue, merge, and optional thread resolution remains open. | no |
 | prov-03 Work Source | yes | no | partial | no | n/a | Markdown and mock drivers are fixture-only; executable claim, status write, dependency, and race conformance remain open. | no |
-| prov-04 Execution Host | yes | no | partial | partial | no | Real Local driver, AD-2 helper conformance, full termination ladder, structured host observations, and live egress negative probes remain open. | no |
+| prov-04 Execution Host | yes | yes | yes | partial | partial | Contract and Mock Host packages pass targeted unit/conformance and scoped 97.82% line / 93.33% branch coverage; mock egress negative probes fail closed. Real Local driver, AD-2 helper conformance, and live egress negative probes remain open. | partial |
 | fnd-01 Configuration & Policy | yes | no | n/a | n/a | n/a | Implementation package and executable evidence pending. | no |
 | fnd-02 Storage & Artifacts | yes | no | n/a | n/a | n/a | Implementation package and executable evidence pending. | no |
 | fnd-03 Workspace & Repository | yes | no | n/a | n/a | n/a | Implementation package and executable evidence pending. | no |
@@ -62,7 +62,7 @@ Provider gaps below are tracked readiness state, not defects in the design-appro
 | prov-03 Work Source | Markdown Work Source driver | yes | no | n/a | no | n/a | Fixture evidence exists, but executable parse, lock, claim, release, status write, dependency, and race tests remain pending. | no |
 | prov-03 Work Source | Mock Work Source driver | yes | no | partial | n/a | n/a | Mock fixture exists; executable mock driver package and conformance suite remain pending. | no |
 | prov-04 Execution Host | Local Execution Host driver | yes | no | n/a | partial | no | Primitive local command and process-group probes exist; implemented AD-2 helper, full prove-empty conformance, and live egress confinement remain pending. | no |
-| prov-04 Execution Host | Mock Host driver | yes | no | partial | n/a | partial | Mock snapshot covers egress positive and adversarial cases; executable mock driver package and conformance suite remain pending. | no |
+| prov-04 Execution Host | Mock Host driver | yes | yes | yes | n/a | yes | Executable Mock Host package passes targeted unit/conformance tests; missing-policy, no-negative-probe, and egress-leak attestations fail closed with `egress-confinement-unattested`. | yes |
 
 Remote Execution Host drivers are deferred future drivers. They are not day-one readiness targets and
 must get their own rows before any remote-host capability is claimed.
