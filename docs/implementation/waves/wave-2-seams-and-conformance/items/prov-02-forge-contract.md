@@ -46,7 +46,7 @@ Depends on fnd-04 (creds, at runtime via the driver), w2-1. Consumed by core-05/
 
 ## Required reading
 
-This domain's design.md (+ its evidence/ index for the DTO shapes); `dependency-policy.md` (octokit as
+This domain's spec (`README.md` + sibling aspect files) (+ its evidence/ index for the DTO shapes); `dependency-policy.md` (octokit as
 the worked example: evidence DTOs, no SDK leakage); `testing-policy.md`; w2-1.
 
 ## Deliverable

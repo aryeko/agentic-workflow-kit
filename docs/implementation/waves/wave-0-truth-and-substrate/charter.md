@@ -47,7 +47,7 @@ source.
 
 - *Spec compliance:* the design corpus is internally consistent — no contradiction between
   `decisions.md`, `architecture.md`, the catalog, and domain bodies; every reconciliation in w0-1 is
-  reflected in the affected `design.md`.
+  reflected in the affected domain spec.
 - *Quality bar:* `pnpm check` green (incl. the new dependency-cruiser rules); no stale legacy reference
   remains in tracked governance docs; policies + package map reviewed and frozen.
 

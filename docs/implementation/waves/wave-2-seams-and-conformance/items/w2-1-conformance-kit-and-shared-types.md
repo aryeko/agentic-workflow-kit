@@ -47,7 +47,7 @@ driver.
 ## Required reading
 
 `architecture.md` (capability attestation); `conventions.md` (conformance); `testing-policy.md` (the
-conformance bar + which lanes); the four provider design.md capability sets.
+conformance bar + which lanes); the four provider specs' capability sets.
 
 ## Deliverable
 

@@ -22,9 +22,9 @@ cross-layer mixing.
   (scoped name, `exports`/`types`, own `tsconfig.json` with `composite` + `references`, wired into the
   solution + depcruise).
 - **Dependency-cruiser layer rules.** Activate the template layer rules: `core ↛ driver`,
-  `contracts ↛ {core,edge,driver,foundation}`, `foundation ↛ {core,edge,driver,contracts}`
+  `contracts ↛ {core,edge,driver}`, `foundation ↛ {core,edge,driver,contracts}`
   (intra-foundation peer OK), `driver ↛ {core,edge,driver}`, `edge ↛ driver`,
-  `production ↛ test-fixtures`.
+  `production ↛ test-fixtures`. (Contracts MAY depend on Foundation and on sibling contracts — "Everything → Foundation" per architecture.md §2; correct the scaffolded template if it forbids `contracts → foundation`.)
 - **Package-name SDK bans.** Add rules that fail if a boundary library is imported outside its one
   allowed package: `octokit` → github driver only; `execa` (+ the native helper) → local exec-host
   driver only; `pino` / `@opentelemetry/*` → telemetry adapter / edge only; `awilix` →

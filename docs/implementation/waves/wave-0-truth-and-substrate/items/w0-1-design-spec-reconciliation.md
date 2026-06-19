@@ -17,9 +17,9 @@ internally consistent before any code is written against it.
 - **Credential + egress seam (HIGH).** `fnd-04` expects config to supply credential references +
   egress policy, but `fnd-01`'s `PolicyLayer` disclaims them. Add credential-ref + egress-policy source
   fields to fnd-01's policy schema *(architect's lean — preferred)*, or revise fnd-04 — and reflect the
-  decision in **both** design.md files.
+  decision in **both** domains' spec files.
 - **Core public token casing.** Conventions require kebab-case state/reason/error tokens; several core
-  contracts use snake_case. Normalize to kebab-case across the core design.md files, or record an
+  contracts use snake_case. Normalize to kebab-case across the core domains' spec files, or record an
   explicit ratified exception. Tokens persist in the event log — fix before core-01 is coded.
 - **core-05 → core-03 order.** The domain catalog implies core-05 is parallel after core-01/02; it
   actually consumes core-03 approval events. Make the dependency explicit in the catalog.
@@ -42,12 +42,12 @@ Corpus internal consistency; AD-1..AD-14 remain authoritative (this item makes t
 
 ## Required reading
 
-Both 2026-06-19 review reports; `decisions.md`; `architecture.md`; the affected domain design.md files;
+Both 2026-06-19 review reports; `decisions.md`; `architecture.md`; the affected domain spec files;
 `conventions.md`.
 
 ## Deliverable
 
-Edited `design.md` / catalog / README files such that the corpus is self-consistent; a short
+Edited the domain spec files (README + aspect files) and catalog such that the corpus is self-consistent; a short
 reconciliation note per fix recording what changed and why.
 
 ## Definition of done

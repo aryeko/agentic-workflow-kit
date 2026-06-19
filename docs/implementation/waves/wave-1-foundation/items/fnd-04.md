@@ -48,7 +48,7 @@ Node crypto/`fs` as needed. **No secret values in source or tests** (use fixture
 
 ## Required reading
 
-This domain's design.md (+ w0-1 amendment); `decisions.md` (AD-12 worker/runner boundary);
+This domain's spec (`README.md` + sibling aspect files) (+ w0-1 amendment); `decisions.md` (AD-12 worker/runner boundary);
 `dependency-policy.md` (redaction owned here, consumed by Pino/OTel adapters); `testing-policy.md`.
 
 ## Deliverable

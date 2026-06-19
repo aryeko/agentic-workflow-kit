@@ -40,7 +40,7 @@ it); then the other three in parallel.
   and the **conformance kit**.
 - *Out:* **real drivers** (Codex/GitHub/Local/Markdown — that's the driver track) and any boundary SDK
   (octokit/execa/native helper).
-- Dependency Rule: activate `contracts ↛ {core,edge,driver,foundation-above}` and
+- Dependency Rule: activate `contracts ↛ {core,edge,driver}` and
   `mock-driver ↛ {core,edge}`. **Zero SDKs** in this wave.
 
 ## Integration
@@ -52,7 +52,7 @@ core.
 
 ## Wave Definition of done
 
-- *Spec compliance:* each contract matches its provider `design.md` (the contract + capability set +
+- *Spec compliance:* each contract matches its provider spec (`README.md` + aspect files) (the contract + capability set +
   events); each mock honors the same contract as the (future) real driver; attestation types match the
   design's `CapabilityAttestation` model.
 - *Quality bar:* every mock + adversarial case passes the conformance kit; the kit itself is proven (an
@@ -62,7 +62,7 @@ core.
 ## Wave checklist
 
 - [ ] Conformance kit + shared attestation/contract types landed and reviewed vs design.
-- [ ] prov-01..04 contracts defined (pure TS + zod), each reviewed vs its `design.md`.
+- [ ] prov-01..04 contracts defined (pure TS + zod), each reviewed vs its domain spec.
 - [ ] Each seam has an in-memory mock + adversarial cases (omit/delay/lie) passing the kit.
 - [ ] Kit self-test: a deliberately-broken mock **fails** the kit (proves the kit has teeth).
 - [ ] `conformance-mock` lane non-empty + green; `--passWithNoTests` removed for it.

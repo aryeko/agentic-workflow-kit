@@ -17,7 +17,7 @@ decisions, AD-1..AD-14); this folder is the *how, and in what order*.
   independently. The orchestrator (Codex) plans how many implementer/reviewer agents to assign and how
   to slice each item — **the charters are the contract, not the agent map.**
 - **Implementer + independent reviewer.** Each item is built by an implementer from its work-item
-  charter **and the normative `design.md` it points to**; a *separate* reviewer verifies the build
+  charter **and the normative domain spec (its `README.md` + sibling aspect files) it points to**; a *separate* reviewer verifies the build
   against that same charter **and** the design spec, independently. This is the loop that produced the
   design corpus flawlessly.
 - **Charters are chief-architect altitude.** They pin the *what*, the *owned requirements*, the
@@ -100,10 +100,10 @@ edge-01 -> all core
   (W0/w0-3). A library lives only at its one allowed boundary; core imports no driver and no SDK.
 - **Core is pure functions of recorded events.** Clock, id, and randomness are **injected ports** — no
   ambient `Date.now`/`Math.random` anywhere in core or foundation.
-- **Every item's DoD has two parts:** *spec compliance* (verified impl-vs-`design.md`, independently)
+- **Every item's DoD has two parts:** *spec compliance* (verified impl-vs-spec, independently)
   **plus** the *quality bar* (the verify gate + the required tests + conformance).
 - **STOP-and-surface, never invent.** If a cross-item contract question isn't answered by the
-  `design.md`, the implementer stops and surfaces it to the architect — they do not guess or edit
+  domain spec, the implementer stops and surfaces it to the architect — they do not guess or edit
   another item's package. (This is what kept the design effort clean.)
 - See [`../foundation/dependency-policy.md`](../foundation/dependency-policy.md) and
   [`../foundation/testing-policy.md`](../foundation/testing-policy.md) (produced in W0/w0-4).

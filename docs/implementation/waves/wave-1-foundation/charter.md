@@ -45,14 +45,14 @@ backends.
 
 ## Wave Definition of done
 
-- *Spec compliance:* every foundation contract/type/event/failure-mode across the four design.md files
+- *Spec compliance:* every foundation contract/type/event/failure-mode across the four domain specs
   is implemented as specified and **independently verified impl-vs-design** per item.
 - *Quality bar:* `pnpm check` green; coverage bar; property tests where items require them; the
   foundation layer rule active and passing; no SDK, no cross-layer import.
 
 ## Wave checklist
 
-- [ ] All four work-item commits landed; each reviewed against **its charter AND its design.md**.
+- [ ] All four work-item commits landed; each reviewed against **its charter AND its domain spec**.
 - [ ] Spec compliance confirmed per item (no silent deviations; any deviation surfaced & recorded).
 - [ ] Packages wired into tsconfig solution + dependency-cruiser; `foundation ↛ above` rule active &
       green.

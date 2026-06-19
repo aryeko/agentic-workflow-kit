@@ -46,7 +46,7 @@ backend behind a port so SQLite can replace it later without touching callers. N
 
 ## Required reading
 
-This domain's design.md; `dependency-policy.md`; `testing-policy.md`; the writer/coordination notes
+This domain's spec (`README.md` + sibling aspect files); `dependency-policy.md`; `testing-policy.md`; the writer/coordination notes
 referenced by the core-01 & core-06 designs.
 
 ## Deliverable
@@ -57,7 +57,7 @@ swappable backend port.
 
 ## Definition of done
 
-- *Spec compliance (verified independently against design.md):* every storage/lease/artifact interface,
+- *Spec compliance (verified independently against the domain spec):* every storage/lease/artifact interface,
   stored-frame schema, durability class, and failure/degraded mode in the fnd-02 design is implemented
   as specified — names, shapes, semantics match; behavior matches the design's append/fence/
   corruption-handling algorithms and the network-FS degrade state; any unavoidable deviation surfaced

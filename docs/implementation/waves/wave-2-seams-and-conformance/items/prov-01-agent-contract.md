@@ -46,7 +46,7 @@ core-02/03/04/06.
 
 ## Required reading
 
-This domain's design.md; the prov-04 contract item; `dependency-policy.md`; `testing-policy.md`; w2-1.
+This domain's spec (`README.md` + sibling aspect files); the prov-04 contract item; `dependency-policy.md`; `testing-policy.md`; w2-1.
 
 ## Deliverable
 

@@ -49,7 +49,7 @@ driver track; the mock simulates.
 
 ## Required reading
 
-This domain's design.md; `decisions.md` AD-2/AD-13; `dependency-policy.md`; `testing-policy.md`; w2-1.
+This domain's spec (`README.md` + sibling aspect files); `decisions.md` AD-2/AD-13; `dependency-policy.md`; `testing-policy.md`; w2-1.
 
 ## Deliverable
 

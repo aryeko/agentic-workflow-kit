@@ -46,7 +46,7 @@ Foundation-only (no deps above foundation). Depended on by fnd-03, fnd-04, core-
 
 ## Required reading
 
-This domain's design.md (+ the w0-1 amendment); `dependency-policy.md` (schema-ownership:
+This domain's spec (`README.md` + sibling aspect files) (+ the w0-1 amendment); `dependency-policy.md` (schema-ownership:
 foundation-owned config schema); `testing-policy.md`.
 
 ## Deliverable

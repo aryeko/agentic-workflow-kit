@@ -49,7 +49,7 @@ integration lane's no-process guard). Node `fs`. No SDKs.
 
 ## Required reading
 
-This domain's design.md; `dependency-policy.md`; `testing-policy.md`; the Execution Host boundary in the
+This domain's spec (`README.md` + sibling aspect files); `dependency-policy.md`; `testing-policy.md`; the Execution Host boundary in the
 prov-04 design (so the setup handshake sits on the right side of the seam).
 
 ## Deliverable
