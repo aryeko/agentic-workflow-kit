@@ -1,174 +1,137 @@
 # AGENTS.md — Contributor and agent contract for kit-vnext
 
-This file is the authoritative reference for contributors and automated agents working
-in this repository. It is self-contained: it does not link to design docs that are not
-yet present. The full architecture and domain designs will be repopulated into `docs/`
-in a later step.
+This is the canonical contract for anyone — human or agent — doing work in this
+repository. It is deliberately lean: it states the rules that always apply and points to
+where the detail lives. The authoritative design is the corpus under `docs/design/`. Read
+the file that owns your task's subject; do not work from memory and do not duplicate the
+corpus here. (README.md is for humans; this file is for the work.)
 
 ---
 
 ## What kit-vnext is
 
-kit-vnext is a deterministic control plane that delegates well-scoped work to agent
-workers and lands it as reviewed, merged changes — safely, recoverably, and under
-human supervision.
-
-Key invariant: the control plane is deterministic code. There is no LLM "orchestrator".
-Supervision, state, gating, and recovery are plain logic. Agents are workers rented
+A deterministic control plane that delegates well-scoped work to agent workers and lands
+it as reviewed, merged changes — safely, recoverably, and under human supervision. The
+control plane is plain code; there is no LLM "orchestrator." Agents are workers rented
 behind a bounded contract.
 
 ---
 
-## The Dependency Rule
+## Where the ground truth lives
 
-Dependencies flow in one direction only:
+The design corpus is the source of truth. Read the file that owns your task's subject:
+
+| Need | Read |
+|------|------|
+| System shape, seams, layering | `docs/design/architecture.md` |
+| What must be true (FR/NFR ids) | `docs/design/requirements.md` |
+| A decision and its rationale (AD-* ids) | `docs/design/decisions.md` |
+| Vocabulary | `docs/design/glossary.md` |
+| How designs are written and scoped | `docs/design/conventions.md` |
+| The 16 domains: index, layers, dependencies, build order | `docs/design/domains/README.md` |
+| A specific domain's mandate, then its design | `docs/design/domains/<id>/charter.md`, then `design.md` |
+| Verify gate, test lanes, tooling, CI | `docs/foundation/` |
+| Rebuild status and steps | `docs/roadmap.md` |
+| Incident postmortems and research (context, not spec) | `docs/history/` |
+
+---
+
+## When you get a task, read this first
+
+Pull only what the task touches — do not load the whole corpus.
+
+- **Implement or change a domain** → its `charter.md` (the mandate), then `design.md`
+  (and any `design/<aspect>.md` sub-files); confirm its layer and dependencies in
+  `docs/design/domains/README.md`.
+- **Cross-domain, seam, or layering question** → `docs/design/architecture.md`.
+- **"Why is it this way?"** → `docs/design/decisions.md` (AD-* records).
+- **Author a new domain design** → copy `docs/design/_templates/domain-design-template.md`
+  and follow `docs/design/conventions.md`.
+- **Tooling, gate, or CI work** → `docs/foundation/`.
+- If a task seems to need something outside `docs/design/`, stop and raise it — the design
+  is meant to be self-contained (provider `evidence/` appendices are the only exception).
+
+Use subagents for wide reads so the main session context stays lean.
+
+---
+
+## Non-negotiable invariants
+
+One line each; the full treatment and rationale live in `docs/design/`. Do not re-decide
+these.
+
+1. **Dependency Rule** — Edge → Control plane → Contracts; Drivers → Contracts;
+   everything → Foundation; Foundation depends on nothing above it. Enforced by CI
+   (`pnpm deps` + TypeScript project references); a violation fails the build.
+2. **Four seams** — all host/tool specifics live behind the Agent, Execution Host, Forge,
+   or Work Source contracts. Never couple the core to a concrete driver.
+3. **Capability attestation (earn autonomy)** — probe → record a `CapabilityAttestation`
+   event → gate on it. Missing, stale, or negative ⇒ capability absent, dependent power
+   off. Fail closed.
+4. **AD-12 worker/runner isolation** — worker: code edits and local commits only, no
+   Forge credentials. Runner: push, PR, verification, merge. Never merge the roles.
+5. **Event log is the single source of truth** — append-only; state and metrics are pure
+   projections. Never mutate shared state.
+6. **Two authorities** — task status belongs to the Work Source; run activity belongs to
+   the event log. Never merge them.
+7. **Evidence over prose** — a worker's self-report is a hint, not proof. Gates require
+   external, verifiable evidence.
+8. **v1.0.0 autonomy scope** — manual and assisted modes only; auto / LLM-adjudicated
+   approval is deferred (AD-14).
+
+See `docs/design/architecture.md` and `docs/design/decisions.md` for the detail.
+
+---
+
+## Branch model and workflow
+
+- **`v-next`** is the integration base and future mainline. Branch from it; open PRs
+  **into** it. It is protected — every change needs a PR and a green required **`check`**
+  status. Do not push to `v-next` directly.
+- **`main`** is frozen legacy v0.7.0 at tag `v0.7.0-legacy`. Do not modify it or the tag.
+- **`design/autopilot-durability`** is the design branch that produced the corpus (now
+  merged); historical reference only.
+- Do non-trivial work in a worktree under `.worktrees/<name>` cut from `v-next`; the main
+  checkout is for reading. Verify you are in the worktree before any git write.
+- One consolidated PR per logical unit. Conventional commit subjects
+  (`feat:`/`fix:`/`refactor:`/`docs:`/`test:`/`chore:`/`perf:`/`ci:`); no attribution
+  footers; no emojis.
+
+---
+
+## The verify gate — never claim done without it
 
 ```
-Edge -> Control plane -> Contracts
-Drivers               -> Contracts
-Everything            -> Foundation
-Foundation            -> nothing above it
+pnpm install   # once
+pnpm check     # before every commit and PR
 ```
 
-- Contracts never depend on the core.
-- Nothing depends on a concrete driver.
-- Foundation depends on nothing above it. Peer dependencies within the foundation layer
-  are allowed.
-
-This rule is PROVEN mechanically, not just reviewed:
-
-- **`pnpm deps`** runs dependency-cruiser with `.dependency-cruiser.cjs`. Any import
-  that violates the rule is a hard error.
-- **TypeScript project references** enforce the same boundaries at the type level.
-- A violation fails CI. It is not a review suggestion — it is a gate.
-
----
-
-## Four provider seams
-
-Everything host- or tool-specific lives behind one of four provider seams. Each seam
-is a contract (TypeScript interface), a real driver (concrete implementation), and a
-mock driver (used in the conformance-mock test lane). New host integrations add a
-driver; they do not touch the core.
-
-| Seam | Responsibility |
-|------|---------------|
-| Agent | Delegate bounded work to an agent worker |
-| Execution Host | Spawn and manage execution environments |
-| Forge | Source control operations (push, PR, merge) |
-| Work Source | Read task definitions; report task status |
-
----
-
-## Capability attestation (earn autonomy)
-
-Autonomy is not assumed. Each driver is probed at runtime and the result recorded as a
-`CapabilityAttestation` event in the run log. The control plane gates on fresh,
-positive attestations before exercising a capability. Missing, stale, or negative
-attestation => the capability is treated as absent and the dependent power stays off.
-This is fail-closed behavior.
-
----
-
-## AD-12 worker/runner credential isolation
-
-The worker role and the runner role have strictly separated credentials and
-responsibilities:
-
-- **Worker**: code edits and local commits only. The worker NEVER holds Forge
-  credentials. It cannot push, cannot open or update PRs, and cannot merge.
-- **Runner**: owns push, PR create/update, verification, and merge. The runner
-  exercises Forge credentials only after external verification gates are satisfied.
-
-This isolation is a hard design constraint, not a configuration option.
-
----
-
-## Event log as single source of truth
-
-The run event log is append-only. State, metrics, and summaries are pure projections
-(pure functions of the log). Nothing writes state by mutating a shared record; every
-fact is derived from the log. This makes recovery, replay, and audit straightforward.
-
----
-
-## Two authorities
-
-Task status belongs to the Work Source. Run activity belongs to the event log. These
-two authorities never overwrite each other. The control plane reads from both but does
-not merge them into a single mutable record.
-
----
-
-## Evidence over prose
-
-A worker's self-report never satisfies a gate by itself. Gates require external,
-verifiable evidence (e.g., CI status from the Forge seam, test results from the
-Execution Host seam). A worker claiming success is a hint, not a proof.
-
----
-
-## v1.0.0 autonomy scope
-
-v1.0.0 supports manual and assisted modes only. Auto-approval and LLM-adjudicated
-approval are explicitly deferred. The autonomy ceiling is human-in-the-loop.
-
----
-
-## Package layout is design-owned
-
-The package decomposition — which packages exist, where their boundaries are, and
-which Dependency-Rule edges they carry — is decided by the design owners, not here.
-The `packages/` directory is the pnpm workspace slot and is intentionally empty. Full
-designs and the package decomposition will be added to `docs/` in a later step.
-
-Do not invent packages or package boundaries outside of that process.
+`pnpm check` runs fail-fast: `format:check` → `lint` → `deps` → `typecheck` →
+`test:unit` → `test:int` → `test:conf`. CI additionally runs `pnpm pack:dry-run` and a
+gated `smoke` job (the only lane allowed real processes and network; excluded from the
+local loop). Full detail: `docs/foundation/check-gate.md`. Show the gate output as
+evidence; do not assert success.
 
 ---
 
 ## Conventions
 
-- No emojis anywhere: not in code, comments, commit messages, or docs.
-- Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`,
-  `perf:`, `ci:`. Descriptive subject lines; no attribution footers.
-- Focused files: 200-400 lines typical, 800 lines hard maximum. Extract utilities
-  rather than growing files.
-- Diagrams: Mermaid only, inline in Markdown. No external diagram formats.
-- Immutability: never mutate objects or arrays; return new copies.
-- No hardcoded secrets: credentials via environment variables or the Credentials seam's
-  scoped injection only.
-- Plan before code: open a plan, review it, then implement.
-- TDD: write the test first (RED), implement to pass (GREEN), refactor (IMPROVE).
-  Target 90% coverage minimum; aim for 95%.
+- **No emojis** anywhere — code, comments, commits, or docs.
+- **Focused files** — 200–400 lines typical, 800 hard maximum. Extract rather than grow.
+- **Immutability** — never mutate objects or arrays; return new copies.
+- **Diagrams** — Mermaid only, inline in Markdown.
+- **Plan before code; TDD** — failing test first (RED), implement (GREEN), refactor;
+  target 90% coverage minimum, aim for 95%.
+- **Security** — no hardcoded secrets; credentials only via environment variables or the
+  Credentials seam's scoped injection. Redact credentials, tokens, and PII in logs and
+  telemetry. Validate at system boundaries; fail fast. If you find an exposed secret,
+  stop and rotate it before continuing.
 
 ---
 
-## How to run the checks
+## What is design-owned (do not invent)
 
-Install once:
-
-```
-pnpm install
-```
-
-Full verify gate (required before every merge):
-
-```
-pnpm check
-```
-
-Steps run in order, fail-fast:
-
-1. `pnpm format:check` — Biome format check
-2. `pnpm lint` — Biome lint
-3. `pnpm deps` — dependency-cruiser Dependency-Rule enforcement
-4. `pnpm typecheck` — TypeScript `tsc -b` (all project references)
-5. `pnpm test:unit` — unit lane (hermetic)
-6. `pnpm test:int` — integration lane (hermetic)
-7. `pnpm test:conf` — conformance-mock lane (hermetic)
-
-CI additionally runs `pnpm pack:dry-run` and a gated `smoke` job
-(`vitest run --project smoke-real`). The smoke lane is the only lane allowed real
-processes and network; it is excluded from the local `pnpm check` inner loop.
-
-Never claim a change is done without a clean `pnpm check` run. Evidence over prose.
+The package decomposition (`packages/` is intentionally empty until design owners fill
+it), the domain model, event types, gate sequencing, and seam contracts are decided in
+`docs/design/`. Tooling, the verify-gate composition, test infrastructure (`tooling/`,
+`tests/`), and CI are open to iterate.
