@@ -103,7 +103,9 @@ Retention and tamper evidence:
 - Secret material and decrypted values are memory-only and destroyed at operation end or TTL expiry; they are never persisted.
 - Redaction sets are memory-only and destroyed with the operation; only fingerprint ids and replacement counts persist.
 - Temporary injected files live outside repo-controlled files and are deleted at operation end; failure enters `credential-destroy-unconfirmed`.
-- Keyed fingerprints, redaction counts, egress-policy ids, audit records, and quarantine metadata are retained for the run event-log lifetime and never contain reversible secret values.
+- Keyed fingerprints, redaction counts, egress-policy ids and digests, audit records, and
+  quarantine metadata are retained for the run event-log lifetime and never contain reversible secret
+  values.
 - Quarantined artifacts are inaccessible evidence until recovery resolves them; raw quarantine is then deleted or replaced by a redacted artifact, while metadata remains for the run event-log lifetime. They cannot satisfy gates.
 - Every credential decision event carries `policyDigest`, `credentialRefDigest`, `scopeDigest`,
   `grantEventId` when present, `attestationEventIds`, `evidenceRefs`, `prevEventHash`, and
@@ -112,7 +114,9 @@ Retention and tamper evidence:
 
 Redaction is source-side and recursive. A `RedactionSet` covers the raw secret plus shell assignment, JSON value, authorization header, URL-encoded value, and sensitive temporary file path. Events, projection inputs, process output, command lines, errors, Agent prompts/tool results, Forge responses, CI logs, analysis records, and text artifacts are redacted before persistence. Binary artifacts are proven clean, transformed by a safe text extractor, or quarantined as `artifact-redaction-failed`. Redacted output uses labels like `[REDACTED:credential:<id>]`; audit events store keyed fingerprints only.
 
-The `EgressPolicy` type in [contracts-and-events.md](contracts-and-events.md) is default-deny data for attestation, not enforcement. It includes rules, negative probes, required attesters, freshness key, and expiry.
+The `EgressPolicy` type in [contracts-and-events.md](contracts-and-events.md) is default-deny data
+for attestation, not enforcement. It includes the canonical `egressPolicyDigest`, rules, negative
+probes, required attesters, freshness key, and expiry.
 
 Worker egress policies can reference only non-Forge credentials. Runner egress policies can
 reference Forge credentials only for runner Forge phases. A credential requiring egress confinement

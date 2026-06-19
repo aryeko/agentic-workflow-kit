@@ -69,9 +69,10 @@ Credentials & Secrets, and Work Source.
 ## 2. Required reading
 
 Read: `README.md`, `architecture.md`, `conventions.md`, `glossary.md`, `requirements.md`,
-`decisions.md`, `_templates/domain-design-template.md`, this README's Mandate, the fnd-04 charter, fnd-04
-`design.md`, and fnd-04 `contracts-and-events.md`. GitHub evidence is in
-`evidence/2026-06-18/`.
+`decisions.md`, `_templates/domain-design-template.md`, this README's Mandate, the
+[fnd-04 README and Mandate](../../foundation/fnd-04-credentials-and-secrets/README.md), and fnd-04
+[contracts-and-events.md](../../foundation/fnd-04-credentials-and-secrets/contracts-and-events.md).
+GitHub evidence is in `evidence/2026-06-18/`.
 
 ## 3. Context diagram
 

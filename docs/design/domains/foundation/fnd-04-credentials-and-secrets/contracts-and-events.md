@@ -34,6 +34,7 @@ interface CredentialScope {
 ```ts
 interface EgressPolicy {
   id: string; runId: string; operationId: string; audience: CredentialParty;
+  egressPolicyDigest: string;
   defaultAction: "deny"; rules: EgressRule[]; negativeProbes: NegativeProbe[];
   requiredAttesters: RequiredAttester[]; freshnessKey: string; expiresAt: string;
 }
@@ -43,7 +44,7 @@ interface EgressRule {
 }
 interface RequiredAttester {
   point: EnforcementPoint; capability: "egress-confinement"; driverId: string;
-  scopeDigest: string; platform: string; driverVersion: string;
+  scopeDigest: string; egressPolicyDigest: string; platform: string; driverVersion: string;
 }
 interface NegativeProbe { host: string; protocol: "https" | "ssh"; expected: "blocked"; reason: string }
 ```
@@ -109,6 +110,6 @@ interface CredentialUseFinished extends AuditBase { type: "CredentialUseFinished
 interface CredentialUseDenied extends AuditBase { type: "CredentialUseDenied"; reason: CredentialDenialReason }
 interface CredentialMaterialDestroyed extends AuditBase { type: "CredentialMaterialDestroyed"; tempFilesRemoved: boolean; memoryHandlesDropped: boolean }
 interface RedactionApplied extends AuditBase { type: "RedactionApplied"; sink: string; replacementCount: number; redactionFingerprintIds: string[] }
-interface EgressPolicyIssued extends AuditBase { type: "EgressPolicyIssued"; policyId: string; audience: CredentialParty; hosts: string[]; negativeProbeIds: string[]; freshnessKey: string; expiresAt: string }
+interface EgressPolicyIssued extends AuditBase { type: "EgressPolicyIssued"; policyId: string; egressPolicyDigest: string; audience: CredentialParty; hosts: string[]; negativeProbeIds: string[]; freshnessKey: string; expiresAt: string }
 type CredentialAuditEvent = CredentialUsePlanned | CredentialUseStarted | CredentialUseFinished | CredentialUseDenied | CredentialMaterialDestroyed | RedactionApplied | EgressPolicyIssued;
 ```

@@ -84,7 +84,7 @@ interface HostProbeScope {
 }
 interface CapabilityAttestation {
   capability: HostCapability; probeMethod: string; result: "positive" | "negative"; evidenceRef: string;
-  scope: string; expiry: string; driverVersion: string; platform: string; freshnessKey: string; at: string;
+  scope: string; egressPolicyDigest?: string; expiry: string; driverVersion: string; platform: string; freshnessKey: string; at: string;
   details?: { containmentStrength?: ContainmentStrength; negativeProbeResults?: NegativeProbe[] };
 }
 
@@ -101,7 +101,9 @@ interface ExecutionHost {
 
 `HostInjectionContext` is the host-side projection of the `fnd-04` `InjectionPlan`. It preserves
 party, credential refs, bindings, egress policy, redaction set, and required audit event, and adds
-attestation-binding fields through `scopeDigest`, `attestationEventIds`, and `expiresAt`.
+attestation-binding fields through `scopeDigest`, `attestationEventIds`, and `expiresAt`. For
+`egress-confinement`, `CapabilityAttestation.egressPolicyDigest` must match
+`egressPolicy.egressPolicyDigest`.
 `spawnWorker` and `runCommand` must reject requests whose `injection.party` differs from `party`,
 whose `egressPolicy.audience` differs from `party`, whose `operationId` differs from the request, or
 whose attestations do not match the egress policy.
