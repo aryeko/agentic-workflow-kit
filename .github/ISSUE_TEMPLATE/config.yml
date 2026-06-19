@@ -2,8 +2,8 @@ blank_issues_enabled: false
 
 contact_links:
   - name: Documentation
-    url: https://github.com/aryeko/agentic-workflow-kit/tree/main/docs
-    about: Read the architecture, getting-started guide, config schema reference, and tracker contract.
+    url: https://github.com/aryeko/agentic-workflow-kit/tree/v-next/docs
+    about: Read the kit-vnext design corpus, foundation docs, roadmap, and implementation charters.
 
   - name: Questions and ideas
     url: https://github.com/aryeko/agentic-workflow-kit/discussions

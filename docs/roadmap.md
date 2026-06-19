@@ -1,25 +1,26 @@
 # Rebuild Roadmap
 
-This file is a durable, high-level tracker for the kit-vnext v1.0.0 rebuild.
-It records what step is in progress, who owns it, and what each step produces.
-It is not a spec; design detail lives in the design corpus and domain docs.
+This is the durable, high-level roadmap for the kit-vnext v1.0.0 rebuild. It is
+not a spec; authoritative design detail lives under `docs/design/`, and
+implementation work is tracked under `docs/implementation/`.
 
 ## Branches
 
 | Branch | Role |
-|---|---|
-| `design/autopilot-durability` | Design branch that produced the core spine, edge, domain designs, postmortems, and research now merged into `v-next`. |
-| `v-next` | Integration base and future mainline. Cut from `main`; receives all rebuild work through PRs. |
-| `main` | Legacy v0.7.0 frozen at tag `v0.7.0-legacy`. No active development. |
+| --- | --- |
+| `v-next` | Integration base and future mainline for all rebuild work. |
+| `main` | Frozen legacy v0.7.0 line. No active development. |
+| `design/autopilot-durability` | Historical design branch whose durable corpus has been merged into `v-next`. |
 
 ## Steps
 
 | # | Step | Owner | Status |
-|---|---|---|---|
-| 1 | **Foundation infra** — cut `v-next` from `main`; wipe legacy artifacts; lay down monorepo plumbing, verify gate, four test lanes, zero-real-process guard, CI workflows, and operating docs. Package decomposition is design-owned and not part of this step. | infra | in progress |
-| 2 | **Finish domain designs** — complete the core spine, control plane, edge, and driver contracts; adversarial review, approve, and freeze. Design owners also settle the package decomposition during this step. | design owners | in progress |
-| 3 | **Merge designs into v-next** — PR the finished design branch into `v-next`, keeping only the design docs and the two postmortem directories. | — | done — PR #105 at `49d3151` |
-| 4 | **Repopulate and refine docs** — reorganize the merged design corpus under `docs/design/`, move postmortems and research under `docs/history/`, and apply tightly scoped design/index updates needed for the new ground-truth tree. | — | done — this PR |
-| 5 | **Implementation track** — add an implementation-tracking folder (stories, dependencies, requirements, parallelism map) and begin building packages behind the verify gate. | — | planned |
+| --- | --- | --- | --- |
+| 1 | **Foundation infra** - cut `v-next`, remove legacy runtime surfaces, lay down monorepo plumbing, verify gate, Vitest lanes, zero-real-process guard, CI, and operating docs. Package decomposition stayed design-owned. | infra | done - foundation scaffold `ed11930`; required `check` job name `2f77b1d` |
+| 2 | **Design corpus** - complete and merge the core spine, edge, domain designs, postmortems, and research corpus. | design owners | done - PR #105 at `49d3151` |
+| 3 | **Docs tree reorganization** - organize the merged corpus under `docs/design/` and move postmortems/research under `docs/history/`. | docs | done - PR #106 at `b98cf60` |
+| 4 | **Wave 0 truth and substrate** - align governance docs, design truth, package map, foundation policy, and dependency/testing substrate before package implementation. | wave 0 | in progress - branch `impl/wave-0-truth-and-substrate`; charters under `docs/implementation/waves/wave-0-truth-and-substrate/` |
+| 5 | **Package implementation** - add packages behind the design-owned package map and verify gate. | implementation | planned - starts after Wave 0 substrate is merged |
 
-Update the Status column as steps complete.
+Update this file only with durable branch or commit evidence, not per-PR working
+notes.

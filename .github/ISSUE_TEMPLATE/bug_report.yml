@@ -1,11 +1,11 @@
 name: Bug report
-description: Report something that is not working as expected.
+description: Report kit-vnext behavior that is not working as expected.
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Before filing, please search existing issues and the [documentation](https://github.com/aryeko/agentic-workflow-kit/tree/main/docs) to make sure this has not already been reported or answered.
+        Before filing, search existing issues and the v-next documentation: https://github.com/aryeko/agentic-workflow-kit/tree/v-next/docs
 
   - type: textarea
     id: what-happened
@@ -22,9 +22,9 @@ body:
       label: Steps to reproduce
       description: Step-by-step instructions to reliably reproduce the problem.
       placeholder: |
-        1. Run `/workflow-init` in a repo with ...
-        2. Open ...
-        3. See error ...
+        1. Check out v-next.
+        2. Run ...
+        3. Observe ...
     validations:
       required: true
 
@@ -37,14 +37,15 @@ body:
       required: true
 
   - type: dropdown
-    id: surface
+    id: area
     attributes:
-      label: Which surface?
+      label: Which area?
       options:
-        - Claude Code plugin
-        - Codex plugin
-        - Orchestrator CLI (@agentic-workflow-kit/orchestrator)
-        - Config/contracts
+        - Agent seam
+        - Execution Host seam
+        - Forge seam
+        - Work Source seam
+        - Foundation tooling or CI
         - Docs
         - Other
     validations:
@@ -59,15 +60,15 @@ body:
         OS:
         Node version:
         pnpm version:
-        agentic-workflow-kit version:
+        Branch or commit:
     validations:
       required: false
 
   - type: textarea
-    id: config-or-logs
+    id: logs
     attributes:
-      label: Relevant `.workflow/config.yaml` or logs
-      description: Paste any relevant config snippet or log output. Omit secrets.
+      label: Relevant logs
+      description: Paste relevant output. Redact secrets, tokens, and private credentials.
       render: shell
     validations:
       required: false

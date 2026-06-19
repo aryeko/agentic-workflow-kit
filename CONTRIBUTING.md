@@ -1,113 +1,92 @@
 # Contributing to agentic-workflow-kit
 
-Thanks for your interest. This guide covers how to build, test, and contribute. For how the system
-is put together, read [docs/architecture.md](docs/architecture.md) first.
+This repository is the kit-vnext v1.0.0 rebuild. Read `AGENTS.md` first; it is
+the contributor and agent contract. The authoritative system design lives under
+`docs/design/`, and foundation gate details live under `docs/foundation/`.
 
 ## Prerequisites
 
-- **pnpm 11.5.1** (pinned via `packageManager`) and **Node 24+**.
+- Node 24+
+- pnpm 11.5.1, pinned by `packageManager` in `package.json`
+
+Install once:
 
 ```bash
 pnpm install
+```
+
+## Branch and PR flow
+
+- Branch from `v-next`.
+- Open PRs into `v-next`.
+- Do not push directly to `v-next`.
+- Treat `main` as frozen legacy v0.7.0; do not use it for new work.
+- Use one focused PR per logical change.
+- Use conventional commit and PR subjects: `feat:`, `fix:`, `refactor:`,
+  `docs:`, `test:`, `chore:`, `perf:`, or `ci:`.
+- Do not add AI attribution footers.
+
+For non-trivial work, use a worktree under `.worktrees/<name>` cut from
+`v-next`. Verify the worktree root before any git write.
+
+## Verify gate
+
+`pnpm check` is the required local gate before commit and PR:
+
+```bash
 pnpm check
 ```
 
-## The verification gate
+It runs seven fail-fast steps:
 
-`pnpm check` is the required gate before any change is considered done. It runs:
+1. `pnpm format:check`
+2. `pnpm lint`
+3. `pnpm deps`
+4. `pnpm typecheck`
+5. `pnpm test:unit`
+6. `pnpm test:int`
+7. `pnpm test:conf`
 
-```bash
-pnpm lint        # Biome
-pnpm typecheck   # tsc across root and orchestrator
-pnpm test        # Vitest across root and orchestrator
-```
+CI runs the same gate in the required `check` job and then runs
+`pnpm pack:dry-run`. The separate `smoke` job runs `pnpm test:smoke`; it is
+gated and is the only test lane intended for real processes and network access.
 
-`pnpm test` enforces coverage thresholds (lines 88.5%, statements 85%, functions 90%, branches 76%)
-as a single combined gate across the root and orchestrator suites, so adding code without tests can
-breach the gate.
-
-For a focused change, run the nearest test first, then `pnpm check` before opening a PR. The
-optional Codex plugin smoke (`pnpm smoke:codex-plugin`) requires the Codex CLI and is intentionally
-outside `pnpm check`. Claude plugin validation uses `claude plugin validate .` when the Claude CLI is
-available.
+For focused work, run the nearest relevant command first, then run `pnpm check`
+before handing the change off.
 
 ## Repository layout
 
-See [docs/architecture.md](docs/architecture.md#where-things-live). In short:
-
-- `skills/` — instruction-first plugin skills (the product surface).
-- `references/` — the canonical contracts (config schema, tracker, PRD) and templates.
-- `presets/` — the three starter configs.
-- `examples/` — worked PRD and tracker.
-- `packages/orchestrator/` — the TypeScript orchestrator source, standalone CLI, and package-backed MCP runtime, including the MCP server adapter, config schema (Zod), loader, and presets.
-- `docs/` — architecture, the docs hub, and the getting-started guide.
-
-## Contracts and their mirrors (read before editing)
-
-Several artifacts are deliberately kept in sync by tests; editing one means editing its mirror:
-
-- **Config schema.** `packages/orchestrator/src/config/schema.ts` (Zod) is the single source of truth.
-  `references/config.schema.json` is **generated** from it and pinned byte-for-byte by a drift test.
-  `references/config-schema.md` is the human mirror; keep its fields and defaults aligned.
-- **Materialized plugin copy.** `plugins/agentic-workflow-kit/` is a byte-for-byte copy of `references/`,
-  `presets/`, `examples/`, `skills/`, and `.codex-plugin/` (the local Codex marketplace fixture). It
-  also carries a fixture `.mcp.json`. The root `.mcp.json` is the Claude Code manifest and
-  `.codex-plugin/.mcp.json` is the Codex plugin manifest; both start the pinned
-  `@agentic-workflow-kit/orchestrator` package MCP executable with Codex's `mcpServers` shape.
-  Codex MCP entries intentionally omit `cwd` so the MCP process can operate on the active target
-  repo when Codex provides it. Tests assert the mirrored content stays aligned — re-sync the copy
-  after editing any canonical source, or the gate fails.
-- **Presets** must stay fully populated and schema-valid.
-- **Tracker completion** comes only from tracker state, never from a child session's prose.
-
-## Coding conventions
-
-- No emojis in code, comments, docs, manifests, or commit messages.
-- Prefer immutable data and small, focused files (200-400 lines typical).
-- Explicit contracts over implicit agent behavior; validate at boundaries and fail loud.
-- No `console.log` in library code; the CLI and the structured logger are the output surface.
-- If a change alters public behavior, update the relevant docs, schema, presets, examples, and tests
-  in the same change.
+- `docs/design/` is the source of truth for architecture, requirements,
+  decisions, glossary, and domain designs.
+- `docs/foundation/` records foundation tooling and gate facts for the tracked
+  tree.
+- `docs/history/` holds postmortems and research context. It is not normative
+  design.
+- `docs/implementation/` holds implementation waves and item charters.
+- `packages/` is the pnpm workspace slot for design-owned package
+  implementation.
+- `tooling/` and `tests/` are included in TypeScript, dependency, and Vitest
+  checks, but they are not pnpm workspace packages.
 
 ## Documentation standard
 
-Canonical docs are the only documentation on `main`, and they must describe the current repo state.
-There are no per-story documents in the tree.
+Keep durable documentation truthful to the tracked tree. If behavior, gate
+composition, package boundaries, or public workflow changes, update the
+canonical docs in the same PR. Do not duplicate design decisions in root docs;
+point to the owning file under `docs/design/`.
 
-- A story's spec and plan are **transient working artifacts** under
-  [`docs/superpowers/`](docs/superpowers/README.md): the first commit of a story adds them; the
-  **final commit removes them** and folds their durable content into the canonical docs.
-- Canonical homes are mapped in [docs/README.md](docs/README.md) — typically `README.md`,
-  `docs/architecture.md`, `docs/getting-started.md`, `references/`, and `docs/test-plan/`.
-- Keep durable content (decisions, contracts, runtime/data flow, tool surfaces); drop transient
-  content (task breakdowns, step sequencing, review logs, dates). Git history retains the originals.
-- Enforced by **maintainer review**, not a test: a story PR must leave no `docs/superpowers/specs/*`
-  or `docs/superpowers/plans/*` story files and must update the affected canonical docs in the same
-  PR.
+Transient notes, review evidence, scratch prompts, and local run artifacts do
+not belong in canonical docs unless a specific implementation charter says
+otherwise.
 
-## Plugin authoring
+## Code and docs conventions
 
-- Skills are instruction-first; add scripts only when deterministic or repeated mechanical work
-  justifies them.
-- Skill descriptions must be concise and trigger-specific.
-- Side-effectful skills (`implement-next`, `workflow-autopilot`) are explicit-invocation-only on both
-  Claude and Codex surfaces.
-- `workflow-init` must remain idempotent — reconcile and report drift, never overwrite without
-  confirmation.
+- No emojis in code, comments, docs, manifests, commits, or PR titles.
+- Prefer immutable updates and explicit error handling.
+- Validate external input at system boundaries.
+- Keep files focused; extract instead of growing broad files.
+- Use Mermaid for diagrams in Markdown.
+- Never print secrets, tokens, or private credentials.
 
-## Commits and PRs
-
-- Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`, `perf:`, `ci:`.
-- One logical change per PR; keep the diff scoped.
-- Run `pnpm check` and review `git status --short` before opening a PR.
-- Do not add AI attribution to commits.
-- For any user-facing change to `@agentic-workflow-kit/orchestrator`, add a changeset: `pnpm changeset` (pick the
-  semver bump, write a summary) and commit the generated `.changeset/*.md`. Releases are automated from
-  changesets on merge to `main` — see [`.changeset/README.md`](.changeset/README.md).
-
-## Project status note
-
-agentic-workflow-kit plugin and package manifests are versioned together. Local plugin fixtures and
-smoke tests remain the development validation path for changes to the Claude Code and Codex plugin
-surfaces. Public runtime changes should include a changeset; version bumps and changelog edits are
-produced by the release PR, not by ordinary feature PRs.
+If a doc fix exposes a tooling or gate mismatch, report the mismatch rather than
+changing gate behavior in an unrelated PR.
