@@ -23,8 +23,8 @@ blocked / supervision-lost transition and correlates the event log.
 - The analyzer: a **pure function** over the event log + projections that emits correlated issues with
   evidence refs; the issue taxonomy.
 - Auto-fire triggers (terminal, blocked, supervision-lost, recovery-decision, stale-progress) and the
-  `analysis-failed` fallback — invariant: every terminal run has an analysis **or** an
-  `analysis-failed` record.
+  `analysis-failed` fallback — invariant: every terminal run with usable replay and a writable Run log
+  has an analysis **or** an `analysis-failed` record.
 - Redaction (no raw secrets/tokens/prompts in normal reports).
 
 ### Out of scope
@@ -115,7 +115,7 @@ flowchart LR
 
 Core-07 classifies structured Run events into a stable telemetry taxonomy, computes honest metrics
 and correlated issues as a pure analysis function, and ensures every auto-fire trigger has a durable
-`AnalysisRecorded` or `AnalysisFailed` fact.
+`AnalysisRecorded` or `AnalysisFailed` fact when the Run log can be replayed and appended.
 
 Observable inputs are limited to committed `RunEventEnvelope` metadata, approved payload contracts
 carried in those envelopes, core-01 projections, fnd-02 replay health and artifact metadata, redacted
@@ -146,6 +146,10 @@ Core decisions:
   false, empty arrays, or success.
 - Analysis event ids are derived from the final canonical payload digest, and same-attempt retries
   reuse the original `AnalysisRecordInput` bytes exactly.
+- Reconciliation note (2026-06-19): the terminal-analysis invariant has one explicit exception:
+  corrupt or unwritable Run logs cannot always record `AnalysisFailed`. That condition is surfaced as
+  `analysis-record-unwritable` / `analysis-invariant-missing`, disables observability-dependent
+  autonomy, and is not treated as a satisfied analysis.
 
 ## 5. Contracts & interfaces
 
@@ -180,7 +184,7 @@ Auto-fire triggers are derived from committed events:
 
 - terminal `RunLifecycleTransitioned` to `completed`, `failed`, or `canceled`;
 - `RunLifecycleTransitioned` to `blocked`, recorded only as `blocked-transition`;
-- `SupervisionLost` or `LivenessStateChanged` to `supervision_lost`;
+- `SupervisionLost` or `LivenessStateChanged` to `supervision-lost`;
 - `LivenessTimerExpired` or `LivenessStateChanged` to `stale`;
 - `RecoveryClassified`, `RecoveryActionPlanned`, `RecoveryActionApplied`, or `ReconciliationBlocked`.
 
@@ -188,8 +192,11 @@ Trigger classification is first-match in the order above, so a single committed 
 most one trigger kind. For a trigger event id, analyzer version, and rule-set digest, exactly one
 deterministic analysis event id is current, whether the outcome is `AnalysisRecorded` or
 `AnalysisFailed`. A later analysis may supersede it only by citing the prior analysis event id and a
-later replay cursor. The invariant is: every terminal Run with usable replay health has
-`AnalysisRecorded` or `AnalysisFailed` at or after the terminal lifecycle sequence.
+later replay cursor. The invariant is: every terminal Run with usable replay health and a writable Run
+log has `AnalysisRecorded` or `AnalysisFailed` at or after the terminal lifecycle sequence. If replay
+is corrupt or the Run log is unwritable, the invariant is explicitly unmet and reported through
+`analysis-input-degraded`, `analysis-record-unwritable`, or `analysis-invariant-missing` rather than
+silently waived.
 
 NFR-OBS wording that names an `analysis` or `analysis-failed` record maps to the concrete
 `AnalysisRecorded` and `AnalysisFailed` event types, with schemas `kit-vnext.analysis-recorded.v1`

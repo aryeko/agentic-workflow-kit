@@ -19,7 +19,7 @@ Events that advance liveness:
 | Startup linkage | `AgentSessionLinked` paired with non-ambiguous core-01 `SessionLinked` for the current session | Satisfies startup and enters `active`. |
 | Worker progress | `AgentProgressObserved` for the current session | Refreshes idle and no-progress timers when the Agent contract marks it as progress, not telemetry noise. |
 | Tool completion | `AgentToolObserved` with `exitCode`, `outputRef`, and current-session `itemId` when present | Refreshes idle and no-progress timers; closes matching per-tool timer. |
-| Approval request | `AgentApprovalRequested` with an `answerChannelRef` | Refreshes idle, enters `waiting_for_approval`, and arms approval-SLA. It is not implementation progress. |
+| Approval request | `AgentApprovalRequested` with an `answerChannelRef` | Refreshes idle, enters `waiting-for-approval`, and arms approval-SLA. It is not implementation progress. |
 | Terminal observation | `AgentSessionTerminal` or `WorkerProcessExited` for the current worker handle | Stops liveness supervision; it never makes the worker active. |
 
 Events that never advance liveness: parent polls, `waitRunEvents` responses or timeouts, watch
@@ -38,33 +38,33 @@ Timer defaults are policy inputs; these are proposed v1 defaults:
 
 | Timer | Starts | Stops | Default |
 |---|---|---|---|
-| `startup` | `worker_starting` lifecycle or `WorkerSpawned` | Current-session `AgentSessionLinked` | 120 seconds |
+| `startup` | `worker-starting` lifecycle or `WorkerSpawned` | Current-session `AgentSessionLinked` | 120 seconds |
 | `idle` | First current-session startup/progress/tool/approval event | Next liveness-advancing worker event | 15 minutes |
 | `no-progress` | First progress or tool-completion event after startup | Next progress or tool-completion event | 45 minutes |
 | `per-tool` | First current-session event with a new stable tool `itemId` | `AgentToolObserved` for that `itemId` | 30 minutes |
 | `approval-SLA` | `AgentApprovalRequested` | A recorded approval answer or terminal event | 24 hours |
-| `max-runtime` | `worker_starting` lifecycle | Terminal lifecycle or worker terminal observation | 8 hours |
+| `max-runtime` | `worker-starting` lifecycle | Terminal lifecycle or worker terminal observation | 8 hours |
 
 `approval-SLA` is local supervision vocabulary only. It means the Operator attention window for a
 pending approval; it does not assume approval-domain semantics.
 
 When a tool cannot be correlated to a stable current-session `itemId`, `per-tool` is not guessed. The
-projection enters `tool_tracking_unavailable` and falls back to idle/no-progress/max-runtime timers.
+projection enters `tool-tracking-unavailable` and falls back to idle/no-progress/max-runtime timers.
 
 ## Liveness projection
 
 ```ts
 type LivenessState =
-  | "not_started" | "starting" | "active" | "waiting_for_approval"
-  | "approval_overdue" | "stale" | "supervision_lost"
-  | "termination_requested" | "terminated";
+  | "not-started" | "starting" | "active" | "waiting-for-approval"
+  | "approval-overdue" | "stale" | "supervision-lost"
+  | "termination-requested" | "terminated";
 
 type LivenessReason =
-  | "startup_timeout" | "idle_timeout" | "no_progress_timeout" | "tool_timeout"
-  | "approval_sla_exceeded" | "max_runtime_exceeded" | "event_cursor_unavailable"
-  | "session_linkage_ambiguous" | "agent_progress_unobservable"
-  | "tool_tracking_unavailable" | "termination_unavailable" | "termination_unproven"
-  | "worker_terminal_observed";
+  | "startup-timeout" | "idle-timeout" | "no-progress-timeout" | "tool-timeout"
+  | "approval-sla-exceeded" | "max-runtime-exceeded" | "event-cursor-unavailable"
+  | "session-linkage-ambiguous" | "agent-progress-unobservable"
+  | "tool-tracking-unavailable" | "termination-unavailable" | "termination-unproven"
+  | "worker-terminal-observed";
 
 type LivenessProjection = {
   runId: string;
@@ -81,7 +81,7 @@ type LivenessProjection = {
 ```
 
 `stale` means the worker missed a timer while the event cursor and session linkage are coherent.
-`supervision_lost` means the supervisor cannot prove liveness because the cursor, linkage, Agent
+`supervision-lost` means the supervisor cannot prove liveness because the cursor, linkage, Agent
 progress guarantee, or termination guarantee is unavailable or ambiguous. `terminated` means an Agent
 or Host terminal event was observed, or the Execution Host returned termination proof.
 
@@ -94,8 +94,8 @@ directly.
 
 If the Host returns `TerminationResult.proof.containmentEmpty = true`, the projection records
 `terminated` and supervision stops. If `canKill` is missing/stale/negative or the Host returns
-`termination-unproven`, the projection records `supervision_lost` with `termination_unavailable` or
-`termination_unproven`.
+`termination-unproven`, the projection records `supervision-lost` with `termination-unavailable` or
+`termination-unproven`.
 
 `WorkerTerminated` records the terminal Agent/Host observation or Host termination proof. It must be
 appended before terminal lifecycle closure, or in the same barrier batch as `SupervisorStopped` when

@@ -32,9 +32,9 @@ invariant: **the worker never holds Forge credentials** (FR-12).
 FR-12 (credential isolation), NFR-SEC.
 
 ### Dependencies (Dependency Rule)
-- Depends on: nothing above Foundation.
-- Depended on by: prov-02 (Forge credentials), prov-04 (runner-command credentials), core-03 (scoped
-  grant fulfillment).
+- Depends on: fnd-01 (resolved credential references and egress-policy source fields).
+- Depended on by: prov-01 (worker-safe redaction and narrow credentials), prov-02 (Forge
+  credentials), prov-04 (runner-command credentials), core-03 (scoped grant fulfillment).
 
 ### Required reading
 Standard set + the worker/runner boundary (AD-12) and NFR-SEC in
@@ -54,16 +54,24 @@ consuming-driver policy input.
 
 ## 1. Purpose & boundaries
 
-Credentials & Secrets turns configured secret references into tightly scoped, auditable credential
-use. It owns the credential model, scoped injection rules, redaction policy, audit event shapes, and
-egress-policy document handed to the Execution Host for attestation and to consuming drivers as
-policy input.
+Credentials & Secrets turns fnd-01 resolved credential-reference and egress-policy source fields into
+tightly scoped, auditable credential use. It owns the credential model, scoped injection rules,
+redaction policy, audit event shapes, and egress-policy document handed to the Execution Host for
+attestation and to consuming drivers as policy input.
 
 Out of scope: enforcing egress, implementing a secret manager, provider-specific Forge/Agent/Work Source/Execution Host behavior, and event-log storage mechanics. This Foundation domain depends only on Configuration & Policy for credential references and policy input; it does not call Edge, Control plane, provider contracts, drivers, or concrete secret backends.
 
+Reconciliation note (2026-06-19): fnd-01 is the source of configured credential refs and egress
+policy. fnd-04 consumes those resolved values, computes scoped policy digests, resolves secret
+material only at use time, and denies injection when matching Execution Host egress attestation is
+absent.
+
 ## 2. Required reading
 
-Read: `README.md`, `architecture.md`, `conventions.md`, `glossary.md`, `decisions.md`, `requirements.md`, and this domain's `README.md#mandate`. No sibling contracts were read. This design uses AD-12's worker / runner boundary and the shared capability attestation model.
+Read: `README.md`, `architecture.md`, `conventions.md`, `glossary.md`, `decisions.md`,
+`requirements.md`, this domain's `README.md#mandate`, and fnd-01's configuration/policy schema. This
+design uses AD-12's worker / runner boundary, fnd-01 resolved credential/egress source policy, and
+the shared capability attestation model.
 
 ## 3. Context diagram
 
@@ -83,7 +91,7 @@ arrows identify domains that depend on this Foundation output.
 
 ## 4. Design
 
-Credentials stay as references until the last responsible moment. Secret material exists only in memory inside the runner process or a driver call boundary, is wrapped with a redaction set before capture, and is never stored in repo files, events, projections, or artifacts. The typed model is in [contracts-and-events.md](contracts-and-events.md): `CredentialRef` names kind, purpose, secret reference, allowed parties/phases/hosts, TTL, and policy digest; `CredentialScope` binds a use to run, task, operation, party, phase, optional command prefix, expiry, and grant event.
+Credentials stay as fnd-01 resolved references until the last responsible moment. Secret material exists only in memory inside the runner process or a driver call boundary, is wrapped with a redaction set before capture, and is never stored in repo files, events, projections, or artifacts. The typed model is in [contracts-and-events.md](contracts-and-events.md): `CredentialRef` names kind, purpose, secret reference, allowed parties/phases/hosts, TTL, and policy digest; `CredentialScope` binds a use to run, task, operation, party, phase, optional command prefix, expiry, and grant event.
 
 Scoped injection rules:
 

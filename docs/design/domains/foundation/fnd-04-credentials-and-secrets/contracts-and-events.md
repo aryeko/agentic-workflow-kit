@@ -9,6 +9,9 @@ last-reviewed: 2026-06-18
 This file holds the typed contract and audit payload details for
 `docs/design/domains/foundation/fnd-04-credentials-and-secrets/README.md`. It is split out because the type
 catalog is cohesive detail and would otherwise push the design entry point past the focused-file cap.
+`CredentialRef` and `EgressPolicy` are the fnd-04 validated contract forms of fnd-01
+`credentialRefs` and `egress` source policy fields; fnd-01 records source provenance, while fnd-04
+computes policy digests and denies use when a source field would exceed this contract.
 
 ```ts
 type CredentialKind = "forge" | "registry-read" | "registry-publish" | "tool-api" | "verification";

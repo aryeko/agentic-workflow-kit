@@ -135,7 +135,9 @@ you need) and model-friendly (load one aspect without the rest).
    cohesive sub-topic needs its own focused file.
 2. Chief architect reviews against the **Mandate** (scope/requirements) and these **conventions**.
 3. Feedback is technical; the engineer iterates. Approval flips the design's frontmatter `status` to
-   `approved`. Cross-domain contract changes are reconciled with the affected sibling domains.
+   `approved`, meaning design-approved only. Implementation and conformance readiness remain tracked
+   in [the implementation readiness matrix](../implementation/readiness-matrix.md). Cross-domain
+   contract changes are reconciled with the affected sibling domains.
 
 ## File layout per domain
 

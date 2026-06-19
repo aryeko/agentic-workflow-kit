@@ -1,28 +1,44 @@
 ## What
 
-<!-- What this PR does and why. Link the relevant issue or tracker story if applicable. -->
+<!-- What changed, why, and which issue/charter/design file owns it. Target base: v-next. -->
 
 ## How
 
-<!-- Key implementation decisions a reviewer needs. -->
+<!-- Key implementation or documentation decisions a reviewer needs. -->
 
-## Test plan
+## Verification
 
-<!-- Commands run and their result (e.g. `pnpm check`). Report real output, not assumption. -->
+<!-- Paste commands run and their result. Do not report assumed success. -->
+
+Required local gate:
+
+- [ ] `pnpm format:check`
+- [ ] `pnpm lint`
+- [ ] `pnpm deps`
+- [ ] `pnpm typecheck`
+- [ ] `pnpm test:unit`
+- [ ] `pnpm test:int`
+- [ ] `pnpm test:conf`
+
+CI also runs `pnpm pack:dry-run` in the required `check` job. The `smoke` job
+runs `pnpm test:smoke` only when gated by push or the `smoke` label.
 
 ## Type of change
 
-- [ ] feat: new feature or behavior
-- [ ] fix: bug fix
-- [ ] refactor: internal restructure, no behavior change
-- [ ] docs: documentation only
-- [ ] test: tests only
-- [ ] chore: build, tooling, or dependency update
+- [ ] `feat:` new feature or behavior
+- [ ] `fix:` bug fix
+- [ ] `refactor:` internal restructure, no behavior change
+- [ ] `docs:` documentation only
+- [ ] `test:` tests only
+- [ ] `chore:` build, tooling, or dependency update
+- [ ] `perf:` performance improvement
+- [ ] `ci:` CI or automation change
 
 ## Checklist
 
-- [ ] `pnpm check` passes locally (Biome lint + tsc + Vitest).
-- [ ] If behavior changed: docs, schema, presets, examples, and tests updated in this same PR.
-- [ ] If a canonical source changed (`references/`, `presets/`, `examples/`, `skills/`, `.codex-plugin/`): materialized `plugins/agentic-workflow-kit/` copy re-synced.
-- [ ] No emojis in code, comments, docs, or manifests.
-- [ ] PR title follows conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`).
+- [ ] Base branch is `v-next`.
+- [ ] The diff is scoped to one logical change.
+- [ ] Relevant design, foundation, or governance docs are updated.
+- [ ] No secrets, tokens, or private credentials are printed.
+- [ ] No emojis in code, comments, docs, manifests, commits, or PR title.
+- [ ] PR title follows conventional commits.

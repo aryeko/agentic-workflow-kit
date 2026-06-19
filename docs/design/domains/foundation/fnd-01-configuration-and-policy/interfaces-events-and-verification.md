@@ -65,7 +65,7 @@ type FieldProvenance = {
   valueHash: string;
 };
 type AdoptionDiagnostic = {
-  state: "adoption_incompatible" | "adoption_unknown_artifact";
+  state: "adoption-incompatible" | "adoption-unknown-artifact";
   path: string;
   observedMarker?: string;
   reason: string;
@@ -79,21 +79,21 @@ type ResolutionContext = {
 // keeping fnd-01 free of core imports.
 // Pre-run ConfigLoaded (no runId, instance-scoped) is the only event this writer commits directly.
 type DurableEventWriter = {
-  appendConfigLoaded(event: ConfigLoaded): Result<{ transactionId: string }, "append_failed">;
+  appendConfigLoaded(event: ConfigLoaded): Result<{ transactionId: string }, "append-failed">;
 };
 type AdoptionDiagnosticFailure = {
-  reason: "config_loaded_write_failed";
-  blockingState: "config_loaded_unrecorded";
+  reason: "config-loaded-write-failed";
+  blockingState: "config-loaded-unrecorded";
 };
 type PolicyResolutionFailure = {
   reason:
-    | "adoption_incompatible"
-    | "adoption_unknown_artifact"
-    | "config_invalid"
-    | "profile_unknown"
-    | "override_invalid"
-    | "unsupported_deferred_capability"
-    | "provenance_write_failed";
+    | "adoption-incompatible"
+    | "adoption-unknown-artifact"
+    | "config-invalid"
+    | "profile-unknown"
+    | "override-invalid"
+    | "unsupported-deferred-capability"
+    | "provenance-write-failed";
   blockingState: string;
   diagnostic?: AdoptionDiagnostic;
   appendIntents?: NonEmptyArray<ConfigurationPolicyAppendIntent>;
@@ -154,13 +154,13 @@ type AdoptionDiagnosticEmitted = {
 
 type PolicyResolutionFailed = {
   reason:
-    | "adoption_incompatible"
-    | "adoption_unknown_artifact"
-    | "config_invalid"
-    | "profile_unknown"
-    | "override_invalid"
-    | "unsupported_deferred_capability"
-    | "provenance_write_failed";
+    | "adoption-incompatible"
+    | "adoption-unknown-artifact"
+    | "config-invalid"
+    | "profile-unknown"
+    | "override-invalid"
+    | "unsupported-deferred-capability"
+    | "provenance-write-failed";
   blockingState: string;
   at: string;
 };
@@ -174,16 +174,16 @@ type ConfigurationPolicyEvent =
 
 ## Failure modes
 
-- `adoption_incompatible`: config has a non-vNext marker. Refuse to run with guidance.
-- `adoption_unknown_artifact`: config or artifact has no recognized vNext marker. Refuse to run.
-- `adoption_diagnostic_unrecorded`: the caller could not append the returned diagnostic/failure
+- `adoption-incompatible`: config has a non-vNext marker. Refuse to run with guidance.
+- `adoption-unknown-artifact`: config or artifact has no recognized vNext marker. Refuse to run.
+- `adoption-diagnostic-unrecorded`: the caller could not append the returned diagnostic/failure
   intents through core-01; launch remains blocked.
-- `config_loaded_unrecorded`: pre-run `ConfigLoaded` could not be committed; launch remains blocked.
-- `config_invalid`: schema validation failed. No policy is returned.
-- `profile_unknown`: requested profile does not exist. No fallback profile is selected.
-- `override_invalid`: operator override has an unknown or invalid field. No partial override applies.
-- `unsupported_deferred_capability`: config attempts to set `orchestrator-decide` in v1.
-- `provenance_write_failed`: policy was computed but not activated because the caller could not append
+- `config-loaded-unrecorded`: pre-run `ConfigLoaded` could not be committed; launch remains blocked.
+- `config-invalid`: schema validation failed. No policy is returned.
+- `profile-unknown`: requested profile does not exist. No fallback profile is selected.
+- `override-invalid`: operator override has an unknown or invalid field. No partial override applies.
+- `unsupported-deferred-capability`: config attempts to set `orchestrator-decide` in v1.
+- `provenance-write-failed`: policy was computed but not activated because the caller could not append
   the returned provenance events through core-01.
 
 Capability gates treat any missing resolved policy, failed diagnostic, or missing provenance event as
@@ -203,6 +203,8 @@ all autonomous capabilities absent. The safe degraded state is supervised, block
   artifacts in configured state locations, and returned diagnostic/failure append intents.
 - Capability default-off tests prove no config default enables autonomy and all enabled desires still
   require fresh positive attestation.
+- Credential/egress source tests prove the defaults expose no credentials, default-deny egress, and
+  per-field provenance for explicit credential references and egress rules.
 - Deferred-capability tests prove `orchestrator-decide` is rejected in config, profile, and override.
 - NFR-TEST is met with pure functions and in-memory event sinks; no real providers, credentials,
   processes, or Forge operations are used.

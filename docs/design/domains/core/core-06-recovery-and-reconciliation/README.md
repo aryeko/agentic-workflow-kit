@@ -181,8 +181,8 @@ lease ref, duplicate-launch status, latest recovery plan, and whether recovery i
 projection is pure replay only and never writes state.
 
 Lifecycle transitions remain core-01 events. Core-06 may request only approved recovery edges:
-`runner_verifying -> running`, `forge_waiting -> runner_verifying`,
-`merge_waiting -> forge_waiting`, `settling -> merge_waiting`, or terminal `blocked`/`failed` when
+`runner-verifying -> running`, `forge-waiting -> runner-verifying`,
+`merge-waiting -> forge-waiting`, `settling -> merge-waiting`, or terminal `blocked`/`failed` when
 evidence requires it. Every transition cites recovery event ids.
 
 ## 7. Behavior diagram

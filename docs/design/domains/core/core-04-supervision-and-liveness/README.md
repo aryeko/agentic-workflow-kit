@@ -117,8 +117,8 @@ decisions are:
   output never refresh liveness.
 - Timers are `startup`, `idle`, `no-progress`, `per-tool`, `approval-SLA`, and `max-runtime`; proposed
   defaults are 120 seconds, 15 minutes, 45 minutes, 30 minutes, 24 hours, and 8 hours.
-- Liveness states are `not_started`, `starting`, `active`, `waiting_for_approval`,
-  `approval_overdue`, `stale`, `supervision_lost`, `termination_requested`, and `terminated`.
+- Liveness states are `not-started`, `starting`, `active`, `waiting-for-approval`,
+  `approval-overdue`, `stale`, `supervision-lost`, `termination-requested`, and `terminated`.
 - Missing Agent progress guarantees, a missing cursor, ambiguous session linkage, unavailable
   termination capability, and unproven termination fail closed to named reasons.
 - Termination is a handoff to `ExecutionHost.terminateWorker`; this domain does not signal, kill,
@@ -149,7 +149,7 @@ interface SupervisionWaitRequest { runId: string; cursor: RunEventCursor; timeou
 `cursor.runId` matches the request, delegates to core-01, and returns committed events after
 `cursor.afterSequence` or `timedOut = true`. It never renews leases, appends events, reads
 projections, refreshes liveness, or treats a successful wait as proof that the worker is alive.
-Missing or failed cursor access is `event_cursor_unavailable`.
+Missing or failed cursor access is `event-cursor-unavailable`.
 
 ## 6. Events & data
 
@@ -191,7 +191,7 @@ sequenceDiagram
   AG-->>SUP: AgentProgressObserved(current session)
   SUP->>RL: append LivenessAdvanced
   SUP->>SUP: recompute timers from event log + clock
-  SUP->>RL: append LivenessTimerExpired(no_progress_timeout)
+  SUP->>RL: append LivenessTimerExpired(no-progress-timeout)
   SUP->>RL: append SupervisorTerminationRequested
   SUP->>EH: terminateWorker(handle, policy)
   EH-->>SUP: TerminationResult(proof)
@@ -200,19 +200,19 @@ sequenceDiagram
 
 ## 8. Failure & degraded modes
 
-- `event_cursor_unavailable`, `session_linkage_ambiguous`, or `agent_progress_unobservable`: core-04
-  cannot prove current worker liveness; state is `supervision_lost`.
-- `tool_tracking_unavailable`: a tool cannot be correlated to a current-session item; per-tool
+- `event-cursor-unavailable`, `session-linkage-ambiguous`, or `agent-progress-unobservable`: core-04
+  cannot prove current worker liveness; state is `supervision-lost`.
+- `tool-tracking-unavailable`: a tool cannot be correlated to a current-session item; per-tool
   coverage is not claimed and broader timers remain active.
-- `startup_timeout`, `idle_timeout`, `no_progress_timeout`, `tool_timeout`, or
-  `max_runtime_exceeded`: state is `stale`, then `termination_requested` when an owned worker and
+- `startup-timeout`, `idle-timeout`, `no-progress-timeout`, `tool-timeout`, or
+  `max-runtime-exceeded`: state is `stale`, then `termination-requested` when an owned worker and
   positive termination capability are available.
-- `approval_sla_exceeded`: state is `approval_overdue`; it alerts/blocks for Operator attention but
+- `approval-sla-exceeded`: state is `approval-overdue`; it alerts/blocks for Operator attention but
   does not by itself prove the worker stale.
-- `termination_unavailable` or `termination_unproven`: `canKill`/ownership is missing, or the
-  Execution Host did not prove containment empty; state is `supervision_lost`.
+- `termination-unavailable` or `termination-unproven`: `canKill`/ownership is missing, or the
+  Execution Host did not prove containment empty; state is `supervision-lost`.
 
-Capability gates must treat `stale`, `supervision_lost`, `approval_overdue`, missing projections,
+Capability gates must treat `stale`, `supervision-lost`, `approval-overdue`, missing projections,
 wrong-scope attestations, ambiguous linkage, or unproven termination as autonomous capabilities absent.
 
 ## 9. Testing strategy
@@ -241,7 +241,7 @@ recorded events plus an explicit clock input.
 - Should a recorded approval answer start a short "decision delivered but not consumed" timer, or is
   the existing idle/no-progress coverage sufficient until a current-session worker event follows?
 - Resolved for v1: the per-tool timer keys off `AgentToolObserved.itemId`. When `itemId` is absent
-  or unstable, core-04 fails closed to `tool_tracking_unavailable`; idle, no-progress, and
+  or unstable, core-04 fails closed to `tool-tracking-unavailable`; idle, no-progress, and
   max-runtime timers remain active. No new Agent tool-start event is required in v1.
 
 ## 11. Definition of done

@@ -12,7 +12,7 @@ last-reviewed: "2026-06-19"
 type ApprovalMode = "manual" | "assisted";
 type ApprovalRisk = "low" | "medium" | "high";
 type ApprovalState =
-  | "pending" | "auto_granted" | "human_required" | "answered" | "denied"
+  | "pending" | "auto-granted" | "human-required" | "answered" | "denied"
   | "parked" | "resumed" | "expired" | "blocked" | "failed";
 type ApprovalSubject =
   | "command" | "file-change" | "permission" | "network" | "input"

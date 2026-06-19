@@ -1,18 +1,18 @@
 name: Feature request
-description: Propose a new feature or an improvement to existing behavior.
+description: Propose a kit-vnext feature or improvement.
 labels: [enhancement]
 body:
   - type: markdown
     attributes:
       value: |
-        Before filing, please check existing issues and [GitHub Discussions](https://github.com/aryeko/agentic-workflow-kit/discussions) — your idea may already be tracked or discussed there.
+        Before filing, check existing issues, GitHub Discussions, and the v-next design docs: https://github.com/aryeko/agentic-workflow-kit/tree/v-next/docs/design
 
   - type: textarea
     id: problem-motivation
     attributes:
       label: Problem / motivation
-      description: What problem does this feature solve, or what workflow is currently painful?
-      placeholder: I find myself repeatedly doing X because agentic-workflow-kit does not yet ...
+      description: What problem does this solve, or what workflow is currently painful?
+      placeholder: I find myself repeatedly doing X because kit-vnext does not yet ...
     validations:
       required: true
 
@@ -20,7 +20,7 @@ body:
     id: proposed-solution
     attributes:
       label: Proposed solution
-      description: Describe the behavior or API change you would like to see.
+      description: Describe the behavior, contract, or documentation change you would like.
     validations:
       required: true
 
@@ -28,7 +28,7 @@ body:
     id: alternatives-considered
     attributes:
       label: Alternatives considered
-      description: Any other approaches you evaluated, and why you prefer the proposed solution.
+      description: Any other approaches you evaluated, and why you prefer this one.
     validations:
       required: false
 
@@ -37,10 +37,11 @@ body:
     attributes:
       label: Which area?
       options:
-        - Claude Code plugin
-        - Codex plugin
-        - Orchestrator CLI (@agentic-workflow-kit/orchestrator)
-        - Config/contracts
+        - Agent seam
+        - Execution Host seam
+        - Forge seam
+        - Work Source seam
+        - Foundation tooling or CI
         - Docs
         - Other
     validations:

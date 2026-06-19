@@ -66,19 +66,21 @@ can run against mock drivers with zero real processes or network.
 **File:** `tooling/no-side-effects.setup.ts`
 
 The guard is a Vitest `setupFiles` entry loaded by the `unit` and
-`conformance-mock` lanes. In a `beforeEach` hook it replaces the following
-APIs with stubs that throw an error containing the word `"forbidden"`:
+`conformance-mock` lanes. It installs module-level `vi.mock` factories for
+Node builtins and a `beforeEach` `vi.stubGlobal` replacement for `fetch`. The
+following APIs throw an error containing the word `"forbidden"`:
 
 - **`child_process`:** `spawn`, `exec`, `execFile`, `fork`, `spawnSync`,
   `execSync`, `execFileSync`
 - **`node:net`:** `connect`, `createConnection`, `createServer`
-- **`node:http`:** `request`
-- **`node:https`:** `request`
+- **`node:http`:** `request`, `get`
+- **`node:https`:** `request`, `get`
 - **global `fetch`**
 
-The stubs use `vi.spyOn` / `vi.stubGlobal` so they are reset between tests
-without manual teardown. The error message identifies both the forbidden API
-and the lane context, making test failures self-diagnosing.
+The built-in stubs use `vi.mock` because ESM namespace exports are
+non-configurable; `fetch` uses `vi.stubGlobal`. The error message identifies
+both the forbidden API and the lane context, making test failures
+self-diagnosing.
 
 The guard is package-agnostic infrastructure. It applies to whatever packages
 design owners add later — they do not need to configure it; they just place

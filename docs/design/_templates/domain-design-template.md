@@ -2,7 +2,7 @@
 title: "<Domain name> — design"
 id: "<layer-NN-name>"
 layer: "<edge | core | providers | foundation>"
-status: draft            # draft | in-review | approved
+status: draft            # draft | in-review | approved (design-approved only)
 owner: "<engineer>"
 last-reviewed: "<YYYY-MM-DD>"
 depends-on: []           # contracts/foundation modules this design depends on
@@ -10,6 +10,9 @@ depends-on: []           # contracts/foundation modules this design depends on
 
 # <Domain name> — mandate and design
 
+> `status: approved` is design-approved only. Implementation and conformance readiness are tracked
+> separately in [the implementation readiness matrix](../../implementation/readiness-matrix.md).
+>
 > Produced as `README.md` following `../../../conventions.md`. Delete the guidance
 > notes (in blockquotes) before submitting for review.
 

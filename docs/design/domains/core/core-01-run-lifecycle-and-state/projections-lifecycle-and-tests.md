@@ -41,38 +41,38 @@ discardable acceleration; replay remains authoritative.
 ## Lifecycle state machine
 
 Lifecycle state is authored only by `RunLifecycleTransitioned` events. The allowed states are:
-`created`, `configured`, `task_snapshotted`, `workspace_ready`, `worker_starting`, `running`,
-`parked`, `runner_verifying`, `forge_waiting`, `merge_waiting`, `settling`, `completed`, `blocked`,
+`created`, `configured`, `task-snapshotted`, `workspace-ready`, `worker-starting`, `running`,
+`parked`, `runner-verifying`, `forge-waiting`, `merge-waiting`, `settling`, `completed`, `blocked`,
 `failed`, and `canceled`.
 
 The initial state before the first lifecycle event is `null`. The first lifecycle transition must be
 `null -> created` and must reference the `RunCreated` event id in `sourceEventIds`. The
 `created -> configured` transition must reference the resolved-policy fact (`RunPolicyBound`), and
-the `configured -> task_snapshotted` transition must reference `TaskSnapshotRecorded`. Those factual
+the `configured -> task-snapshotted` transition must reference `TaskSnapshotRecorded`. Those factual
 events may be appended in the same atomic batch as their lifecycle transition, but they are not
 alternate lifecycle authors.
 
-Legal transitions are exactly the edges in this table. The behavior diagram in `design.md` is
+Legal transitions are exactly the edges in this table. The behavior diagram in `README.md` is
 illustrative; validation and generated edge tests use this table as the normative contract.
 
 | From | Legal to | Constraints |
 |---|---|---|
 | `null` | `created` | First lifecycle transition only; must reference `RunCreated`; `barrier`. |
 | `created` | `configured` | Must reference `RunPolicyBound`; `barrier`. |
-| `configured` | `task_snapshotted` | Must reference `TaskSnapshotRecorded`; `barrier`. |
-| `task_snapshotted` | `workspace_ready` | Workspace evidence fact must be referenced. |
-| `workspace_ready` | `worker_starting` | Launch evidence fact must be referenced. |
-| `worker_starting` | `running` | Must reference `SessionLinked` for the primary or recovery owner. |
-| `running` | `parked`, `runner_verifying` | Parked transitions require attention or approval evidence; verifier entry requires worker-done evidence. |
+| `configured` | `task-snapshotted` | Must reference `TaskSnapshotRecorded`; `barrier`. |
+| `task-snapshotted` | `workspace-ready` | Workspace evidence fact must be referenced. |
+| `workspace-ready` | `worker-starting` | Launch evidence fact must be referenced. |
+| `worker-starting` | `running` | Must reference `SessionLinked` for the primary or recovery owner. |
+| `running` | `parked`, `runner-verifying` | Parked transitions require attention or approval evidence; verifier entry requires worker-done evidence. |
 | `parked` | `running` | Resume fact must be referenced. |
-| `runner_verifying` | `forge_waiting` | Verification evidence fact must be referenced. |
-| `forge_waiting` | `merge_waiting` | PR/check/review gate evidence fact must be referenced. |
-| `merge_waiting` | `settling` | Merge fact must be referenced. |
+| `runner-verifying` | `forge-waiting` | Verification evidence fact must be referenced. |
+| `forge-waiting` | `merge-waiting` | PR/check/review gate evidence fact must be referenced. |
+| `merge-waiting` | `settling` | Merge fact must be referenced. |
 | `settling` | `completed` | Terminal transition; `barrier`. |
-| `runner_verifying` | `running` | Recovery-classified retry only; `authority = "recovery"` and retry evidence required. |
-| `forge_waiting` | `runner_verifying` | Recovery-classified retry of verification or Forge evidence gathering only. |
-| `merge_waiting` | `forge_waiting` | Recovery-classified retry of Forge gate evidence only. |
-| `settling` | `merge_waiting` | Recovery-classified merge reconciliation retry only. |
+| `runner-verifying` | `running` | Recovery-classified retry only; `authority = "recovery"` and retry evidence required. |
+| `forge-waiting` | `runner-verifying` | Recovery-classified retry of verification or Forge evidence gathering only. |
+| `merge-waiting` | `forge-waiting` | Recovery-classified retry of Forge gate evidence only. |
+| `settling` | `merge-waiting` | Recovery-classified merge reconciliation retry only. |
 | Any non-terminal state | `blocked` | Terminal transition; `barrier`; source evidence must explain the unavailable guarantee or required human action. |
 | Any non-terminal state | `failed` | Terminal transition; `barrier`; source evidence must classify the failure. |
 | Any non-terminal state | `canceled` | Terminal transition; `barrier`; `authority = "operator"` unless policy records a cancellation decision. |
@@ -111,7 +111,7 @@ Core-01 owns these event roles:
 - `TaskSnapshotRecorded`: records task snapshot digest and source identity, `barrier`; does not author
   lifecycle state.
 - `RunLifecycleTransitioned`: the only event that records legal lifecycle transitions, including
-  `created`, `configured`, and `task_snapshotted`.
+  `created`, `configured`, and `task-snapshotted`.
 - `SessionLinked`: records append-only session ownership facts, `barrier`; does not author lifecycle
   state unless referenced by a later `RunLifecycleTransitioned`.
 - `SessionLinkSuperseded`: records linkage correction or handoff, `barrier`.
@@ -128,20 +128,20 @@ needed for replay safety. Well-formed event payloads from unknown future types a
 
 ## Failure and degraded modes
 
-- `stale_writer_fenced`: stale lease epoch or token; append rejected before write.
-- `sequence_conflict`: expected sequence does not match replayed tail; caller must replay.
-- `illegal_lifecycle_transition`: transition violates the state machine.
-- `durability_insufficient`: requested durability cannot author that fact.
-- `partial_ack_unknown`: caller lost acknowledgement; replay decides committed versus absent.
-- `tail_repaired`: fnd-02 repaired tail bytes; state is usable after `RunLogTailRepaired`.
-- `malformed_envelope`: committed bytes decode, but the semantic `RunEventEnvelope` contract is
+- `stale-writer-fenced`: stale lease epoch or token; append rejected before write.
+- `sequence-conflict`: expected sequence does not match replayed tail; caller must replay.
+- `illegal-lifecycle-transition`: transition violates the state machine.
+- `durability-insufficient`: requested durability cannot author that fact.
+- `partial-ack-unknown`: caller lost acknowledgement; replay decides committed versus absent.
+- `tail-repaired`: fnd-02 repaired tail bytes; state is usable after `RunLogTailRepaired`.
+- `malformed-envelope`: committed bytes decode, but the semantic `RunEventEnvelope` contract is
   invalid.
-- `interior_corrupt`: committed history is incoherent; authoritative appends fail closed.
-- `event_log_unavailable`: storage health prevents durable append or replay.
-- `malformed_declared_payload`: payload for a core-01 declared-relevant event type is invalid.
+- `interior-corrupt`: committed history is incoherent; authoritative appends fail closed.
+- `event-log-unavailable`: storage health prevents durable append or replay.
+- `malformed-declared-payload`: payload for a core-01 declared-relevant event type is invalid.
 
-Capability gates treat `malformed_envelope`, `interior_corrupt`, `event_log_unavailable`,
-`malformed_declared_payload`, missing projections, stale writer rejection, or ambiguous session
+Capability gates treat `malformed-envelope`, `interior-corrupt`, `event-log-unavailable`,
+`malformed-declared-payload`, missing projections, stale writer rejection, or ambiguous session
 linkage as autonomous capabilities absent.
 
 ## Testing strategy

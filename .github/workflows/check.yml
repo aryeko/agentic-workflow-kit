@@ -13,7 +13,7 @@ jobs:
   # Does NOT run smoke-real (network/process-spawning) tests — those live in
   # the `smoke` job below, which is gated separately.
   check:
-    # Job name == required status-check context "check" (matches main's ruleset).
+    # Job name == required status-check context "check" (matches v-next protection).
     name: check
     runs-on: ubuntu-latest
     steps:
@@ -43,7 +43,7 @@ jobs:
   # ── Smoke lane (gated placeholder) ────────────────────────────────────────
   # This lane is inert until real drivers and the native containment helper
   # land. It currently has no tests and passes via passWithNoTests: true.
-  # Activated automatically on pushes to main/v-next and on PRs labelled
+  # Activated automatically on configured branch pushes and on PRs labelled
   # "smoke". Do not add it to branch-protection required checks yet.
   smoke:
     name: smoke

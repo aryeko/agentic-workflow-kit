@@ -38,7 +38,7 @@ with the same name. Consumers qualify attestations by provider through core-02
 - `tool-observed.outputRef` is required and must refer to redacted output with a digest. Raw command
   output is not embedded in the event log.
 - Stable `tool-observed.itemId` values are required for core-04's per-tool timer. If item ids are
-  absent or unstable, core-04 degrades fail-closed to `tool_tracking_unavailable`; idle,
+  absent or unstable, core-04 degrades fail-closed to `tool-tracking-unavailable`; idle,
   no-progress, and max-runtime supervision remain active.
 - Guardian review events never approve or deny a kit gate by themselves.
 

@@ -57,11 +57,15 @@ diagnosable state rather than taking a risky action.
 
 ## Scope & status
 
-- **Greenfield.** Local-first; remote execution is a later driver behind the Agent seam.
+- **Greenfield.** Local-first; remote execution is a later driver behind the Execution Host seam
+  (AD-13), while the Agent seam remains the model/protocol boundary.
 - This is the **high-level scaffold only.** Each domain's low-level design is produced in its own
   session, from that domain's Mandate, following [conventions.md](conventions.md).
 - The high-level design is chief-architect-owned. Domain designs are reviewed and approved against
   their Mandate + conventions before they are considered done.
+
+Reconciliation note (2026-06-19): remote execution follows AD-13 and belongs behind the Execution
+Host seam, not the Agent seam.
 
 ## Working model
 
