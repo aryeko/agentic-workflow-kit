@@ -1,0 +1,23 @@
+{
+  "name": "@kit-vnext/foundation-fnd-04",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "types": "./dist/src/index.d.ts",
+  "scripts": {
+    "test:unit": "pnpm --dir ../.. exec vitest run --project unit packages/foundation-fnd-04/tests/credentials-and-secrets.unit.test.ts",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@kit-vnext/foundation-fnd-01": "workspace:*"
+  },
+  "devDependencies": {
+    "fast-check": "^4.4.0"
+  }
+}

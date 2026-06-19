@@ -56,6 +56,16 @@ importers:
         specifier: ^1.36.0
         version: 1.38.5
 
+  packages/foundation-fnd-04:
+    dependencies:
+      '@kit-vnext/foundation-fnd-01':
+        specifier: workspace:*
+        version: link:../foundation-fnd-01
+    devDependencies:
+      fast-check:
+        specifier: ^4.4.0
+        version: 4.8.0
+
 packages:
 
   '@biomejs/biome@2.5.0':
