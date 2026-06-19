@@ -2,7 +2,9 @@
 
 This folder is the implementation-tracking layer for building kit-vnext from the **frozen design
 corpus** in [`../design/`](../design/). The design corpus is the *what* (contracts, domains,
-decisions, AD-1..AD-14); this folder is the *how, and in what order*.
+decisions, AD-1..AD-14); this folder is the *how, and in what order*. To author or revise a
+wave, follow [`wave-authoring-guide.md`](./wave-authoring-guide.md) — the standard for writing
+charters that pass code review.
 
 > Status: **draft for review.** Waves 0–2 are authored; core/driver/edge/smoke waves are listed but
 > their charters are pending (`charter pending` in the index).
