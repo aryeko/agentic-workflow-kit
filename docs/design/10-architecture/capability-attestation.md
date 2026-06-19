@@ -31,7 +31,7 @@ Every `CapabilityAttestation` record carries:
 
 | Field | Purpose |
 |---|---|
-| `capability` | Named capability being attested (e.g. `canKill`, `auto-merge`, `supportsMergeQueue`) |
+| `capability` | Named provider guarantee being attested (e.g. `canKill`, `canRelayApproval`, `supportsMergeQueue`). Core autonomous powers such as `auto-merge` are *evaluated* from attestations by a gate; they are not themselves provider attestations. |
 | `probeMethod` | How the probe was performed (distinguishes active test from passive observation) |
 | `result` | `positive` or `negative` |
 | `evidenceRef` | Reference to the raw probe evidence appended to the run log |

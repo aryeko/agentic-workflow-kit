@@ -125,15 +125,20 @@ citation is **not run truth**; the run event log (AD-6) remains the sole authori
 This resolves the previously-open Work Source Q2 to **Option A**: Work Source records the citation as
 task metadata. (Refines AD-8's two-authorities boundary: task status authority and task-level audit
 citation both live in the Work Source; run activity does not.) **Consequence.** `StatusWriteResult`
-and the `writeStatus` input carry a typed, optional `auditCitation` field; no run-truth data crosses
-into the Work Source.
+and the `writeStatus` input carry a typed, optional `auditCitation` field whose snapshot/evidence refs
+are opaque artifact ids (`ArtifactRef.id`), not embedded artifact metadata, keeping the task record
+decoupled from the artifact store; no run-truth data crosses into the Work Source.
 
 ### AD-18 — Normative launch coordination order
-**Decision.** Story launch follows this strict sequence: (1) acquire the `story-launch` lease; (2)
-call `nextEligible`; (3) call `claim` with the expected digest; (4) make the `TaskSnapshot` durable;
-(5) append lifecycle event to the run event log; (6) on any failure before step 5, release the claim
-(when supported) and record a recovery or blocked fact. See
-[launch-coordination.md](../10-architecture/launch-coordination.md) for the full sequence diagram.
+**Decision.** The `story-launch` lease is task-keyed
+(`story-launch:<workSourceId>:<trackId>:<taskId>`), so it is acquired only once the target task is
+known, and always **before the Work Source claim** and any worker launch. Two start paths follow:
+for a **known-task** start the lease is acquired up front; for a **next-eligible** start `nextEligible`
+is called first (to learn the `taskId`), then the lease is acquired, then the expected digest is
+revalidated and the task claimed. From there the order is the same: claim with the expected digest →
+make the `TaskSnapshot` durable → append `TaskSnapshotRecorded` + the lifecycle transition; on any
+failure before the append, release the claim (when supported) and record a recovery or blocked fact.
+See [launch-coordination.md](../10-architecture/launch-coordination.md) for both sequences.
 **Consequence.** The `story-launch` lease prevents duplicate run starts across processes; the Work
 Source claim protects task status authority; the TaskSnapshot is durable before the run treats the
 task as snapshotted. Recovery is well-defined at every failure point.

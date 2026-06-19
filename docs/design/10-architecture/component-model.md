@@ -6,7 +6,9 @@ last-reviewed: "2026-06-19"
 
 # Component model
 
-The system is organized into four layers. Dependencies point downward and inward only — the
+The system is organized into four layers — Edge, Control plane, Providers, and Foundation. The
+**Providers** layer has two parts: the host-neutral provider contracts and the concrete drivers that
+implement them (drawn as separate boxes below). Dependencies point downward and inward only — the
 Dependency Rule. This file summarises the layers and their relationships; the authoritative layer
 diagram is in [architecture.md](architecture.md) §1.
 
@@ -48,12 +50,12 @@ flowchart TB
 capability gating, adjudication, supervision, completion, recovery, and analysis. It knows nothing
 about Codex, GitHub, or any concrete driver.
 
-**Provider contracts** are the four host-neutral seams the Control plane depends on: Agent,
-Execution Host, Forge, and Work Source. The SDK defines the interfaces; provider packages implement
-them.
+The **Providers** layer has two parts:
 
-**Drivers** are the concrete adapters. All host-specific and tool-specific risk is encapsulated
-here. A driver implements exactly one provider contract and may not depend on the Control plane.
+- **Contracts** — the four host-neutral seams the Control plane depends on: Agent, Execution Host,
+  Forge, and Work Source. The SDK defines the interfaces; provider packages implement them.
+- **Drivers** — the concrete adapters. All host-specific and tool-specific risk is encapsulated
+  here. A driver implements exactly one provider contract and may not depend on the Control plane.
 
 **Foundation** is depended on by every layer above it and depends on nothing above itself.
 

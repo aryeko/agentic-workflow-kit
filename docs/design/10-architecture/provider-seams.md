@@ -18,10 +18,10 @@ flowchart LR
   SDK --> FG["ForgeProvider"]
   SDK --> WS["WorkSourceProvider"]
 
-  AG --> Codex["provider-codex"]
-  EH --> Local["provider-local"]
-  FG --> GitHub["provider-github"]
-  WS --> Markdown["provider-markdown"]
+  Codex["provider-codex"] -.implements.-> AG
+  Local["provider-local"] -.implements.-> EH
+  GitHub["provider-github"] -.implements.-> FG
+  Markdown["provider-markdown"] -.implements.-> WS
 ```
 
 ## The four seams

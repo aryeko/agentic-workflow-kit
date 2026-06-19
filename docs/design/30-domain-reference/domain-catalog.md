@@ -59,8 +59,8 @@ remain cited verbatim.
 ## Status legend
 
 `mandate: ready` — brief is approved, domain is ready to design. `design: draft | in-review | approved`;
-`approved` means design-approved only, with implementation/conformance readiness tracked in
-[the implementation readiness matrix](../IMPLEMENTATION_STATUS_NOTE.md).
+`approved` means design-approved only; implementation/conformance readiness is maintained outside
+this design bundle (see [IMPLEMENTATION_STATUS_NOTE.md](../IMPLEMENTATION_STATUS_NOTE.md)).
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

@@ -7,7 +7,7 @@ last-reviewed: 2026-06-19
 # Contracts and conformance
 
 This file holds the typed contract details and conformance targets for
-`docs/design/domains/providers/prov-03-work-source/README.md`. It is split out because the type
+`design/30-domain-reference/providers/work-source/README.md`. It is split out because the type
 catalog and driver conformance matrix are cohesive detail. It transcribes the contract that lives in
 the README (§4 task model, §5 interface + types, §8 failure tokens, §9 testing) into a single typed
 form and defines the three types the README references but does not yet declare: `TrackView`,
@@ -67,8 +67,8 @@ type ClaimResult = { task: TaskView; snapshotRef: ArtifactRef; snapshotDigest: s
 // This is NOT run truth; the run event log remains the authority for run activity.
 type AuditCitation = {
   runId: string;
-  taskSnapshotRef: ArtifactRef;
-  statusEvidenceRef?: ArtifactRef;
+  taskSnapshotRef: string;       // ArtifactRef.id — opaque; the artifact store resolves it
+  statusEvidenceRef?: string;    // ArtifactRef.id
 };
 
 // Reconciliation shape for a verified status write. writeStatus accepts evidenceRef?: ArtifactRef
@@ -123,7 +123,7 @@ redefine it. As in the rest of the providers layer, consumers qualify attestatio
 `WorkSourceCapability` is never confused with a same-named capability from another seam.
 
 `ArtifactRef` is the fnd-02 artifact reference, defined in
-`../../foundation/fnd-02-storage-and-artifacts/README.md`. It is used here for `ClaimResult.snapshotRef`
+`../../foundation/storage-and-artifacts/README.md`. It is used here for `ClaimResult.snapshotRef`
 (the `TaskSnapshot` write-once artifact) and for the `evidenceRef?` carried into and out of
 `writeStatus`. `TaskSnapshot` is produced at claim time and stored as a write-once artifact through
 fnd-02; Work Source does not gather local git state, so the caller passes `sourceRevision` and it is

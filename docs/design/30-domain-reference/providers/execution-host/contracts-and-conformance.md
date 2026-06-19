@@ -7,7 +7,7 @@ last-reviewed: 2026-06-18
 # Contracts and conformance
 
 This file holds the typed contract details and conformance targets for
-`docs/design/domains/providers/prov-04-execution-host/README.md`. It is split out because the type catalog
+`design/30-domain-reference/providers/execution-host/README.md`. It is split out because the type catalog
 and driver conformance matrix are cohesive detail.
 
 ## Contract types
@@ -110,7 +110,7 @@ whose attestations do not match the egress policy.
 
 The fnd-04 public types used here are `InjectionBinding`, `EgressPolicy`, `RedactionSet`,
 `CredentialParty`, `CredentialUsePlanned`, and `NegativeProbe`, defined in
-`../../foundation/fnd-04-credentials-and-secrets/contracts-and-events.md`.
+`../../foundation/credentials-and-secrets/contracts-and-events.md`.
 
 ## Capability set
 

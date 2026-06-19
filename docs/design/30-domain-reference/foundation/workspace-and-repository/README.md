@@ -61,10 +61,10 @@ operations. Execution Host owns process execution and containment, including run
 setup command as the worker's contracted first step.
 ## 2. Required reading
 - `docs/README.md`
-- `docs/architecture.md`, especially section 5 seam boundaries
-- `docs/conventions.md`
-- `docs/glossary.md`
-- `docs/design/domains/foundation/fnd-03-workspace-and-repository/README.md#mandate`
+- `design/10-architecture/architecture.md`, especially section 5 seam boundaries
+- `design/00-orientation/conventions.md`
+- `design/00-orientation/glossary.md`
+- `design/30-domain-reference/foundation/workspace-and-repository/README.md#mandate`
 
 No sibling contracts were read. Assumptions are listed in Open questions.
 ## 3. Context diagram

@@ -7,7 +7,7 @@ last-reviewed: 2026-06-18
 # Contracts and events
 
 This file holds the typed contract and audit payload details for
-`docs/design/domains/foundation/fnd-04-credentials-and-secrets/README.md`. It is split out because the type
+`design/30-domain-reference/foundation/credentials-and-secrets/README.md`. It is split out because the type
 catalog is cohesive detail and would otherwise push the design entry point past the focused-file cap.
 `CredentialRef` and `EgressPolicy` are the fnd-04 validated contract forms of fnd-01
 `credentialRefs` and `egress` source policy fields; fnd-01 records source provenance, while fnd-04

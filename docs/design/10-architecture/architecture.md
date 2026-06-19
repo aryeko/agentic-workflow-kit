@@ -1,7 +1,7 @@
 ---
 title: kit-vnext — high-level architecture
-status: high-level design (scaffold)
-last-reviewed: 2026-06-18
+status: high-level design
+last-reviewed: "2026-06-19"
 ---
 
 # High-level architecture
@@ -12,7 +12,9 @@ slice; none may violate what is here.
 
 ## 1. Layers
 
-Four layers; dependencies point **downward and inward only** (see the Dependency Rule).
+Four layers — Edge, Control plane, Providers, and Foundation; dependencies point **downward and
+inward only** (see the Dependency Rule). The **Providers** layer has two parts — host-neutral
+contracts and the concrete drivers that implement them — drawn as separate boxes below.
 
 ```mermaid
 flowchart TB
@@ -53,9 +55,10 @@ flowchart TB
 - **Control plane** — the deterministic core. Owns run state, gating, adjudication, supervision,
   completion/merge decisions, recovery, coordination, and analysis. Depends only on the contracts and
   foundation. Knows nothing about Codex or GitHub.
-- **Provider contracts** — the four seams (Agent, Execution Host, Forge, Work Source) plus the
+- **Providers — contracts** — the four seams (Agent, Execution Host, Forge, Work Source) plus the
   attestation model.
-- **Drivers** — concrete adapters implementing a contract. **All host/tool-specific risk lives here.**
+- **Providers — drivers** — concrete adapters implementing a contract. **All host/tool-specific risk
+  lives here.**
 - **Foundation** — depended-upon by everything, depends on nothing above.
 
 ## 2. The Dependency Rule (the SOLID guardrail)

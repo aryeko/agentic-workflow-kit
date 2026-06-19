@@ -66,8 +66,8 @@ Source snapshots the reference and any inline spec text rather than becoming a d
 ## 2. Required reading
 Read only: `README.md`, `architecture.md`, `conventions.md`, `glossary.md`, `requirements.md`,
 `decisions.md`, `_templates/domain-design-template.md`, this domain's `README.md#mandate`, and
-`domains/foundation/fnd-02-storage-and-artifacts/README.md#mandate`, plus
-`domains/foundation/fnd-02-storage-and-artifacts/README.md`. No external sources or legacy files were used.
+`design/30-domain-reference/foundation/storage-and-artifacts/README.md#mandate`, plus
+`design/30-domain-reference/foundation/storage-and-artifacts/README.md`. No external sources or legacy files were used.
 
 ## 3. Context diagram
 ```mermaid
@@ -193,7 +193,7 @@ interface WorkSource {
   release(input: { task: TaskKey; runId: string; reason: string; expectedEpoch: number }): void | WorkSourceError;
   writeStatus(input: { task: TaskKey; status: TaskStatus; expectedRecordDigest: string;
     evidenceRef?: ArtifactRef; note?: string;
-    auditCitation?: { runId: string; taskSnapshotRef: ArtifactRef; statusEvidenceRef?: ArtifactRef } }): StatusWriteResult | WorkSourceError;
+    auditCitation?: { runId: string; taskSnapshotRef: string; statusEvidenceRef?: string } }): StatusWriteResult | WorkSourceError;
 }
 type ClaimResult = { task: TaskView; snapshotRef: ArtifactRef; snapshotDigest: string };
 ```

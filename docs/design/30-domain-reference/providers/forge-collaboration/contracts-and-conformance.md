@@ -7,7 +7,7 @@ last-reviewed: 2026-06-19
 # Contracts and conformance
 
 This file holds the typed contract details and conformance targets for
-`docs/design/domains/providers/prov-02-forge-collaboration/README.md`. It is split out because the
+`design/30-domain-reference/providers/forge-collaboration/README.md`. It is split out because the
 type catalog and driver conformance matrix are cohesive detail. It transcribes the contract that
 already exists in the README (§4 design, §5 contracts, §8 failure modes, §9 testing) into a single
 typed surface and defines the types the README states only in prose. It adds no operation,
@@ -230,7 +230,7 @@ Produced for the Control plane. The contract methods plus event-ready action/evi
 
 The fnd-04 public types used here are `CredentialScope`, `CredentialRef`, `RedactionSet`, and the
 `CredentialAuditEvent` family, defined in
-`../../foundation/fnd-04-credentials-and-secrets/contracts-and-events.md`.
+`../../foundation/credentials-and-secrets/contracts-and-events.md`.
 
 ## Capability set
 

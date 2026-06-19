@@ -30,9 +30,10 @@ store implementations live.
 
 ## Capability attestation
 
-Each provider probes its own capabilities and emits `CapabilityAttestation` events into the run's
-event log. The SDK evaluates those attestations; providers do not gate on them directly. The
-attestation type and evaluation rules are SDK-owned (see [provider-interface-model.md](provider-interface-model.md)).
+Each provider probes its own capabilities and returns event-ready `CapabilityAttestation` payloads.
+The SDK appends them to the run event log and evaluates them; providers do not write the run log
+directly and do not gate on attestations themselves. The attestation type and evaluation rules are
+SDK-owned (see [provider-interface-model.md](provider-interface-model.md)).
 Deep attestation contracts per provider are in:
 
 - Agent: [docs/design/30-domain-reference/providers/agent-execution/](../30-domain-reference/providers/agent-execution/README.md)
