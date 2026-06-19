@@ -315,7 +315,7 @@ export type CredentialsAndSecretsOptions = {
   readonly egress: EgressSource;
   readonly attesterMetadata: Readonly<Record<string, EgressAttesterMetadata>>;
   readonly attestations?: readonly EgressCapabilityAttestation[];
-  readonly auditWriter?: AuditWriter;
+  readonly auditWriter: AuditWriter;
   readonly tempFileRemover?: TempFileRemover;
   readonly runnerForgePhases?: readonly string[];
   readonly injectionModeFor?: (ref: CredentialRef, scope: CredentialScope) => InjectionMode;

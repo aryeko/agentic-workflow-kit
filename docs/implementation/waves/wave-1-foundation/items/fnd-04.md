@@ -59,7 +59,8 @@ source of truth other layers apply); egress-attestation policy inputs; the audit
 ## Definition of done
 
 - *Spec compliance:* resolution/injection/redaction/attestation/audit contracts match the design; the
-  worker-never-holds-Forge-creds boundary is structural, not conventional.
+  worker-never-holds-Forge-creds boundary is predicate-enforced by the normative fnd-04 credential
+  ref and scope model.
 - *Quality bar:* redaction proven (property tests: no secret survives a log/telemetry/artifact path);
   scoped injection tested (creds present only in the intended scope, absent elsewhere); secrets never
   appear in test output; `pnpm check` green; coverage bar met.

@@ -9,6 +9,7 @@ import {
 } from './redaction.js';
 import type {
   AuditBase,
+  AuditWriter,
   CredentialAuditEvent,
   CredentialDenied,
   CredentialDenialReason,
@@ -655,8 +656,9 @@ class CredentialsAndSecrets implements CredentialsAndSecretsContract {
     event: Omit<T, 'eventHash'>,
   ): { readonly ok: true; readonly value: T } | { readonly ok: false } {
     const hashed = eventWithHash(event) as T;
-    const written = this.#options.auditWriter?.append(hashed);
-    if (written && !written.ok) {
+    const auditWriter = (this.#options as { readonly auditWriter?: AuditWriter }).auditWriter;
+    const written = auditWriter?.append(hashed);
+    if (!written?.ok) {
       return { ok: false };
     }
     this.#prevEventHash = hashed.eventHash;

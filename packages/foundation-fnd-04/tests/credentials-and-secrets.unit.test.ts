@@ -6,6 +6,7 @@ import {
   createCredentialsAndSecrets,
   credentialAuditEventHash,
   credentialRefFromSource,
+  type AuditWriter,
   type CredentialAuditEvent,
   type CredentialClock,
   type CredentialRef,
@@ -13,14 +14,18 @@ import {
   type EgressCapabilityAttestation,
   type EgressPolicy,
   type IdGenerator,
+  type RedactedInput,
   type SecretResolver,
 } from '../src/index.js';
 
 const occurredAt = '2026-06-19T09:00:00.000Z';
 const later = '2026-06-19T09:05:00.000Z';
 const expired = '2026-06-19T08:59:00.000Z';
-const placeholderMaterial = 'placeholder-material-alpha/one two';
+const placeholderMaterial = 'placeholder-material-alpha/"one\\two two';
 const encodedPlaceholder = encodeURIComponent(placeholderMaterial);
+const doubleEncodedPlaceholder = encodeURIComponent(encodedPlaceholder);
+const base64Placeholder = Buffer.from(placeholderMaterial, 'utf8').toString('base64');
+const jsonEscapedPlaceholder = JSON.stringify(placeholderMaterial).slice(1, -1);
 
 class FixedClock implements CredentialClock {
   constructor(private readonly iso: string = occurredAt) {}
@@ -91,45 +96,106 @@ const egressSource = (ref: CredentialRef): PolicyLayer['egress'] => ({
   requiredAttesters: [{ point: 'execution-host', capability: 'egress-confinement', driverId: 'local-host' }],
 });
 
-const secretResolver: SecretResolver = {
+const secretResolverFor = (material: string): SecretResolver => ({
   resolve: (ref) => ({
     ok: true,
     value: {
       materialHandle: `handle:${ref.id}`,
-      material: placeholderMaterial,
+      material,
     },
   }),
+});
+
+const secretResolver = secretResolverFor(placeholderMaterial);
+
+const successfulAuditWriter = (auditEvents: CredentialAuditEvent[]): AuditWriter => ({
+  append: (event) => {
+    auditEvents.push(event);
+    return { ok: true, value: undefined };
+  },
+});
+
+const variantSurvivorsFor = (secret: string, key = 'REGISTRY_READ_REF'): readonly string[] => {
+  const uriEncoded = encodeURIComponent(secret);
+  return [
+    secret,
+    uriEncoded,
+    encodeURIComponent(uriEncoded),
+    JSON.stringify(secret).slice(1, -1),
+    Buffer.from(secret, 'utf8').toString('base64'),
+    `Bearer ${secret}`,
+    `Authorization: Bearer ${secret}`,
+    `${key}=${secret}`,
+    `export ${key}=${secret}`,
+  ];
 };
+
+const embeddedSecretVariants = (secret: string, value: RedactedInput): RedactedInput => {
+  const uriEncoded = encodeURIComponent(secret);
+  const doubleEncoded = encodeURIComponent(uriEncoded);
+  const jsonEscaped = JSON.stringify(secret).slice(1, -1);
+  const base64 = Buffer.from(secret, 'utf8').toString('base64');
+
+  return {
+    [`raw-key-${secret}`]: value,
+    nested: [
+      { [`uri-key-${uriEncoded}`]: `uri=${uriEncoded}` },
+      { [`double-uri-key-${doubleEncoded}`]: `redirect=${doubleEncoded}` },
+      { [`json-key-${jsonEscaped}`]: `{"credential":"${jsonEscaped}"}` },
+      { [`base64-key-${base64}`]: `payload:${base64}` },
+      {
+        shell: `REGISTRY_READ_REF=${secret}`,
+        exportedShell: `export REGISTRY_READ_REF=${secret}`,
+        bearer: `Authorization: Bearer ${secret}`,
+      },
+    ],
+  };
+};
+
+const redactedInputArbitrary: fc.Arbitrary<RedactedInput> = fc.letrec((tie) => ({
+  value: fc.oneof(
+    { maxDepth: 3 },
+    fc.string({ maxLength: 24 }),
+    fc.integer({ min: -1000, max: 1000 }),
+    fc.boolean(),
+    fc.constant(null),
+    fc.array(tie('value') as fc.Arbitrary<RedactedInput>, { maxLength: 3 }),
+    fc.dictionary(
+      fc.string({ minLength: 1, maxLength: 12 }).filter((key) => key !== '__proto__'),
+      tie('value') as fc.Arbitrary<RedactedInput>,
+      { maxKeys: 3 },
+    ),
+  ),
+})).value as fc.Arbitrary<RedactedInput>;
 
 const contractFor = (
   options: {
     readonly ref?: CredentialRef;
     readonly attestations?: readonly EgressCapabilityAttestation[];
     readonly auditEvents?: CredentialAuditEvent[];
+    readonly auditWriter?: AuditWriter | null;
     readonly egress?: PolicyLayer['egress'];
     readonly injectionModeFor?: Parameters<typeof createCredentialsAndSecrets>[0]['injectionModeFor'];
+    readonly secretMaterial?: string;
   } = {},
-) =>
-  createCredentialsAndSecrets({
+) => {
+  const auditEvents = options.auditEvents ?? [];
+  const auditWriter =
+    options.auditWriter === null ? undefined : (options.auditWriter ?? successfulAuditWriter(auditEvents));
+  return createCredentialsAndSecrets({
     clock: new FixedClock(),
     idGenerator: new SequenceIds(),
     fingerprintKey: 'test-fingerprint-key',
-    secretResolver,
+    secretResolver: options.secretMaterial ? secretResolverFor(options.secretMaterial) : secretResolver,
     egress: options.egress ?? egressSource(options.ref ?? sourceRef()),
     attesterMetadata: {
       'local-host': { platform: 'darwin-arm64', driverVersion: '1.0.0' },
     },
     attestations: options.attestations ?? [],
     injectionModeFor: options.injectionModeFor,
-    auditWriter: options.auditEvents
-      ? {
-          append: (event) => {
-            options.auditEvents?.push(event);
-            return { ok: true, value: undefined };
-          },
-        }
-      : undefined,
+    auditWriter: auditWriter as AuditWriter,
   });
+};
 
 const matchingAttestation = (
   policy: EgressPolicy,
@@ -336,6 +402,92 @@ describe('Credentials & Secrets', () => {
     });
   });
 
+  it('denies plan and resolve when audit writing is not configured', () => {
+    const registry = registryRef();
+    const workerScope = scope({
+      party: 'worker',
+      phase: 'install',
+      operationId: 'operation-audit-missing',
+      hosts: ['registry.npmjs.org'],
+    });
+    const policyResult = contractFor({ ref: registry }).issueEgressPolicy([registry], workerScope);
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+
+    const contract = contractFor({
+      ref: registry,
+      attestations: [matchingAttestation(policyResult)],
+      auditWriter: null,
+    });
+
+    expect(contract.planInjection([registry], workerScope)).toMatchObject({
+      ok: false,
+      reason: 'audit-write-unavailable',
+      auditEvent: { type: 'CredentialUseDenied', reason: 'audit-write-unavailable' },
+    });
+    expect(contract.resolveCredential(registry, workerScope)).toMatchObject({
+      ok: false,
+      reason: 'audit-write-unavailable',
+      auditEvent: { type: 'CredentialUseDenied', reason: 'audit-write-unavailable' },
+    });
+  });
+
+  it('denies use on failed audit append without advancing the audit chain', () => {
+    const auditEvents: CredentialAuditEvent[] = [];
+    const registry = registryRef();
+    const workerScope = scope({
+      party: 'worker',
+      phase: 'install',
+      operationId: 'operation-audit-failure',
+      hosts: ['registry.npmjs.org'],
+    });
+    const policyResult = contractFor({ ref: registry }).issueEgressPolicy([registry], workerScope);
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+    let appendAttempt = 0;
+    const auditWriter: AuditWriter = {
+      append: (event) => {
+        appendAttempt += 1;
+        if (appendAttempt === 2) {
+          return { ok: false, error: 'audit-write-unavailable' };
+        }
+        auditEvents.push(event);
+        return { ok: true, value: undefined };
+      },
+    };
+    const contract = contractFor({
+      ref: registry,
+      attestations: [matchingAttestation(policyResult)],
+      auditWriter,
+    });
+
+    const firstPlan = contract.planInjection([registry], workerScope);
+    expect(firstPlan).toMatchObject({ ok: true });
+    if (!firstPlan.ok) {
+      throw new Error('expected first plan');
+    }
+    const failedResolve = contract.resolveCredential(registry, workerScope);
+    expect(failedResolve).toMatchObject({
+      ok: false,
+      reason: 'audit-write-unavailable',
+      auditEvent: {
+        type: 'CredentialUseDenied',
+        reason: 'audit-write-unavailable',
+        prevEventHash: firstPlan.requiredAuditEvent.eventHash,
+      },
+    });
+
+    const secondPlan = contract.planInjection([registry], workerScope);
+    expect(secondPlan).toMatchObject({ ok: true });
+    if (!secondPlan.ok) {
+      throw new Error('expected second plan');
+    }
+    expect(auditEvents.map((event) => event.type)).toEqual(['CredentialUsePlanned', 'CredentialUsePlanned']);
+    expect(secondPlan.requiredAuditEvent.prevEventHash).toBe(firstPlan.requiredAuditEvent.eventHash);
+  });
+
   it('recursively redacts structured data, process output, and text artifacts across encodings', () => {
     const registry = registryRef();
     const workerScope = scope({
@@ -361,6 +513,7 @@ describe('Credentials & Secrets', () => {
         nested: {
           commandLine: `REGISTRY_READ_REF=${placeholderMaterial} npm install`,
           output: { stream: 'stderr', text: `Authorization: Bearer ${placeholderMaterial}` },
+          shellQuoted: `export REGISTRY_READ_REF="${placeholderMaterial}"`,
         },
         artifacts: [
           {
@@ -368,7 +521,20 @@ describe('Credentials & Secrets', () => {
             mediaType: 'application/json',
             text: `{"url":"https://registry.npmjs.org?token=${encodedPlaceholder}"}`,
           },
+          {
+            artifactId: 'artifact-2',
+            mediaType: 'application/json',
+            text: `{"escaped":"${jsonEscapedPlaceholder}","double":"${doubleEncodedPlaceholder}"}`,
+          },
+          {
+            artifactId: 'artifact-3',
+            mediaType: 'text/plain',
+            text: `encoded payload ${base64Placeholder}`,
+          },
         ],
+        [`key-${placeholderMaterial}`]: `value-${placeholderMaterial}`,
+        [`encoded-key-${encodedPlaceholder}`]: `double-${doubleEncodedPlaceholder}`,
+        [`base64-key-${base64Placeholder}`]: `json-${jsonEscapedPlaceholder}`,
       },
       resolved.redactionSet,
     );
@@ -380,8 +546,56 @@ describe('Credentials & Secrets', () => {
     const output = JSON.stringify(redacted.value);
     expect(output).not.toContain(placeholderMaterial);
     expect(output).not.toContain(encodedPlaceholder);
+    expect(output).not.toContain(doubleEncodedPlaceholder);
+    expect(output).not.toContain(base64Placeholder);
+    expect(output).not.toContain(jsonEscapedPlaceholder);
     expect(output).toContain('[REDACTED:credential:registry-read]');
-    expect(redacted.replacementCount).toBeGreaterThanOrEqual(3);
+    expect(redacted.replacementCount).toBeGreaterThanOrEqual(11);
+  });
+
+  it('property-tests that no raw or encoded secret survives nested key and value redaction', () => {
+    fc.assert(
+      fc.property(
+        fc.stringMatching(/[A-Z0-9]{8,24}/).map((token) => `SECRET_${token}_VALUE/"\\two words`),
+        redactedInputArbitrary,
+        (secret, generatedValue) => {
+          const registry = registryRef();
+          const workerScope = scope({
+            party: 'worker',
+            phase: 'install',
+            operationId: `operation-redact-${secret.length}`,
+            hosts: ['registry.npmjs.org'],
+          });
+          const policyResult = contractFor({ ref: registry, secretMaterial: secret }).issueEgressPolicy(
+            [registry],
+            workerScope,
+          );
+          if ('ok' in policyResult) {
+            throw new Error('expected egress policy');
+          }
+          const contract = contractFor({
+            ref: registry,
+            attestations: [matchingAttestation(policyResult)],
+            secretMaterial: secret,
+          });
+          const resolved = contract.resolveCredential(registry, workerScope);
+          if (!resolved.ok) {
+            throw new Error('expected resolved credential');
+          }
+
+          const redacted = contract.redact(embeddedSecretVariants(secret, generatedValue), resolved.redactionSet);
+          if (!redacted.ok) {
+            throw new Error('expected redacted value');
+          }
+          const serialized = JSON.stringify(redacted.value);
+
+          for (const survivor of variantSurvivorsFor(secret)) {
+            expect(serialized).not.toContain(survivor);
+          }
+        },
+      ),
+      { seed: 20_260_619, numRuns: 75 },
+    );
   });
 
   it('records tamper-evident audit start, deny, finish, and destroy invariants without material leakage', () => {

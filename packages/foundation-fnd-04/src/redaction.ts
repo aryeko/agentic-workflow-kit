@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { createHmac } from 'node:crypto';
 import type { CredentialRef, RedactedInput, RedactionSet } from './types.js';
 
@@ -17,22 +18,41 @@ const unique = <T>(values: readonly T[]): readonly T[] => [...new Set(values)];
 const fingerprint = (key: string, value: string): string =>
   `hmac-sha256:${createHmac('sha256', key).update(value).digest('hex')}`;
 
-const shellAssignmentsFor = (ref: CredentialRef, material: string): readonly string[] => [
-  `${ref.secret.key}=${material}`,
-  `export ${ref.secret.key}=${material}`,
-];
+const shellAssignmentsFor = (ref: CredentialRef, variants: readonly string[]): readonly string[] =>
+  variants.flatMap((variant) => [
+    `${ref.secret.key}=${variant}`,
+    `${ref.secret.key}="${variant}"`,
+    `${ref.secret.key}='${variant}'`,
+    `export ${ref.secret.key}=${variant}`,
+    `export ${ref.secret.key}="${variant}"`,
+    `export ${ref.secret.key}='${variant}'`,
+  ]);
 
 const encodedVariantsFor = (material: string): readonly string[] => {
-  const encoded = encodeURIComponent(material);
-  return encoded === material ? [] : [encoded];
+  const uriEncoded = encodeURIComponent(material);
+  const jsonEscaped = JSON.stringify(material).slice(1, -1);
+  const base64Encoded = Buffer.from(material, 'utf8').toString('base64');
+  return unique([
+    material,
+    uriEncoded,
+    encodeURIComponent(uriEncoded),
+    jsonEscaped,
+    JSON.stringify(material),
+    base64Encoded,
+  ]).filter((variant) => variant.length > 0);
 };
 
-const bearerVariantsFor = (material: string): readonly string[] => [
-  `Bearer ${material}`,
-  `Authorization: Bearer ${material}`,
-  `authorization: Bearer ${material}`,
-  `token=${encodeURIComponent(material)}`,
-];
+const bearerVariantsFor = (variants: readonly string[]): readonly string[] =>
+  variants.flatMap((variant) => [
+    `Bearer ${variant}`,
+    `Authorization: Bearer ${variant}`,
+    `authorization: Bearer ${variant}`,
+    `Authorization=Bearer ${variant}`,
+    `authorization=Bearer ${variant}`,
+    `--header Authorization: Bearer ${variant}`,
+    `-H "Authorization: Bearer ${variant}"`,
+    `token=${variant}`,
+  ]);
 
 export const redactionLabelFor = (ref: CredentialRef): string => `[REDACTED:credential:${ref.id}]`;
 
@@ -61,11 +81,12 @@ export const buildMaterialRedaction = (
   extraPatterns: readonly string[] = [],
 ): RedactionBuildResult => {
   const label = redactionLabelFor(ref);
+  const encodedVariants = encodedVariantsFor(material);
   const patterns = unique([
     ...extraPatterns,
-    ...shellAssignmentsFor(ref, material),
-    ...bearerVariantsFor(material),
-    ...encodedVariantsFor(material),
+    ...shellAssignmentsFor(ref, encodedVariants),
+    ...bearerVariantsFor(encodedVariants),
+    ...encodedVariants,
     material,
   ]).filter((pattern) => pattern.length > 0);
   const rules = patterns
@@ -123,11 +144,15 @@ export const redactValue = <T extends RedactedInput>(
   }
 
   const entries = Object.entries(value).map(([key, entry]) => {
+    const redactedKey = redactString(key, rules);
     const redacted = redactValue(entry as RedactedInput, rules);
-    return [key, redacted] as const;
+    return [redactedKey.value, redacted, redactedKey.replacementCount] as const;
   });
   return {
     value: Object.fromEntries(entries.map(([key, redacted]) => [key, redacted.value])) as T,
-    replacementCount: entries.reduce((count, [, redacted]) => count + redacted.replacementCount, 0),
+    replacementCount: entries.reduce(
+      (count, [, redacted, keyReplacementCount]) => count + keyReplacementCount + redacted.replacementCount,
+      0,
+    ),
   };
 };
