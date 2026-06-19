@@ -68,6 +68,17 @@ const registryRef = (): CredentialRef =>
     allowedHosts: ['registry.npmjs.org'],
   });
 
+const githubWorkerRef = (): CredentialRef =>
+  sourceRef({
+    id: 'github-worker',
+    kind: 'tool-api',
+    purpose: 'GitHub API read',
+    secret: { source: 'env', key: 'GITHUB_WORKER_REF' },
+    allowedParties: ['worker'],
+    allowedPhases: ['install'],
+    allowedHosts: ['github.com'],
+  });
+
 const scope = (overrides: Partial<CredentialScope> = {}): CredentialScope => ({
   runId: 'run-1',
   taskId: 'task-1',
@@ -305,6 +316,49 @@ describe('Credentials & Secrets', () => {
     expect(env).toEqual({ KIT_CREDENTIAL_REGISTRY_READ: '[REDACTED:credential:registry-read]' });
     expect(JSON.stringify(env)).not.toContain('GITHUB_TOKEN');
     expect(JSON.stringify(env)).not.toContain('ambient');
+  });
+
+  it('denies mixed host injection when each credential allows only one scoped host', () => {
+    const github = githubWorkerRef();
+    const registry = registryRef();
+    const workerScope = scope({
+      party: 'worker',
+      phase: 'install',
+      operationId: 'operation-mixed-hosts',
+      hosts: ['github.com', 'registry.npmjs.org'],
+    });
+    const egress: PolicyLayer['egress'] = {
+      ...egressSource(github),
+      rules: [
+        {
+          credentialRefIds: [github.id],
+          protocols: ['https'],
+          hosts: ['github.com'],
+          ports: [443],
+          phase: 'install',
+          purpose: github.purpose,
+        },
+        {
+          credentialRefIds: [registry.id],
+          protocols: ['https'],
+          hosts: ['registry.npmjs.org'],
+          ports: [443],
+          phase: 'install',
+          purpose: registry.purpose,
+        },
+      ],
+    };
+    const contract = contractFor({ ref: github, egress });
+
+    expect(contract.issueEgressPolicy([github, registry], workerScope)).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+    });
+    expect(contract.planInjection([github, registry], workerScope)).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+      auditEvent: { type: 'CredentialUseDenied', reason: 'credential-scope-denied' },
+    });
   });
 
   it('denies missing, stale, mismatched, and partial egress attestations', () => {

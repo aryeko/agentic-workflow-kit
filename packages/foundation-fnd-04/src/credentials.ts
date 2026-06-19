@@ -460,11 +460,7 @@ class CredentialsAndSecrets implements CredentialsAndSecretsContract {
     }
 
     const runnerForgePhases = this.#options.runnerForgePhases ?? DEFAULT_RUNNER_FORGE_PHASES;
-    const operationHosts = new Set(scope.hosts);
-    const allowedHostUnion = new Set(refs.flatMap((ref) => ref.allowedHosts));
-    if (![...operationHosts].every((host) => allowedHostUnion.has(host))) {
-      return 'credential-scope-denied';
-    }
+    const operationHosts = [...new Set(scope.hosts)];
     for (const ref of refs) {
       if (scope.party === 'worker' && ref.kind === 'forge') {
         return 'worker-forge-credential-denied';
@@ -482,7 +478,7 @@ class CredentialsAndSecrets implements CredentialsAndSecretsContract {
       ) {
         return 'credential-scope-denied';
       }
-      if (![...operationHosts].some((host) => ref.allowedHosts.includes(host))) {
+      if (!operationHosts.every((host) => ref.allowedHosts.includes(host))) {
         return 'credential-scope-denied';
       }
       if (ref.kind === 'forge' && (scope.party !== 'runner' || !runnerForgePhases.includes(scope.phase))) {
