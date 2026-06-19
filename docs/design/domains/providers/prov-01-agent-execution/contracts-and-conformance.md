@@ -178,6 +178,40 @@ interface AgentFailure {
   evidenceRef?: string;
 }
 
+// Input to resumeOwned(request). Carries the provider session to re-own, the operation context,
+// and the (possibly new) host worker to attach. ownershipClass must be "owned" or "owned-remote";
+// "observe-only" sessions cannot be resumed via this path.
+interface AgentResumeRequest {
+  providerSessionId: string;
+  runId: string;
+  operationId: string;
+  ownershipClass: "owned" | "owned-remote";
+  hostWorker: WorkerHandle;
+}
+
+// Return of answerApproval(session, answer). delivered reflects whether the answer reached the
+// provider channel. persisted reflects ApprovalAnswerChannel.persistable — true only when the
+// driver confirmed durable storage. On failure token approval-answer-channel-lost, delivered is
+// false and persisted is false; evidenceRef is omitted.
+interface ApprovalAnswerResult {
+  delivered: boolean;
+  persisted: boolean;
+  channelRef?: string;
+  evidenceRef?: string;
+  at: string;
+}
+
+// Return of stopObserving(session). Mirrors HostReleaseResult but scoped to the agent session.
+// released: the provider linkage was cleanly severed. observationStopped: the observation stream
+// was terminated. evidenceRef is omitted when no confirmatory evidence is available.
+interface AgentReleaseResult {
+  sessionId: string;
+  released: boolean;
+  observationStopped: boolean;
+  evidenceRef?: string;
+  at: string;
+}
+
 interface AgentDriver {
   probeCapabilities(scope: AgentProbeScope): CapabilityAttestation[];
   startWorker(request: AgentStartRequest): AgentSession | AgentFailure;

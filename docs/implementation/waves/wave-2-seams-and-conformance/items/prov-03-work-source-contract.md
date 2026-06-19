@@ -4,7 +4,7 @@ id: "prov-03-contract"
 wave: 2
 layer: "contracts (providers)"
 status: "item: blocked-on-spec"
-spec: "docs/design/domains/providers/prov-03-work-source/ (README.md + evidence/)"
+spec: "docs/design/domains/providers/prov-03-work-source/ (README.md + contracts-and-conformance.md + evidence/)"
 ---
 
 # prov-03 — Work Source contract + mock
@@ -17,9 +17,7 @@ mock only; the real Markdown driver is the driver track. (FR-1, FR-11.)
 `docs/design/domains/providers/prov-03-work-source/`. The task/track model, eligibility, claim/release
 semantics, and status-authority writes are normative. Ambiguous → STOP and surface.
 
-> **BLOCKED on spec reconciliation** — prov-03 has **no `contracts-and-conformance.md`**; `TrackView`,
-> `StatusWriteResult`, and `WorkSourceError` are used but never defined. ACs cover the defined surface;
-> shape-dependent ACs are deferred until the spec types them (R4). Do not invent shapes.
+> **Partially reconciled** — `contracts-and-conformance.md` now defines `TrackView`, `StatusWriteResult`, and the `WorkSourceError` union (Q1 closed). STILL BLOCKED on **Q2** (FR-11 audit-citation boundary) — a design-owner decision; both options are recorded in the contracts file. Q2 is the sole remaining blocker.
 
 ## Spec surface (manifest)
 
@@ -34,8 +32,9 @@ semantics, and status-authority writes are normative. Ambiguous → STOP and sur
 - **Failure tokens (owned here, §8)** — `work-source-unavailable`, `track-malformed`,
   `dependency-unresolved`, `status-bucket-unknown`, `claim-conflict`, `claim-lock-unavailable`,
   `snapshot-artifact-unavailable`, `status-write-unavailable`, `status-authority-conflict`.
-- **UNDEFINED (blocking):** `TrackView` (return of `listTracks`), `StatusWriteResult` (return of
-  `writeStatus`), `WorkSourceError` (error branch of every method).
+- **Now defined** (in `contracts-and-conformance.md`): `TrackView` (return of `listTracks`),
+  `StatusWriteResult` (return of `writeStatus`), `WorkSourceError` (error branch of every method; all 9
+  failure tokens enumerated). Final shape of `StatusWriteResult` may still change pending Q2 resolution.
 
 ## Responsibilities (in scope)
 
@@ -88,9 +87,10 @@ Consumed by core-06 and the launch/task-snapshot path of core-01. Must NOT depen
 - **AC-10** a degraded fnd-02 lease during `claim` → `claim-lock-unavailable` + negative `supportsClaim`;
   an fnd-02 artifact-store failure during `claim` → `snapshot-artifact-unavailable` and the claim is
   refused (no partial claim persisted). — *README §8.*
-- **AC-11 (deferred — blocked)** the schemas for `listTracks` → `TrackView[]`, `writeStatus` →
-  `StatusWriteResult`, and the `WorkSourceError` union validate via Zod/JSON-Schema. *Cannot be finalized
-  until these types are defined in the spec (Open questions Q1).*
+- **AC-11 (deferred — blocked-pending-Q2)** the schemas for `listTracks` → `TrackView[]`, `writeStatus` →
+  `StatusWriteResult`, and the `WorkSourceError` union validate via Zod/JSON-Schema. The types are now
+  defined in `contracts-and-conformance.md` (Q1 closed), but the final shape of `StatusWriteResult` may
+  still change pending Q2 (FR-11 audit-citation boundary). AC-11 becomes fully active once Q2 is resolved.
 
 ## Failure & degraded outcomes (first-class)
 
@@ -120,15 +120,16 @@ Consumed by core-06 and the launch/task-snapshot path of core-01. Must NOT depen
 
 ## Required reading
 
-This domain's spec (`README.md` + `evidence/`); `decisions.md` AD-8; `architecture.md` §5 (two
-authorities); `dependency-policy.md`; `testing-policy.md`; `fnd-02`'s `ArtifactRef` + lease; `w2-1`.
-Nothing else.
+This domain's spec (`README.md` + `contracts-and-conformance.md` + `evidence/`); `decisions.md` AD-8;
+`architecture.md` §5 (two authorities); `dependency-policy.md`; `testing-policy.md`; `fnd-02`'s
+`ArtifactRef` + lease; `w2-1`. Nothing else.
 
 ## Deliverable
 
 The Work Source contract package + mock, passing the conformance kit; race-safe claim provable on the
-mock; the evidence pack (test-per-AC, coverage). **Plus** the typed `TrackView` / `StatusWriteResult` /
-`WorkSourceError` once the spec is amended.
+mock; the evidence pack (test-per-AC, coverage). `TrackView`, `StatusWriteResult`, and `WorkSourceError`
+are now defined in `contracts-and-conformance.md`; implement against them (note: the final shape of
+`StatusWriteResult` may still change pending Q2 resolution).
 
 ## Boundaries
 
@@ -137,10 +138,12 @@ status-authority vs event-log boundary is ambiguous, **STOP and surface**.
 
 ## Open questions / spec reconciliation required (blocking — close before dispatch)
 
-- **Q1 (blocking).** prov-03 has **no `contracts-and-conformance.md`**. Add one that defines `TrackView`,
-  `StatusWriteResult`, and the `WorkSourceError` discriminated union (with its variant set).
-- **Q2 (blocking, FR-11 boundary).** The spec says `writeStatus` "may cite a run id and snapshot ref for
-  audit." Pin whether prov-03 writes that citation into the task record (and the exact field/format) or
-  the control plane records it as a run event — this touches the two-authorities boundary.
+- **Q1 (RESOLVED).** `contracts-and-conformance.md` now defines `TrackView`, `StatusWriteResult`, and
+  the `WorkSourceError` discriminated union (all 9 failure tokens). No action needed.
+- **Q2 (OPEN — sole remaining blocker, design-owner decision).** The spec says `writeStatus` "may cite a
+  run id and snapshot ref for audit." Pin whether prov-03 writes that citation into the task record (and
+  the exact field/format) or the control plane records it as a run event — this touches the
+  two-authorities boundary (FR-11). Both options are recorded in the contracts file's "Open questions"
+  section pending the owner's decision. Do not dispatch until resolved.
 - **Q3.** `CapabilityAttestation` freshness/expiry re-probe mechanics are a core-02 concern; confirm the
   mock only simulates expiry, it does not own re-probe.

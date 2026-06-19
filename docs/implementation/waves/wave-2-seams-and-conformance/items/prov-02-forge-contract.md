@@ -3,8 +3,8 @@ title: "prov-02 — Forge contract + mock — implementation charter"
 id: "prov-02-contract"
 wave: 2
 layer: "contracts (providers)"
-status: "item: blocked-on-spec"
-spec: "docs/design/domains/providers/prov-02-forge-collaboration/ (README.md + evidence/)"
+status: "item: ready"
+spec: "docs/design/domains/providers/prov-02-forge-collaboration/ (README.md + contracts-and-conformance.md + evidence/)"
 ---
 
 # prov-02 — Forge contract + mock
@@ -17,9 +17,7 @@ only; the real GitHub/octokit driver is the driver track. (FR-6/FR-7, NFR-SAFE.)
 `docs/design/domains/providers/prov-02-forge-collaboration/` (`README.md` + `evidence/` index for the
 observed GitHub shapes). DTOs are **defined independently of any SDK shape**. Ambiguous → STOP and surface.
 
-> **BLOCKED on spec reconciliation** — prov-02 has **no `contracts-and-conformance.md`**; `ForgeDegraded`,
-> the `ForgeActionResult` discriminant, and the evidence sub-DTOs are prose-only. ACs cover the defined
-> surface; the DTO-shape ACs are deferred until the spec types them (R4). Do not invent shapes.
+> **Spec reconciliation done** — `contracts-and-conformance.md` now exists and types `ForgeEvidenceSnapshot` (+ its CI/PR/review/protection/merge-queue sub-DTOs), `ForgeDegraded`, and the `ForgeActionResult` discriminant (Q1/Q2 closed). Q3/Q4 are confirm-only owner-ratification items, non-blocking.
 
 ## Spec surface (manifest)
 
@@ -27,9 +25,10 @@ observed GitHub shapes). DTOs are **defined independently of any SDK shape**. Am
   `collectEvidence`, `updateBranch`, `enqueue`, `merge`.
 - **Head-binding** — `collectEvidence`/`updateBranch`/`enqueue`/`merge` take `expectedHeadSha` (required);
   every irreversible action re-reads head and refuses on mismatch.
-- **Defined-ish types** — `ForgeRepoRef`, `ForgeBranchRef`, `PullRequestRef`, `EvidenceRequest`,
+- **Defined types** — `ForgeRepoRef`, `ForgeBranchRef`, `PullRequestRef`, `EvidenceRequest`,
   `ExpectedHeadActionRequest`. `ForgeEvidenceSnapshot` (PR state, base/head SHA, status/check rollup,
-  reviews, unresolved threads, protection/ruleset facts, queue facts, evidence refs) — **prose-only**.
+  reviews, unresolved threads, protection/ruleset facts, queue facts, evidence refs) — defined in
+  `contracts-and-conformance.md`.
 - **Capability set** — `supportsRulesets`, `supportsMergeQueue`, `supportsThreadResolution`,
   `canInspectProtection`. Attestation = w2-1 `CapabilityAttestation`.
 - **Failure tokens (owned here, §8)** — `forge-credential-unavailable`, `forge-auth-denied`,
@@ -38,8 +37,8 @@ observed GitHub shapes). DTOs are **defined independently of any SDK shape**. Am
   `forge-admin-bypass-refused`, `forge-ghes-capability-unknown`, `forge-rate-limited`,
   `forge-redaction-unavailable`. *(Note: there is no `forge-data-partial` token — missing CI/check data
   maps to `forge-state-unknown`.)*
-- **UNDEFINED / prose-only (blocking):** `ForgeDegraded` shape; `ForgeActionResult` discriminant + fields;
-  the CI/PR/review/merge evidence sub-DTOs.
+- **Defined in `contracts-and-conformance.md`:** `ForgeDegraded` shape; `ForgeActionResult` discriminant +
+  fields; the CI/PR/review/merge evidence sub-DTOs (including `ForgeEvidenceSnapshot` and its sub-DTOs).
 
 ## Responsibilities (in scope)
 
@@ -87,9 +86,9 @@ on core/edge/drivers/SDK. No cross-item shape produced.
   confines `octokit` to `packages/drivers-github`. — *dependency-policy.md (SDK behind a seam).*
 - **AC-8** The conformance run reproduces the dated `evidence/.../mock-forge-conformance.json` structure
   (capabilities = 4, operations = 7, adversarialCases ≥ 8, every degraded token present). — *evidence/ index.*
-- **AC-9 (deferred — blocked)** Every evidence DTO and `ForgeActionResult` is expressible from the mock
-  with no octokit type, validated by a Zod/JSON-Schema round-trip. *Cannot be finalized until the DTO
-  shapes + the `ForgeActionResult` discriminant are typed in the spec (Open questions Q1/Q2).*
+- **AC-9** Every evidence DTO and `ForgeActionResult` is expressible from the mock with no octokit type,
+  validated by a Zod/JSON-Schema round-trip. *(DTO shapes + `ForgeActionResult` discriminant are now
+  typed in `contracts-and-conformance.md`.)*
 
 ## Failure & degraded outcomes (first-class)
 
@@ -117,28 +116,30 @@ on core/edge/drivers/SDK. No cross-item shape produced.
 
 ## Required reading
 
-This domain's spec (`README.md` + `evidence/` index); `dependency-policy.md` (octokit worked example —
-evidence DTOs, no SDK leakage); `testing-policy.md`; `w2-1`. Nothing else.
+This domain's spec (`README.md` + `contracts-and-conformance.md` + `evidence/` index);
+`dependency-policy.md` (octokit worked example — evidence DTOs, no SDK leakage); `testing-policy.md`;
+`w2-1`. Nothing else.
 
 ## Deliverable
 
 The Forge contract package + mock forge, passing the conformance kit; the evidence pack (test-per-AC,
-coverage, no-octokit proof). **Plus** the typed DTO/`ForgeActionResult`/`ForgeDegraded` definitions once
-the spec is amended.
+coverage, no-octokit proof). The typed DTO/`ForgeActionResult`/`ForgeDegraded` definitions are now in the
+spec (`contracts-and-conformance.md`); implement against them.
 
 ## Boundaries
 
 Contract + mock only; evidence DTOs must be expressible from both a mock and (future) octokit without
 leaking SDK shapes. If a DTO can only be expressed in octokit terms, **STOP and surface**.
 
-## Open questions / spec reconciliation required (blocking — close before dispatch)
+## Open questions (non-blocking; tracked)
 
-- **Q1 (blocking).** prov-02 has **no `contracts-and-conformance.md`** (unlike prov-01/prov-04). Add one
-  that types `ForgeEvidenceSnapshot` and its CI/PR/review/merge sub-DTOs with explicit partial/degraded
-  states.
-- **Q2 (blocking).** Define `ForgeDegraded` (token field + observed-facts field) and the
-  `ForgeActionResult` discriminant field name + the `accepted | refused | degraded` variant shapes.
-- **Q3.** Confirm `forge-lies-merge-state` is covered by `forge-head-mismatch` (re-read before merge),
-  not a separate token.
-- **Q4.** Confirm the partial-protection case (`supportsRulesets` available but `canInspectProtection`
-  not) returns a degraded snapshot, not a partial one.
+- **Q1 — RESOLVED.** `contracts-and-conformance.md` now exists and types `ForgeEvidenceSnapshot` and its
+  CI/PR/review/protection/merge-queue sub-DTOs with explicit partial/degraded states.
+- **Q2 — RESOLVED.** `ForgeDegraded` (token field + observed-facts field) and the `ForgeActionResult`
+  discriminant (`kind`: `accepted | refused | degraded`; `accepted`/`refused` carry `observedHeadSha`,
+  `degraded` carries it optionally — the head may be unread when a degrade occurs) are typed in
+  `contracts-and-conformance.md`.
+- **Q3 (confirm-only — design owner to ratify).** Confirm `forge-lies-merge-state` is covered by
+  `forge-head-mismatch` (re-read before merge), not a separate token.
+- **Q4 (confirm-only — design owner to ratify).** Confirm the partial-protection case (`supportsRulesets`
+  available but `canInspectProtection` not) returns a degraded snapshot, not a partial one.

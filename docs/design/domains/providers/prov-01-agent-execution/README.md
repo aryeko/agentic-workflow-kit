@@ -139,7 +139,8 @@ event instead of fabricating one. Runner-owned verify continues to use Execution
 The public interface is:
 
 - `probeCapabilities(scope): CapabilityAttestation[]`
-- `startWorker(request, hostHandle): AgentSession | AgentFailure`
+- `startWorker(request): AgentSession | AgentFailure` (the host worker is carried in
+  `request.hostWorker: WorkerHandle`, from prov-04)
 - `observe(session): AsyncIterable<AgentEvent>`
 - `answerApproval(session, answer): ApprovalAnswerResult`
 - `resumeOwned(request): AgentSession | AgentFailure`
