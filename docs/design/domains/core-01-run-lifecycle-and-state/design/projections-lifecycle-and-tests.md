@@ -81,15 +81,17 @@ No other transition is legal. Recovery does not provide an implicit escape hatch
 transition must match one of the recovery rows above, name the prior state in `from`, cite recovery
 evidence in `sourceEventIds`, and use `authority = "recovery"`.
 
-Terminal states are `completed`, `blocked`, `failed`, and `canceled`. A terminal transition requires
+Terminal states are `completed`, `blocked`, `failed`, and `canceled`. There is no distinct
+`abandoned` state; abandonment evidence maps to `blocked` or `failed`. A terminal transition requires
 `barrier` durability and closes lifecycle mutation for that writer epoch.
 
-Post-terminal analysis or export facts may append as non-lifecycle events by a fenced writer, but they
-cannot change the terminal lifecycle state.
+Post-terminal non-lifecycle facts may append by the fenced terminal writer until lease expiry, but
+they cannot change the terminal lifecycle state. A fresh writer epoch is required only after lease
+loss.
 
 ## Session linkage
 
-Session linkage is append-only. `SessionLinked` records `{ linkOrdinal, sessionId, ownershipClass,
+Session linkage is append-only. `SessionLinked` records `{ linkOrdinal, sessionId, linkRole,
 startedAt, sourceEventId, supersedesOrdinal? }`. `linkOrdinal` starts at 1 and is strictly contiguous.
 A new link can supersede a prior link for projection purposes, but the prior fact remains in the log.
 There is no `SessionLinkUpdated`; corrections append `SessionLinkSuperseded` with a reason and
@@ -118,9 +120,11 @@ Core-01 owns these event roles:
   durable recording is still available. Stale-writer, corrupt-log, and unavailable-log failures are
   returned to the caller but are not self-recorded by the rejected writer.
 
-Sibling domains may append additional event types through `RunWriter`. Core-01 consumes only envelope,
-lifecycle, linkage, and durability metadata needed for replay safety. Well-formed event payloads from
-unknown future types are retained in `summary.unknownEvents` and otherwise ignored.
+Sibling domains contribute records through core-01's single leased `RunWriter`: they either return
+`AppendIntent`s to the owning core flow or use the active writer when their approved contract exposes
+writer-based recording. Core-01 consumes only envelope, lifecycle, linkage, and durability metadata
+needed for replay safety. Well-formed event payloads from unknown future types are retained in
+`summary.unknownEvents` and otherwise ignored.
 
 ## Failure and degraded modes
 

@@ -48,10 +48,11 @@ flowchart LR
 ```
 
 Dependency Rule compliance: this domain defines a provider contract and driver obligations. It
-depends on the Execution Host for worker process ownership and on Credentials & Secrets for worker
-safe injection, redaction, and egress-policy inputs. It introduces no dependency on the Control plane
-or concrete core modules. The Control plane consumes the Agent contract; Codex and mock drivers
-implement it.
+depends on the Execution Host for worker process ownership and on Credentials & Secrets only for the
+redaction set used by `AgentOutputSink`; worker-safe injection is delivered through the prov-04
+host-side `HostInjectionContext`, a subset of the fnd-04 `InjectionPlan`. It introduces no dependency
+on the Control plane or concrete core modules. The Control plane consumes the Agent contract; Codex
+and mock drivers implement it.
 
 ## 4. Design
 
@@ -108,11 +109,16 @@ Emitted events: `AgentCapabilityAttested`, `AgentSessionStarted`, `AgentSessionL
 `AgentToolObserved`, `AgentGuardianReviewObserved`, `AgentSessionTerminal`,
 `AgentObservationDegraded`, and `AgentSessionReleased`.
 
-Consumed data: `WorkerHandle` / `HostWorkspaceHandle` and host observations from prov-04;
-worker-safe `HostInjectionContext`, redaction set, and egress policy from fnd-04; prompt/task
-payload and approval answers passed in by the Control plane. Contributed projections are latest
-Agent capability by freshness key, active provider session linkage, pending approval channels, last
-tool observations, and terminal Agent state.
+Stream events map to log event names as follows: `linked` -> `AgentSessionLinked`, `progress` ->
+`AgentProgressObserved`, `approval-requested` -> `AgentApprovalRequested`, `tool-observed` ->
+`AgentToolObserved`, `guardian-review` -> `AgentGuardianReviewObserved`, `degraded` ->
+`AgentObservationDegraded`, and `terminal` -> `AgentSessionTerminal`.
+
+Consumed data: `WorkerHandle` / `HostWorkspaceHandle`, host observations, and
+`HostInjectionContext` from prov-04; `redactionSetId` / redaction set for `AgentOutputSink` from
+fnd-04; prompt/task payload and approval answers passed in by the Control plane. Contributed
+projections are latest Agent capability by freshness key, active provider session linkage, pending
+approval channels, last tool observations, and terminal Agent state.
 
 ## 7. Behavior diagram
 
@@ -136,7 +142,7 @@ sequenceDiagram
   H-->>CP: recorded decision
   CP->>AG: answerApproval(scoped grant or denial)
   AG-->>CP: ToolObserved(command, exitCode, outputRef)
-  AG-->>CP: terminal(success | failed | interrupted)
+  AG-->>CP: terminal(completed | failed | interrupted)
 ```
 
 ## 8. Failure & degraded modes
@@ -178,8 +184,8 @@ parentage probes are captured for the target Codex version.
   unattended autonomy or kill-dependent recovery.
 - Whether Phase 0 `mcp-server` can persist approval answer channels through `elicitation/create`
   remains unsatisfied by current evidence.
-- The final storage-backed type behind `outputRef` must be reconciled with fnd-02 when that contract
-  is designed; this domain treats it as an opaque, redacted output reference.
+- Resolved: `outputRef` is an fnd-02 `ArtifactRef.id`, resolvable via
+  `ArtifactStore.resolve(id)`; this domain still treats it as an opaque, redacted output reference.
 
 ## 11. Definition of done
 

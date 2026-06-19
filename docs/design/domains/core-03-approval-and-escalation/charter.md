@@ -31,7 +31,8 @@ FR-4 (approval relay), NFR-SAFE, NFR-DET.
 
 ## Dependencies (Dependency Rule)
 - Depends on: core-01 (events), core-02 (the `orchestrator-decide` / `escalation-auto-grant` gates),
-  the **Agent contract** (the neutral request/decision shape).
+  fnd-01 (resolved approval/escalation policy via `ResolvedPolicy`), and prov-01 (the Agent contract
+  neutral request/decision/grant shapes).
 - Must NOT: depend on the Codex driver or its enums directly.
 
 ## Required reading

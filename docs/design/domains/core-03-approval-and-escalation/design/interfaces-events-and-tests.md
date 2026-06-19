@@ -56,6 +56,11 @@ interface ApprovalResumeInput {
 }
 ```
 
+Operator mapping note: the Operator surface may request grant, deny, or park. `requestedScope` is the
+typed `PolicyGrantScope` enum on `ApprovalRequest`, never a free string; the recorded Operator
+decision event id rides `ApprovalDecisionInput.operatorDecisionEventId`; and park records
+`ApprovalParked` and projects `parked`, not a `Decision` value.
+
 Consumed interfaces: core-01 `RunWriter`, `RunReplay`, `RunProjections`, `RunLifecycleTransitioned`,
 and `SessionLinked`; core-02 `CapabilityGateRecord` for `escalation-auto-grant` and
 `orchestrator-decide`; fnd-01 `ResolvedPolicy.policy.approval` and
@@ -76,7 +81,9 @@ Emitted events use `domain = "core-03"` and the core-01 `RunEventEnvelope`.
 - `ApprovalRequested` (`barrier`): normalized request, recorded before decision.
 - `ApprovalPendingPersisted` (`barrier`): durable pending state and live answer deadline.
 - `ApprovalRiskClassified` (`durable`): deterministic risk result and triggered rule ids.
-- `ApprovalDecisionRecorded` (`barrier`): policy, system, or Operator decision.
+- `ApprovalDecisionRecorded` (`barrier`): policy, system, or Operator decision. For
+  `ApprovalSubject = "protected-policy-change"`, this is the recorded Operator approval event that
+  core-05's changed-file gate cites.
 - `ApprovalParked` (`barrier`): request parked for attention or durable resume.
 - `ApprovalResumed` (`barrier`): pending request resumed with grant pre-loaded.
 - `ApprovalOutcomeRecorded` (`barrier`): answer, denial, expiry, block, or failure result, including
@@ -104,9 +111,9 @@ Required tests:
 - property tests proving `decide(request, policy, mode, rules)` is deterministic for replayed inputs;
 - mode-ladder tests for manual, assisted allowlist, high-risk human escalation, and deferred
   `orchestrator-decide`;
-- scoped-grant minimization tests for `per-command`, `per-command-prefix`, `per-host`, `session`,
-  and `denial`, plus mapping tests that prove `Decision.grant` is an Agent `ScopedGrant` accepted by
-  `ApprovalAnswer.grant`;
+- scoped-grant minimization tests for `per-command`, `per-command-prefix`, `per-host`, and `session`,
+  plus denial-disposition mapping tests that prove `Decision.grant` is an Agent `ScopedGrant`
+  accepted by `ApprovalAnswer.grant`;
 - park/resume tests for process death, human latency, live-only channels, persisted channels, expired
   requests, and pre-loaded grants;
 - fail-closed tests for missing resolved policy/provenance, missing capability, missing Agent relay,

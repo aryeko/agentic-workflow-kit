@@ -127,9 +127,11 @@ action id, command name, surface, OS-user actor or identity-resolution failure, 
 parameter digest, reason, idempotency key, result intent, and validation errors when present.
 
 For approval decisions, `OperatorActionRecorded.actionKind = "approval-decision"` carries the request
-id, decision, requested scope, reason, and actor. Core-03 consumes that event id as the
-`operatorDecisionEventId` required for human decisions. Protected-policy or profile overrides use the
-same audit event shape with an override-specific action kind.
+id, decision, requested `PolicyGrantScope` (`per-command`, `per-command-prefix`, `per-host`, or
+`session`) when applicable, reason, and actor. `deny` and `park` are decision dispositions, not grant
+scopes. Core-03 consumes that event id as the `operatorDecisionEventId` required for human decisions.
+Protected-policy or profile overrides use the same audit event shape with an override-specific action
+kind.
 
 Consumed data: core-01 state, summary, metrics, launch projections and event cursors; core-02
 `CapabilityGateRecord`; core-03 pending approval projections and outcomes; core-04 liveness
@@ -146,7 +148,7 @@ sequenceDiagram
   participant RL as Run Lifecycle & Event State
   participant APR as Approval & Escalation
 
-  Operator->>Edge: approval grant or denial
+  Operator->>Edge: approval decision
   Edge->>Edge: normalize params + resolve OS-user actor
   Edge->>OPC: decideApproval(OperatorCommandEnvelope)
   OPC->>RL: append OperatorActionRecorded(barrier)

@@ -30,9 +30,9 @@ Shared vocabulary. Use these terms exactly; do not introduce synonyms.
 | **Supervision / liveness** | Determining whether a worker is really making progress, derived from real worker events (not parent polling). |
 | **Approval relay** | Catching a worker's escalation request, classifying + adjudicating it, and answering with the tightest scoped grant. |
 | **Park / resume** | Persisting a pending approval as durable state so it survives human latency and process death, then resuming the owned session with the grant. |
-| **Scoped grant** | The tightest escalation that suffices (per-command, per-command-prefix, per-host, or session) — never blanket full access. |
+| **Scoped grant** | The tightest escalation that suffices — never blanket full access. `PolicyGrantScope` is the policy-intent layer owned by fnd-01 and core-03 (`per-command`, `per-command-prefix`, `per-host`, or `session`). It is distinct from provider-enforcement grant lifetime (`request`, `turn`, or `session`) plus `ScopedGrantKind`, owned by prov-01; the two compose. |
 | **Containment** | The OS-level mechanism that makes a local worker's whole process tree killable and reapable (process group / cgroup / Job Object). |
-| **Ownership class** | How the kit relates to a worker process: `owned`, `owned-remote`, or `observe-only`. Drives which capabilities are reachable. |
+| **Ownership class** | How the kit relates to a worker process: `owned`, `owned-remote`, or `observe-only`. Drives which capabilities are reachable. Distinct from core-01 session `linkRole` (`primary`, `recovery`, or `observer`); do not conflate them. |
 | **Recovery classifier** | The pure function that maps run evidence to a named recovery state and a safe action class. |
 | **Earn autonomy** | The principle that every autonomous capability is locked behind proven guarantees; default is supervised. |
 | **Charter** | The chief-architect-owned brief for a domain: responsibility, scope, requirements, dependencies, required reading, deliverable, DoD. |

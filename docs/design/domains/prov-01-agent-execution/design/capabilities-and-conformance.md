@@ -24,6 +24,10 @@ Capability gates use the exact driver version, protocol surface, platform, host 
 freshness key, and evidence refs. Schema-only evidence can prove message shape but cannot prove
 liveness, persistence, parentage, or answer delivery.
 
+`emitsStructuredToolExit` is this domain's Agent capability, distinct from prov-04's Host capability
+with the same name. Consumers qualify attestations by provider through core-02
+`AttestationRef.provider`.
+
 ## Event invariants
 
 - A session emits at most one `linked` event and exactly one `terminal` event.
@@ -33,6 +37,9 @@ liveness, persistence, parentage, or answer delivery.
   `structured-tool-exit-missing`.
 - `tool-observed.outputRef` is required and must refer to redacted output with a digest. Raw command
   output is not embedded in the event log.
+- Stable `tool-observed.itemId` values are required for core-04's per-tool timer. If item ids are
+  absent or unstable, core-04 degrades fail-closed to `tool_tracking_unavailable`; idle,
+  no-progress, and max-runtime supervision remain active.
 - Guardian review events never approve or deny a kit gate by themselves.
 
 ## Conformance suite

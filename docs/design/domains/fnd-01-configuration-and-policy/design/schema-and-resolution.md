@@ -39,6 +39,7 @@ type PolicyLayer = {
   provisioning: ProvisioningPolicy;
   approval: ApprovalPolicy;
   escalationPolicy: EscalationPolicy;
+  changePolicy: ChangePolicy;
   capabilities: CapabilityPolicy;
   merge: MergePolicy;
 };
@@ -73,15 +74,19 @@ type ApprovalPolicy = {
 };
 
 type EscalationPolicy = {
-  allowedGrantScopes: Array<"command" | "command-prefix" | "host" | "session">;
-  maxGrantScope: "command" | "command-prefix" | "host" | "session";
+  allowedGrantScopes: Array<"per-command" | "per-command-prefix" | "per-host" | "session">;
+  maxGrantScope: "per-command" | "per-command-prefix" | "per-host" | "session";
   denyByDefault: boolean;
   grantRules: Array<{
     reason: "dependency-install" | "verification" | "worker-tool" | "other";
-    scope: "command" | "command-prefix";
+    scope: "per-command" | "per-command-prefix";
     prefixes?: string[];
     requiresOperator?: boolean;
   }>;
+};
+
+type ChangePolicy = {
+  allowedChangePaths: string[];
 };
 
 type CapabilityPolicy = {
@@ -113,7 +118,9 @@ The built-in defaults are complete and intentionally supervised:
 - `provisioning.containmentRequired = true`; `ownershipClass = "owned"`.
 - `provisioning.dependencyInstall.defaultGrant = "narrow"` with immutable built-in package-manager
   install prefixes. This grant is still bounded by `EscalationPolicy`.
-- `escalationPolicy.denyByDefault = true`; default maximum scope is `command-prefix`.
+- `escalationPolicy.denyByDefault = true`; default maximum scope is `per-command-prefix`.
+- `changePolicy.allowedChangePaths = []`; no changed file path is allowed unless a profile or
+  operator override grants it explicitly.
 - `merge.runnerMayPush = true`, `runnerMayOpenPr = true`, `runnerMayMerge = false`; required
   evidence includes verification, CI, review, resolved threads, and protection.
 
@@ -129,8 +136,8 @@ operator per-run override patch. Operator override always wins.
 
 Algorithm:
 
-1. Validate `KitConfig.schema`; if absent or not `kit-vnext.config.v1`, emit an adoption diagnostic
-   and refuse to resolve policy.
+1. Validate `KitConfig.schema`; if absent or not `kit-vnext.config.v1`, return diagnostic/failure
+   append intents and refuse to resolve policy.
 2. Validate config and run input against the schema; reject unknown fields.
 3. Select the profile if provided; unknown profile is a blocking error.
 4. Load immutable built-in defaults for the schema version as a complete `PolicyLayer`.
@@ -139,8 +146,10 @@ Algorithm:
    defaults.
 7. Merge only object maps; arrays and scalar values replace atomically. `null` is invalid unless the
    field schema explicitly allows it.
-8. Emit one `ConfigFieldResolved` event per leaf in the same canonical order.
-9. Return `ResolvedPolicy` only after every provenance event is durably appended.
+8. Return one structural `ConfigFieldResolved` append intent per leaf in the same canonical order,
+   followed by `ConfigResolved`.
+9. The caller appends those intents through core-01's single RunWriter before treating
+   `ResolvedPolicy` as active for the Run.
 
 This makes the resolved policy a pure function of recorded inputs, schema version, and immutable
 built-in defaults.
@@ -173,6 +182,6 @@ Recognized artifact markers are `kit-vnext.event-log.v1`, `kit-vnext.projection.
 `kit-vnext.launch.v1`. FND-01 diagnoses only configured vNext state locations supplied by the caller:
 config, run event logs, projections, resolved-policy snapshots, capability-attestation artifacts, and
 launch artifacts. Any artifact in those locations without a recognized marker, or with a known
-non-vNext marker, emits `AdoptionDiagnosticEmitted` through the injected event writer and blocks
-launch. If the diagnostic cannot be recorded, launch remains blocked as
-`adoption_diagnostic_unrecorded`.
+non-vNext marker, returns an `AdoptionDiagnosticEmitted` append intent and blocks launch. The owning
+core domain appends returned diagnostic/failure intents through core-01's single RunWriter. If those
+intents cannot be recorded, launch remains blocked as `adoption_diagnostic_unrecorded`.

@@ -21,6 +21,8 @@ type RunEventEnvelope<TPayload = unknown> = {
   occurredAt: string; recordedAt: string; payloadDigest: string; payload: TPayload;
   causationId?: string; correlationId?: string; artifactRefs?: string[];
 };
+// Imported by sibling domains that need a stable reference into the core-01 event envelope.
+type EvidenceEventRef = { eventId: string; sequence: number; payloadDigest: string; type: string };
 type CreateRunInput = {
   runId: string; holder: string; leaseTtlMs: number; idempotencyKey: string;
   createdAt: string; operatorRef?: string; correlationId?: string; artifactRefs?: string[];
@@ -78,7 +80,7 @@ type RunLifecycleTransitionPayload = { from: RunLifecycleState | null; to: RunLi
   reason: string; authority: "operator" | "policy" | "system" | "recovery";
   sourceEventIds: string[]; terminal?: boolean; };
 type SessionLinkedPayload = { linkOrdinal: number; sessionId: string;
-  ownershipClass: "primary" | "recovery" | "observer"; startedAt: string;
+  linkRole: "primary" | "recovery" | "observer"; startedAt: string;
   sourceEventId: string; supersedesOrdinal?: number; };
 type SessionLinkSupersededPayload = { supersededOrdinal: number; replacementOrdinal: number;
   reason: string; sourceEventId: string; };

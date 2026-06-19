@@ -81,7 +81,10 @@ interface AgentOutputSink {
     bytes: string;
     redactionSetId: string;
     contentEncoding: "utf8" | "base64";
-  }): { outputRef: string; digest: string; redactionApplied: true };
+  }): {
+    // fnd-02 ArtifactRef.id; resolve via ArtifactStore.resolve(id).
+    outputRef: string; digest: string; redactionApplied: true;
+  };
 }
 
 interface AgentSession {
@@ -152,6 +155,7 @@ interface ToolObserved {
   command: string;
   cwd?: string;
   exitCode: number;
+  // fnd-02 ArtifactRef.id; resolve via ArtifactStore.resolve(id).
   outputRef: string;
   outputDigest: string;
   source: "agent";

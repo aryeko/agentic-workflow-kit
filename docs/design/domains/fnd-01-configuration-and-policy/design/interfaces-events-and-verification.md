@@ -31,6 +31,7 @@ type ArtifactSource = {
 type AdoptionReport = {
   diagnostics: AdoptionDiagnostic[];
   mayLaunch: boolean;
+  appendIntents: ConfigurationPolicyAppendIntent[];
 };
 type AdoptionContext = {
   eventWriter: DurableEventWriter;
@@ -39,6 +40,22 @@ type ResolvedPolicy = {
   schema: "kit-vnext.resolved-policy.v1";
   policy: PolicyLayer;
   provenance: Record<string, FieldProvenance>;
+};
+type ResolvedPolicyResult = {
+  resolvedPolicy: ResolvedPolicy;
+  appendIntents: NonEmptyArray<ConfigurationPolicyAppendIntent>;
+};
+type ConfigurationPolicyAppendIntent = {
+  domain: "fnd-01";
+  type:
+    | "ConfigFieldResolved"
+    | "ConfigResolved"
+    | "AdoptionDiagnosticEmitted"
+    | "PolicyResolutionFailed";
+  occurredAt: string;
+  payload: ConfigFieldResolved | ConfigResolved | AdoptionDiagnosticEmitted | PolicyResolutionFailed;
+  durability: "durable" | "barrier";
+  correlationId?: string;
 };
 type FieldProvenance = {
   fieldPath: string;
@@ -56,16 +73,17 @@ type AdoptionDiagnostic = {
 };
 type ResolutionContext = {
   runId: string;
-  eventWriter: DurableEventWriter;
 };
+// Run-scoped config events (ConfigFieldResolved/ConfigResolved, carrying runId) are appended by
+// core-01's single RunWriter. This structural type is assignable to core-01 AppendIntent while
+// keeping fnd-01 free of core imports.
+// Pre-run ConfigLoaded (no runId, instance-scoped) is the only event this writer commits directly.
 type DurableEventWriter = {
-  appendConfigurationEvents(
-    events: NonEmptyArray<ConfigurationPolicyEvent>,
-  ): Result<{ transactionId: string }, "append_failed">;
+  appendConfigLoaded(event: ConfigLoaded): Result<{ transactionId: string }, "append_failed">;
 };
 type AdoptionDiagnosticFailure = {
-  reason: "diagnostic_write_failed";
-  blockingState: "adoption_diagnostic_unrecorded";
+  reason: "config_loaded_write_failed";
+  blockingState: "config_loaded_unrecorded";
 };
 type PolicyResolutionFailure = {
   reason:
@@ -78,6 +96,7 @@ type PolicyResolutionFailure = {
     | "provenance_write_failed";
   blockingState: string;
   diagnostic?: AdoptionDiagnostic;
+  appendIntents?: NonEmptyArray<ConfigurationPolicyAppendIntent>;
 };
 
 interface ConfigurationPolicy {
@@ -89,15 +108,17 @@ interface ConfigurationPolicy {
     source: ConfigSource,
     input: RunConfigInput,
     context: ResolutionContext,
-  ): Result<ResolvedPolicy, PolicyResolutionFailure>;
+  ): Result<ResolvedPolicyResult, PolicyResolutionFailure>;
 }
 ```
 
 Consumed interfaces: none above Foundation. File loading and artifact discovery are supplied by lower
-foundation mechanics. `DurableEventWriter` is injected foundation infrastructure; it must atomically
-commit the complete diagnostic or resolution event batch, or report `append_failed`. `ResolvedPolicy`
-is returned only after the resolution commit succeeds. If the failure event cannot be appended, the
-function still returns `provenance_write_failed` and no policy.
+foundation mechanics. `DurableEventWriter` is injected foundation infrastructure only for committing
+pre-run `ConfigLoaded`. Adoption and resolution return structural core-01 append intents for
+`AdoptionDiagnosticEmitted`, `PolicyResolutionFailed`, `ConfigFieldResolved`, and `ConfigResolved`;
+the owning core domain appends those intents through core-01's single leased `RunWriter` before
+binding the policy to a Run. If the caller cannot durably append the returned intents, no policy is
+active for that Run and launch remains blocked.
 
 ## Events
 
@@ -155,12 +176,15 @@ type ConfigurationPolicyEvent =
 
 - `adoption_incompatible`: config has a non-vNext marker. Refuse to run with guidance.
 - `adoption_unknown_artifact`: config or artifact has no recognized vNext marker. Refuse to run.
-- `adoption_diagnostic_unrecorded`: adoption diagnostics could not be durably recorded.
+- `adoption_diagnostic_unrecorded`: the caller could not append the returned diagnostic/failure
+  intents through core-01; launch remains blocked.
+- `config_loaded_unrecorded`: pre-run `ConfigLoaded` could not be committed; launch remains blocked.
 - `config_invalid`: schema validation failed. No policy is returned.
 - `profile_unknown`: requested profile does not exist. No fallback profile is selected.
 - `override_invalid`: operator override has an unknown or invalid field. No partial override applies.
 - `unsupported_deferred_capability`: config attempts to set `orchestrator-decide` in v1.
-- `provenance_write_failed`: policy was computed but not returned because provenance was not durable.
+- `provenance_write_failed`: policy was computed but not activated because the caller could not append
+  the returned provenance events through core-01.
 
 Capability gates treat any missing resolved policy, failed diagnostic, or missing provenance event as
 all autonomous capabilities absent. The safe degraded state is supervised, blocked before launch.
@@ -170,13 +194,13 @@ all autonomous capabilities absent. The safe degraded state is supervised, block
 - Schema tests validate good configs, reject unknown fields, and snapshot safe defaults.
 - Property tests generate built-in defaults/profile/operator patches and prove operator override wins
   for every field, independent of object insertion order.
-- Provenance tests assert one event per leaf field, canonical ordering, correct source layer, and
-  stable value hashes.
-- Append-failure tests assert `resolveRunPolicy` returns no policy unless the complete event batch is
-  committed, and returns `provenance_write_failed` on writer failure.
+- Provenance tests assert one returned event-ready payload per leaf field, canonical ordering, correct
+  source layer, and stable value hashes.
+- Append-failure tests live with the core-01 RunWriter integration: if the returned intent batch cannot
+  be committed, no policy becomes active for the Run and launch remains blocked.
 - Adoption tests cover valid vNext markers, incompatible config markers, absent config markers,
   recognized artifact markers, absent artifact markers, incompatible artifact markers, unknown
-  artifacts in configured state locations, and diagnostic append failure.
+  artifacts in configured state locations, and returned diagnostic/failure append intents.
 - Capability default-off tests prove no config default enables autonomy and all enabled desires still
   require fresh positive attestation.
 - Deferred-capability tests prove `orchestrator-decide` is rejected in config, profile, and override.

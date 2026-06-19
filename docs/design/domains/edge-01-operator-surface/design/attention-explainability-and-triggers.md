@@ -10,6 +10,9 @@ last-reviewed: "2026-06-19"
 
 Attention is a rendered view over recorded Control plane facts:
 
+`EvidenceEventRef` is imported from core-01 Run Lifecycle & Event State. Edge-owned
+`OperatorEventRef` remains a separate reference for `OperatorActionRecorded` audit events.
+
 ```ts
 type AttentionKind =
   | "approval-needed" | "needs-operator" | "approval-overdue" | "worker-stale"
@@ -48,7 +51,8 @@ clear the underlying approval, liveness, recovery, or blocked state.
 2. The edge renders an `AttentionNotice` with `workflow_decide_approval` /
    `workflow approval decide` as an available action.
 3. The Operator submits one `ApprovalDecisionParams` envelope with OS-user identity, request id,
-   decision, scope, and reason.
+   decision, `PolicyGrantScope` (`per-command`, `per-command-prefix`, `per-host`, or `session`) when
+   granting, and reason. `deny` and `park` are decision dispositions, not grant scopes.
 4. The Control plane appends one `OperatorActionRecorded(actionKind = "approval-decision")` event.
 5. Core-03 consumes that event id as recorded Operator input, validates it against request risk and
    policy, and appends its own decision/outcome facts.

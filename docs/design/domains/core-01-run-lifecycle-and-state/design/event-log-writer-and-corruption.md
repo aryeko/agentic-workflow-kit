@@ -23,7 +23,9 @@ Required fields:
 - `occurredAt`: when the producing domain observed the fact.
 - `recordedAt`: assigned by the writer immediately before append.
 - `payloadDigest` and `payload`: canonical JSON payload and digest.
-- `causationId`, `correlationId`, `artifactRefs`: optional trace links.
+- `causationId` and `correlationId`: optional trace links.
+- `artifactRefs`: optional fnd-02 artifact references. Each string is an `ArtifactRef.id` resolvable
+  via `ArtifactStore.resolve(id)`; core-01 stores ids opaquely.
 
 Payload schemas are owned by emitting domains. Well-formed unknown future payload types are
 preserved in replay, copied into `summary.unknownEvents`, and ignored by projections unless

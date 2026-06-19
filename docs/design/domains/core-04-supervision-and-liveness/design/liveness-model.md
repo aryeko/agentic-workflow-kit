@@ -104,7 +104,8 @@ already reached a terminal state.
 
 `SupervisorStopped` is the single terminal-summary fact for this domain. It is a core-04
 non-lifecycle event that cites the terminal source events and is allowed after a terminal lifecycle
-transition only under core-01's approved rule for post-terminal non-lifecycle facts. It never advances
-liveness, refreshes timers, records progress, requests termination, or changes core-01 lifecycle
-state. After `SupervisorStopped`, core-04 emits no more supervisor, liveness, progress, timer,
-termination, or terminal-summary facts for the Run.
+transition only under core-01's ratified post-terminal append rule: reuse the terminal epoch until
+lease expiry, and require a fresh epoch only after lease loss. It never advances liveness, refreshes
+timers, records progress, requests termination, or changes core-01 lifecycle state. After
+`SupervisorStopped`, core-04 emits no more supervisor, liveness, progress, timer, termination, or
+terminal-summary facts for the Run.

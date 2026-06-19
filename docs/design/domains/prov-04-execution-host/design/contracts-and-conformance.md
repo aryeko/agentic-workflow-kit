@@ -50,6 +50,7 @@ interface HostCommandRequest {
 }
 interface CommandResult {
   operationId: string; commandDigest: string; cwd: string; exitCode?: number; signal?: string;
+  // fnd-02 ArtifactRef.id values; resolve via ArtifactStore.resolve(id).
   stdoutRef?: string; stderrRef?: string; outputDigest: string; redactionApplied: boolean;
   startedAt: string; finishedAt: string;
 }
@@ -59,7 +60,11 @@ interface WorkerHandle {
 }
 
 type HostObservation =
-  | { type: "output"; handleId: string; stream: "stdout" | "stderr"; outputRef: string; digest: string; redactionApplied: true; at: string }
+  | {
+      type: "output"; handleId: string; stream: "stdout" | "stderr";
+      // fnd-02 ArtifactRef.id; resolve via ArtifactStore.resolve(id).
+      outputRef: string; digest: string; redactionApplied: true; at: string;
+    }
   | { type: "structured-tool-exit"; handleId: string; tool: string; exitCode: number; payloadRef?: string; digest: string; at: string }
   | { type: "process-exit"; handleId: string; exitCode?: number; signal?: string; at: string }
   | { type: "host-failure"; handleId?: string; failure: HostFailure; at: string };
@@ -113,6 +118,10 @@ The fnd-04 public types used here are `InjectionBinding`, `EgressPolicy`, `Redac
 | `containmentStrength` | Driver reports actual class: `none`, `process-group`, `kernel-tree`, or `job-object`. | Unknown class is treated as absent capability. |
 | `emitsStructuredToolExit` | Host preserves structured tool-exit envelopes when emitted. | Missing or malformed envelopes become ordinary output, not gate evidence. |
 | `egress-confinement` | Policy-scoped negative probes prove disallowed hosts are blocked. | Missing, stale, wrong-scope, or allowed negative probe returns `egress-confinement-unattested`. |
+
+`emitsStructuredToolExit` is this domain's Host capability, distinct from prov-01's Agent capability
+with the same name. Consumers qualify attestations by provider through core-02
+`AttestationRef.provider`.
 
 ## Conformance targets
 

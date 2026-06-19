@@ -63,19 +63,21 @@ Workspace records this declaration, returns it to its caller, and evaluates fres
 does not send anything to Execution Host or execute `command`; the Control plane passes the returned
 setup metadata to Execution Host.
 ### Worktree lifecycle
-`WorktreeLease` is `{ leaseId, runId, repoId, worktreePath, baseRef, baseSha, branchName, state,
-fenceToken }`, where `state` is `planned`, `leased`, `branch-created`, `setup-required`, `ready`,
-`finalized`, `cleanup-pending`, `cleanup-blocked`, or `cleaned`.
+`WorktreeLease` is `{ leaseId, epoch, runId, repoId, worktreePath, baseRef, baseSha, branchName,
+state, fenceToken }`, where `state` is `planned`, `leased`, `branch-created`, `setup-required`,
+`ready`, `finalized`, `cleanup-pending`, `cleanup-blocked`, or `cleaned`. It is backed by an fnd-02
+`LeaseCapability`: `leaseId` is the fnd-02 `name`, `epoch` is the monotonic fnd-02 epoch, and
+`fenceToken` is the fnd-02 token.
 
 Lifecycle:
 1. Resolve `baseRef` to local `baseSha`; fail closed if absent and never fetch.
 2. Allocate `<worktreeRoot>/<repoId>/<runId>/` and create a local worktree at `baseSha`.
-3. Create the task branch in that worktree and persist `leaseId` plus `fenceToken`.
+3. Create the task branch in that worktree and persist `leaseId`, `epoch`, and `fenceToken`.
 4. Evaluate setup freshness; emit `setup-required` when stale or `ready` when fresh.
 5. After the Control plane runs setup through Execution Host, it calls `confirmSetup`. Workspace
    re-evaluates freshness locally and transitions to `ready` only when the detector is fresh.
    Otherwise it remains `setup-required` and returns `setup-freshness-unknown` or a stale reason.
-6. Freeze `baseSha`, `branchName`, `worktreePath`, and `fenceToken` for later operations.
+6. Freeze `baseSha`, `branchName`, `worktreePath`, `epoch`, and `fenceToken` for later operations.
 7. Finalize only after local evidence has been recorded for the current `headSha`.
 8. Cleanup removes the worktree and writes a tombstone; blocked cleanup moves to retry/escalation.
 ### Branch model
@@ -94,10 +96,11 @@ Evidence is read-only inspection. It must not include remote refs, remote URLs, 
 CI state, review state, merge state, or worker prose. If branch, merge base, status, or diff cannot
 be read, the result is `local-git-evidence-unavailable`, not partial success.
 ### Cleanup
-Cleanup is fenced by `leaseId` and `fenceToken`. It may remove the leased worktree path, prune the
-local worktree registration for that path, delete the local task branch only when explicitly requested
-and `headSha` still matches finalized evidence, and write a cleanup tombstone. It must not infer
-remote merge state.
+Cleanup is fenced by `leaseId`, `epoch`, and `fenceToken`. Cleanup and finalize both call
+`fence(name=leaseId, epoch, token=fenceToken)` before protected lease writes. Cleanup may remove the
+leased worktree path, prune the local worktree registration for that path, delete the local task
+branch only when explicitly requested and `headSha` still matches finalized evidence, and write a
+cleanup tombstone. It must not infer remote merge state.
 
 If cleanup is blocked, the lease enters `cleanup-blocked` with a retry record: reason, observed
 path/branch/head state, next retry time, and whether Operator escalation is required. Missing paths
@@ -112,9 +115,9 @@ interface WorkspaceRepository {
   resolveRepository(repoRoot: AbsolutePath): RepositoryIdentity;
   createLease(input: { runId: string; taskId: string; repoId: string; baseRef?: LocalRef }): WorktreeLease;
   evaluateSetup(leaseId: string): SetupEvaluation;
-  confirmSetup(input: { leaseId: string; fenceToken: string }): SetupEvaluation;
+  confirmSetup(input: { leaseId: string; epoch: number; fenceToken: string }): SetupEvaluation;
   recordLocalGitEvidence(leaseId: string): LocalGitEvidence;
-  finalizeLease(input: { leaseId: string; evidenceId: string; fenceToken: string }): WorktreeLease;
+  finalizeLease(input: { leaseId: string; evidenceId: string; epoch: number; fenceToken: string }): WorktreeLease;
   cleanupLease(input: CleanupRequest): CleanupResult;
 }
 ```
@@ -122,9 +125,9 @@ interface WorkspaceRepository {
 `marker-missing`, `marker-mismatch`, `paths-missing`, `artifact-stale`, or
 `setup-freshness-unknown`. `confirmSetup` is the post-Execution Host handoff: it re-runs the same
 freshness detector and transitions the lease to `ready` only on `fresh=true`. `CleanupRequest` includes
-`leaseId`, `fenceToken`, `deleteLocalBranch`, and optional `expectedHeadSha`. Inputs are local
-repository policy from Configuration & Policy and artifact persistence from Storage & Artifacts.
-Outputs are lease handles, setup evaluation, branch metadata, and local git evidence.
+`leaseId`, `epoch`, `fenceToken`, `deleteLocalBranch`, and optional `expectedHeadSha`. Inputs are
+local repository policy from Configuration & Policy and artifact persistence from Storage &
+Artifacts. Outputs are lease handles, setup evaluation, branch metadata, and local git evidence.
 ## 6. Events & data
 Contributed events: `WorktreeLeaseCreated`, `LocalBranchCreated`, `RepoSetupEvaluated`,
 `RepoSetupConfirmed`, `LocalGitEvidenceRecorded`, `WorktreeLeaseFinalized`,
@@ -147,14 +150,14 @@ sequenceDiagram
   CP->>WR: evaluateSetup(leaseId)
   WR-->>CP: SetupEvaluation(fresh=false)
   CP->>EH: run declared setup command in worktree
-  CP->>WR: confirmSetup(leaseId, fenceToken)
+  CP->>WR: confirmSetup(leaseId, epoch, fenceToken)
   WR->>WR: re-evaluate freshness locally
   WR-->>CP: SetupEvaluation(fresh=true, lease ready)
   CP->>WR: recordLocalGitEvidence(leaseId)
   WR->>SA: store diff/stat artifacts
   WR-->>CP: LocalGitEvidence
-  CP->>WR: finalizeLease(leaseId, evidenceId, fenceToken)
-  CP->>WR: cleanupLease(leaseId, fenceToken)
+  CP->>WR: finalizeLease(leaseId, evidenceId, epoch, fenceToken)
+  CP->>WR: cleanupLease(leaseId, epoch, fenceToken)
   WR->>SA: write cleanup tombstone
   WR-->>CP: CleanupResult(cleaned)
 ```

@@ -98,6 +98,17 @@ without the rest).
   Forge, Work Source, Foundation, etc.) so diagrams compose across domains.
 - Every domain has at least a **context diagram** and one **behavior diagram**.
 
+## Naming conventions
+
+- String-literal state, reason, and error tokens are kebab-case. Event `type` discriminators are
+  kebab-case unless the owning domain's approved contract defines stable canonical names in another
+  casing. Existing canonical run event names such as `RunLifecycleTransitioned`,
+  `ApprovalDecisionRecorded`, and `CapabilityGateRecord` must be cited verbatim where used.
+- Each domain owns event `type` strings under its own `domain` namespace. There is no central core-01
+  registry of every event type string. Foundation and provider domains that do not import core return
+  structural append intents with `domain`, `type`, `occurredAt`, durability, and payload for the
+  owning core domain to append.
+
 ## Definition of done (per domain design)
 
 - [ ] Follows the template; all sections present.

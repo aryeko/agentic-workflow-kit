@@ -8,8 +8,10 @@ last-reviewed: "2026-06-19"
 depends-on:
   - "core-01-run-lifecycle-and-state"
   - "core-02-capability-and-safety"
+  - "core-03-approval-and-escalation"
   - "prov-02-forge-collaboration"
   - "prov-04-execution-host"
+  - "fnd-01-configuration-and-policy"
   - "fnd-03-workspace-and-repository"
 ---
 
@@ -31,10 +33,10 @@ NFR-TEST.
 ## 2. Required reading
 
 Read: `AGENTS.md`, the standard kit-vnext docs, the domain template, this charter, approved
-`core-01`/`core-02` subfiles, approved Forge design, approved Execution Host contract, and approved
-Workspace & Repository design. Optional approved `fnd-01` policy material was read only for
-`MergePolicy` names; it is not a hard dependency. No `core-03`/`core-04`/`core-06`/`core-07` drafts
-were read or used.
+`core-01`/`core-02` subfiles, approved Approval & Escalation contracts for
+`ApprovalDecisionRecorded`, approved Forge design, approved Execution Host contract, approved
+Configuration & Policy material for `ChangePolicy`, and approved Workspace & Repository design. No
+`core-04`/`core-06`/`core-07` drafts were read or used.
 
 ## 3. Context diagram
 
@@ -44,7 +46,9 @@ flowchart LR
     CMP["Completion / Verification / Merge"]
     RL["Run Lifecycle & Event State"]
     CAP["Capability & Safety"]
+    APR["Approval & Escalation"]
   end
+  CFG["Configuration & Policy"]
   WR["Workspace & Repository"]
   EH["Execution Host"]
   FG["Forge"]
@@ -52,13 +56,17 @@ flowchart LR
   WR -->|"LocalGitEvidenceRecorded"| RL
   EH -->|"RunnerCommandCaptured / HostOperationFailed"| RL
   FG -->|"ForgeEvidenceCollected / ForgeActionResult"| RL
+  CFG -->|"ChangePolicy.allowedChangePaths"| CMP
+  APR -->|"ApprovalDecisionRecorded(protected-policy-change)"| RL
   CMP -->|"replay + append decisions/intents"| RL
   CMP -->|"evaluate auto-merge"| CAP
   CMP -->|"Forge operation intent events"| FG
 ```
 
 Dependency Rule statement: core-05 depends on core-01/core-02 contracts, provider contracts, and
-Workspace & Repository evidence; it does not depend on concrete Drivers, Work Source, or sibling drafts.
+Workspace & Repository evidence. The changed-file gate additionally consumes fnd-01 `ChangePolicy`
+and core-03 protected-policy approval records; it does not depend on concrete Drivers, Work Source,
+or later sibling drafts.
 
 ## 4. Design
 
@@ -75,9 +83,10 @@ and blocker PR rules are in [Evidence model and predicates](design/evidence-mode
 - Forge evidence is usable only when PR head, branch head, action-observed head, and `expectedHeadSha`
   all equal the candidate head.
 - The changed-file anti-gaming gate compares Workspace `changedPaths` against
-  `ProtectedPolicySnapshotRecorded` and a task/change allowlist. Protected policy changes require
-  recorded Operator approval and fresh verification under the valid policy; outside-allowlist paths
-  fail closed.
+  `ProtectedPolicySnapshotRecorded` and the fnd-01 resolved task/change allowlist. Protected policy
+  changes require core-03 `ApprovalDecisionRecorded` approval for
+  `ApprovalSubject = "protected-policy-change"` and fresh verification under the valid policy;
+  outside-allowlist paths fail closed.
 - Completion and merge are separate decisions. `completion-verified` means the candidate head has
   independent local and verification evidence; `merge-ready` additionally requires fresh Forge
   evidence, required checks, review/thread state, protection/rulesets, branch/head freshness, policy,
@@ -104,9 +113,11 @@ interface CompletionMergeEvaluator {
 ```
 
 Consumed: core-01 `RunEventLog`, `RunWriter`, `RunReplay`, `RunProjections`, `RunEventCursor`, and
-lifecycle states; core-02 `CapabilityGateRecord`; Workspace `LocalGitEvidenceRecorded`; Execution
-Host `RunnerCommandCaptured` and `HostOperationFailed`; Forge evidence/action events. Core-05 emits
-intent events; Forge performs push/PR/comment/update/enqueue/merge operations and may refuse them by
+lifecycle states; core-02 `CapabilityGateRecord`; core-03 `ApprovalDecisionRecorded` for
+protected-policy changes; fnd-01 `ChangePolicy.allowedChangePaths`; Workspace
+`LocalGitEvidenceRecorded`; Execution Host `RunnerCommandCaptured` and `HostOperationFailed`; Forge
+evidence/action events. Core-05 emits intent events; Forge performs
+push/PR/comment/update/enqueue/merge operations and may refuse them by
 exact-head checks.
 
 ## 6. Events & data
@@ -188,10 +199,11 @@ intents, named fail-closed states, pure replay/cursor decisions, and mocks only.
 
 - Trusted-check source configuration remains open in Forge; until resolved, required checks come from
   Forge protection/ruleset evidence plus existing merge-policy `requiredEvidence`.
-- The exact producer of recorded Operator approval for protected-policy changes is not yet approved;
-  until an approved event exists, protected-policy changes fail closed.
-- The exact task/change allowlist source needs chief-architect confirmation. If absent, the gate
-  returns `changed-file-policy-absent`.
+- Protected-policy-change approval is owned by core-03: a committed `ApprovalDecisionRecorded` for
+  `ApprovalSubject = "protected-policy-change"` is required. If absent, protected policy changes fail
+  closed as `protected-policy-change-unapproved`.
+- The task/change allowlist is owned by fnd-01 resolved policy (`ChangePolicy.allowedChangePaths`).
+  If absent, the gate returns `changed-file-policy-absent`.
 
 ## 11. Definition of done
 

@@ -60,7 +60,10 @@ Retention and tamper evidence:
 - Temporary injected files live outside repo-controlled files and are deleted at operation end; failure enters `credential-destroy-unconfirmed`.
 - Keyed fingerprints, redaction counts, egress-policy ids, audit records, and quarantine metadata are retained for the run event-log lifetime and never contain reversible secret values.
 - Quarantined artifacts are inaccessible evidence until recovery resolves them; raw quarantine is then deleted or replaced by a redacted artifact, while metadata remains for the run event-log lifetime. They cannot satisfy gates.
-- Every credential decision event carries `policyDigest`, `credentialRefDigest`, `scopeDigest`, `grantEventId` when present, `attestationEventIds`, `evidenceRefs`, `writerId`, `sequence`, `prevEventHash`, and `eventHash`.
+- Every credential decision event carries `policyDigest`, `credentialRefDigest`, `scopeDigest`,
+  `grantEventId` when present, `attestationEventIds`, `evidenceRefs`, `prevEventHash`, and
+  `eventHash`. Global ordering and writer identity come from the core-01 event envelope; the
+  credential audit hash chain is payload-local over prior credential-audit events only.
 
 Redaction is source-side and recursive. A `RedactionSet` covers the raw secret plus shell assignment, JSON value, authorization header, URL-encoded value, and sensitive temporary file path. Events, projection inputs, process output, command lines, errors, Agent prompts/tool results, Forge responses, CI logs, analysis records, and text artifacts are redacted before persistence. Binary artifacts are proven clean, transformed by a safe text extractor, or quarantined as `artifact-redaction-failed`. Redacted output uses labels like `[REDACTED:credential:<id>]`; audit events store keyed fingerprints only.
 
@@ -84,7 +87,11 @@ Consumes: Configuration & Policy supplies `CredentialRef` records and defaults b
 
 Typed payloads for `CredentialUsePlanned`, `CredentialUseStarted`, `CredentialUseFinished`, `CredentialUseDenied`, `CredentialMaterialDestroyed`, `RedactionApplied`, and `EgressPolicyIssued` are defined in [contracts-and-events.md](design/contracts-and-events.md).
 
-Audit invariant: every resolved credential use has exactly one `CredentialUseStarted` or `CredentialUseDenied`; every start has `CredentialUseFinished` and `CredentialMaterialDestroyed`, or the run enters a degraded mode. Every credentialed operation is bound to policy, grant, attestations, evidence, writer, sequence, and event hashes.
+Audit invariant: every resolved credential use has exactly one `CredentialUseStarted` or
+`CredentialUseDenied`; every start has `CredentialUseFinished` and `CredentialMaterialDestroyed`, or
+the run enters a degraded mode. Every credentialed operation is bound to policy, grant, attestations,
+evidence, the core-01 envelope ordering and writer epoch, and the payload-local credential audit hash
+chain.
 
 ## 7. Behavior diagram
 
@@ -125,7 +132,7 @@ Capability gates treat all failures as absent capability. Unknown or ambiguous s
 
 Requirements satisfied: FR-12 and NFR-SEC. Supports NFR-TEST, NFR-SAFE, NFR-DET, and NFR-SOLID. NFR-TEST is met with mock secret resolvers, mock Configuration & Policy input, mock Execution Host and Agent attestations, and zero real processes or network in control-plane tests. Driver conformance suites must prove real and mock drivers honor `InjectionPlan`, `RedactionSet`, and `EgressPolicy`.
 
-Focused tests: property-test `mayInject` so no policy or grant injects Forge credentials into the worker; prove worker env construction starts closed and only adds typed non-Forge `CredentialRef` bindings; enforce audit start/deny and finish/destroy invariants; verify tamper fields bind policy, grants, attestations, evidence, and sequence; redact generated secrets and encodings across structured data, logs, provider responses, and text artifacts; deny missing/stale/partial/mismatched egress attestations; replay decisions from recorded references, scopes, grants, attestations, and events.
+Focused tests: property-test `mayInject` so no policy or grant injects Forge credentials into the worker; prove worker env construction starts closed and only adds typed non-Forge `CredentialRef` bindings; enforce audit start/deny and finish/destroy invariants; verify tamper fields bind policy, grants, attestations, evidence, core-01 envelope metadata, and the payload-local hash chain; redact generated secrets and encodings across structured data, logs, provider responses, and text artifacts; deny missing/stale/partial/mismatched egress attestations; replay decisions from recorded references, scopes, grants, attestations, and events.
 
 ## 10. Open questions
 
