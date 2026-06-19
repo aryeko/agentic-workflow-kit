@@ -20,7 +20,7 @@ plus the capability / safety gates — that every later core and edge wave build
   `dependency-policy.md` (determinism ports, layer placement, library acceptance) + `testing-policy.md`
   (unit/integration lanes, property-test requirement, coverage floor).
 - **W1 (foundation):** the foundation packages `fnd-01` (resolved policy inputs), `fnd-02`
-  (`LeaseStore`/`LeaseCapability`, `EventLogStore.append`/`replay`, `AppendBatch`/`AppendReceipt`,
+  (`LeaseStore`/`LeaseCapability`, `EventLogStore.openForAppend`/`append`/`replay` + `LogHandle`, `AppendBatch`/`AppendReceipt`,
   `DurabilityClass`, replay-health values, `ArtifactRef`), `fnd-03`, `fnd-04` — frozen and consumed,
   never reimplemented.
 - **W2 (seam contracts, mocks & conformance):** the four seam **contracts**, w2-1's canonical

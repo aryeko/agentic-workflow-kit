@@ -81,15 +81,16 @@ boundaries below. **Plus full core-01 design-spec compliance** (README + 3 aspec
 ## Dependencies & frozen contracts
 
 Depends on **fnd-01** (resolved policy inputs only) and **fnd-02** (`LeaseStore`/`LeaseCapability`,
-`EventLogStore.append`/`replay`, `AppendBatch`/`AppendReceipt`, `DurabilityClass`, replay health,
+`EventLogStore.openForAppend`/`append`/`replay` (+ `LogHandle`), `AppendBatch`/`AppendReceipt`, `DurabilityClass`, replay health,
 `ArtifactRef.id`). Depended on by core-02/04/05/06/07 and edge-01. Must **NOT** depend on
 contracts, drivers, edge, sibling core packages, or any SDK (architecture.md §2; package-map.md).
 
 Cross-item contracts (named once, per R5 — never "the fields fnd-02 supplies"):
 
 - **Consumed from fnd-02:** a `LeaseCapability` carrying the `run-writer:<runId>` lease name, token,
-  and epoch; `EventLogStore.append(batch)` rejecting stale lease name/token/epoch **before** bytes are
-  written and accepting `expectedSequence`; replay health values `log-tail-repaired`,
+  and epoch; `EventLogStore.openForAppend(logId, lease): LogHandle` minting an opaque `LogHandle`
+  (`{ logId, leaseName, epoch, token }` — the fencing boundary), then `append(handle, batch)` rejecting
+  a stale handle (lease name/token/epoch) **before** bytes are written and accepting `expectedSequence`; replay health values `log-tail-repaired`,
   `log-interior-corrupt`, `network-fs-degraded`, `read-only`, `unusable`; an `AppendReceipt` exposing a
   frame digest; `ArtifactRef.id` resolvable via `ArtifactStore.resolve(id)` (stored opaquely here).
 - **Produced for siblings:** `RunEventEnvelope` (schema `"kit-vnext.run-event.v1"`, fields exactly as

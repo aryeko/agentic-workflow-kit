@@ -123,9 +123,11 @@ Each AC is a single assertion that is true or false against a test.
   `evaluatedGuarantees`, `attestationRefs`, and `failureReason`. — test: replay-equivalence property over
   generated event logs. *trace: README §9 "replay property tests for identical CapabilityGateRecord
   payloads"; NFR-DET.*
-- **AC-3 (manual denies autonomy)** With `mode: "manual"`, every `CapabilityId` returns `deny` with
-  `failureReason: "mode-disallows-capability"`. — test: table test over all five capabilities. *trace:
-  capability-registry.md shared guarantee 1; README §4.*
+- **AC-3 (manual denies autonomy)** With `mode: "manual"`, every autonomous `CapabilityId` **except the
+  deferred `orchestrator-decide`** (which returns `capability-deferred` per AC-4) returns `deny` with
+  `failureReason: "mode-disallows-capability"`. — test: table test over the four non-deferred
+  capabilities (`auto-merge`, `auto-recover`, `unattended-run`, `escalation-auto-grant`). *trace:
+  capability-registry.md shared guarantee 1; README §4; AD-14.*
 - **AC-4 (orchestrator-decide deferred)** `orchestrator-decide` returns `deny` with
   `"capability-deferred"` in **both** modes, **before** any provider-evidence selection. — test: assert
   deny + reason + that no attestation lookup occurred. *trace: capability-registry.md registry row;
@@ -203,7 +205,7 @@ Each AC is a single assertion that is true or false against a test.
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
-| `mode-disallows-capability` | `mode: "manual"` for an autonomous capability | deny (before provider evidence) | AC-3 |
+| `mode-disallows-capability` | `mode: "manual"` for a non-deferred autonomous capability | deny (before provider evidence) | AC-3 |
 | `policy-disallows-capability` | resolved `policyRef` does not permit the capability for the scope | deny (before provider evidence) | AC-5 |
 | `capability-deferred` | capability is `orchestrator-decide` (AD-14) | deny in both modes, before evidence selection | AC-4 |
 | `run-log-degraded` | replay/projection health unusable, projection missing, writer fenced, or required linkage ambiguous | deny all autonomous capabilities | AC-6 |
