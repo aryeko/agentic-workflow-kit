@@ -10,7 +10,7 @@ depends-on: []           # contracts/foundation modules this design depends on
 
 # <Domain name> — design
 
-> Produced from `charter.md` following [conventions.md](../conventions.md). Delete the guidance
+> Produced from `charter.md` following [conventions.md](../../conventions.md). Delete the guidance
 > notes (in blockquotes) before submitting for review.
 
 ## 1. Purpose & boundaries
