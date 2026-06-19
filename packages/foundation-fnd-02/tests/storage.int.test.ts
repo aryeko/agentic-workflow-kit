@@ -132,6 +132,19 @@ afterEach(async () => {
 });
 
 describe('filesystem storage root', () => {
+  it('points package exports at the emitted package entrypoint', async () => {
+    const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as {
+      exports: { '.': { types: string; default: string } };
+      types: string;
+    };
+
+    expect(packageJson.exports['.']).toEqual({
+      types: './dist/src/index.d.ts',
+      default: './dist/src/index.js',
+    });
+    expect(packageJson.types).toBe('./dist/src/index.d.ts');
+  });
+
   it('property-tests append/replay equivalence on a real filesystem', async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -499,6 +512,45 @@ describe('filesystem storage root', () => {
     expectStorageError(storage.artifacts.export({ artifactIds: [scratch.id] }), 'export-incomplete-forbidden');
   });
 
+  it('applies registered redaction before persisting scratch artifact bytes', async () => {
+    const { root, storage } = await makeRoot({
+      redactionHooks: new Map([['mask', () => bytes('redacted-scratch')]]),
+    });
+
+    const scratch = storage.artifacts.putScratch({
+      content: bytes('secret-scratch'),
+      mediaType: 'text/plain',
+      retentionClass: 'scratch',
+      classification: 'sensitive',
+      redactionHookId: 'mask',
+    });
+    expect(isStorageError(scratch)).toBe(false);
+    if (isStorageError(scratch)) {
+      return;
+    }
+
+    const redactedBytes = bytes('redacted-scratch');
+    expect(scratch.redactionState).toBe('redacted');
+    expect(scratch.digest).toBe(digest(redactedBytes));
+    expect(scratch.size).toBe(redactedBytes.byteLength);
+    expect(await readFile(scratchBlobPath(root, scratch.id), 'utf8')).toBe('redacted-scratch');
+  });
+
+  it('rejects scratch artifacts when their requested redaction hook is missing', async () => {
+    const { root, storage } = await makeRoot();
+
+    const scratch = storage.artifacts.putScratch({
+      content: bytes('secret-scratch'),
+      mediaType: 'text/plain',
+      retentionClass: 'scratch',
+      classification: 'sensitive',
+      redactionHookId: 'missing',
+    });
+
+    expectStorageError(scratch, 'artifact-quarantined');
+    expect(await readdir(join(root, 'artifacts', 'scratch'))).toEqual([]);
+  });
+
   it.each([
     'read-only',
     'unusable',
@@ -640,7 +692,7 @@ describe('filesystem storage root', () => {
   });
 
   it('fails closed on invalid artifact, lease, and append inputs', async () => {
-    const { storage } = await makeRoot({
+    const { storage, clock } = await makeRoot({
       maxArtifactBytes: 4,
       redactionHooks: new Map([['mask', (content) => content]]),
     });
@@ -762,6 +814,9 @@ describe('filesystem storage root', () => {
       storage.eventLog.append(handle, { expectedSequence: 1, durability: 'durable', payloads: [] }),
       'invalid-input',
     );
+
+    clock.advance(60_001);
+    expectStorageError(storage.leases.renew('lease:valid', lease.epoch, lease.token, 60_000), 'lease-unavailable');
   });
 
   it('returns buffered acknowledgements and rejects sequence conflicts', async () => {
@@ -1023,3 +1078,5 @@ const artifactBlobPath = async (root: string, ref: ArtifactRef): Promise<string>
   }
   return join(match.parentPath, match.name);
 };
+
+const scratchBlobPath = (root: string, id: string): string => join(root, 'artifacts', 'scratch', `${digest(id)}.blob`);

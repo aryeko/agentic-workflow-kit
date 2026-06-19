@@ -50,7 +50,14 @@ export class FileSystemArtifactStore implements ArtifactStore {
   }
 
   putScratch(input: ArtifactInput): ScratchArtifactRef | StorageError {
-    const content = toBytes(input.content);
+    const hook =
+      input.redactionHookId === undefined ? undefined : this.options.redactionHooks?.get(input.redactionHookId);
+    if (input.redactionHookId !== undefined && hook === undefined) {
+      return storageError('artifact-quarantined', 'scratch redaction hook is not registered', this.state.health, {
+        hookId: input.redactionHookId,
+      });
+    }
+    const content = hook === undefined ? toBytes(input.content) : hook(toBytes(input.content));
     if (content.byteLength > (this.options.maxArtifactBytes ?? Number.MAX_SAFE_INTEGER)) {
       return storageError('artifact-quarantined', 'scratch artifact exceeds size limit', this.state.health);
     }

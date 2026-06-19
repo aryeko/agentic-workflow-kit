@@ -83,13 +83,17 @@ export class FileSystemLeaseStore implements LeaseStore {
       if (current instanceof Error || current === undefined) {
         return storageError('lease-unavailable', 'lease does not exist', this.state.health, { name });
       }
+      const now = this.options.clock.now();
+      if (!this.isLive(current, now)) {
+        return storageError('lease-unavailable', 'lease is already expired', this.state.health, { name, epoch });
+      }
       if (!this.matchesCapability(current, epoch, token)) {
         return storageError('lease-unavailable', 'lease epoch or token did not match', this.state.health, {
           name,
           epoch,
         });
       }
-      const expiresAt = new Date(this.options.clock.now().getTime() + ttlMs);
+      const expiresAt = new Date(now.getTime() + ttlMs);
       const nextRecord = withLeaseDigest({ ...withoutLeaseDigest(current), expiresAt: expiresAt.toISOString() });
       const written = this.writeRecord(name, nextRecord);
       if (written !== undefined) {
