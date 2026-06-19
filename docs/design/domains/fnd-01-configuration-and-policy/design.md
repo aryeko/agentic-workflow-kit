@@ -86,19 +86,19 @@ interface ConfigurationPolicy {
     source: ConfigSource,
     input: RunConfigInput,
     context: ResolutionContext,
-  ): Result<ResolvedPolicy, PolicyResolutionFailure>;
+  ): Result<ResolvedPolicyResult, PolicyResolutionFailure>;
 }
 ```
 
-It consumes no core, provider, or driver interface. `AdoptionContext` and `ResolutionContext` supply a
-foundation event writer; resolution also supplies `runId`. A successful policy is returned only after
-`ConfigLoaded`, `ConfigFieldResolved`, and `ConfigResolved` commit atomically; failures return a typed
-error and append `PolicyResolutionFailed` when the writer can durably record it. Full types are in
-[Interfaces, events & verification](design/interfaces-events-and-verification.md).
+It consumes no core, provider, or driver interface. `AdoptionContext` supplies a foundation event
+writer only for pre-run `ConfigLoaded`; resolution supplies `runId` but no writer. Successful and
+failed adoption/resolution paths return event-ready append intents for the owning core domain to
+append through core-01's single leased `RunWriter` before binding or blocking the Run. Full types are
+in [Interfaces, events & verification](design/interfaces-events-and-verification.md).
 
 ## 6. Events & data
 
-Emitted events:
+Owned event payloads:
 
 - `ConfigLoaded`
 - `ConfigFieldResolved`
@@ -106,11 +106,12 @@ Emitted events:
 - `AdoptionDiagnosticEmitted`
 - `PolicyResolutionFailed`
 
-The key invariant is one `ConfigFieldResolved` event per resolved leaf field, emitted in canonical
-lexicographic field order before `ConfigResolved`, in the same atomic append transaction. Projections
-may read the latest resolved policy and provenance map; they do not author policy.
-Adoption preflight emits one `AdoptionDiagnosticEmitted` event per blocking config or artifact
-diagnostic.
+The key invariant is one `ConfigFieldResolved` payload per resolved leaf field, returned in canonical
+lexicographic field order before `ConfigResolved`. Core-01 appends those event-ready payloads in one
+atomic RunWriter transaction. Projections may read the latest resolved policy and provenance map; they
+do not author policy.
+Adoption preflight returns one `AdoptionDiagnosticEmitted` append intent per blocking config or
+artifact diagnostic, plus a `PolicyResolutionFailed` append intent for the fail-closed state.
 
 ## 7. Behavior diagram
 
@@ -124,19 +125,17 @@ sequenceDiagram
   Operator->>CFG: config source + profile + per-run overrides + runId
   CFG->>CFG: diagnose marker and schema
   alt incompatible or unknown
-    CFG->>EL: atomic append AdoptionDiagnosticEmitted + PolicyResolutionFailed
-    CFG-->>CP: block: adoption_incompatible
+    CFG-->>CP: block + AdoptionDiagnosticEmitted/PolicyResolutionFailed intents
+    CP->>EL: append intents through core-01 RunWriter
+    CP-->>Operator: launch blocked
   else valid vNext config
     CFG->>CFG: resolve built-in defaults, profile, overrides
     loop canonical leaf field order
       CFG->>CFG: prepare ConfigFieldResolved
     end
-    CFG->>EL: atomic append ConfigLoaded + fields + ConfigResolved
-    alt append committed
-      CFG-->>CP: ResolvedPolicy
-    else append failed
-      CFG-->>CP: provenance_write_failed
-    end
+    CFG-->>CP: ResolvedPolicy + event-ready ConfigFieldResolved/ConfigResolved
+    CP->>EL: append payloads through core-01 RunWriter
+    CP-->>Operator: policy bound after append
   end
 ```
 
@@ -146,13 +145,15 @@ Fail-closed states:
 
 - `adoption_incompatible`: config has a non-vNext marker.
 - `adoption_unknown_artifact`: config or artifact has no recognized vNext marker.
-- `adoption_diagnostic_unrecorded`: adoption diagnostics could not be durably recorded.
+- `adoption_diagnostic_unrecorded`: returned diagnostic/failure intents were not appended by the
+  owning core writer.
+- `config_loaded_unrecorded`: pre-run `ConfigLoaded` could not be committed by the foundation writer.
 - `config_invalid`: schema validation failed.
 - `profile_unknown`: requested profile does not exist.
 - `override_invalid`: operator override has an unknown or invalid field.
 - `unsupported_deferred_capability`: config attempts to set `orchestrator-decide` in v1.
-- `provenance_write_failed`: resolved policy was computed but not returned because provenance was not
-  durable.
+- `provenance_write_failed`: resolved policy was computed but not activated because the returned
+  provenance payloads were not appended through core-01.
 
 Capability gates treat any missing resolved policy, failed diagnostic, or missing provenance event as
 all autonomous capabilities absent. The degraded state is supervised and blocked before launch.
@@ -161,10 +162,11 @@ all autonomous capabilities absent. The degraded state is supervised and blocked
 
 Satisfies policy-side FR-4 and FR-7, FR-13, NFR-SAFE, NFR-DET, NFR-SOLID, and NFR-TEST.
 
-Tests are pure and use in-memory event sinks: schema fixtures, safe-default snapshots, precedence
-property tests, provenance order/hash tests, append-failure tests, adoption config/artifact diagnostic
-tests, deferred-capability rejection tests, and capability default-off tests. No real providers,
-credentials, processes, or Forge operations are used, satisfying NFR-TEST.
+Tests are pure and use in-memory sinks: schema fixtures, safe-default snapshots, precedence property
+tests, provenance order/hash tests over returned event-ready payloads, adoption config/artifact
+diagnostic tests, deferred-capability rejection tests, and capability default-off tests. Core-01
+integration covers RunWriter append failure. No real providers, credentials, processes, or Forge
+operations are used, satisfying NFR-TEST.
 
 ## 10. Open questions
 

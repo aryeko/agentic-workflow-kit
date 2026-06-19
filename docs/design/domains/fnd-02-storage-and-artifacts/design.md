@@ -79,6 +79,8 @@ Artifact store:
   size, enforce size limits, fsync, then publish by atomic link/rename.
 - Metadata records media type, size, digest, retention class, classification, redaction state,
   producer, and creation time. Blob bytes are never rewritten.
+- Every `ArtifactRef` and `ScratchArtifactRef` has a stable `id`. The id is the canonical string
+  reference carried by consuming event envelopes and provider observations.
 - A pre-store redaction hook may transform content before publish. A post-store redaction creates a
   new redacted artifact and an append-only tombstone from original digest to replacement digest.
 - Normal reads and exports deny tombstoned originals unless raw access is explicitly requested and
@@ -113,6 +115,7 @@ interface LeaseStore { acquire(name: string, holder: string, ttlMs: number): Lea
   fence(name: string, epoch: number, token: string): boolean; }
 interface ArtifactStore { put(input: ArtifactInput): ArtifactRef | StorageError;
   putScratch(input: ArtifactInput): ScratchArtifactRef | StorageError;
+  resolve(id: string): ArtifactRef | StorageError;
   get(ref: ArtifactRef, mode: "redacted" | "raw"): ArtifactStream | StorageError;
   redact(ref: ArtifactRef, hookId: string): ArtifactRef | StorageError;
   export(selection: ExportSelection): ExportManifest | StorageError; }
@@ -123,18 +126,44 @@ type AppendBatch = {
   expectedSequence: number;
   durability: DurabilityClass; payloads: Uint8Array[];
 };
+type ArtifactRef = {
+  id: string;
+  digest: string;
+  size: number;
+  mediaType: string;
+  retentionClass: string;
+  classification: string;
+  redactionState: "raw" | "redacted" | "tombstoned";
+};
+type ScratchArtifactRef = {
+  id: string;
+  digest: string;
+  size: number;
+  mediaType: string;
+  classification: string;
+  redactionState: "raw" | "redacted";
+};
 ```
 Consumed contracts: none. Filesystem is the first backend; any later SQLite backend must satisfy the
 same append, lease, artifact, corruption, and export contracts.
+
 ## 6. Events & data
+
 FND-02 emits no Control plane events on its own. It returns receipts, refs, and health so callers can
 append semantic events through core-01 when needed.
+
 Data authored here: `StoredRecord` frame metadata plus opaque bytes; `AppendReceipt` sequence range,
 epoch, lease name, byte range, digest, and durability; `NonDurableAck` for non-authoritative buffered
 writes; `LeaseSnapshot` name, holder, epoch, token digest, and expiry; `LeaseCapability` returned only
-from acquire/renew; `ArtifactRef` digest, size, media type, retention class, classification, and
-redaction state; `ScratchArtifactRef` for non-authoritative degraded outputs; `ExportManifest` stable
-log ranges and artifact refs with digests and redaction mode.
+from acquire/renew; `ArtifactRef` id, digest, size, media type, retention class, classification, and
+redaction state; `ScratchArtifactRef` id plus non-authoritative degraded output metadata;
+`ExportManifest` stable log ranges and artifact refs with digests and redaction mode.
+
+`ArtifactRef.id` is the canonical opaque artifact reference string carried by core-01 `artifactRefs`,
+prov-01 `outputRef`, and prov-04 `stdoutRef`/`stderrRef`. Consumers resolve those strings through
+`ArtifactStore.resolve(id)` before reading with `get(ref, mode)`. Core and provider domains store the
+ids opaquely; fnd-02 owns id resolution and artifact metadata.
+
 ## 7. Behavior diagram
 ```mermaid
 sequenceDiagram
