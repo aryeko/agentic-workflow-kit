@@ -4,7 +4,7 @@ id: "prov-03-contract"
 wave: 2
 layer: "contracts (providers)"
 status: "item: blocked-on-spec"
-spec: "docs/design/domains/providers/prov-03-work-source/ (README.md + evidence/)"
+spec: "docs/design/domains/providers/prov-03-work-source/ (README.md + contracts-and-conformance.md + evidence/)"
 ---
 
 # prov-03 — Work Source contract + mock
@@ -120,15 +120,16 @@ Consumed by core-06 and the launch/task-snapshot path of core-01. Must NOT depen
 
 ## Required reading
 
-This domain's spec (`README.md` + `evidence/`); `decisions.md` AD-8; `architecture.md` §5 (two
-authorities); `dependency-policy.md`; `testing-policy.md`; `fnd-02`'s `ArtifactRef` + lease; `w2-1`.
-Nothing else.
+This domain's spec (`README.md` + `contracts-and-conformance.md` + `evidence/`); `decisions.md` AD-8;
+`architecture.md` §5 (two authorities); `dependency-policy.md`; `testing-policy.md`; `fnd-02`'s
+`ArtifactRef` + lease; `w2-1`. Nothing else.
 
 ## Deliverable
 
 The Work Source contract package + mock, passing the conformance kit; race-safe claim provable on the
-mock; the evidence pack (test-per-AC, coverage). **Plus** the typed `TrackView` / `StatusWriteResult` /
-`WorkSourceError` once the spec is amended.
+mock; the evidence pack (test-per-AC, coverage). `TrackView`, `StatusWriteResult`, and `WorkSourceError`
+are now defined in `contracts-and-conformance.md`; implement against them (note: the final shape of
+`StatusWriteResult` may still change pending Q2 resolution).
 
 ## Boundaries
 

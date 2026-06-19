@@ -4,7 +4,7 @@ id: "prov-02-contract"
 wave: 2
 layer: "contracts (providers)"
 status: "item: ready"
-spec: "docs/design/domains/providers/prov-02-forge-collaboration/ (README.md + evidence/)"
+spec: "docs/design/domains/providers/prov-02-forge-collaboration/ (README.md + contracts-and-conformance.md + evidence/)"
 ---
 
 # prov-02 — Forge contract + mock
@@ -25,9 +25,10 @@ observed GitHub shapes). DTOs are **defined independently of any SDK shape**. Am
   `collectEvidence`, `updateBranch`, `enqueue`, `merge`.
 - **Head-binding** — `collectEvidence`/`updateBranch`/`enqueue`/`merge` take `expectedHeadSha` (required);
   every irreversible action re-reads head and refuses on mismatch.
-- **Defined-ish types** — `ForgeRepoRef`, `ForgeBranchRef`, `PullRequestRef`, `EvidenceRequest`,
+- **Defined types** — `ForgeRepoRef`, `ForgeBranchRef`, `PullRequestRef`, `EvidenceRequest`,
   `ExpectedHeadActionRequest`. `ForgeEvidenceSnapshot` (PR state, base/head SHA, status/check rollup,
-  reviews, unresolved threads, protection/ruleset facts, queue facts, evidence refs) — **prose-only**.
+  reviews, unresolved threads, protection/ruleset facts, queue facts, evidence refs) — defined in
+  `contracts-and-conformance.md`.
 - **Capability set** — `supportsRulesets`, `supportsMergeQueue`, `supportsThreadResolution`,
   `canInspectProtection`. Attestation = w2-1 `CapabilityAttestation`.
 - **Failure tokens (owned here, §8)** — `forge-credential-unavailable`, `forge-auth-denied`,
@@ -36,8 +37,8 @@ observed GitHub shapes). DTOs are **defined independently of any SDK shape**. Am
   `forge-admin-bypass-refused`, `forge-ghes-capability-unknown`, `forge-rate-limited`,
   `forge-redaction-unavailable`. *(Note: there is no `forge-data-partial` token — missing CI/check data
   maps to `forge-state-unknown`.)*
-- **UNDEFINED / prose-only (blocking):** `ForgeDegraded` shape; `ForgeActionResult` discriminant + fields;
-  the CI/PR/review/merge evidence sub-DTOs.
+- **Defined in `contracts-and-conformance.md`:** `ForgeDegraded` shape; `ForgeActionResult` discriminant +
+  fields; the CI/PR/review/merge evidence sub-DTOs (including `ForgeEvidenceSnapshot` and its sub-DTOs).
 
 ## Responsibilities (in scope)
 
@@ -115,14 +116,15 @@ on core/edge/drivers/SDK. No cross-item shape produced.
 
 ## Required reading
 
-This domain's spec (`README.md` + `evidence/` index); `dependency-policy.md` (octokit worked example —
-evidence DTOs, no SDK leakage); `testing-policy.md`; `w2-1`. Nothing else.
+This domain's spec (`README.md` + `contracts-and-conformance.md` + `evidence/` index);
+`dependency-policy.md` (octokit worked example — evidence DTOs, no SDK leakage); `testing-policy.md`;
+`w2-1`. Nothing else.
 
 ## Deliverable
 
 The Forge contract package + mock forge, passing the conformance kit; the evidence pack (test-per-AC,
-coverage, no-octokit proof). **Plus** the typed DTO/`ForgeActionResult`/`ForgeDegraded` definitions once
-the spec is amended.
+coverage, no-octokit proof). The typed DTO/`ForgeActionResult`/`ForgeDegraded` definitions are now in the
+spec (`contracts-and-conformance.md`); implement against them.
 
 ## Boundaries
 

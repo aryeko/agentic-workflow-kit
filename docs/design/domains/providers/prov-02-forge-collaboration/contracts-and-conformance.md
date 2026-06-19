@@ -115,6 +115,19 @@ interface ForgeDegraded {
   kind: "degraded"; token: ForgeFailureToken; observedHeadSha?: string;
   redactionFingerprintIds: string[]; credentialAuditEventIds: string[];
   evidenceRef: string; at: string;
+  // README §8: a degrade names a token AND the observed provider facts — the clusters
+  // retrievable at degrade time. Optional: action degrades may carry no clusters; evidence
+  // degrades preserve the partial facts that WERE retrievable for control-plane audit.
+  observedFacts?: ForgeObservedFacts;
+}
+// README §8: the partial provider facts retrievable when collectEvidence degrades because a
+// cluster is absent or ambiguous. All clusters optional; reuses the evidence cluster DTOs.
+interface ForgeObservedFacts {
+  prState?: ForgePrStateFacts;
+  statusChecks?: ForgeStatusCheckFacts;
+  reviewThreads?: ForgeReviewThreadFacts;
+  protection?: ForgeProtectionFacts;
+  mergeQueue?: ForgeMergeQueueFacts;
 }
 
 // README §4 + evidence/2026-06-18 probes. Evidence is bound to an exact head SHA; absent or stale
@@ -205,11 +218,10 @@ named token rather than a silently-empty snapshot (README §8).
 Consumed Foundation dependencies. From fnd-04: `CredentialScope` (request scoping), `CredentialRef`
 (via `ForgeRepoRef.credentialRefId`), injection/redaction results, and credential audit event ids;
 the Forge phase vocabulary (`ForgeCredentialPhase`) is fnd-04's approved phase set and introduces no
-new phase. Worker credential scopes are rejected before material is resolved (AD-12). From fnd-02:
-`ArtifactRef.id` strings carried in `evidenceRefs` and `*.evidenceRef`, resolved via
-`ArtifactStore.resolve(id)`; provider responses are redacted before persistence and reference fnd-04
-audit events through `redactionFingerprintIds` and `credentialAuditEventIds`. `CapabilityAttestation`
-is the shared w2-1 shape, qualified by `ForgeCapability`.
+new phase. Worker credential scopes are rejected before material is resolved (AD-12). Provider
+responses are redacted before persistence and reference fnd-04 audit events through
+`redactionFingerprintIds` and `credentialAuditEventIds`. `CapabilityAttestation` is the shared w2-1
+shape, qualified by `ForgeCapability`.
 
 Produced for the Control plane. The contract methods plus event-ready action/evidence payloads
 (README §6): `ForgeBranchPushed`, `ForgePullRequestUpserted`, `ForgeCommentPublished`,
@@ -218,8 +230,7 @@ Produced for the Control plane. The contract methods plus event-ready action/evi
 
 The fnd-04 public types used here are `CredentialScope`, `CredentialRef`, `RedactionSet`, and the
 `CredentialAuditEvent` family, defined in
-`../../foundation/fnd-04-credentials-and-secrets/contracts-and-events.md`. The fnd-02 `ArtifactRef`
-type is defined in `../../foundation/fnd-02-storage-and-artifacts/README.md`.
+`../../foundation/fnd-04-credentials-and-secrets/contracts-and-events.md`.
 
 ## Capability set
 
