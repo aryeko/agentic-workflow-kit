@@ -14,7 +14,7 @@
     "dist"
   ],
   "scripts": {
-    "test:int": "vitest --config ../../vitest.config.ts run --project integration tests/workspace-repository.int.test.ts",
+    "test:int": "vitest --config ../../vitest.config.ts run --project integration tests/workspace-repository.fences-and-setup.int.test.ts tests/workspace-repository.lifecycle.int.test.ts tests/workspace-repository.persistence-and-git.int.test.ts",
     "typecheck": "tsc -b --force"
   },
   "dependencies": {

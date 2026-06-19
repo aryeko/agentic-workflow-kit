@@ -11,7 +11,7 @@
   },
   "types": "./dist/src/index.d.ts",
   "scripts": {
-    "test:int": "vitest --config ../../vitest.config.ts run --project integration tests/storage.int.test.ts",
+    "test:int": "vitest --config ../../vitest.config.ts run --project integration tests/storage.event-log-and-artifacts.int.test.ts tests/storage.validation-and-failures.int.test.ts",
     "typecheck": "tsc -b"
   },
   "dependencies": {

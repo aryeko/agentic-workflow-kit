@@ -1,10 +1,9 @@
 import fc, { type Arbitrary } from 'fast-check';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   BUILT_IN_DEFAULTS,
-  createConfigurationPolicy,
-  stableHash,
   type ConfigSource,
+  createConfigurationPolicy,
   type DurableEventWriter,
   type PolicyLayerPatch,
 } from '../src/index.js';
@@ -16,7 +15,7 @@ const writer: DurableEventWriter = {
   appendConfigLoaded: () => ({ ok: true, value: { transactionId: 'tx-config-loaded' } }),
 };
 
-const failingWriter: DurableEventWriter = {
+const _failingWriter: DurableEventWriter = {
   appendConfigLoaded: () => ({ ok: false, error: 'append-failed' }),
 };
 
@@ -36,7 +35,7 @@ const resolve = (source: ConfigSource, overrides?: PolicyLayerPatch, profile?: s
     { runId: 'run-1', occurredAt },
   );
 
-const valueAt = (value: unknown, path: string): unknown =>
+const _valueAt = (value: unknown, path: string): unknown =>
   path.split('.').reduce<unknown>((current, segment) => {
     if (current && typeof current === 'object' && segment in current) {
       return (current as Record<string, unknown>)[segment];
@@ -77,13 +76,13 @@ type PatchEntry = {
   readonly value: unknown;
 };
 
-const patchFromEntries = (entries: readonly PatchEntry[]): PolicyLayerPatch =>
+const _patchFromEntries = (entries: readonly PatchEntry[]): PolicyLayerPatch =>
   entries.reduce<Record<string, unknown>>(
     (patch, entry) => insertPath(patch, entry.path, entry.value),
     {},
   ) as PolicyLayerPatch;
 
-const uniqueCases = (cases: readonly LeafCase[]): readonly LeafCase[] => {
+const _uniqueCases = (cases: readonly LeafCase[]): readonly LeafCase[] => {
   const seen = new Set<string>();
   return cases.filter((fieldCase) => {
     if (seen.has(fieldCase.path)) {
@@ -195,7 +194,7 @@ const evidence = fc.array(
   },
 );
 
-const leafCases: readonly LeafCase[] = [
+const _leafCases: readonly LeafCase[] = [
   {
     path: 'approval.mode',
     profileArbitrary: fc.constant('manual'),
@@ -427,395 +426,6 @@ const leafCases: readonly LeafCase[] = [
 const defaultLeafPaths = leafPaths(BUILT_IN_DEFAULTS).sort();
 
 describe('Configuration & Policy', () => {
-  it('exposes safe defaults matching the domain snapshot', () => {
-    expect(BUILT_IN_DEFAULTS).toMatchInlineSnapshot(`
-      {
-        "approval": {
-          "mode": "assisted",
-          "parkOnHumanLatency": true,
-          "requireRecordedDecision": true,
-        },
-        "capabilities": {
-          "auto-merge": {
-            "desired": false,
-            "requireFreshAttestation": true,
-          },
-          "auto-recover": {
-            "desired": false,
-            "requireFreshAttestation": true,
-          },
-          "unattended-run": {
-            "desired": false,
-            "requireFreshAttestation": true,
-          },
-        },
-        "changePolicy": {
-          "allowedChangePaths": [],
-        },
-        "credentialRefs": {
-          "refs": [],
-        },
-        "egress": {
-          "defaultAction": "deny",
-          "negativeProbes": [],
-          "requiredAttesters": [],
-          "rules": [],
-        },
-        "escalationPolicy": {
-          "allowedGrantScopes": [
-            "per-command",
-            "per-command-prefix",
-          ],
-          "denyByDefault": true,
-          "grantRules": [
-            {
-              "prefixes": [
-                "pnpm install",
-                "pnpm add",
-                "npm install",
-                "npm ci",
-                "yarn install",
-              ],
-              "reason": "dependency-install",
-              "requiresOperator": false,
-              "scope": "per-command-prefix",
-            },
-          ],
-          "maxGrantScope": "per-command-prefix",
-        },
-        "merge": {
-          "requiredEvidence": [
-            "verification",
-            "ci",
-            "review",
-            "threads-resolved",
-            "protection",
-          ],
-          "runnerMayMerge": false,
-          "runnerMayOpenPr": true,
-          "runnerMayPush": true,
-        },
-        "provisioning": {
-          "containmentRequired": true,
-          "dependencyInstall": {
-            "allowedPrefixes": [
-              "pnpm install",
-              "pnpm add",
-              "npm install",
-              "npm ci",
-              "yarn install",
-            ],
-            "defaultGrant": "narrow",
-          },
-          "ownershipClass": "owned",
-        },
-        "run": {
-          "maxConcurrentRuns": 1,
-          "mode": "assisted",
-          "requireCleanWorkspace": true,
-        },
-      }
-    `);
-  });
-
-  it('proves defaults, profiles, and overrides resolve with matching provenance across every canonical leaf', () => {
-    expect(leafCases.map((fieldCase) => fieldCase.path).sort()).toEqual(defaultLeafPaths);
-
-    for (const fieldCase of leafCases) {
-      const noiseCases = leafCases.filter((candidate) => candidate.path !== fieldCase.path);
-
-      fc.assert(
-        fc.property(
-          fieldCase.profileArbitrary,
-          fieldCase.overrideArbitrary,
-          fc.array(fc.constantFrom(...noiseCases), { maxLength: 6 }),
-          fc.array(fc.constantFrom(...noiseCases), { maxLength: 6 }),
-          fc.boolean(),
-          fc.boolean(),
-          (profileValue, overrideValue, profileNoise, overrideNoise, profileFirst, overrideFirst) => {
-            const profileEntry = { path: fieldCase.path, value: profileValue };
-            const overrideEntry = { path: fieldCase.path, value: overrideValue };
-            const profileNoiseEntries = uniqueCases(profileNoise).map((noiseCase) => ({
-              path: noiseCase.path,
-              value: noiseCase.profileSample,
-            }));
-            const overrideNoiseEntries = uniqueCases(overrideNoise).map((noiseCase) => ({
-              path: noiseCase.path,
-              value: noiseCase.overrideSample,
-            }));
-            const profilePatch = patchFromEntries(
-              profileFirst ? [profileEntry, ...profileNoiseEntries] : [...profileNoiseEntries, profileEntry],
-            );
-            const overridePatch = patchFromEntries(
-              overrideFirst ? [overrideEntry, ...overrideNoiseEntries] : [...overrideNoiseEntries, overrideEntry],
-            );
-
-            const defaultResult = resolve(sourceFor());
-            const profileResult = resolve(sourceFor({ selected: profilePatch }), undefined, 'selected');
-            const overrideResult = resolve(sourceFor({ selected: profilePatch }), overridePatch, 'selected');
-
-            expect(defaultResult.ok).toBe(true);
-            expect(profileResult.ok).toBe(true);
-            expect(overrideResult.ok).toBe(true);
-            if (!defaultResult.ok || !profileResult.ok || !overrideResult.ok) {
-              return;
-            }
-
-            const defaultValue = valueAt(BUILT_IN_DEFAULTS, fieldCase.path);
-            expect(valueAt(defaultResult.value.resolvedPolicy.policy, fieldCase.path)).toEqual(defaultValue);
-            expect(defaultResult.value.resolvedPolicy.provenance[fieldCase.path]).toMatchObject({
-              fieldPath: fieldCase.path,
-              sourceLayer: 'built-in-defaults',
-              sourceRef: 'kit-vnext.config.v1#built-in-defaults',
-              valueHash: stableHash(defaultValue),
-            });
-
-            expect(valueAt(profileResult.value.resolvedPolicy.policy, fieldCase.path)).toEqual(profileValue);
-            expect(profileResult.value.resolvedPolicy.provenance[fieldCase.path]).toMatchObject({
-              fieldPath: fieldCase.path,
-              sourceLayer: 'profile',
-              profile: 'selected',
-              sourceRef: 'kit.config.json#profiles.selected',
-              valueHash: stableHash(profileValue),
-            });
-
-            expect(valueAt(overrideResult.value.resolvedPolicy.policy, fieldCase.path)).toEqual(overrideValue);
-            expect(overrideResult.value.resolvedPolicy.provenance[fieldCase.path]).toMatchObject({
-              fieldPath: fieldCase.path,
-              sourceLayer: 'operator-override',
-              sourceRef: 'kit.config.json#overrides',
-              valueHash: stableHash(overrideValue),
-            });
-          },
-        ),
-        { seed: 12019, numRuns: 20 },
-      );
-    }
-  });
-
-  it('returns canonical provenance append intents before the summary intent', () => {
-    const result = resolve(sourceFor());
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) {
-      return;
-    }
-
-    const fieldIntents = result.value.appendIntents.filter((intent) => intent.type === 'ConfigFieldResolved');
-    const fieldPaths = fieldIntents.map((intent) => intent.payload.fieldPath);
-
-    expect(fieldPaths).toEqual([...fieldPaths].sort());
-    expect(fieldPaths).toEqual(Object.keys(result.value.resolvedPolicy.provenance).sort());
-    expect(result.value.appendIntents.at(-1)).toMatchObject({
-      type: 'ConfigResolved',
-      durability: 'barrier',
-      payload: { runId: 'run-1', fieldCount: fieldPaths.length, at: occurredAt },
-    });
-  });
-
-  it('carries correlation IDs on successful field and summary resolution intents', () => {
-    const result = createConfigurationPolicy().resolveRunPolicy(
-      sourceFor(),
-      {},
-      {
-        runId: 'run-1',
-        occurredAt,
-        correlationId: 'corr-success',
-      },
-    );
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) {
-      return;
-    }
-    expect(result.value.appendIntents.every((intent) => intent.correlationId === 'corr-success')).toBe(true);
-  });
-
-  it('treats malformed config content as an unknown artifact during resolution', () => {
-    const result = createConfigurationPolicy().resolveRunPolicy(
-      { path: 'kit.config.json', content: '{' },
-      {},
-      { runId: 'run-1', occurredAt, correlationId: 'corr-1' },
-    );
-
-    expect(result).toMatchObject({
-      ok: false,
-      error: {
-        reason: 'adoption-unknown-artifact',
-        blockingState: 'adoption-unknown-artifact',
-        diagnostic: { state: 'adoption-unknown-artifact', path: 'kit.config.json' },
-        appendIntents: [
-          { type: 'AdoptionDiagnosticEmitted', correlationId: 'corr-1' },
-          { type: 'PolicyResolutionFailed', correlationId: 'corr-1' },
-        ],
-      },
-    });
-  });
-
-  it('fails closed when vNext config content does not match the schema', () => {
-    const result = createConfigurationPolicy().resolveRunPolicy(
-      {
-        path: 'kit.config.json',
-        content: JSON.stringify({
-          schema: 'kit-vnext.config.v1',
-          project: { id: 'project-1', rootPolicy: 'multi-repo' },
-        }),
-      },
-      {},
-      { runId: 'run-1', occurredAt },
-    );
-
-    expect(result).toMatchObject({
-      ok: false,
-      error: { reason: 'config-invalid', blockingState: 'config-invalid' },
-    });
-  });
-
-  it('fails closed when run input is invalid after override validation', () => {
-    const result = createConfigurationPolicy().resolveRunPolicy(
-      sourceFor(),
-      { profile: '' },
-      { runId: 'run-1', occurredAt },
-    );
-
-    expect(result).toMatchObject({
-      ok: false,
-      error: { reason: 'config-invalid', blockingState: 'config-invalid' },
-    });
-  });
-
-  it('fails closed when the selected profile is unknown', () => {
-    const result = resolve(sourceFor({ selected: { run: { mode: 'manual' } } }), undefined, 'missing-profile');
-
-    expect(result).toMatchObject({
-      ok: false,
-      error: {
-        reason: 'profile-unknown',
-        blockingState: 'profile-unknown',
-        appendIntents: [
-          {
-            type: 'PolicyResolutionFailed',
-            durability: 'barrier',
-            occurredAt,
-            payload: { reason: 'profile-unknown', blockingState: 'profile-unknown', at: occurredAt },
-          },
-        ],
-      },
-    });
-  });
-
-  it('carries correlation IDs on resolution failure intents', () => {
-    const result = createConfigurationPolicy().resolveRunPolicy(
-      sourceFor(),
-      { run: { maxConcurrentRuns: 0 } },
-      { runId: 'run-1', occurredAt, correlationId: 'corr-override' },
-    );
-
-    expect(result).toMatchObject({
-      ok: false,
-      error: {
-        reason: 'config-invalid',
-        appendIntents: [{ type: 'PolicyResolutionFailed', correlationId: 'corr-override' }],
-      },
-    });
-  });
-
-  it('fails closed when ConfigLoaded cannot be recorded', () => {
-    const result = createConfigurationPolicy().diagnoseAdoption(
-      { config: sourceFor(), artifacts: [] },
-      { eventWriter: failingWriter, occurredAt },
-    );
-
-    expect(result).toEqual({
-      ok: false,
-      error: { reason: 'config-loaded-write-failed', blockingState: 'config-loaded-unrecorded' },
-    });
-  });
-
-  it('does not attempt ConfigLoaded writes for configs that already block launch', () => {
-    const appendConfigLoaded = vi.fn(writer.appendConfigLoaded);
-    const recordingWriter: DurableEventWriter = {
-      appendConfigLoaded,
-    };
-
-    const result = createConfigurationPolicy().diagnoseAdoption(
-      { config: { path: 'kit.config.json', content: JSON.stringify({ schema: 'legacy.config.v1' }) }, artifacts: [] },
-      { eventWriter: recordingWriter, occurredAt },
-    );
-
-    expect(result).toMatchObject({
-      ok: true,
-      value: {
-        mayLaunch: false,
-        diagnostics: [{ state: 'adoption-incompatible', path: 'kit.config.json' }],
-      },
-    });
-    expect(appendConfigLoaded).not.toHaveBeenCalled();
-  });
-
-  it('records ConfigLoaded for valid config after recognizing known vNext artifacts', () => {
-    const appendConfigLoaded = vi.fn(writer.appendConfigLoaded);
-    const source = sourceFor();
-    const result = createConfigurationPolicy().diagnoseAdoption(
-      {
-        config: source,
-        artifacts: [
-          {
-            path: '.kit/events.ndjson',
-            class: 'run-event-log',
-            marker: 'kit-vnext.event-log.v1',
-            contentHash: 'sha256:events',
-          },
-        ],
-      },
-      { eventWriter: { appendConfigLoaded }, occurredAt },
-    );
-
-    expect(result).toMatchObject({ ok: true, value: { mayLaunch: true, diagnostics: [], appendIntents: [] } });
-    expect(appendConfigLoaded).toHaveBeenCalledWith({
-      configRef: 'kit.config.json',
-      schema: 'kit-vnext.config.v1',
-      contentHash: stableHash(source.content),
-      at: occurredAt,
-    });
-  });
-
-  it('fails closed with adoption diagnostics for incompatible config and artifacts', () => {
-    const policy = createConfigurationPolicy();
-    const legacyConfig = policy.diagnoseAdoption(
-      { config: { path: 'kit.config.json', content: JSON.stringify({ schema: 'legacy.config.v1' }) }, artifacts: [] },
-      { eventWriter: writer, occurredAt },
-    );
-    const unknownArtifact = policy.diagnoseAdoption(
-      {
-        config: sourceFor(),
-        artifacts: [
-          {
-            path: '.kit/state.bin',
-            class: 'unknown',
-            contentHash: 'sha256:abc',
-          },
-        ],
-      },
-      { eventWriter: writer, occurredAt },
-    );
-
-    expect(legacyConfig).toMatchObject({
-      ok: true,
-      value: {
-        mayLaunch: false,
-        diagnostics: [{ state: 'adoption-incompatible', path: 'kit.config.json' }],
-      },
-    });
-    expect(unknownArtifact).toMatchObject({
-      ok: true,
-      value: {
-        mayLaunch: false,
-        diagnostics: [{ state: 'adoption-unknown-artifact', path: '.kit/state.bin' }],
-      },
-    });
-  });
-
   it('returns adoption diagnostic and failure append intents when resolution sees missing or incompatible markers', () => {
     const policy = createConfigurationPolicy();
     const cases = [

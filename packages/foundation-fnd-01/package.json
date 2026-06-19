@@ -14,7 +14,7 @@
     "dist"
   ],
   "scripts": {
-    "test:unit": "pnpm --dir ../.. exec vitest run --project unit packages/foundation-fnd-01/tests/configuration-policy.unit.test.ts",
+    "test:unit": "pnpm --dir ../.. exec vitest run --project unit packages/foundation-fnd-01/tests/configuration-policy.adoption.unit.test.ts packages/foundation-fnd-01/tests/configuration-policy.defaults.unit.test.ts packages/foundation-fnd-01/tests/configuration-policy.failures.unit.test.ts",
     "typecheck": "tsc -b"
   },
   "dependencies": {

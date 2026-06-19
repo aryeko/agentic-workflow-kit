@@ -11,7 +11,7 @@
   },
   "types": "./dist/src/index.d.ts",
   "scripts": {
-    "test:unit": "pnpm --dir ../.. exec vitest run --project unit packages/foundation-fnd-04/tests/credentials-and-secrets.unit.test.ts",
+    "test:unit": "pnpm --dir ../.. exec vitest run --project unit packages/foundation-fnd-04/tests/credentials-and-secrets.audit-and-cleanup.unit.test.ts packages/foundation-fnd-04/tests/credentials-and-secrets.policy-and-redaction.unit.test.ts",
     "typecheck": "tsc -b"
   },
   "dependencies": {
