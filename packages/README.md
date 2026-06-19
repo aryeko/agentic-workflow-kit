@@ -8,6 +8,7 @@ packages here in a later step, alongside the full architecture and domain design
 will be repopulated into `docs/`.
 
 Do not create packages or package boundaries outside of that design process.
+The active package map is documented in `docs/implementation/package-map.md`.
 
 ---
 
@@ -32,7 +33,9 @@ When the design owners add packages, each package must:
    `exports`/`types` fields.
 2. Carry its own `tsconfig.json` that extends `../../tsconfig.base.json`, sets
    `composite: true`, and declares its `references` to other packages it depends on
-   (following the Dependency Rule — see `AGENTS.md`).
+   (following the Dependency Rule — see `AGENTS.md`). Contracts may depend on
+   foundation and sibling contracts; foundation packages may depend only on sibling
+   foundation packages.
 3. Be wired into the root `tsconfig.json` solution file as a new entry in
    `references`.
 4. Be covered by the dependency-cruiser rules in `.dependency-cruiser.cjs`. Any
