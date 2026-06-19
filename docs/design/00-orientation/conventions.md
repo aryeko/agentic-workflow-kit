@@ -22,7 +22,7 @@ structured so a model can load only the part it needs.
 - **Retrievable in isolation.** Working on one domain should require that domain's files plus the
   small shared set — not the whole tree, and without filling context.
 - **Single source per fact.** State it once and link; do not duplicate (e.g. the domain catalog lives
-  in [domains/README.md](../30-domain-reference/domain-catalog.md)).
+  in [the domain catalog](../30-domain-reference/domain-catalog.md)).
 - **Sub-directories with reason.** Domain design splits are flat sibling files by default. Add a
   subdirectory only for appendices or generated evidence that genuinely need their own folder.
 
@@ -32,7 +32,7 @@ Read **only** these (scoped — no legacy, no full incident history):
 
 1. [README.md](design-home-original.md) — mission, identity, working model.
 2. [architecture.md](../10-architecture/architecture.md) — layers, the Dependency Rule, the capability model, the domain map.
-3. [domains/README.md](../30-domain-reference/domain-catalog.md) — catalog context: layer, slug, dependencies, and build
+3. [the domain catalog](../30-domain-reference/domain-catalog.md) — catalog context: layer, slug, dependencies, and build
    order.
 4. This file ([conventions.md](conventions.md)).
 5. [glossary.md](glossary.md) — use these terms exactly.
@@ -51,7 +51,7 @@ the design should be self-contained. **Exception:** a provider domain may captur
 Provider domains (`prov-*`) depend on real external behavior, so they get two extra obligations:
 
 - **`evidence/` appendix.** Capture the external facts you relied on under
-  `domains/<layer>/<id>/evidence/`, dated, with the exact commands run, output hashes, and schema
+  `30-domain-reference/<layer>/<name>/evidence/`, dated, with the exact commands run, output hashes, and schema
   snapshots. This keeps the proof inside `docs/design/` (no live re-fetch needed to review) and is
   the source for capability attestation.
 - **Conformance suite.** Define the suite every driver of this seam must pass (schema probes,
@@ -135,14 +135,14 @@ you need) and model-friendly (load one aspect without the rest).
    cohesive sub-topic needs its own focused file.
 2. Chief architect reviews against the **Mandate** (scope/requirements) and these **conventions**.
 3. Feedback is technical; the engineer iterates. Approval flips the design's frontmatter `status` to
-   `approved`, meaning design-approved only. Implementation and conformance readiness remain tracked
-   in [the implementation readiness matrix](../IMPLEMENTATION_STATUS_NOTE.md). Cross-domain
+   `approved`, meaning design-approved only. Implementation and conformance readiness are maintained
+   outside this design bundle (see [IMPLEMENTATION_STATUS_NOTE.md](../IMPLEMENTATION_STATUS_NOTE.md)). Cross-domain
    contract changes are reconciled with the affected sibling domains.
 
 ## File layout per domain
 
 ```
-domains/<layer>/<id>-<name>/
+30-domain-reference/<layer>/<name>/
   README.md      # Mandate first, then the domain design
   <aspect>.md    # optional focused flat aspect file, linked from README.md
   evidence/      # provider-only dated external evidence appendix, when needed

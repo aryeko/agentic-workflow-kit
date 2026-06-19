@@ -64,7 +64,7 @@ interface CapabilityGateScope {
   egressPolicyDigest?: string;
 }
 interface AttestationRef {
-  eventId: string;
+  eventId: string;       // run-log event id of the appended CapabilityAttestation (envelope-level)
   provider: ProviderDomain;
   capability: string;
   evidenceRef: string;

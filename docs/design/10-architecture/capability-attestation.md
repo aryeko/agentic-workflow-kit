@@ -43,6 +43,15 @@ Every `CapabilityAttestation` record carries:
 | `at` | Timestamp the probe completed |
 | `details` (optional) | Provider-specific proof metadata (e.g. containment strength, egress policy digest) |
 
+## Payload vs. reference
+
+The fields above are the attestation **payload**. When the SDK appends an attestation to the run log,
+the resulting log event carries an envelope `eventId` — `eventId` is **not** a payload field. A
+capability gate cites the attestation it relied on by reference: an `AttestationRef { eventId, … }`
+pointing at the appended event (see
+[gate evaluation & records](../30-domain-reference/core/capability-and-safety/gate-evaluation-and-records.md)).
+So `eventId` lives at the envelope / reference level, never inside the `CapabilityAttestation` itself.
+
 ## Evaluation rules
 
 A gate treats an attestation as absent — and the corresponding capability as off — when any of

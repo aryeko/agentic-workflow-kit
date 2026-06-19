@@ -11,9 +11,9 @@ depends-on: []           # contracts/foundation modules this design depends on
 # <Domain name> — mandate and design
 
 > `status: approved` is design-approved only. Implementation and conformance readiness are tracked
-> separately in [the implementation readiness matrix](../IMPLEMENTATION_STATUS_NOTE.md).
+> separately, outside this design bundle (see [IMPLEMENTATION_STATUS_NOTE.md](../IMPLEMENTATION_STATUS_NOTE.md)).
 >
-> Produced as `README.md` following `../../../conventions.md`. Delete the guidance
+> Produced as `README.md` following `../00-orientation/conventions.md`. Delete the guidance
 > notes (in blockquotes) before submitting for review.
 
 ## 1. Mandate
