@@ -103,8 +103,8 @@ Core decisions:
 - Assisted auto-grant is available only for low-risk policy allowlist matches after core-02 records an
   `escalation-auto-grant` allow. `orchestrator-decide` always denies with `capability-deferred` in v1.
 - The selected policy-level grant is the tightest scope: `per-command`, `per-command-prefix`,
-  `per-host`, `session`, or `denial`; it must map deterministically to the approved Agent
-  `ScopedGrant` before `ApprovalAnswer` is sent.
+  `per-host`, or `session`; denial is a decision disposition, not a scope. Grant decisions must map
+  deterministically to the approved Agent `ScopedGrant` before `ApprovalAnswer` is sent.
 - Missing resolved policy/provenance, missing capability, missing Agent relay, ambiguous
   ownership/session linkage, unwritable Event log, or expired parked request fails closed to a named
   state and never continues by guess.

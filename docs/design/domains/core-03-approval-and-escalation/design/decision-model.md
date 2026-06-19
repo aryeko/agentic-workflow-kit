@@ -14,14 +14,13 @@ type ApprovalRisk = "low" | "medium" | "high";
 type ApprovalState =
   | "pending" | "auto_granted" | "human_required" | "answered" | "denied"
   | "parked" | "resumed" | "expired" | "blocked" | "failed";
-type ApprovalSubject = "command" | "file-change" | "permission" | "network" | "input" | "other";
-type PolicyGrantScope = "per-command" | "per-command-prefix" | "per-host" | "session" | "denial";
-type AgentGrantScope = "request" | "turn" | "session";
-type AgentScopedGrantKind =
-  | "command-once" | "command-session" | "command-policy-amendment"
-  | "file-change-once" | "file-change-session" | "filesystem-permission"
-  | "network-permission" | "mcp-elicitation-content" | "tool-user-input-content"
-  | "deny-continue" | "deny-interrupt" | "deny-park";
+type ApprovalSubject =
+  | "command" | "file-change" | "permission" | "network" | "input"
+  | "protected-policy-change" | "other";
+type PolicyGrantScope = "per-command" | "per-command-prefix" | "per-host" | "session";
+// Import ScopedGrant and ScopedGrantKind from prov-01 Agent Execution
+// design/contracts-and-conformance.md.
+// ScopedGrant.scope is "request" | "turn" | "session".
 
 interface ApprovalRequest {
   schema: "kit-vnext.approval-request.v1";
@@ -56,20 +55,6 @@ interface PolicyGrantPlan {
   reason: string;
 }
 
-interface AgentScopedGrant {
-  grantId: string;
-  kind: AgentScopedGrantKind;
-  scope: AgentGrantScope;
-  command?: string;
-  commandPrefix?: string[];
-  filePaths?: string[];
-  networkHost?: string;
-  networkAction?: "allow" | "deny";
-  filesystemEntries?: unknown[];
-  content?: unknown;
-  grantEventId: string;
-}
-
 interface Decision {
   schema: "kit-vnext.approval-decision.v1";
   decisionId: string;
@@ -78,7 +63,7 @@ interface Decision {
   mode: ApprovalMode;
   decision: "grant" | "deny" | "human-required" | "expired" | "blocked";
   policyGrantPlan?: PolicyGrantPlan;
-  grant?: AgentScopedGrant;
+  grant?: ScopedGrant;
   deniedScope?: PolicyGrantScope;
   decidedBy: "policy" | "operator" | "system";
   sourceEventIds: string[];
@@ -169,27 +154,27 @@ Grant taxonomy:
 - `per-host`: one exact host for one network permission; wildcard hosts are high risk and not
   auto-grantable.
 - `session`: bounded to the current `sessionId` and only after human approval in v1.
-- `denial`: `deny` with either continue, interrupt, or park semantics chosen by Agent contract
-  capabilities and policy.
 
 The selected grant must be no broader than the request, no broader than policy, and no broader than
 the minimum needed for the subject. When several scopes could satisfy a request, choose the earliest
 scope in this order: `per-command`, `per-command-prefix`, `per-host`, `session`; otherwise deny.
+Denial is not a `PolicyGrantScope`; it is a `Decision.decision = "deny"` disposition with continue,
+interrupt, or park semantics chosen by Agent contract capabilities and policy.
 
 `PolicyGrantPlan.scope` is the policy-level taxonomy. `Decision.grant` is always the Agent contract
 grant shape passed to `ApprovalAnswer.grant`; core-03 never sends `PolicyGrantScope` values to the
 Agent contract. The mapping is deterministic:
 
-| Policy scope | Agent `ScopedGrant.kind` | Agent `ScopedGrant.scope` | Required fields |
+| Policy scope or decision disposition | Agent `ScopedGrant.kind` | Agent `ScopedGrant.scope` | Required fields |
 |---|---|---|---|
 | `per-command` | `command-once` | `request` | exact `command` |
 | `per-command-prefix` | `command-policy-amendment` | `turn` | `commandPrefix` from policy |
 | `per-host` | `network-permission` | `turn` | exact `networkHost`, `networkAction = "allow"` |
 | `session` for command | `command-session` | `session` | exact `command` or policy prefix, `sessionId` evidence |
 | `session` for file change | `file-change-session` | `session` | bounded file paths |
-| `denial` continue | `deny-continue` | `request` | denial reason in `content` |
-| `denial` interrupt | `deny-interrupt` | `request` | denial reason in `content` |
-| `denial` park | `deny-park` | `request` | denial reason in `content` |
+| `deny` disposition, continue | `deny-continue` | `request` | denial reason in `content` |
+| `deny` disposition, interrupt | `deny-interrupt` | `request` | denial reason in `content` |
+| `deny` disposition, park | `deny-park` | `request` | denial reason in `content` |
 
 If a policy-level scope cannot map to an Agent `ScopedGrant` without widening the scope, the decision
 is `blocked` with `approval-grant-mapping-invalid`. The `grantEventId` field is populated from the
