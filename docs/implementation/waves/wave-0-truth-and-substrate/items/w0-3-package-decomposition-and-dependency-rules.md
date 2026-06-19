@@ -27,8 +27,8 @@ cross-layer mixing.
   `production ↛ test-fixtures`. (Contracts MAY depend on Foundation and on sibling contracts — "Everything → Foundation" per architecture.md §2; correct the scaffolded template if it forbids `contracts → foundation`.)
 - **Package-name SDK bans.** Add rules that fail if a boundary library is imported outside its one
   allowed package: `octokit` → github driver only; `execa` (+ the native helper) → local exec-host
-  driver only; `pino` / `@opentelemetry/*` → telemetry adapter / edge only; `awilix` →
-  composition-root only; `*sqlite*` → storage package only. This turns every "forbidden placement" cell
+  driver only; `pino` / `@opentelemetry/*` → edge only unless a telemetry adapter package is later
+  ratified; `awilix` → composition-root only; `*sqlite*` → storage package only. This turns every "forbidden placement" cell
   in the [infra-tooling research](../../../../reviews/2026-06-19-infra-tooling-framework-research.md)
   into a CI failure.
 

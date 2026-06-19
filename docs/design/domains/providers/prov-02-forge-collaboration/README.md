@@ -6,7 +6,7 @@ status: approved
 owner: "Codex"
 last-reviewed: "2026-06-18"
 depends-on:
-  - "fnd-04 Credentials & Secrets"
+  - "fnd-04-credentials-and-secrets"
 ---
 
 # Forge / Collaboration -- design

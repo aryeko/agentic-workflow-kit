@@ -18,7 +18,7 @@ Provider gaps below are tracked readiness state, not defects in the design-appro
 
 | Term | Meaning |
 |---|---|
-| `yes` | Axis-specific evidence exists: frontmatter/catalog approval for `design-approved`; executable cited evidence for package, conformance, smoke, probe, and runtime-attestation axes. |
+| `yes` | Axis-specific evidence exists: frontmatter/catalog approval for `design-approved` per the [domain catalog](../design/domains/README.md); executable cited evidence for package, conformance, smoke, probe, and runtime-attestation axes. |
 | `partial` | Design-stage evidence, fixtures, schema probes, or primitive probes exist, but executable implementation evidence is incomplete. |
 | `no` | No package, conformance pass, real smoke, negative probe, or runtime attestation is currently claimed. |
 | `n/a` | The axis does not apply to that domain or driver. |

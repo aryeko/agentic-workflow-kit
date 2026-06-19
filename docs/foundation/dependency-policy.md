@@ -45,7 +45,7 @@ These entries must match the committed dependency-cruiser package-name bans.
 |---|---|---|
 | `octokit`, `@octokit/*` | `packages/drivers-github` | GitHub SDKs stay behind the Forge driver seam. |
 | `execa`, `native-containment-helper`, `@kit-vnext/native-containment-helper` | `packages/drivers-local` | Process spawning and native containment helpers stay behind the Local Execution Host driver seam. |
-| `pino`, `@opentelemetry/*` | `packages/edge-01`, `packages/foundation-fnd-04` | Telemetry SDKs stay at the operator edge or the foundation telemetry adapter boundary. |
+| `pino`, `@opentelemetry/*` | `packages/edge-01` | Telemetry SDKs stay at the operator edge until a ratified telemetry adapter package exists. |
 | `awilix` | `packages/composition-root` | A container, if ever used, is runtime assembly only. |
 | `node:sqlite`, `sqlite`, `sqlite3`, `better-sqlite3`, `libsql`, `@sqlite.org/sqlite-wasm`, `@libsql/client` | `packages/foundation-fnd-02` | SQLite and SQLite-compatible storage clients stay inside the storage package. |
 

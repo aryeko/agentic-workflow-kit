@@ -32,7 +32,7 @@ packages may depend on sibling foundation packages only.
 | `fnd-01` | `packages/foundation-fnd-01` | `@kit-vnext/foundation-fnd-01` | Foundation |
 | `fnd-02` | `packages/foundation-fnd-02` | `@kit-vnext/foundation-fnd-02` | Foundation / storage SDK boundary |
 | `fnd-03` | `packages/foundation-fnd-03` | `@kit-vnext/foundation-fnd-03` | Foundation |
-| `fnd-04` | `packages/foundation-fnd-04` | `@kit-vnext/foundation-fnd-04` | Foundation / telemetry adapter boundary |
+| `fnd-04` | `packages/foundation-fnd-04` | `@kit-vnext/foundation-fnd-04` | Foundation |
 | Agent seam | `packages/contracts-agent` | `@kit-vnext/contracts-agent` | Contracts |
 | Execution Host seam | `packages/contracts-execution-host` | `@kit-vnext/contracts-execution-host` | Contracts |
 | Forge seam | `packages/contracts-forge` | `@kit-vnext/contracts-forge` | Contracts |
@@ -76,7 +76,6 @@ dependency-cruiser enforces these external library placements:
 |---|---|
 | `octokit`, `@octokit/*` | `packages/drivers-github` |
 | `execa`, native containment helper package | `packages/drivers-local` |
-| `pino`, `@opentelemetry/*` | `packages/edge-01`, `packages/foundation-fnd-04` |
+| `pino`, `@opentelemetry/*` | `packages/edge-01` |
 | `awilix` | `packages/composition-root` |
 | `node:sqlite`, `*sqlite*` packages | `packages/foundation-fnd-02` |
-

@@ -33,7 +33,7 @@ interface AttentionNotice {
 ```
 
 Sources include `ApprovalParked`, `ApprovalDecisionRecorded(human-required)`,
-`LivenessStateChanged(approval_overdue|stale|supervision_lost)`, `SupervisionLost`,
+`LivenessStateChanged(approval-overdue|stale|supervision-lost)`, `SupervisionLost`,
 `ReconciliationBlocked`, terminal `blocked` lifecycle transitions, and `AnalysisRecorded` issues with
 operator-facing severity. The Control plane constructs notices from replay/projections; the edge only
 renders them.

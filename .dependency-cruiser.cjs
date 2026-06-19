@@ -153,9 +153,9 @@ module.exports = {
     {
       name: 'telemetry-sdks-edge-or-telemetry-adapter-only',
       severity: 'error',
-      comment: 'Pino and OpenTelemetry SDK imports are allowed only in edge or the foundation telemetry adapter.',
+      comment: 'Pino and OpenTelemetry SDK imports are allowed only in the edge package.',
       from: {
-        pathNot: [packagePath('edge-01'), packagePath('foundation-fnd-04')],
+        pathNot: [packagePath('edge-01')],
       },
       to: {
         dependencyTypes: NPM_DEPENDENCY_TYPES,
