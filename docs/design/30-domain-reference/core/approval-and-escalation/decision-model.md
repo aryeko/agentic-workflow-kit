@@ -181,3 +181,11 @@ is `blocked` with `approval-grant-mapping-invalid`. The `grantEventId` field is 
 committed `ApprovalDecisionRecorded` event id before calling Agent `answerApproval`, so the
 `ApprovalAnswer` implementation path is `Decision.grant -> ApprovalAnswer.grant` with no shape
 conversion at the Agent boundary.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Approval & Escalation](./README.md) · **← Prev:** [Approval & Escalation](./README.md) · **Next →:** [Approval & Escalation - park resume and failures](./park-resume-and-failures.md)
+
+<!-- /DOCS-NAV -->

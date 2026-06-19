@@ -255,3 +255,13 @@ recorded events plus an explicit clock input.
 - [x] Provider-domain validation is not applicable to this core domain.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [core domain reference](../README.md) · **← Prev:** [Approval & Escalation - interfaces events and tests](../approval-and-escalation/interfaces-events-and-tests.md) · **Next →:** [Supervision & Liveness - liveness model](./liveness-model.md)
+
+**Children:** [Supervision & Liveness - liveness model](./liveness-model.md)
+
+<!-- /DOCS-NAV -->

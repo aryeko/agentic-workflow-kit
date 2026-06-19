@@ -36,3 +36,13 @@ Then go deep only into the domain layer you are changing. Use the
 A reader must be able to understand the system without opening every domain spec. The orientation and
 architecture layers carry the front-door explanation. Domain specs are reference depth, not the
 starting point.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [documentation home](../README.md) · **Next →:** [<Domain name>](./_templates/domain-design-template.md)
+
+**Children:** [<Domain name>](./_templates/domain-design-template.md) · [orientation](./00-orientation/README.md) · [architecture overview](./10-architecture/README.md) · [SDK & packaging overview](./20-sdk-and-packaging/README.md) · [domain reference](./30-domain-reference/README.md) · [decisions layer](./40-decisions/README.md) · [implementation status note](./IMPLEMENTATION_STATUS_NOTE.md)
+
+<!-- /DOCS-NAV -->

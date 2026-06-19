@@ -68,3 +68,11 @@ The telemetry topic taxonomy, issue taxonomy, typed metric wrapper, analyzer inp
 retention and privacy boundaries, and the complete failure-reason catalog are in:
 
 [Observability & Analysis](../30-domain-reference/core/observability-and-analysis/README.md) (core-07)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [recovery and reconciliation](./recovery-and-reconciliation.md) · **Next →:** [launch coordination](./launch-coordination.md)
+
+<!-- /DOCS-NAV -->

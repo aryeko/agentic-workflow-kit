@@ -251,3 +251,13 @@ parentage probes are captured for the target Codex version.
   resume, structured tool-exit, and parentage probes are not yet complete.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [provider domain reference](../README.md) · **← Prev:** [provider domain reference](../README.md) · **Next →:** [Agent Execution - contract types](./contracts-and-conformance.md)
+
+**Children:** [Agent Execution - contract types](./contracts-and-conformance.md) · [Agent Execution - capabilities and conformance](./capabilities-and-conformance.md) · [Agent Execution - Codex driver mapping](./codex-driver.md) · [Agent Execution - mock driver](./mock-driver.md)
+
+<!-- /DOCS-NAV -->

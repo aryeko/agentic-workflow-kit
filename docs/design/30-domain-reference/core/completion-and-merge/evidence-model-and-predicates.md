@@ -182,3 +182,11 @@ push/open/update a blocker-evidence PR and publish a runner-authored blocker com
 evidence refs; it does not mark the Task complete and cannot enqueue or merge. No blocker-evidence PR
 intent is emitted for `event-log-unwritable`, `head-ambiguous`, or
 `changed-files-outside-allowlist`.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Completion, Verification & Merge](./README.md) · **← Prev:** [Completion, Verification & Merge](./README.md) · **Next →:** [Recovery, Reconciliation & Coordination](../recovery-and-reconciliation/README.md)
+
+<!-- /DOCS-NAV -->

@@ -39,3 +39,13 @@ See [IMPLEMENTATION_STATUS_NOTE.md](design/IMPLEMENTATION_STATUS_NOTE.md) for co
 The domain specs under `design/30-domain-reference/` are the authoritative source for low-level
 design. The orientation and architecture layers introduce and cross-reference those specs; they do
 not duplicate them.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**Next →:** [design corpus overview](./design/README.md)
+
+**Children:** [design corpus overview](./design/README.md) · [Engineering Policy Index](./engineering/README.md) · [roadmap](./roadmap.md)
+
+<!-- /DOCS-NAV -->

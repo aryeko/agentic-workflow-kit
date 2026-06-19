@@ -63,3 +63,11 @@ Every Agent driver must pass:
 Current evidence in `../evidence/` satisfies schema and MCP tools-list probes for Codex 0.141.0, but
 does not satisfy the live-driver smoke, approval persistence, structured tool-exit, or parentage
 probes. Those capabilities are therefore not claimed as validated for real Codex.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Agent Execution](./README.md) · **← Prev:** [Agent Execution - contract types](./contracts-and-conformance.md) · **Next →:** [Agent Execution - Codex driver mapping](./codex-driver.md)
+
+<!-- /DOCS-NAV -->

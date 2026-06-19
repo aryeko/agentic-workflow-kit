@@ -155,3 +155,11 @@ host-owned process tree or an equivalent remote ownership proof.
 
 Until that probe is positive, Guardian process actions and command observations do not unlock
 kill-dependent unattended run, auto-recovery, or liveness decisions.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Agent Execution](./README.md) · **← Prev:** [Agent Execution - capabilities and conformance](./capabilities-and-conformance.md) · **Next →:** [Agent Execution - mock driver](./mock-driver.md)
+
+<!-- /DOCS-NAV -->

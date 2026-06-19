@@ -36,3 +36,11 @@ Shared vocabulary. Use these terms exactly; do not introduce synonyms.
 | **Recovery classifier** | The pure function that maps run evidence to a named recovery state and a safe action class. |
 | **Earn autonomy** | The principle that every autonomous capability is locked behind proven guarantees; default is supervised. |
 | **Charter** | The chief-architect-owned brief for a domain: responsibility, scope, requirements, dependencies, required reading, deliverable, DoD. |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [orientation](./README.md) · **← Prev:** [requirements](./requirements.md) · **Next →:** [reading guide](./reading-guide.md)
+
+<!-- /DOCS-NAV -->

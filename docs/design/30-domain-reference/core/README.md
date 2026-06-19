@@ -19,3 +19,13 @@ Core is the deterministic control plane.
 | [Completion and merge](completion-and-merge/README.md) | core-05 | Evidence predicates, completion, merge readiness. |
 | [Recovery and reconciliation](recovery-and-reconciliation/README.md) | core-06 | Recovery classifier and launch coordination. |
 | [Observability and analysis](observability-and-analysis/README.md) | core-07 | Telemetry, analyzer, terminal analysis invariant. |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [domain reference](../README.md) · **← Prev:** [domain reference](../README.md) · **Next →:** [Run Lifecycle & Event State](./run-lifecycle-and-state/README.md)
+
+**Children:** [Run Lifecycle & Event State](./run-lifecycle-and-state/README.md) · [Capability & Safety](./capability-and-safety/README.md) · [Approval & Escalation](./approval-and-escalation/README.md) · [Supervision & Liveness](./supervision-and-liveness/README.md) · [Completion, Verification & Merge](./completion-and-merge/README.md) · [Recovery, Reconciliation & Coordination](./recovery-and-reconciliation/README.md) · [Observability & Analysis](./observability-and-analysis/README.md)
+
+<!-- /DOCS-NAV -->

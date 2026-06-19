@@ -73,3 +73,11 @@ The recovery state taxonomy, the action-safety matrix, the full lease model, rec
 payloads, and the complete resume-vs-restart rules are in:
 
 [Recovery, Reconciliation & Coordination](../30-domain-reference/core/recovery-and-reconciliation/README.md) (core-06)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [human control and approvals](./human-control-and-approvals.md) · **Next →:** [observability and analysis](./observability-and-analysis.md)
+
+<!-- /DOCS-NAV -->

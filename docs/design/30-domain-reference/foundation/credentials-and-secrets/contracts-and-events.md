@@ -116,3 +116,11 @@ interface RedactionApplied extends AuditBase { type: "RedactionApplied"; sink: s
 interface EgressPolicyIssued extends AuditBase { type: "EgressPolicyIssued"; policyId: string; egressPolicyDigest: string; audience: CredentialParty; hosts: string[]; negativeProbeIds: string[]; freshnessKey: string; expiresAt: string }
 type CredentialAuditEvent = CredentialUsePlanned | CredentialUseStarted | CredentialUseFinished | CredentialUseDenied | CredentialMaterialDestroyed | RedactionApplied | EgressPolicyIssued;
 ```
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Credentials & Secrets](./README.md) · **← Prev:** [Credentials & Secrets](./README.md) · **Next →:** [provider domain reference](../../providers/README.md)
+
+<!-- /DOCS-NAV -->

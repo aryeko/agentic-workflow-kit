@@ -257,3 +257,11 @@ The edge validates only enough transport shape to identify the command and produ
 envelope. It does not locally reject known Operator actions for bad parameters or identity lookup
 failure, and it does not classify risk, inspect capabilities, evaluate policy, decide recovery, or
 infer completion.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Operator & Entry Surface](./README.md) · **← Prev:** [Operator & Entry Surface](./README.md) · **Next →:** [Operator & Entry Surface - attention, explainability, and triggers](./attention-explainability-and-triggers.md)
+
+<!-- /DOCS-NAV -->

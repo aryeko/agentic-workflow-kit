@@ -261,3 +261,13 @@ and a committed core-02 `auto-recover` gate allows the exact action scope.
 - [x] Provider-domain validation is not applicable to this core domain.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [core domain reference](../README.md) · **← Prev:** [Completion, Verification & Merge - evidence model and predicates](../completion-and-merge/evidence-model-and-predicates.md) · **Next →:** [Recovery, Reconciliation & Coordination - recovery model](./recovery-model.md)
+
+**Children:** [Recovery, Reconciliation & Coordination - recovery model](./recovery-model.md)
+
+<!-- /DOCS-NAV -->

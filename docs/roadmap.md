@@ -22,3 +22,11 @@ last-reviewed: "2026-06-19"
 - Multi-project orchestration.
 - LLM-adjudicated approval autonomy.
 - Legacy run migration.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](./README.md) · **← Prev:** [Tooling and CI](./engineering/tooling-and-ci.md)
+
+<!-- /DOCS-NAV -->

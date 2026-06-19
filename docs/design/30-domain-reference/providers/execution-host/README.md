@@ -242,3 +242,13 @@ negative probes.
   negative-probe evidence remain required before this item can be satisfied.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [provider domain reference](../README.md) · **← Prev:** [Work Source - contracts and conformance](../work-source/contracts-and-conformance.md) · **Next →:** [Execution Host - contracts and conformance](./contracts-and-conformance.md)
+
+**Children:** [Execution Host - contracts and conformance](./contracts-and-conformance.md)
+
+<!-- /DOCS-NAV -->

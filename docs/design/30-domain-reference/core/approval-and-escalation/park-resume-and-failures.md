@@ -116,3 +116,11 @@ Capability gates treat any active failure state above as `escalation-auto-grant`
 resolved policy/provenance, missing capability, missing Agent relay, ambiguous ownership/session
 linkage, unwritable Event log, invalid grant mapping, and expired parked request never continue
 worker execution by guess.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Approval & Escalation](./README.md) · **← Prev:** [Approval & Escalation - decision model](./decision-model.md) · **Next →:** [Approval & Escalation - interfaces events and tests](./interfaces-events-and-tests.md)
+
+<!-- /DOCS-NAV -->

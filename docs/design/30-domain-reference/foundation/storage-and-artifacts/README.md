@@ -266,3 +266,11 @@ open-time plus mid-operation network filesystem degradation.
 - [x] Provider-domain validation is not applicable to this Foundation domain.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [Configuration & Policy — interfaces, events, and verification](../configuration-and-policy/interfaces-events-and-verification.md) · **Next →:** [Workspace & Repository](../workspace-and-repository/README.md)
+
+<!-- /DOCS-NAV -->

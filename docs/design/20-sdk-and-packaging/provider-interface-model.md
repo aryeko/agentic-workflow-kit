@@ -55,3 +55,11 @@ never sufficient. The gate evaluation mechanics are in
 [docs/design/30-domain-reference/core/capability-and-safety/](../30-domain-reference/core/capability-and-safety/README.md).
 Provider-side attestation contracts are in the respective provider deep specs under
 [docs/design/30-domain-reference/providers/](../30-domain-reference/providers/README.md).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [SDK boundary](./sdk-boundary.md) · **Next →:** [CLI and MCP wrappers](./cli-and-mcp-wrappers.md)
+
+<!-- /DOCS-NAV -->

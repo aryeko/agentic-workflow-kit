@@ -236,3 +236,11 @@ launch artifacts. Any artifact in those locations without a recognized marker, o
 non-vNext marker, returns an `AdoptionDiagnosticEmitted` append intent and blocks launch. The owning
 core domain appends returned diagnostic/failure intents through core-01's single RunWriter. If those
 intents cannot be recorded, launch remains blocked as `adoption-diagnostic-unrecorded`.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Configuration & Policy](./README.md) · **← Prev:** [Configuration & Policy](./README.md) · **Next →:** [Configuration & Policy — interfaces, events, and verification](./interfaces-events-and-verification.md)
+
+<!-- /DOCS-NAV -->

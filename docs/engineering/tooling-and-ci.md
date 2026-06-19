@@ -131,3 +131,11 @@ pattern. `tooling/` and `tests/` are not pnpm workspace packages but are still p
 the gate through TypeScript project references, dependency-cruiser, and Vitest
 configuration. `packages/` is the workspace slot for implementation packages; its
 contents are design-owned and added by implementation work.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Testing Policy](./testing-policy.md) · **Next →:** [roadmap](../roadmap.md)
+
+<!-- /DOCS-NAV -->

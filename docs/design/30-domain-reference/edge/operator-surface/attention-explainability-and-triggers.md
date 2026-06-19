@@ -108,3 +108,11 @@ External triggers are not implemented in v1. The future model is intentionally c
 
 This preserves the Dependency Rule and keeps external automation from becoming a second, less-audited
 control path.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Operator & Entry Surface](./README.md) · **← Prev:** [Operator & Entry Surface - command surface and envelopes](./command-surface-and-envelopes.md) · **Next →:** [domain catalog](../../domain-catalog.md)
+
+<!-- /DOCS-NAV -->

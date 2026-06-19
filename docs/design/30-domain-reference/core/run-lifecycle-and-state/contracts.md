@@ -107,3 +107,11 @@ interface RunWriter { append(batch: AppendIntent[]): Result<RunAppendReceipt, Ru
 `AppendIntent.durability` is the event's requested durability. `RunAppendReceipt.durability` is the
 effective fnd-02 batch durability after the writer applies the strongest requested durability across
 the batch.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Run Lifecycle & Event State](./README.md) · **← Prev:** [Run Lifecycle & Event State](./README.md) · **Next →:** [Run Lifecycle & Event State - event log, writer, and corruption protocol](./event-log-writer-and-corruption.md)
+
+<!-- /DOCS-NAV -->

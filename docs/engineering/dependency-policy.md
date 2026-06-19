@@ -130,3 +130,11 @@ artifact, covering:
 - **Observability:** logs, telemetry, error shape, and failure-mode impact.
 
 If the checklist cannot be completed, do not add the dependency.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Check Gate](./check-gate.md) · **Next →:** [Dependency Rule Enforcement](./dependency-rule-enforcement.md)
+
+<!-- /DOCS-NAV -->

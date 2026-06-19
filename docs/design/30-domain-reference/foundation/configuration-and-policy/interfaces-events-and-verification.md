@@ -213,3 +213,11 @@ all autonomous capabilities absent. The safe degraded state is supervised, block
 - Deferred-capability tests prove `orchestrator-decide` is rejected in config, profile, and override.
 - NFR-TEST is met with pure functions and in-memory event sinks; no real providers, credentials,
   processes, or Forge operations are used.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Configuration & Policy](./README.md) · **← Prev:** [Configuration & Policy — schema and resolution](./schema-and-resolution.md) · **Next →:** [Storage & Artifacts](../storage-and-artifacts/README.md)
+
+<!-- /DOCS-NAV -->

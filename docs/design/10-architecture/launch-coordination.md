@@ -67,3 +67,11 @@ Work Source supports release) and the failure must be recorded. The lifecycle tr
   [Storage & Artifacts](../30-domain-reference/foundation/storage-and-artifacts/README.md) (fnd-02)
 - Duplicate launch prevention and reconciliation:
   [Recovery, Reconciliation & Coordination](../30-domain-reference/core/recovery-and-reconciliation/README.md) (core-06)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [observability and analysis](./observability-and-analysis.md) · **Next →:** [protected policy gate](./protected-policy-gate.md)
+
+<!-- /DOCS-NAV -->

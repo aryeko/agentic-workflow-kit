@@ -39,3 +39,13 @@ deterministic control, recoverability, evidence, and human supervision.
 
 For the full expression of these invariants see [design-home-original.md](design-home-original.md)
 and [requirements.md](requirements.md).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [design corpus overview](../README.md) · **← Prev:** [<Domain name>](../_templates/domain-design-template.md) · **Next →:** [mission and scope](./mission-and-scope.md)
+
+**Children:** [mission and scope](./mission-and-scope.md) · [requirements](./requirements.md) · [glossary](./glossary.md) · [reading guide](./reading-guide.md) · [design conventions](./conventions.md) · [next-generation workflow kit (design home)](./design-home-original.md)
+
+<!-- /DOCS-NAV -->

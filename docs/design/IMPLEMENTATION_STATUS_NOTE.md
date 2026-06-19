@@ -32,3 +32,11 @@ now resolves here instead.
 Implementation planning, wave charters, and readiness tracking are maintained separately from this
 design corpus. Consult the project's issue tracker or the implementation planning documents for
 current wave status.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [design corpus overview](./README.md) · **← Prev:** [architecture decisions](./40-decisions/accepted-decisions.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
+
+<!-- /DOCS-NAV -->

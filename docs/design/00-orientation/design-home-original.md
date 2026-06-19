@@ -75,3 +75,11 @@ A senior engineer picks up one domain. They read this README, [architecture.md](
 sibling aspect files and sibling contracts the Mandate names). They update the domain `README.md`
 using the [domain design template](../_templates/domain-design-template.md). The chief architect reviews
 it against the Mandate and conventions. Nothing outside `docs/design/` needs to be read.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [orientation](./README.md) · **← Prev:** [design conventions](./conventions.md) · **Next →:** [architecture overview](../10-architecture/README.md)
+
+<!-- /DOCS-NAV -->

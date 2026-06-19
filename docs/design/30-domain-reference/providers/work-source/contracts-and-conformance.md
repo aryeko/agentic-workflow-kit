@@ -188,3 +188,11 @@ confirm what was written. This citation (run id + task snapshot ref + optional s
 is task metadata only — it is **not run truth**. The run event log (AD-6) remains the sole authority
 for run activity. The two-authorities boundary is preserved: task status and task-level audit citation
 live in the Work Source; run events live in the event log, and neither cross-writes the other.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Work Source](./README.md) · **← Prev:** [Work Source](./README.md) · **Next →:** [Execution Host](../execution-host/README.md)
+
+<!-- /DOCS-NAV -->

@@ -268,3 +268,13 @@ liveness, recovery, merge, capability, provider, or credential evidence.
 - [x] Provider-domain validation is not applicable to this core domain.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [core domain reference](../README.md) · **← Prev:** [Recovery, Reconciliation & Coordination - recovery model](../recovery-and-reconciliation/recovery-model.md) · **Next →:** [Observability & Analysis - analysis contract](./analysis-contract.md)
+
+**Children:** [Observability & Analysis - analysis contract](./analysis-contract.md)
+
+<!-- /DOCS-NAV -->

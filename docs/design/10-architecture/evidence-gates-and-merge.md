@@ -58,3 +58,11 @@ fail-closed state catalog, post-merge outcome mapping, and blocker-evidence PR r
 - [Completion, Verification & Merge](../30-domain-reference/core/completion-and-merge/README.md) (core-05)
 - [Forge / Collaboration](../30-domain-reference/providers/forge-collaboration/README.md) (prov-02) — the
   Forge contract and the exact-head evidence model it supplies
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [capability attestation](./capability-attestation.md) · **Next →:** [human control and approvals](./human-control-and-approvals.md)
+
+<!-- /DOCS-NAV -->

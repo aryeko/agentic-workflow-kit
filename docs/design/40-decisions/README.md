@@ -14,3 +14,13 @@ question here first.
 
 When a design rule feels surprising, check the accepted decisions before treating an alternative as
 permissible.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [design corpus overview](../README.md) · **← Prev:** [domain catalog](../30-domain-reference/domain-catalog.md) · **Next →:** [architecture decisions](./accepted-decisions.md)
+
+**Children:** [architecture decisions](./accepted-decisions.md)
+
+<!-- /DOCS-NAV -->

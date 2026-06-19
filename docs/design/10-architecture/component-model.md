@@ -84,3 +84,11 @@ Nothing depends on a concrete driver. Contracts never depend on the Control plan
 The detailed tabulation of allowed and forbidden dependency pairs, and the SDK boundary
 enforcement rule, are in [architecture.md](architecture.md) §2 and
 [dependency-rules.md](../20-sdk-and-packaging/dependency-rules.md).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [architecture overview](./README.md) · **Next →:** [runtime flow](./runtime-flow.md)
+
+<!-- /DOCS-NAV -->

@@ -128,3 +128,11 @@ Core-01 accepts fnd-02 health as authoritative:
   `event-log-unavailable`.
 
 Core-01 never edits the log to repair semantic mistakes. Semantic corrections are new events.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Run Lifecycle & Event State](./README.md) · **← Prev:** [Run Lifecycle & Event State - contracts](./contracts.md) · **Next →:** [Run Lifecycle & Event State - projections, lifecycle, and tests](./projections-lifecycle-and-tests.md)
+
+<!-- /DOCS-NAV -->

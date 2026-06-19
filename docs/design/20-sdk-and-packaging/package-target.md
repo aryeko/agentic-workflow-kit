@@ -44,3 +44,11 @@ A package per design domain would introduce build and versioning complexity befo
 that independent publish boundaries are needed. The SDK maintains internal folder structure that
 mirrors the domain map, so ownership and boundaries remain clear without multiplying packages. The
 complete dependency matrix is in [dependency-rules.md](dependency-rules.md).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [SDK & packaging overview](./README.md) · **Next →:** [SDK boundary](./sdk-boundary.md)
+
+<!-- /DOCS-NAV -->

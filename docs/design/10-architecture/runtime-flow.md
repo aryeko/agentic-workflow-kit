@@ -60,3 +60,11 @@ them, and the projection model derived from it — is the single source in
 
 The end-to-end happy-path sequence at a higher level of abstraction is in
 [architecture.md](architecture.md) §4.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [component model](./component-model.md) · **Next →:** [provider seams](./provider-seams.md)
+
+<!-- /DOCS-NAV -->

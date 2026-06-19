@@ -76,3 +76,11 @@ must live in its own adapter package, not in the SDK. See [sdk-boundary.md](sdk-
 Core SDK logic must receive clock, IDs, randomness, storage, and provider behavior as injected
 ports. No ambient `Date.now`, `new Date`, `Math.random`, or `crypto.randomUUID` in deterministic
 logic. See [sdk-boundary.md](sdk-boundary.md) for the factory shape that enforces this.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [testkit and conformance](./testkit-and-conformance.md) · **Next →:** [domain reference](../30-domain-reference/README.md)
+
+<!-- /DOCS-NAV -->

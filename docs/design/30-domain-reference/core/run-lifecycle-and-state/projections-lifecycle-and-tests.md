@@ -162,3 +162,11 @@ Required suites:
 - session linkage monotonicity and supersession tests;
 - durability-class rejection tests for every barrier-required event;
 - projection purity tests that forbid direct projection writes or live-state reads.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Run Lifecycle & Event State](./README.md) · **← Prev:** [Run Lifecycle & Event State - event log, writer, and corruption protocol](./event-log-writer-and-corruption.md) · **Next →:** [Capability & Safety](../capability-and-safety/README.md)
+
+<!-- /DOCS-NAV -->

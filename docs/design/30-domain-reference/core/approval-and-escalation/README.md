@@ -249,3 +249,13 @@ decision a pure function of recorded evidence, and NFR-TEST by using mocks only.
 - [x] Failure/degraded modes defined (fail-closed).
 - [x] Provider-domain validation is not applicable to this core domain.
 - [x] Diagrams present and consistent with architecture.md naming.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [core domain reference](../README.md) · **← Prev:** [Capability & Safety - gate evaluation and records](../capability-and-safety/gate-evaluation-and-records.md) · **Next →:** [Approval & Escalation - decision model](./decision-model.md)
+
+**Children:** [Approval & Escalation - decision model](./decision-model.md) · [Approval & Escalation - park resume and failures](./park-resume-and-failures.md) · [Approval & Escalation - interfaces events and tests](./interfaces-events-and-tests.md)
+
+<!-- /DOCS-NAV -->

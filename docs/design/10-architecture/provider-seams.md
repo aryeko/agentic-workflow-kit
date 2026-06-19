@@ -71,3 +71,11 @@ modes as the real driver.
   [providers/work-source/README.md](../30-domain-reference/providers/work-source/README.md)
 - Execution Host contract and Local driver:
   [providers/execution-host/README.md](../30-domain-reference/providers/execution-host/README.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [runtime flow](./runtime-flow.md) · **Next →:** [event log and state](./event-log-and-state.md)
+
+<!-- /DOCS-NAV -->

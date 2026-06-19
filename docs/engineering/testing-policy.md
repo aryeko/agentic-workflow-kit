@@ -115,3 +115,11 @@ Before declaring an item complete, report:
 
 Do not claim a worker self-report as proof. Gates require command output, captured
 artifacts, provider statuses, schemas, or other externally verifiable evidence.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Test Lanes](./test-lanes.md) · **Next →:** [Tooling and CI](./tooling-and-ci.md)
+
+<!-- /DOCS-NAV -->

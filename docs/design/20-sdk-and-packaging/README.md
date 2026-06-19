@@ -37,3 +37,13 @@ folders for domain separation without forcing separate publish artifacts for eac
 5. [Concrete providers](concrete-providers.md) — driver packages that implement the seam contracts
 6. [Testkit and conformance](testkit-and-conformance.md) — test-only package and conformance fixtures
 7. [Dependency rules](dependency-rules.md) — the complete allowed/forbidden dependency matrix
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [design corpus overview](../README.md) · **← Prev:** [high-level architecture](../10-architecture/architecture.md) · **Next →:** [package target](./package-target.md)
+
+**Children:** [package target](./package-target.md) · [SDK boundary](./sdk-boundary.md) · [provider interface model](./provider-interface-model.md) · [CLI and MCP wrappers](./cli-and-mcp-wrappers.md) · [concrete providers](./concrete-providers.md) · [testkit and conformance](./testkit-and-conformance.md) · [dependency rules](./dependency-rules.md)
+
+<!-- /DOCS-NAV -->

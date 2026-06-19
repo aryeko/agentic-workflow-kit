@@ -78,3 +78,11 @@ sufficient and is always rejected as the sole support for a gate allow.
   - [Execution Host](../30-domain-reference/providers/execution-host/README.md) (prov-04)
   - [Forge / Collaboration](../30-domain-reference/providers/forge-collaboration/README.md) (prov-02)
   - [Work Source](../30-domain-reference/providers/work-source/README.md) (prov-03)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [event log and state](./event-log-and-state.md) · **Next →:** [evidence gates and merge](./evidence-gates-and-merge.md)
+
+<!-- /DOCS-NAV -->

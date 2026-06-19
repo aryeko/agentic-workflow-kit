@@ -101,3 +101,11 @@ The full domain specs are organized under
 | [Foundation](../30-domain-reference/foundation/README.md) | Changing config, storage, workspace, or credentials |
 | [Providers](../30-domain-reference/providers/README.md) | Changing provider interfaces or concrete provider behavior |
 | [Edge](../30-domain-reference/edge/README.md) | Changing operator-facing command or attention surfaces |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [orientation](./README.md) · **← Prev:** [glossary](./glossary.md) · **Next →:** [design conventions](./conventions.md)
+
+<!-- /DOCS-NAV -->

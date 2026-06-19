@@ -237,3 +237,13 @@ operations are used, satisfying NFR-TEST.
 - [x] Provider-domain validation is not applicable to this foundation domain.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [foundation domain reference](../README.md) · **Next →:** [Configuration & Policy — schema and resolution](./schema-and-resolution.md)
+
+**Children:** [Configuration & Policy — schema and resolution](./schema-and-resolution.md) · [Configuration & Policy — interfaces, events, and verification](./interfaces-events-and-verification.md)
+
+<!-- /DOCS-NAV -->

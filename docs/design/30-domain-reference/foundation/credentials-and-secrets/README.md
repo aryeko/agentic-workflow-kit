@@ -211,3 +211,13 @@ Open questions: which secret-manager integrations are v1-supported beyond enviro
 - [x] Failure/degraded modes defined (fail-closed).
 - [x] Provider domains: contract validation is not applicable to this Foundation domain.
 - [x] Diagrams present and consistent with architecture.md naming.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [Workspace & Repository](../workspace-and-repository/README.md) · **Next →:** [Credentials & Secrets -- contracts and events](./contracts-and-events.md)
+
+**Children:** [Credentials & Secrets -- contracts and events](./contracts-and-events.md)
+
+<!-- /DOCS-NAV -->

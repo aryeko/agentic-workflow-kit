@@ -90,3 +90,11 @@ export function createWorkflowKit(input: {
 
 All time, identity, randomness, storage, and provider behavior is injected. The SDK contains no
 ambient `Date.now`, `Math.random`, or `crypto.randomUUID` in deterministic logic.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [package target](./package-target.md) · **Next →:** [provider interface model](./provider-interface-model.md)
+
+<!-- /DOCS-NAV -->

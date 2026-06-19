@@ -70,3 +70,11 @@ the SDK owns.
 - Migration or transformation of legacy runs.
 
 For the full requirements that flow from this scope, see [requirements.md](requirements.md).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [orientation](./README.md) · **← Prev:** [orientation](./README.md) · **Next →:** [requirements](./requirements.md)
+
+<!-- /DOCS-NAV -->

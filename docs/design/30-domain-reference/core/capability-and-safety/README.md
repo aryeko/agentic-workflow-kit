@@ -241,3 +241,13 @@ NFR-TEST by using mocks only for core tests.
 - [x] Provider-domain validation is not applicable to this core domain.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [core domain reference](../README.md) · **← Prev:** [Run Lifecycle & Event State - projections, lifecycle, and tests](../run-lifecycle-and-state/projections-lifecycle-and-tests.md) · **Next →:** [Capability & Safety - capability registry](./capability-registry.md)
+
+**Children:** [Capability & Safety - capability registry](./capability-registry.md) · [Capability & Safety - gate evaluation and records](./gate-evaluation-and-records.md)
+
+<!-- /DOCS-NAV -->

@@ -124,3 +124,11 @@ Required tests:
 This satisfies FR-4 by relaying approvals through durable request/decision/outcome records,
 NFR-SAFE by failing closed to named states when guarantees are unavailable, NFR-DET by making every
 decision a pure function of recorded evidence, and NFR-TEST by using mocks only.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Approval & Escalation](./README.md) · **← Prev:** [Approval & Escalation - park resume and failures](./park-resume-and-failures.md) · **Next →:** [Supervision & Liveness](../supervision-and-liveness/README.md)
+
+<!-- /DOCS-NAV -->

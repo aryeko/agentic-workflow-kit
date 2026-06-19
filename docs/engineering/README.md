@@ -31,3 +31,13 @@ The ground truth for package names and allowed dependency edges is
 [docs/design/20-sdk-and-packaging/dependency-rules.md](../design/20-sdk-and-packaging/dependency-rules.md).
 The files here describe how those rules are *enforced* and *verified* — they must
 not be looser than the design specification.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [Check Gate](./check-gate.md)
+
+**Children:** [Check Gate](./check-gate.md) · [Dependency Policy](./dependency-policy.md) · [Dependency Rule Enforcement](./dependency-rule-enforcement.md) · [Test Lanes](./test-lanes.md) · [Testing Policy](./testing-policy.md) · [Tooling and CI](./tooling-and-ci.md)
+
+<!-- /DOCS-NAV -->

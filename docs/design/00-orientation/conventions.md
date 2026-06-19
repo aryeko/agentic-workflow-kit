@@ -147,3 +147,11 @@ domains/<layer>/<id>-<name>/
   <aspect>.md    # optional focused flat aspect file, linked from README.md
   evidence/      # provider-only dated external evidence appendix, when needed
 ```
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [orientation](./README.md) · **← Prev:** [reading guide](./reading-guide.md) · **Next →:** [next-generation workflow kit (design home)](./design-home-original.md)
+
+<!-- /DOCS-NAV -->

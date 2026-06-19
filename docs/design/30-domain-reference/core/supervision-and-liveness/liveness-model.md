@@ -109,3 +109,11 @@ lease expiry, and require a fresh epoch only after lease loss. It never advances
 timers, records progress, requests termination, or changes core-01 lifecycle state. After
 `SupervisorStopped`, core-04 emits no more supervisor, liveness, progress, timer, termination, or
 terminal-summary facts for the Run.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Supervision & Liveness](./README.md) · **← Prev:** [Supervision & Liveness](./README.md) · **Next →:** [Completion, Verification & Merge](../completion-and-merge/README.md)
+
+<!-- /DOCS-NAV -->

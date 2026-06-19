@@ -74,3 +74,11 @@ See [test-lanes.md](test-lanes.md) for the `smoke-real` lane definition.
 A story is not done until `pnpm check` passes end-to-end without modification to the
 gate itself. Do not skip steps, adjust thresholds, or widen the `no-orphan` exclusion
 list to make the gate green. Investigate and fix the underlying issue instead.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Engineering Policy Index](./README.md) · **Next →:** [Dependency Policy](./dependency-policy.md)
+
+<!-- /DOCS-NAV -->

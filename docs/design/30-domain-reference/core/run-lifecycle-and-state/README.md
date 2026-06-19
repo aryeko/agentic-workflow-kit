@@ -259,3 +259,13 @@ None for v1. Prior integration-review questions are resolved as follows:
 - [x] Provider-domain validation is not applicable to this core domain.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [core domain reference](../README.md) · **← Prev:** [core domain reference](../README.md) · **Next →:** [Run Lifecycle & Event State - contracts](./contracts.md)
+
+**Children:** [Run Lifecycle & Event State - contracts](./contracts.md) · [Run Lifecycle & Event State - event log, writer, and corruption protocol](./event-log-writer-and-corruption.md) · [Run Lifecycle & Event State - projections, lifecycle, and tests](./projections-lifecycle-and-tests.md)
+
+<!-- /DOCS-NAV -->

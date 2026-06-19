@@ -54,3 +54,11 @@ own interface layer on top.
 This is a convention, not a third package: the helper may live inside `cli`/`mcp` as a shared
 module, or in a thin internal utility. It must not become a separately published package unless
 there is a concrete need for external consumers to reuse it.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [provider interface model](./provider-interface-model.md) · **Next →:** [concrete providers](./concrete-providers.md)
+
+<!-- /DOCS-NAV -->

@@ -39,3 +39,11 @@ Deep attestation contracts per provider are in:
 - Execution Host: [docs/design/30-domain-reference/providers/execution-host/](../30-domain-reference/providers/execution-host/README.md)
 - Forge: [docs/design/30-domain-reference/providers/forge-collaboration/](../30-domain-reference/providers/forge-collaboration/README.md)
 - Work Source: [docs/design/30-domain-reference/providers/work-source/](../30-domain-reference/providers/work-source/README.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [CLI and MCP wrappers](./cli-and-mcp-wrappers.md) · **Next →:** [testkit and conformance](./testkit-and-conformance.md)
+
+<!-- /DOCS-NAV -->

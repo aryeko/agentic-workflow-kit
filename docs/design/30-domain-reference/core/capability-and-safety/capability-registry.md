@@ -56,3 +56,11 @@ allowed; a weaker, unknown, stale, or absent containment attestation denies the 
 Worker claims, Agent prose, Guardian review text, driver feature lists, and schema-only behavioral
 claims may explain why a gate was requested, but they never satisfy a guarantee. A guarantee can pass
 only through recorded evidence and capability attestations whose probe evidence is replayable.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Capability & Safety](./README.md) · **← Prev:** [Capability & Safety](./README.md) · **Next →:** [Capability & Safety - gate evaluation and records](./gate-evaluation-and-records.md)
+
+<!-- /DOCS-NAV -->

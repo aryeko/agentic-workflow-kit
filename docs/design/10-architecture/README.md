@@ -64,3 +64,13 @@ flowchart TB
 The Dependency Rule: Edge → Control plane → Provider contracts. Drivers → Provider contracts.
 Everything → Foundation. Nothing depends on a concrete driver. Contracts never depend on the
 Control plane.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [design corpus overview](../README.md) · **← Prev:** [next-generation workflow kit (design home)](../00-orientation/design-home-original.md) · **Next →:** [component model](./component-model.md)
+
+**Children:** [component model](./component-model.md) · [runtime flow](./runtime-flow.md) · [provider seams](./provider-seams.md) · [event log and state](./event-log-and-state.md) · [capability attestation](./capability-attestation.md) · [evidence gates and merge](./evidence-gates-and-merge.md) · [human control and approvals](./human-control-and-approvals.md) · [recovery and reconciliation](./recovery-and-reconciliation.md) · [observability and analysis](./observability-and-analysis.md) · [launch coordination](./launch-coordination.md) · [protected policy gate](./protected-policy-gate.md) · [high-level architecture](./architecture.md)
+
+<!-- /DOCS-NAV -->

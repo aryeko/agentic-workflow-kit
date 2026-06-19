@@ -244,3 +244,13 @@ contract fields.
 - [x] Failure/degraded modes defined (fail-closed).
 - [x] Provider domains: contract validated against GitHub schema evidence and Mock Forge conformance evidence; write-side smoke is captured as an open implementation probe.
 - [x] Diagrams present and consistent with architecture.md naming.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [provider domain reference](../README.md) · **← Prev:** [Agent Execution - mock driver](../agent-execution/mock-driver.md) · **Next →:** [Forge / Collaboration - contracts and conformance](./contracts-and-conformance.md)
+
+**Children:** [Forge / Collaboration - contracts and conformance](./contracts-and-conformance.md)
+
+<!-- /DOCS-NAV -->

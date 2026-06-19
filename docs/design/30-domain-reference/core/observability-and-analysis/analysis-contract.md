@@ -231,3 +231,11 @@ they do not store raw exceptions, provider text, prompts, or secret-bearing stri
 If replay is corrupt or the log is unwritable, the terminal-analysis invariant is reported as unmet
 instead of satisfied: recovery and observability-dependent gates treat the missing analysis as a
 blocking degraded state until a supported writer records `AnalysisFailed` or `AnalysisRecorded`.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Observability & Analysis](./README.md) · **← Prev:** [Observability & Analysis](./README.md) · **Next →:** [foundation domain reference](../../foundation/README.md)
+
+<!-- /DOCS-NAV -->

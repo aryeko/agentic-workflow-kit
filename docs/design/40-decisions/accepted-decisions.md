@@ -153,3 +153,11 @@ boundary cannot be enforced by folder-level lint inside the `sdk`; (e) build or 
 shared package; or (f) runtime portability requirements differ. The **default is internal folders
 inside `sdk`**. (Companion to AD-15.) **Consequence.** Package proliferation is deferred until
 justified; current internal folder layout is the correct default until a trigger fires.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [decisions layer](./README.md) · **← Prev:** [decisions layer](./README.md) · **Next →:** [implementation status note](../IMPLEMENTATION_STATUS_NOTE.md)
+
+<!-- /DOCS-NAV -->

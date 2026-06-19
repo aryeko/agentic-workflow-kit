@@ -57,3 +57,11 @@ flowchart LR
 Provider conformance suites must cover positive, negative, stale, and adversarial attestation cases.
 Mock success alone is not conformance: a provider that passes only happy-path tests is not considered
 conformant. Broken providers must fail the suite.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [concrete providers](./concrete-providers.md) · **Next →:** [dependency rules](./dependency-rules.md)
+
+<!-- /DOCS-NAV -->

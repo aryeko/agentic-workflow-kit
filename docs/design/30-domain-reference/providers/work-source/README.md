@@ -271,3 +271,13 @@ remains open until the Markdown and mock drivers exist; current evidence covers 
 - [x] FR/NFR ids stated; NFR-TEST shown; failure/degraded modes defined fail-closed.
 - [ ] Provider contract validated against executable Markdown and mock drivers; fixture evidence only.
 - [x] Diagrams present and open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [provider domain reference](../README.md) · **← Prev:** [Forge / Collaboration - contracts and conformance](../forge-collaboration/contracts-and-conformance.md) · **Next →:** [Work Source - contracts and conformance](./contracts-and-conformance.md)
+
+**Children:** [Work Source - contracts and conformance](./contracts-and-conformance.md)
+
+<!-- /DOCS-NAV -->

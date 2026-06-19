@@ -158,3 +158,11 @@ build order — is the single source in **[domains/README.md](../30-domain-refer
   (`prov-03`), Execution Host (`prov-04`)
 - **Foundation:** Configuration & Policy (`fnd-01`), Storage & Artifacts (`fnd-02`), Workspace &
   Repository (`fnd-03`), Credentials & Secrets (`fnd-04`)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [protected policy gate](./protected-policy-gate.md) · **Next →:** [SDK & packaging overview](../20-sdk-and-packaging/README.md)
+
+<!-- /DOCS-NAV -->

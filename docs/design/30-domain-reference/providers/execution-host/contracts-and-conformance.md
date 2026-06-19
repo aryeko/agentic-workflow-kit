@@ -145,3 +145,11 @@ Mock driver conformance:
 - Can emit positive and negative attestations for every capability.
 - Can omit, delay, or lie about output, exits, liveness, egress, redaction, and termination so the
   Control plane and Capability & Safety gates prove fail-closed behavior.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Execution Host](./README.md) · **← Prev:** [Execution Host](./README.md) · **Next →:** [edge domain reference](../../edge/README.md)
+
+<!-- /DOCS-NAV -->

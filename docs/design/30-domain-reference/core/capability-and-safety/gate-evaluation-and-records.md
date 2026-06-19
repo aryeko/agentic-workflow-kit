@@ -129,3 +129,11 @@ the autonomous action.
 
 The stable failure ordering is part of replay determinism. Adding new reasons in a future version
 requires migration guidance for existing recorded gate payloads.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Capability & Safety](./README.md) · **← Prev:** [Capability & Safety - capability registry](./capability-registry.md) · **Next →:** [Approval & Escalation](../approval-and-escalation/README.md)
+
+<!-- /DOCS-NAV -->

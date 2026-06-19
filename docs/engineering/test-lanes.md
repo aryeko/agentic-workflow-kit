@@ -99,3 +99,11 @@ owners add later — placing tests in the correct lane is the only configuration
 | Provider contract conformance (mock drivers) | `conformance-mock` |
 | Incident replay (recorded sequences, mock) | `conformance-mock` |
 | Real-driver smoke, egress probe, live approval | `smoke-real` |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Dependency Rule Enforcement](./dependency-rule-enforcement.md) · **Next →:** [Testing Policy](./testing-policy.md)
+
+<!-- /DOCS-NAV -->

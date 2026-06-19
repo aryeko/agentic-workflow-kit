@@ -256,3 +256,13 @@ fail-closed Operator controls, NFR-SOLID for edge-to-core dependency direction, 
 - [x] Failure/degraded modes defined (fail-closed).
 - [x] Provider-domain validation is not applicable to this edge domain.
 - [x] Diagrams present and consistent with architecture.md naming.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [edge domain reference](../README.md) · **← Prev:** [edge domain reference](../README.md) · **Next →:** [Operator & Entry Surface - command surface and envelopes](./command-surface-and-envelopes.md)
+
+**Children:** [Operator & Entry Surface - command surface and envelopes](./command-surface-and-envelopes.md) · [Operator & Entry Surface - attention, explainability, and triggers](./attention-explainability-and-triggers.md)
+
+<!-- /DOCS-NAV -->

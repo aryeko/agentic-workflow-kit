@@ -82,3 +82,11 @@ The mock is considered conformant only when:
 - every named degraded mode can be forced independently;
 - it can lie about capabilities and signals, and Capability & Safety still fails closed;
 - fixture replay is deterministic by scenario id and seed.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Agent Execution](./README.md) · **← Prev:** [Agent Execution - Codex driver mapping](./codex-driver.md) · **Next →:** [Forge / Collaboration](../forge-collaboration/README.md)
+
+<!-- /DOCS-NAV -->

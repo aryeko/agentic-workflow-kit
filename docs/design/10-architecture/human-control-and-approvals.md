@@ -67,3 +67,11 @@ classification rules; the mode ladder; scoped-grant taxonomy; park/resume events
 fail-closed states — is in:
 
 [Approval & Escalation](../30-domain-reference/core/approval-and-escalation/README.md) (core-03)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [evidence gates and merge](./evidence-gates-and-merge.md) · **Next →:** [recovery and reconciliation](./recovery-and-reconciliation.md)
+
+<!-- /DOCS-NAV -->

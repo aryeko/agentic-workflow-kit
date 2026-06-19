@@ -141,3 +141,11 @@ termination.
 Supported controls can add evidence: Agent resume, Execution Host termination, Forge evidence
 refresh, Work Source release/status write, and fnd-02 lease acquire/renew/release. They cannot rewrite
 history; reconciliation is always an appended event through core-01.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Recovery, Reconciliation & Coordination](./README.md) · **← Prev:** [Recovery, Reconciliation & Coordination](./README.md) · **Next →:** [Observability & Analysis](../observability-and-analysis/README.md)
+
+<!-- /DOCS-NAV -->

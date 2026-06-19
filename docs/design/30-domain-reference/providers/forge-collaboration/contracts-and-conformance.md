@@ -280,3 +280,11 @@ Mock Forge driver conformance:
   auth signals so the Control plane and Capability & Safety gates prove fail-closed behavior; the
   exact-head mismatch case refuses all write actions, and missing protection / rulesets / queue /
   thread capability degrades with the named token rather than returning an empty result.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Forge / Collaboration](./README.md) · **← Prev:** [Forge / Collaboration](./README.md) · **Next →:** [Work Source](../work-source/README.md)
+
+<!-- /DOCS-NAV -->

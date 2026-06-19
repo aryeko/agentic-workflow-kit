@@ -93,3 +93,11 @@ sequenceDiagram
 - [ ] Failure/degraded modes defined (fail-closed).
 - [ ] Provider domains: contract validated against real driver + mock.
 - [ ] Diagrams present and consistent with architecture.md naming.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [design corpus overview](../README.md) · **← Prev:** [design corpus overview](../README.md) · **Next →:** [orientation](../00-orientation/README.md)
+
+<!-- /DOCS-NAV -->

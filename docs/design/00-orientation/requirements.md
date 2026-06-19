@@ -49,3 +49,11 @@ charters reference these IDs to declare which requirements they own.
 - A document/knowledge store (the Work Source references PRDs/designs; it does not author or store them).
 - `auto` / LLM-adjudicated approvals (deferred per AD-14).
 - Migration/transform of legacy runs (greenfield per AD-1; only adoption diagnostics, FR-13).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [orientation](./README.md) · **← Prev:** [mission and scope](./mission-and-scope.md) · **Next →:** [glossary](./glossary.md)
+
+<!-- /DOCS-NAV -->

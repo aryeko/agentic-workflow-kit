@@ -68,3 +68,11 @@ predicate, and the full fail-closed state catalog are in:
   (core-05) — owns the protected-policy gate logic
 - [Forge / Collaboration](../30-domain-reference/providers/forge-collaboration/README.md)
   (prov-02) — Forge evidence the gate consumes
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [launch coordination](./launch-coordination.md) · **Next →:** [high-level architecture](./architecture.md)
+
+<!-- /DOCS-NAV -->

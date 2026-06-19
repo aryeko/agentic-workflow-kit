@@ -21,3 +21,13 @@ This layer contains the full detailed design corpus, migrated into a reader-frie
 ## Note
 
 Domain directory names are readable in this tree. Original IDs remain in each file frontmatter and in the original domain catalog.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [design corpus overview](../README.md) · **← Prev:** [dependency rules](../20-sdk-and-packaging/dependency-rules.md) · **Next →:** [core domain reference](./core/README.md)
+
+**Children:** [core domain reference](./core/README.md) · [foundation domain reference](./foundation/README.md) · [provider domain reference](./providers/README.md) · [edge domain reference](./edge/README.md) · [domain catalog](./domain-catalog.md)
+
+<!-- /DOCS-NAV -->

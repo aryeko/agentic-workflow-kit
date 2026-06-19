@@ -68,3 +68,11 @@ and property-test strategy — is in:
 - [Run Lifecycle & Event State](../30-domain-reference/core/run-lifecycle-and-state/README.md) (core-01)
 - [Storage & Artifacts](../30-domain-reference/foundation/storage-and-artifacts/README.md) (fnd-02) — the
   lease, append, and replay primitives core-01 builds on
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [provider seams](./provider-seams.md) · **Next →:** [capability attestation](./capability-attestation.md)
+
+<!-- /DOCS-NAV -->

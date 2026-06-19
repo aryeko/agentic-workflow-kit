@@ -61,3 +61,11 @@ remain cited verbatim.
 `mandate: ready` — brief is approved, domain is ready to design. `design: draft | in-review | approved`;
 `approved` means design-approved only, with implementation/conformance readiness tracked in
 [the implementation readiness matrix](../IMPLEMENTATION_STATUS_NOTE.md).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [domain reference](./README.md) · **← Prev:** [Operator & Entry Surface - attention, explainability, and triggers](./edge/operator-surface/attention-explainability-and-triggers.md) · **Next →:** [decisions layer](../40-decisions/README.md)
+
+<!-- /DOCS-NAV -->

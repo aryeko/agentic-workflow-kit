@@ -128,3 +128,11 @@ dependency-cruiser catches import-graph violations in the compiled output.
 TypeScript project references catch them earlier, at compile time, by refusing to
 resolve types across undeclared references. Having both means a violation must defeat
 two independent checks to reach the verify gate's test steps — it will not.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Dependency Policy](./dependency-policy.md) · **Next →:** [Test Lanes](./test-lanes.md)
+
+<!-- /DOCS-NAV -->

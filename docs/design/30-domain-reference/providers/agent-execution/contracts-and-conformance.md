@@ -225,3 +225,11 @@ interface AgentDriver {
 `WorkerHandle` is consumed from the Execution Host contract. Worker-safe injection and redaction
 inputs are consumed through the host launch and `AgentOutputSink`; this contract does not resolve or
 issue credentials.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Agent Execution](./README.md) · **← Prev:** [Agent Execution](./README.md) · **Next →:** [Agent Execution - capabilities and conformance](./capabilities-and-conformance.md)
+
+<!-- /DOCS-NAV -->

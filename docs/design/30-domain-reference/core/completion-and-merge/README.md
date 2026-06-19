@@ -262,3 +262,13 @@ intents, named fail-closed states, pure replay/cursor decisions, and mocks only.
 - [x] Provider-domain validation is not applicable to this core domain.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [core domain reference](../README.md) · **← Prev:** [Supervision & Liveness - liveness model](../supervision-and-liveness/liveness-model.md) · **Next →:** [Completion, Verification & Merge - evidence model and predicates](./evidence-model-and-predicates.md)
+
+**Children:** [Completion, Verification & Merge - evidence model and predicates](./evidence-model-and-predicates.md)
+
+<!-- /DOCS-NAV -->

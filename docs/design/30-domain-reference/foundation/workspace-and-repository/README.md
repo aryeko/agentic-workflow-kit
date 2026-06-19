@@ -245,3 +245,11 @@ blocked retry records, stale-path tombstoning, dirty-path escalation, and finall
 - [x] Provider domains: not applicable.
 - [x] Diagrams present and consistent with architecture.md naming.
 - [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [Storage & Artifacts](../storage-and-artifacts/README.md) · **Next →:** [Credentials & Secrets](../credentials-and-secrets/README.md)
+
+<!-- /DOCS-NAV -->
