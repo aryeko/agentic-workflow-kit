@@ -146,17 +146,17 @@ export const inspectCommitRange = async (input: {
   });
   const mergeBaseSha = typeof mergeBases[0] === 'string' ? mergeBases[0] : input.baseSha;
   const log = await git.log({ fs: nodeFs, dir: input.worktreePath, ref: headSha });
-  const commits = log
-    .filter((entry) => entry.oid !== mergeBaseSha)
-    .map((entry) => ({
-      sha: entry.oid,
-      parentShas: entry.commit.parent,
-      subject: firstSubjectLine(entry.commit.message),
-      authoredAt: {
-        epochSeconds: entry.commit.author.timestamp,
-        timezoneOffset: entry.commit.author.timezoneOffset,
-      },
-    }));
+  const mergeBaseIndex = log.findIndex((entry) => entry.oid === mergeBaseSha);
+  const localEntries = mergeBaseIndex === -1 ? log : log.slice(0, mergeBaseIndex);
+  const commits = localEntries.map((entry) => ({
+    sha: entry.oid,
+    parentShas: entry.commit.parent,
+    subject: firstSubjectLine(entry.commit.message),
+    authoredAt: {
+      epochSeconds: entry.commit.author.timestamp,
+      timezoneOffset: entry.commit.author.timezoneOffset,
+    },
+  }));
 
   return { headSha, mergeBaseSha, commits };
 };
@@ -191,7 +191,7 @@ export const inspectTreeDiff = async (input: {
 
 export const inspectWorkingTree = async (worktreePath: string): Promise<LocalGitEvidenceWorkingTree> => {
   const matrix = await git.statusMatrix({ fs: nodeFs, dir: worktreePath, refresh: false });
-  const stagedPaths = matrix.filter((row) => row[1] !== row[3] && row[3] !== 0).map((row) => row[0]);
+  const stagedPaths = matrix.filter((row) => row[1] !== row[3]).map((row) => row[0]);
   const unstagedPaths = matrix
     .filter((row) => row[2] !== row[3] && !(row[1] === 0 && row[3] === 0))
     .map((row) => row[0]);

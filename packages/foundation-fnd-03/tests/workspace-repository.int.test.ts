@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import * as git from 'isomorphic-git';
 import {
   createFileSystemStorageRoot,
+  type StorageError,
+  type StorageRoot,
   type FileSystemStorageRootOptions,
   type IdGenerator,
   type StorageClock,
@@ -75,7 +77,14 @@ describe('workspace repository', () => {
       throw new Error(created.error.reason);
     }
     expect(created.value.baseSha).toBe(baseSha);
-    expect(created.value.branchName).toBe('kit/repo-a/run-1/task-1');
+    expect(created.value.branchName).toBe(
+      expectedBranchName('repo-a', 'run-1', 'TASK-1', {
+        prefix: 'kit',
+        includeRunId: true,
+        includeTaskId: true,
+        maxLength: 96,
+      }),
+    );
     expect(created.value.state).toBe('setup-required');
     await expect(stat(created.value.worktreePath)).resolves.toBeDefined();
     await expect(readFile(join(created.value.worktreePath, '.git'), 'utf8')).resolves.toBe(
@@ -193,6 +202,125 @@ describe('workspace repository', () => {
     expect(unavailable.error.partialEvidence).toBeUndefined();
   });
 
+  it('stops local commit evidence at the merge base when the base has prior history', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'root\n', 'root commit');
+    const baseSha = await commitFile(context.sourceRepo, 'history.md', 'base history\n', 'base history commit');
+    const created = await unwrap(
+      context.workspace.createLease({ runId: 'run-commit-range', taskId: 'TASK-RANGE', repoId: 'repo-a' }),
+    );
+
+    await commitFile(created.worktreePath, 'feature.txt', 'done\n', 'feature commit');
+    const evidence = await unwrap(context.workspace.recordLocalGitEvidence(created.leaseId));
+
+    expect(evidence.mergeBaseSha).toBe(baseSha);
+    expect(evidence.localCommits.map((commit) => commit.subject)).toEqual(['feature commit']);
+  });
+
+  it('reports staged deletions as staged dirty paths', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const created = await unwrap(
+      context.workspace.createLease({ runId: 'run-staged-delete', taskId: 'TASK-DELETE', repoId: 'repo-a' }),
+    );
+
+    await rm(join(created.worktreePath, 'README.md'));
+    await git.remove({ fs: nodeFs, dir: created.worktreePath, filepath: 'README.md' });
+    const evidence = await unwrap(context.workspace.recordLocalGitEvidence(created.leaseId));
+
+    expect(evidence.workingTree.clean).toBe(false);
+    expect(evidence.workingTree.stagedPaths).toEqual(['README.md']);
+    expect(evidence.workingTree.unstagedPaths).toEqual([]);
+  });
+
+  it('does not publish a memory lease when createLease event persistence fails', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const runId = 'run-persist-fail';
+    const leaseId = `workspace:repo-a:${runId}`;
+    const failingWorkspace = makeWorkspaceForContext(context, storageWithFailingEventAppends(context.storage));
+
+    const failed = await failingWorkspace.createLease({ runId, taskId: 'TASK-PERSIST', repoId: 'repo-a' });
+
+    expect(failed.ok).toBe(false);
+    if (failed.ok) {
+      throw new Error('expected createLease to fail');
+    }
+    expect(failed.error.reason).toBe('lease-unavailable');
+    const lookup = await failingWorkspace.getLease(leaseId);
+    expect(lookup.ok).toBe(false);
+    expect(context.storage.leases.acquire(leaseId, 'contender', 60_000)).toMatchObject({ name: leaseId, epoch: 2 });
+    await expect(stat(join(context.worktreeRoot, 'repo-a', runId))).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(
+      stat(join(context.sourceRepo, '.git', 'worktrees', 'workspace-repo-a-run-persist-fail')),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('releases the fnd-02 lease when checkout setup cannot create the worktree', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const runId = 'run-checkout-fail';
+    const leaseId = `workspace:repo-a:${runId}`;
+    await mkdir(join(context.worktreeRoot, 'repo-a', runId), { recursive: true });
+
+    const failed = await context.workspace.createLease({ runId, taskId: 'TASK-CHECKOUT', repoId: 'repo-a' });
+
+    expect(failed.ok).toBe(false);
+    if (failed.ok) {
+      throw new Error('expected createLease to fail');
+    }
+    expect(failed.error.reason).toBe('worktree-path-conflict');
+    expect(context.storage.leases.acquire(leaseId, 'contender', 60_000)).toMatchObject({ name: leaseId, epoch: 2 });
+  });
+
+  it('does not publish local git evidence in memory when evidence event persistence fails', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const created = await unwrap(
+      context.workspace.createLease({ runId: 'run-evidence-persist-fail', taskId: 'TASK-EVIDENCE', repoId: 'repo-a' }),
+    );
+    await commitFile(created.worktreePath, 'feature.txt', 'done\n', 'feature commit');
+    const failedEvidenceIds: string[] = [];
+    const failingWorkspace = makeWorkspaceForContext(
+      context,
+      storageWithFailingEvidenceAppends(context.storage, failedEvidenceIds),
+    );
+
+    const failedEvidence = await failingWorkspace.recordLocalGitEvidence(created.leaseId);
+
+    expect(failedEvidence.ok).toBe(false);
+    if (failedEvidence.ok) {
+      throw new Error('expected evidence persistence failure');
+    }
+    expect(failedEvidence.error.reason).toBe('local-git-evidence-unavailable');
+    expect(failedEvidenceIds).toHaveLength(1);
+
+    const sameInstanceFinalize = await failingWorkspace.finalizeLease({
+      leaseId: created.leaseId,
+      evidenceId: failedEvidenceIds[0] ?? 'missing',
+      epoch: created.epoch,
+      fenceToken: created.fenceToken,
+    });
+    expect(sameInstanceFinalize.ok).toBe(false);
+    if (sameInstanceFinalize.ok) {
+      throw new Error('expected same-instance finalize to reject failed evidence');
+    }
+    expect(sameInstanceFinalize.error.reason).toBe('evidence-unknown');
+
+    const restarted = makeWorkspaceForContext(context);
+    const restartedFinalize = await restarted.finalizeLease({
+      leaseId: created.leaseId,
+      evidenceId: failedEvidenceIds[0] ?? 'missing',
+      epoch: created.epoch,
+      fenceToken: created.fenceToken,
+    });
+    expect(restartedFinalize.ok).toBe(false);
+    if (restartedFinalize.ok) {
+      throw new Error('expected restarted finalize to reject failed evidence');
+    }
+    expect(restartedFinalize.error.reason).toBe('evidence-unknown');
+  });
+
   it('blocks cleanup and keeps the worktree when files changed after finalized evidence', async () => {
     const context = await makeContext();
     await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
@@ -271,7 +399,17 @@ describe('workspace repository', () => {
       branchPolicy: { prefix: 'kit', includeRunId: false, includeTaskId: true, maxLength: 80 },
     });
     const firstBase = await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
-    await git.branch({ fs: nodeFs, dir: context.sourceRepo, ref: 'kit/repo-a/task-4', object: firstBase });
+    await git.branch({
+      fs: nodeFs,
+      dir: context.sourceRepo,
+      ref: expectedBranchName('repo-a', 'run-conflict', 'TASK-4', {
+        prefix: 'kit',
+        includeRunId: false,
+        includeTaskId: true,
+        maxLength: 80,
+      }),
+      object: firstBase,
+    });
     await commitFile(context.sourceRepo, 'later.txt', 'later\n', 'later commit');
 
     const conflicted = await context.workspace.createLease({
@@ -301,6 +439,29 @@ describe('workspace repository', () => {
     expect(stale.error.reason).toBe('stale-lease-fence');
   });
 
+  it('adds deterministic suffixes so sanitized branch collisions stay distinct', async () => {
+    const branchPolicy = { prefix: 'kit', includeRunId: false, includeTaskId: true, maxLength: 96 };
+    const context = await makeContext({ branchPolicy });
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const first = await unwrap(context.workspace.createLease({ runId: 'run-one', taskId: 'TASK A', repoId: 'repo-a' }));
+    const second = await unwrap(
+      context.workspace.createLease({ runId: 'run-two', taskId: 'TASK*A', repoId: 'repo-a' }),
+    );
+
+    expect(first.branchName).toBe(expectedBranchName('repo-a', 'run-one', 'TASK A', branchPolicy));
+    expect(second.branchName).toBe(expectedBranchName('repo-a', 'run-two', 'TASK*A', branchPolicy));
+    expect(first.branchName).not.toBe(second.branchName);
+    expect(first.branchName).toMatch(/^kit\/repo-a\/task-a-[a-f0-9]{8}$/u);
+    expect(second.branchName).toMatch(/^kit\/repo-a\/task-a-[a-f0-9]{8}$/u);
+
+    const repeatedContext = await makeContext({ branchPolicy });
+    await commitFile(repeatedContext.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const repeated = await unwrap(
+      repeatedContext.workspace.createLease({ runId: 'run-one', taskId: 'TASK A', repoId: 'repo-a' }),
+    );
+    expect(repeated.branchName).toBe(first.branchName);
+  });
+
   it('keeps the package boundary free of subprocess and remote/forge vocabulary', async () => {
     const packageRoot = dirname(fileURLToPath(import.meta.url)).replace(/\/tests$/, '');
     const sourceFiles = await collectSourceFiles(join(packageRoot, 'src'));
@@ -308,7 +469,7 @@ describe('workspace repository', () => {
     const joined = contents.join('\n');
 
     expect(joined).not.toContain('child_process');
-    expect(joined).not.toMatch(/\bspawn\b|\bexecFile\b|\bexecSync\b/);
+    expect(joined).not.toMatch(/\bspawn\b|\bexecFile\b|\bexecSync\b|\bexeca\b/);
     expect(joined).not.toMatch(/pullRequest|push|mergeQueue|checkRun|remoteUrl|credential/i);
   });
 });
@@ -350,9 +511,9 @@ const makeContext = async (
   return { sourceRepo, clock, worktreeRoot, storage, generator, registration, workspace };
 };
 
-const makeWorkspaceForContext = (context: TestContext): WorkspaceRepository =>
+const makeWorkspaceForContext = (context: TestContext, storage: StorageRoot = context.storage): WorkspaceRepository =>
   createWorkspaceRepository({
-    storage: context.storage,
+    storage,
     worktreeRoot: context.worktreeRoot,
     clock: context.clock,
     idGenerator: context.generator,
@@ -366,6 +527,37 @@ const makeWorkspaceForContext = (context: TestContext): WorkspaceRepository =>
       },
     ],
   });
+
+const storageWithFailingEventAppends = (storage: StorageRoot): StorageRoot => ({
+  health: storage.health,
+  leases: storage.leases,
+  artifacts: storage.artifacts,
+  eventLog: {
+    openForAppend: storage.eventLog.openForAppend.bind(storage.eventLog),
+    replay: storage.eventLog.replay.bind(storage.eventLog),
+    append: () => storageError('forced append failure'),
+  },
+});
+
+const storageWithFailingEvidenceAppends = (storage: StorageRoot, evidenceIds: string[]): StorageRoot => ({
+  health: storage.health,
+  leases: storage.leases,
+  artifacts: storage.artifacts,
+  eventLog: {
+    openForAppend: storage.eventLog.openForAppend.bind(storage.eventLog),
+    replay: storage.eventLog.replay.bind(storage.eventLog),
+    append: (handle, batch) => {
+      const parsed = parseJsonPayload(batch.payloads[0]);
+      if (parsed?.type === 'local-git-evidence-recorded') {
+        if (typeof parsed.evidence?.evidenceId === 'string') {
+          evidenceIds.push(parsed.evidence.evidenceId);
+        }
+        return storageError('forced evidence append failure');
+      }
+      return storage.eventLog.append(handle, batch);
+    },
+  },
+});
 
 const commitFile = async (dir: string, path: string, content: string, message: string): Promise<string> => {
   const absolutePath = join(dir, path);
@@ -393,6 +585,66 @@ const unwrap = async <T>(
 };
 
 const sha256 = (content: string): string => createHash('sha256').update(content).digest('hex');
+
+const expectedBranchName = (
+  repoId: string,
+  runId: string,
+  taskId: string,
+  policy: {
+    readonly prefix: string;
+    readonly includeRunId: boolean;
+    readonly includeTaskId: boolean;
+    readonly maxLength: number;
+  },
+): string => {
+  const suffix = createHash('sha256').update(JSON.stringify({ repoId, runId, taskId })).digest('hex').slice(0, 8);
+  const segments = [
+    policy.prefix,
+    sanitize(repoId),
+    ...(policy.includeRunId ? [sanitize(runId)] : []),
+    ...(policy.includeTaskId ? [sanitize(taskId)] : []),
+  ];
+  const base = segments.join('/');
+  const branchName = `${base}-${suffix}`;
+  if (branchName.length <= policy.maxLength) {
+    return branchName;
+  }
+  const suffixSegment = `-${suffix}`;
+  if (policy.maxLength <= suffixSegment.length) {
+    return suffix.slice(0, policy.maxLength);
+  }
+  return `${base.slice(0, policy.maxLength - suffixSegment.length)}${suffixSegment}`;
+};
+
+const sanitize = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/gu, '-')
+    .replace(/^-+|-+$/gu, '');
+
+const storageError = (message: string): StorageError => ({
+  kind: 'storage-error',
+  code: 'storage-unavailable',
+  message,
+  health: 'unusable',
+});
+
+const parseJsonPayload = (
+  payload: Uint8Array | undefined,
+): { readonly type?: unknown; readonly evidence?: { readonly evidenceId?: unknown } } | undefined => {
+  if (payload === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(new TextDecoder().decode(payload)) as {
+      readonly type?: unknown;
+      readonly evidence?: { readonly evidenceId?: unknown };
+    };
+  } catch {
+    return undefined;
+  }
+};
 
 const collectSourceFiles = async (root: string): Promise<readonly string[]> => {
   const entries = await nodeFs.promises.readdir(root, { recursive: true, withFileTypes: true });

@@ -1,5 +1,6 @@
 import { join, resolve } from 'node:path';
 import * as nodeFs from 'node:fs';
+import { createHash } from 'node:crypto';
 import * as git from 'isomorphic-git';
 import type { Result } from '@kit-vnext/foundation-fnd-01';
 import type { ArtifactRef, StorageError } from '@kit-vnext/foundation-fnd-02';
@@ -146,10 +147,9 @@ export const createWorkspaceRepository = (options: WorkspaceRepositoryOptions): 
   };
 
   const updateSetupState = (record: LeaseRecord, evaluation: SetupEvaluation): WorktreeLease => {
-    if (record.registration.setup === undefined) {
-      return replaceLease(record, 'ready');
-    }
-    return replaceLease(record, evaluation.fresh ? 'ready' : 'setup-required');
+    const lease = leaseWithSetupState(record, evaluation);
+    leases.set(lease.leaseId, { ...record, lease });
+    return lease;
   };
 
   const assertFence = (lease: WorktreeLease): Result<true, WorkspaceFailure> => {
@@ -199,43 +199,60 @@ export const createWorkspaceRepository = (options: WorkspaceRepositoryOptions): 
       }
       const worktreePath = resolve(options.worktreeRoot, input.repoId, input.runId);
       const worktreeGitDir = resolve(prepared.commonGitDir, 'worktrees', worktreeRegistrationName(leaseId));
-      const checkout = await createLinkedWorktree({
-        sourceRepoRoot: prepared.repoRoot,
-        commonGitDir: prepared.commonGitDir,
-        worktreePath,
-        worktreeGitDir,
-        branchName,
-        baseSha,
-      });
-      if (checkout !== undefined) {
-        return { ok: false, error: checkout };
-      }
+      let worktreeCreated = false;
+      let leasePublished = false;
+      try {
+        const checkout = await createLinkedWorktree({
+          sourceRepoRoot: prepared.repoRoot,
+          commonGitDir: prepared.commonGitDir,
+          worktreePath,
+          worktreeGitDir,
+          branchName,
+          baseSha,
+        });
+        if (checkout !== undefined) {
+          return { ok: false, error: checkout };
+        }
+        worktreeCreated = true;
 
-      const lease: WorktreeLease = {
-        leaseId,
-        epoch: leaseCapability.epoch,
-        runId: input.runId,
-        taskId: input.taskId,
-        repoId: input.repoId,
-        worktreePath,
-        baseRef,
-        baseSha,
-        branchName,
-        worktreeGitDir,
-        state: 'branch-created',
-        fenceToken: leaseCapability.token,
-        setup: registration.setup,
-      };
-      const record: LeaseRecord = { lease, registration, evidenceById: new Map() };
-      leases.set(leaseId, record);
-      const setup = await evaluateSetupForRecord(record);
-      const updated = updateSetupState(record, setup);
-      const persisted = persistEvent(options, updated, {
-        schema: 'kit-vnext.workspace-repository-event.v1',
-        type: 'lease-recorded',
-        lease: updated,
-      });
-      return persisted === undefined ? ok(updated) : fail(persisted);
+        const lease: WorktreeLease = {
+          leaseId,
+          epoch: leaseCapability.epoch,
+          runId: input.runId,
+          taskId: input.taskId,
+          repoId: input.repoId,
+          worktreePath,
+          baseRef,
+          baseSha,
+          branchName,
+          worktreeGitDir,
+          state: 'branch-created',
+          fenceToken: leaseCapability.token,
+          setup: registration.setup,
+        };
+        const record: LeaseRecord = { lease, registration, evidenceById: new Map() };
+        const setup = await evaluateSetupForRecord(record);
+        const updated = leaseWithSetupState(record, setup);
+        const persisted = persistEvent(options, updated, {
+          schema: 'kit-vnext.workspace-repository-event.v1',
+          type: 'lease-recorded',
+          lease: updated,
+        });
+        if (persisted !== undefined) {
+          return fail(persisted);
+        }
+        leases.set(leaseId, { ...record, lease: updated });
+        leasePublished = true;
+        return ok(updated);
+      } finally {
+        if (!leasePublished) {
+          options.storage.leases.release(leaseId, leaseCapability.epoch, leaseCapability.token);
+          if (worktreeCreated) {
+            await removeWorktreePath(worktreePath);
+            await removeWorktreeRegistration(worktreeGitDir);
+          }
+        }
+      }
     },
 
     async getLease(leaseId) {
@@ -335,8 +352,6 @@ export const createWorkspaceRepository = (options: WorkspaceRepositoryOptions): 
         };
         const evidenceRef = putArtifact(options, JSON.stringify(evidenceWithoutRef, null, 2), 'local-git-evidence');
         const evidence: LocalGitEvidence = { ...evidenceWithoutRef, evidenceRef };
-        const nextEvidence = new Map(record.value.evidenceById).set(evidenceId, evidence);
-        leases.set(leaseId, { ...record.value, evidenceById: nextEvidence });
         const persisted = persistEvent(options, lease, {
           schema: 'kit-vnext.workspace-repository-event.v1',
           type: 'local-git-evidence-recorded',
@@ -346,6 +361,8 @@ export const createWorkspaceRepository = (options: WorkspaceRepositoryOptions): 
         if (persisted !== undefined) {
           return unavailable(leaseId, persisted.message);
         }
+        const nextEvidence = new Map(record.value.evidenceById).set(evidenceId, evidence);
+        leases.set(leaseId, { ...record.value, evidenceById: nextEvidence });
         return ok(evidence);
       } catch {
         return unavailable(leaseId, 'local git evidence could not be inspected');
@@ -557,19 +574,46 @@ const firstMissingPath = async (root: string, relativePaths: readonly string[]):
   return undefined;
 };
 
+const leaseWithSetupState = (record: LeaseRecord, evaluation: SetupEvaluation): WorktreeLease => {
+  if (record.registration.setup === undefined) {
+    return { ...record.lease, state: 'ready' };
+  }
+  return { ...record.lease, state: evaluation.fresh ? 'ready' : 'setup-required' };
+};
+
 const branchNameFor = (
   registration: RepositoryRegistration,
   input: { readonly repoId: string; readonly runId: string; readonly taskId: string },
 ): string => {
   const policy = registration.branchPolicy ?? defaultBranchPolicy;
+  const suffix = branchCollisionSuffix(input);
   const segments = [
     policy.prefix,
     sanitize(input.repoId),
     ...(policy.includeRunId ? [sanitize(input.runId)] : []),
     ...(policy.includeTaskId ? [sanitize(input.taskId)] : []),
   ];
-  return segments.join('/').slice(0, policy.maxLength);
+  const base = segments.join('/');
+  const branchName = `${base}-${suffix}`;
+  if (branchName.length <= policy.maxLength) {
+    return branchName;
+  }
+  const suffixSegment = `-${suffix}`;
+  if (policy.maxLength <= suffixSegment.length) {
+    return suffix.slice(0, policy.maxLength);
+  }
+  return `${base.slice(0, policy.maxLength - suffixSegment.length)}${suffixSegment}`;
 };
+
+const branchCollisionSuffix = (input: {
+  readonly repoId: string;
+  readonly runId: string;
+  readonly taskId: string;
+}): string =>
+  createHash('sha256')
+    .update(JSON.stringify({ repoId: input.repoId, runId: input.runId, taskId: input.taskId }))
+    .digest('hex')
+    .slice(0, 8);
 
 const branchConflict = async (
   prepared: PreparedRepository,

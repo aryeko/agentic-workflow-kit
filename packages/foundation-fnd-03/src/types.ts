@@ -135,7 +135,6 @@ export type LocalGitEvidence = {
     readonly toSha: string;
     readonly changedPaths: readonly string[];
     readonly statRef?: ArtifactRef;
-    readonly patchRef?: ArtifactRef;
   };
   readonly workingTree: LocalGitEvidenceWorkingTree;
   readonly evidenceRef?: ArtifactRef;
