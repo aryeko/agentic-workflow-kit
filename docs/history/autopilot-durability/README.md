@@ -126,7 +126,7 @@ under *both* orchestrators are kit-substrate defects.
   [design/notes/codex-runtime-findings.md](design/notes/codex-runtime-findings.md) (Codex 0.139.0, read-only spikes).
 - Code references throughout were verified against kit **v0.7.0** `main` on 2026-06-18.
 - This effort builds on, but does not replace, the existing redesign under
-  [`docs/prds/agentic-workflow-kit-redesign/`](../prds/agentic-workflow-kit-redesign/) — it reconciles that
+  [`docs/prds/agentic-workflow-kit-redesign/`](../../prds/agentic-workflow-kit-redesign/) — it reconciles that
   approved design against shipped reality and closes the gaps the incidents exposed.
 
 ## Glossary

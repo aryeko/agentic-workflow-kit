@@ -10,7 +10,7 @@ depends-on: []           # contracts/foundation modules this design depends on
 
 # <Domain name> — design
 
-> Produced from `charter.md` following [conventions.md](../../conventions.md). Delete the guidance
+> Produced from `charter.md` following [conventions.md](../conventions.md). Delete the guidance
 > notes (in blockquotes) before submitting for review.
 
 ## 1. Purpose & boundaries
@@ -21,7 +21,7 @@ depends-on: []           # contracts/foundation modules this design depends on
 ## 2. Required reading
 
 > The standard set (README, architecture, conventions, glossary, this charter) plus any sibling
-> contracts you used. Nothing outside `docs/kit-vnext/`.
+> contracts you used. Nothing outside `docs/design/`.
 
 ## 3. Context diagram
 

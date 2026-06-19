@@ -41,7 +41,7 @@ diagnosable state rather than taking a risky action.
    Source** (tasks + status authority). The core depends only on the contracts.
 3. **Deterministic control plane; agents are workers.** Supervision, state, gating, and recovery are
    deterministic code — not an LLM "orchestrator." Agents are rented behind the Agent seam for
-   bounded judgment tasks (implement a task; adjudicate an approval).
+   bounded judgment tasks, such as implementing a task; approval adjudication is deferred per AD-14.
 
 ## How to read this folder
 
@@ -69,4 +69,4 @@ A senior engineer picks up one domain. They read this README, [architecture.md](
 [conventions.md](conventions.md), [glossary.md](glossary.md), and their domain's `charter.md` (plus
 any sibling contracts the charter names). They produce a `design.md` in their domain folder using the
 [domain design template](_templates/domain-design-template.md). The chief architect reviews it against
-the charter and conventions. Nothing outside `docs/kit-vnext/` needs to be read.
+the charter and conventions. Nothing outside `docs/design/` needs to be read.

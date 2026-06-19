@@ -7,7 +7,7 @@ last-reviewed: 2026-06-18
 # Contracts and events
 
 This file holds the typed contract and audit payload details for
-`docs/kit-vnext/domains/fnd-04-credentials-and-secrets/design.md`. It is split out because the type
+`docs/design/domains/fnd-04-credentials-and-secrets/design.md`. It is split out because the type
 catalog is cohesive detail and would otherwise push the design entry point past the focused-file cap.
 
 ```ts

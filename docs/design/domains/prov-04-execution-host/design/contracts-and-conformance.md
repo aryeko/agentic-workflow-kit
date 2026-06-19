@@ -7,7 +7,7 @@ last-reviewed: 2026-06-18
 # Contracts and conformance
 
 This file holds the typed contract details and conformance targets for
-`docs/kit-vnext/domains/prov-04-execution-host/design.md`. It is split out because the type catalog
+`docs/design/domains/prov-04-execution-host/design.md`. It is split out because the type catalog
 and driver conformance matrix are cohesive detail.
 
 ## Contract types

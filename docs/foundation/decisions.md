@@ -80,14 +80,18 @@ release overhead that is premature before any package is published.
 
 ---
 
-## FD-6 — Docs at the `docs/` root
+## FD-6 — Docs grouped by concern under `docs/`
 
-**Decision:** Documentation is placed directly at `docs/` (not under a
-`kit-vnext/` sub-path). When design docs from `design/autopilot-durability`
-are merged in (roadmap Step 4), the `kit-vnext/` qualifier is dropped.
+**Decision:** Documentation is grouped by concern under `docs/`: the ground-truth
+design corpus lives in `docs/design/`, foundation infrastructure records stay in
+`docs/foundation/`, and incident postmortems plus research live in `docs/history/`.
+This supersedes the earlier roadmap Step 4 intent to drop the `kit-vnext/` qualifier
+by flattening design docs directly into the `docs/` root.
 
-**Rationale:** The repository is already scoped to kit-vnext; a sub-path
-qualifier is redundant and makes links and tooling more fragile.
+**Rationale:** The repository is already scoped to kit-vnext, so a product-name
+sub-path is redundant. A `design/` concern path preserves that simplification while
+avoiding root README collisions and distinguishing architecture decisions from
+foundation decisions.
 
 ---
 
