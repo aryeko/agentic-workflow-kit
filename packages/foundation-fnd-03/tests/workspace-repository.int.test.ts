@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import * as git from 'isomorphic-git';
 import {
   createFileSystemStorageRoot,
+  isStorageError,
   type StorageError,
   type StorageRoot,
   type FileSystemStorageRootOptions,
@@ -15,6 +16,16 @@ import {
   type StorageClock,
   type TokenGenerator,
 } from '../../foundation-fnd-02/src/index.js';
+import {
+  createLinkedWorktree,
+  inspectTreeDiff,
+  localBranchSha,
+  pathExists,
+  resolvePreparedRepository,
+  resolveRepositoryIdentity,
+  safeRelativePath,
+  sha256File,
+} from '../src/local-git.js';
 import { createWorkspaceRepository, isWorkspaceFailure, type WorkspaceRepository } from '../src/index.js';
 
 class ManualClock implements StorageClock {
@@ -47,10 +58,16 @@ type TestContext = {
   readonly sourceRepo: string;
   readonly clock: ManualClock;
   readonly worktreeRoot: string;
+  readonly storageRoot: string;
   readonly storage: ReturnType<typeof createFileSystemStorageRoot>;
   readonly generator: SequenceGenerator;
-  readonly registration: Partial<Parameters<typeof createWorkspaceRepository>[0]['repositories'][number]>;
+  readonly registration: TestContextOptions;
   readonly workspace: WorkspaceRepository;
+};
+
+type TestContextOptions = Partial<Parameters<typeof createWorkspaceRepository>[0]['repositories'][number]> & {
+  readonly storageProbe?: FileSystemStorageRootOptions['probe'];
+  readonly maxArtifactBytes?: number;
 };
 
 const tempRoots: string[] = [];
@@ -472,11 +489,562 @@ describe('workspace repository', () => {
     expect(joined).not.toMatch(/\bspawn\b|\bexecFile\b|\bexecSync\b|\bexeca\b/);
     expect(joined).not.toMatch(/pullRequest|push|mergeQueue|checkRun|remoteUrl|credential/i);
   });
+
+  it('fails closed for unknown repositories, missing refs, and unknown leases', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+
+    const unknownRepo = await context.workspace.resolveRepository(join(context.sourceRepo, '..', 'unknown'));
+    expect(unknownRepo).toMatchObject({ ok: false, error: { reason: 'repository-unknown' } });
+
+    const missingRepoLease = await context.workspace.createLease({
+      runId: 'run-missing-repo',
+      taskId: 'TASK-X',
+      repoId: 'missing',
+    });
+    expect(missingRepoLease).toMatchObject({ ok: false, error: { reason: 'repository-unknown' } });
+
+    const missingBase = await context.workspace.createLease({
+      runId: 'run-missing-ref',
+      taskId: 'TASK-X',
+      repoId: 'repo-a',
+      baseRef: 'missing-ref',
+    });
+    expect(missingBase).toMatchObject({ ok: false, error: { reason: 'base-ref-unresolved' } });
+
+    await expect(context.workspace.getLease('missing-lease')).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'lease-unavailable' },
+    });
+    await expect(context.workspace.evaluateSetup('missing-lease')).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'lease-unavailable' },
+    });
+    await expect(
+      context.workspace.finalizeLease({ leaseId: 'missing-lease', evidenceId: 'e', epoch: 1, fenceToken: 't' }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'lease-unavailable' },
+    });
+    await expect(
+      context.workspace.confirmSetup({ leaseId: 'missing-lease', epoch: 1, fenceToken: 't' }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'lease-unavailable' },
+    });
+    await expect(
+      context.workspace.cleanupLease({ leaseId: 'missing-lease', epoch: 1, fenceToken: 't', deleteLocalBranch: false }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'lease-unavailable' },
+    });
+    await expect(context.workspace.recordLocalGitEvidence('missing-lease')).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'local-git-evidence-unavailable' },
+    });
+  });
+
+  it('covers setup freshness policies for always, fresh worktree, path sets, and artifact refs', async () => {
+    const always = await makeContext({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'marker-file', path: '.ready' },
+        rerunPolicy: 'always',
+      },
+    });
+    await commitFile(always.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const alwaysLease = await unwrap(
+      always.workspace.createLease({ runId: 'run-always', taskId: 'TASK-A', repoId: 'repo-a' }),
+    );
+    expect(alwaysLease.state).toBe('setup-required');
+    expect(await unwrap(always.workspace.evaluateSetup(alwaysLease.leaseId))).toMatchObject({
+      fresh: false,
+      reason: 'new-worktree',
+    });
+
+    const pathSet = await makeContext({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'path-set', paths: ['node_modules/.ready', 'dist/index.js'] },
+        rerunPolicy: 'when-stale',
+      },
+    });
+    await commitFile(pathSet.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const pathLease = await unwrap(
+      pathSet.workspace.createLease({ runId: 'run-paths', taskId: 'TASK-P', repoId: 'repo-a' }),
+    );
+    expect(await unwrap(pathSet.workspace.evaluateSetup(pathLease.leaseId))).toMatchObject({
+      fresh: false,
+      reason: 'paths-missing',
+    });
+    await mkdir(join(pathLease.worktreePath, 'node_modules'), { recursive: true });
+    await writeFile(join(pathLease.worktreePath, 'node_modules/.ready'), 'ready\n');
+    await mkdir(join(pathLease.worktreePath, 'dist'), { recursive: true });
+    await writeFile(join(pathLease.worktreePath, 'dist/index.js'), 'ready\n');
+    expect(await unwrap(pathSet.workspace.evaluateSetup(pathLease.leaseId))).toMatchObject({ fresh: true });
+
+    const artifact = await makeContext({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'artifact-ref', refName: 'missing-artifact' },
+        rerunPolicy: 'on-fresh-worktree',
+      },
+    });
+    await commitFile(artifact.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const artifactLease = await unwrap(
+      artifact.workspace.createLease({ runId: 'run-artifact', taskId: 'TASK-R', repoId: 'repo-a' }),
+    );
+    expect(await unwrap(artifact.workspace.evaluateSetup(artifactLease.leaseId))).toMatchObject({
+      fresh: false,
+      reason: 'new-worktree',
+    });
+
+    const staleArtifact = await makeContext({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'artifact-ref', refName: 'missing-artifact' },
+        rerunPolicy: 'when-stale',
+      },
+    });
+    await commitFile(staleArtifact.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const staleArtifactLease = await unwrap(
+      staleArtifact.workspace.createLease({ runId: 'run-artifact-stale', taskId: 'TASK-A2', repoId: 'repo-a' }),
+    );
+    expect(await unwrap(staleArtifact.workspace.evaluateSetup(staleArtifactLease.leaseId))).toMatchObject({
+      fresh: false,
+      reason: 'artifact-stale',
+    });
+  });
+
+  it('blocks cleanup when the observed head differs from finalized evidence', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const created = await unwrap(
+      context.workspace.createLease({ runId: 'run-head-mismatch', taskId: 'TASK-H', repoId: 'repo-a' }),
+    );
+    await commitFile(created.worktreePath, 'before.txt', 'before\n', 'before cleanup evidence');
+    const evidence = await unwrap(context.workspace.recordLocalGitEvidence(created.leaseId));
+    await unwrap(
+      context.workspace.finalizeLease({
+        leaseId: created.leaseId,
+        evidenceId: evidence.evidenceId,
+        epoch: created.epoch,
+        fenceToken: created.fenceToken,
+      }),
+    );
+    await commitFile(created.worktreePath, 'after.txt', 'after\n', 'after evidence');
+
+    const cleanup = await unwrap(
+      context.workspace.cleanupLease({
+        leaseId: created.leaseId,
+        epoch: created.epoch,
+        fenceToken: created.fenceToken,
+        deleteLocalBranch: true,
+        expectedHeadSha: evidence.headSha,
+      }),
+    );
+
+    expect(cleanup).toMatchObject({
+      state: 'cleanup-blocked',
+      reason: 'head-mismatch',
+      operatorEscalationRequired: true,
+    });
+  });
+
+  it('rejects stale setup confirmation and cleanup fences', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const created = await unwrap(
+      context.workspace.createLease({ runId: 'run-stale-ops', taskId: 'TASK-S', repoId: 'repo-a' }),
+    );
+
+    await expect(
+      context.workspace.confirmSetup({
+        leaseId: created.leaseId,
+        epoch: created.epoch + 1,
+        fenceToken: created.fenceToken,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'stale-lease-fence' } });
+    await expect(
+      context.workspace.cleanupLease({
+        leaseId: created.leaseId,
+        epoch: created.epoch + 1,
+        fenceToken: created.fenceToken,
+        deleteLocalBranch: false,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'stale-lease-fence' } });
+  });
+
+  it('fails closed when repository preparation, storage leases, checkout, or evidence persistence fail', async () => {
+    const badRepoRoot = await mkdtemp(join(tmpdir(), 'fnd-03-bad-repo-'));
+    tempRoots.push(badRepoRoot);
+    const badRepo = await makeContext({ repoRoot: join(badRepoRoot, 'missing') });
+    const badLease = await badRepo.workspace.createLease({ runId: 'run-bad-repo', taskId: 'TASK-B', repoId: 'repo-a' });
+    expect(badLease).toMatchObject({ ok: false, error: { reason: 'repository-unavailable' } });
+
+    const degraded = await makeContext({ storageProbe: () => 'network-fs-degraded' });
+    await commitFile(degraded.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const unavailableLease = await degraded.workspace.createLease({
+      runId: 'run-storage-unavailable',
+      taskId: 'TASK-B',
+      repoId: 'repo-a',
+    });
+    expect(unavailableLease).toMatchObject({ ok: false, error: { reason: 'lease-unavailable' } });
+
+    const conflict = await makeContext();
+    await commitFile(conflict.sourceRepo, 'README.md', 'base\n', 'base commit');
+    await mkdir(join(conflict.worktreeRoot, 'repo-a', 'run-conflict-path'), { recursive: true });
+    const pathConflict = await conflict.workspace.createLease({
+      runId: 'run-conflict-path',
+      taskId: 'TASK-B',
+      repoId: 'repo-a',
+    });
+    expect(pathConflict).toMatchObject({ ok: false, error: { reason: 'worktree-path-conflict' } });
+
+    const evidenceFailure = await makeContext({ maxArtifactBytes: 1 });
+    await commitFile(evidenceFailure.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const created = await unwrap(
+      evidenceFailure.workspace.createLease({ runId: 'run-evidence-fail', taskId: 'TASK-B', repoId: 'repo-a' }),
+    );
+    await commitFile(created.worktreePath, 'feature.txt', 'feature\n', 'feature');
+    const evidence = await evidenceFailure.workspace.recordLocalGitEvidence(created.leaseId);
+    expect(evidence).toMatchObject({ ok: false, error: { reason: 'local-git-evidence-unavailable' } });
+  });
+
+  it('covers cleanup without branch deletion, missing worktree observations, and unknown evidence', async () => {
+    const retained = await makeContext();
+    await commitFile(retained.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const retainedLease = await unwrap(
+      retained.workspace.createLease({ runId: 'run-retained', taskId: 'TASK-C', repoId: 'repo-a' }),
+    );
+    const retainedEvidence = await unwrap(retained.workspace.recordLocalGitEvidence(retainedLease.leaseId));
+    await unwrap(
+      retained.workspace.finalizeLease({
+        leaseId: retainedLease.leaseId,
+        evidenceId: retainedEvidence.evidenceId,
+        epoch: retainedLease.epoch,
+        fenceToken: retainedLease.fenceToken,
+      }),
+    );
+    const retainedCleanup = await unwrap(
+      retained.workspace.cleanupLease({
+        leaseId: retainedLease.leaseId,
+        epoch: retainedLease.epoch,
+        fenceToken: retainedLease.fenceToken,
+        deleteLocalBranch: false,
+      }),
+    );
+    expect(retainedCleanup).toMatchObject({ state: 'cleaned', branchDisposition: 'retained-by-policy' });
+
+    const missingGit = await makeContext();
+    await commitFile(missingGit.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const missingGitLease = await unwrap(
+      missingGit.workspace.createLease({ runId: 'run-missing-git', taskId: 'TASK-C', repoId: 'repo-a' }),
+    );
+    const missingGitEvidence = await unwrap(missingGit.workspace.recordLocalGitEvidence(missingGitLease.leaseId));
+    await unwrap(
+      missingGit.workspace.finalizeLease({
+        leaseId: missingGitLease.leaseId,
+        evidenceId: missingGitEvidence.evidenceId,
+        epoch: missingGitLease.epoch,
+        fenceToken: missingGitLease.fenceToken,
+      }),
+    );
+    await rm(join(missingGitLease.worktreePath, '.git'), { recursive: true, force: true });
+    const missingGitCleanup = await unwrap(
+      missingGit.workspace.cleanupLease({
+        leaseId: missingGitLease.leaseId,
+        epoch: missingGitLease.epoch,
+        fenceToken: missingGitLease.fenceToken,
+        deleteLocalBranch: true,
+      }),
+    );
+    expect(missingGitCleanup.observedHeadSha).toBeUndefined();
+
+    const unknownEvidence = await makeContext();
+    await commitFile(unknownEvidence.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const unknownEvidenceLease = await unwrap(
+      unknownEvidence.workspace.createLease({ runId: 'run-unknown-evidence', taskId: 'TASK-C', repoId: 'repo-a' }),
+    );
+    await expect(
+      unknownEvidence.workspace.finalizeLease({
+        leaseId: unknownEvidenceLease.leaseId,
+        evidenceId: 'missing-evidence',
+        epoch: unknownEvidenceLease.epoch,
+        fenceToken: unknownEvidenceLease.fenceToken,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'evidence-unknown' } });
+  });
+
+  it('fails closed when workspace event persistence is unavailable across lease operations', async () => {
+    const createBlocked = await makeContext();
+    await commitFile(createBlocked.sourceRepo, 'README.md', 'base\n', 'base commit');
+    await corruptWorkspaceLog(createBlocked);
+    await expect(
+      createBlocked.workspace.createLease({ runId: 'run-create-persist-fail', taskId: 'TASK-P', repoId: 'repo-a' }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'lease-unavailable' } });
+
+    const evaluateBlocked = await makeContext({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'marker-file', path: '.ready' },
+        rerunPolicy: 'when-stale',
+      },
+    });
+    await commitFile(evaluateBlocked.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const evaluatedLease = await unwrap(
+      evaluateBlocked.workspace.createLease({ runId: 'run-evaluate-persist-fail', taskId: 'TASK-P', repoId: 'repo-a' }),
+    );
+    await corruptWorkspaceLog(evaluateBlocked);
+    await expect(evaluateBlocked.workspace.evaluateSetup(evaluatedLease.leaseId)).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'lease-unavailable' },
+    });
+
+    const finalizeBlocked = await makeContext();
+    await commitFile(finalizeBlocked.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const finalizedLease = await unwrap(
+      finalizeBlocked.workspace.createLease({ runId: 'run-finalize-persist-fail', taskId: 'TASK-P', repoId: 'repo-a' }),
+    );
+    const finalizedEvidence = await unwrap(finalizeBlocked.workspace.recordLocalGitEvidence(finalizedLease.leaseId));
+    await corruptWorkspaceLog(finalizeBlocked);
+    await expect(
+      finalizeBlocked.workspace.finalizeLease({
+        leaseId: finalizedLease.leaseId,
+        evidenceId: finalizedEvidence.evidenceId,
+        epoch: finalizedLease.epoch,
+        fenceToken: finalizedLease.fenceToken,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'lease-unavailable' } });
+
+    const cleanupBlocked = await makeContext();
+    await commitFile(cleanupBlocked.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const cleanupLease = await unwrap(
+      cleanupBlocked.workspace.createLease({ runId: 'run-cleanup-persist-fail', taskId: 'TASK-P', repoId: 'repo-a' }),
+    );
+    const cleanupEvidence = await unwrap(cleanupBlocked.workspace.recordLocalGitEvidence(cleanupLease.leaseId));
+    await unwrap(
+      cleanupBlocked.workspace.finalizeLease({
+        leaseId: cleanupLease.leaseId,
+        evidenceId: cleanupEvidence.evidenceId,
+        epoch: cleanupLease.epoch,
+        fenceToken: cleanupLease.fenceToken,
+      }),
+    );
+    await corruptWorkspaceLog(cleanupBlocked);
+    await expect(
+      cleanupBlocked.workspace.cleanupLease({
+        leaseId: cleanupLease.leaseId,
+        epoch: cleanupLease.epoch,
+        fenceToken: cleanupLease.fenceToken,
+        deleteLocalBranch: false,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'lease-unavailable' } });
+
+    const confirmBlocked = await makeContext({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'marker-file', path: '.ready' },
+        rerunPolicy: 'when-stale',
+      },
+    });
+    await commitFile(confirmBlocked.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const confirmLease = await unwrap(
+      confirmBlocked.workspace.createLease({ runId: 'run-confirm-persist-fail', taskId: 'TASK-P', repoId: 'repo-a' }),
+    );
+    await corruptWorkspaceLog(confirmBlocked);
+    await expect(
+      confirmBlocked.workspace.confirmSetup({
+        leaseId: confirmLease.leaseId,
+        epoch: confirmLease.epoch,
+        fenceToken: confirmLease.fenceToken,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'lease-unavailable' } });
+
+    const evidenceBlocked = await makeContext();
+    await commitFile(evidenceBlocked.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const evidenceLease = await unwrap(
+      evidenceBlocked.workspace.createLease({ runId: 'run-evidence-persist-fail', taskId: 'TASK-P', repoId: 'repo-a' }),
+    );
+    await corruptWorkspaceLog(evidenceBlocked);
+    await expect(evidenceBlocked.workspace.recordLocalGitEvidence(evidenceLease.leaseId)).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'local-git-evidence-unavailable' },
+    });
+  });
+
+  it('fails closed when a stored lease fence is no longer readable for guarded operations', async () => {
+    const context = await makeContext({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'marker-file', path: '.ready' },
+        rerunPolicy: 'when-stale',
+      },
+    });
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const created = await unwrap(
+      context.workspace.createLease({ runId: 'run-fence-corrupt', taskId: 'TASK-F', repoId: 'repo-a' }),
+    );
+    const evidence = await unwrap(context.workspace.recordLocalGitEvidence(created.leaseId));
+    await writeFile(join(context.storageRoot, 'leases', `${sha256(created.leaseId)}.json`), '{"bad":true}\n');
+
+    await expect(
+      context.workspace.confirmSetup({
+        leaseId: created.leaseId,
+        epoch: created.epoch,
+        fenceToken: created.fenceToken,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'stale-lease-fence' } });
+    await expect(
+      context.workspace.finalizeLease({
+        leaseId: created.leaseId,
+        evidenceId: evidence.evidenceId,
+        epoch: created.epoch,
+        fenceToken: created.fenceToken,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'stale-lease-fence' } });
+    await expect(
+      context.workspace.cleanupLease({
+        leaseId: created.leaseId,
+        epoch: created.epoch,
+        fenceToken: created.fenceToken,
+        deleteLocalBranch: false,
+      }),
+    ).resolves.toMatchObject({ ok: false, error: { reason: 'stale-lease-fence' } });
+  });
+
+  it('rebuilds only recognized persisted workspace events after restart', async () => {
+    const context = await makeContext();
+    await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const lease = context.storage.leases.acquire('workspace:manual:seed', 'run-seed', 60_000);
+    expect(isStorageError(lease)).toBe(false);
+    if (isStorageError(lease)) {
+      return;
+    }
+    const handle = context.storage.eventLog.openForAppend('fnd-03:workspace-repository:v1', lease);
+    expect(isStorageError(handle)).toBe(false);
+    if (isStorageError(handle)) {
+      return;
+    }
+    const append = context.storage.eventLog.append(handle, {
+      expectedSequence: 1,
+      durability: 'barrier',
+      payloads: [
+        new TextEncoder().encode('not-json'),
+        new TextEncoder().encode(
+          JSON.stringify({
+            schema: 'kit-vnext.workspace-repository-event.v1',
+            type: 'lease-recorded',
+            lease: {
+              leaseId: 'workspace:missing:seed',
+              repoId: 'missing',
+              epoch: 1,
+              runId: 'run',
+              taskId: 'task',
+              worktreePath: '/tmp/missing',
+              baseRef: 'main',
+              baseSha: 'sha',
+              branchName: 'kit/missing',
+              worktreeGitDir: '/tmp/missing.git',
+              state: 'ready',
+              fenceToken: 'token',
+            },
+          }),
+        ),
+        new TextEncoder().encode(
+          JSON.stringify({
+            schema: 'kit-vnext.workspace-repository-event.v1',
+            type: 'local-git-evidence-recorded',
+            leaseId: 'workspace:missing:seed',
+            evidence: { evidenceId: 'ignored' },
+          }),
+        ),
+      ],
+    });
+    expect(isStorageError(append)).toBe(false);
+
+    const restarted = makeWorkspaceForContext(context);
+    await expect(restarted.getLease('workspace:missing:seed')).resolves.toMatchObject({
+      ok: false,
+      error: { reason: 'lease-unavailable' },
+    });
+  });
+
+  it('covers local git helper boundaries for unavailable repos and safe paths', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'fnd-03-local-git-'));
+    tempRoots.push(root);
+    const missing = join(root, 'missing');
+
+    expect(await pathExists(missing)).toBe(false);
+    expect(await sha256File(missing)).toBeUndefined();
+    expect(safeRelativePath(root, '')).toBeUndefined();
+    expect(safeRelativePath(root, '/absolute')).toBeUndefined();
+    expect(safeRelativePath(root, '../escape')).toBeUndefined();
+    expect(safeRelativePath(root, 'inside/file.txt')).toBe(join(root, 'inside/file.txt'));
+
+    const unavailable = await resolvePreparedRepository({
+      repoId: 'missing',
+      repoRoot: missing,
+      defaultBaseRef: 'main',
+    });
+    expect(unavailable).toMatchObject({ kind: 'workspace-failure', reason: 'repository-unavailable' });
+
+    await mkdir(missing, { recursive: true });
+    await writeFile(join(missing, '.git'), 'not-a-gitdir\n');
+    const malformed = await resolveRepositoryIdentity({
+      repoId: 'malformed',
+      repoRoot: missing,
+      defaultBaseRef: 'main',
+    });
+    expect(malformed).toMatchObject({ kind: 'workspace-failure', reason: 'repository-unavailable' });
+  });
+
+  it('covers linked worktree conflicts and tree diff directory filtering', async () => {
+    const context = await makeContext();
+    const baseSha = await commitFile(context.sourceRepo, 'README.md', 'base\n', 'base commit');
+    const prepared = await resolvePreparedRepository({
+      repoId: 'repo-a',
+      repoRoot: context.sourceRepo,
+      defaultBaseRef: 'main',
+    });
+    if (isWorkspaceFailure(prepared)) {
+      throw new Error(prepared.message);
+    }
+    const worktreePath = join(context.worktreeRoot, 'manual');
+    await mkdir(worktreePath, { recursive: true });
+    await expect(
+      createLinkedWorktree({
+        sourceRepoRoot: prepared.repoRoot,
+        commonGitDir: prepared.commonGitDir,
+        worktreePath,
+        worktreeGitDir: join(prepared.commonGitDir, 'worktrees', 'manual'),
+        branchName: 'kit/manual',
+        baseSha,
+      }),
+    ).resolves.toMatchObject({ kind: 'workspace-failure', reason: 'worktree-path-conflict' });
+
+    const created = await unwrap(
+      context.workspace.createLease({ runId: 'run-tree-diff', taskId: 'TASK-D', repoId: 'repo-a' }),
+    );
+    await commitFile(created.worktreePath, 'dir/file.txt', 'nested\n', 'add nested file');
+    const headSha = await localBranchSha(context.sourceRepo, created.branchName);
+    expect(headSha).toBeDefined();
+    if (headSha === undefined) {
+      return;
+    }
+    const diff = await inspectTreeDiff({ worktreePath: created.worktreePath, fromSha: baseSha, toSha: headSha });
+    expect(diff.changedPaths).toEqual(['dir/file.txt']);
+  });
 });
 
-const makeContext = async (
-  registration: Partial<Parameters<typeof createWorkspaceRepository>[0]['repositories'][number]> = {},
-): Promise<TestContext> => {
+const makeContext = async (registration: TestContextOptions = {}): Promise<TestContext> => {
   const root = await mkdtemp(join(tmpdir(), 'fnd-03-'));
   tempRoots.push(root);
   const sourceRepo = join(root, 'source');
@@ -491,6 +1059,8 @@ const makeContext = async (
     clock,
     idGenerator: generator,
     tokenGenerator: generator,
+    ...(registration.storageProbe ? { probe: registration.storageProbe } : {}),
+    ...(registration.maxArtifactBytes ? { maxArtifactBytes: registration.maxArtifactBytes } : {}),
   };
   const storage = createFileSystemStorageRoot(storageOptions);
   const workspace = createWorkspaceRepository({
@@ -504,11 +1074,11 @@ const makeContext = async (
         repoId: 'repo-a',
         repoRoot: sourceRepo,
         defaultBaseRef: 'main',
-        ...registration,
+        ...repositoryRegistrationOnly(registration),
       },
     ],
   });
-  return { sourceRepo, clock, worktreeRoot, storage, generator, registration, workspace };
+  return { sourceRepo, clock, worktreeRoot, storageRoot, storage, generator, registration, workspace };
 };
 
 const makeWorkspaceForContext = (context: TestContext, storage: StorageRoot = context.storage): WorkspaceRepository =>
@@ -523,7 +1093,7 @@ const makeWorkspaceForContext = (context: TestContext, storage: StorageRoot = co
         repoId: 'repo-a',
         repoRoot: context.sourceRepo,
         defaultBaseRef: 'main',
-        ...context.registration,
+        ...repositoryRegistrationOnly(context.registration),
       },
     ],
   });
@@ -558,6 +1128,13 @@ const storageWithFailingEvidenceAppends = (storage: StorageRoot, evidenceIds: st
     },
   },
 });
+
+const repositoryRegistrationOnly = (
+  options: TestContextOptions,
+): Partial<Parameters<typeof createWorkspaceRepository>[0]['repositories'][number]> => {
+  const { storageProbe: _storageProbe, maxArtifactBytes: _maxArtifactBytes, ...registration } = options;
+  return registration;
+};
 
 const commitFile = async (dir: string, path: string, content: string, message: string): Promise<string> => {
   const absolutePath = join(dir, path);
@@ -644,6 +1221,13 @@ const parseJsonPayload = (
   } catch {
     return undefined;
   }
+};
+
+const corruptWorkspaceLog = async (context: TestContext): Promise<void> => {
+  const workspaceLogId = 'fnd-03:workspace-repository:v1';
+  const logPath = join(context.storageRoot, 'logs', `${sha256(workspaceLogId)}.jsonl`);
+  await mkdir(dirname(logPath), { recursive: true });
+  await writeFile(logPath, '{"bad":true}\n{"still":"bad"}\n');
 };
 
 const collectSourceFiles = async (root: string): Promise<readonly string[]> => {

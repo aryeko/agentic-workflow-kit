@@ -139,11 +139,13 @@ interface ConfigurationPolicy {
 ```
 
 It consumes no core, provider, or driver interface. `AdoptionContext` supplies a foundation event
-writer only for pre-run `ConfigLoaded`; resolution supplies `runId` but no writer. Successful and
-failed adoption/resolution paths return structural append intents for the owning core domain to
-append through core-01's single leased `RunWriter` before binding or blocking the Run. Those intents
-include the structural core-01 envelope fields (`domain`, `type`, `occurredAt`, durability, and
-payload) while fnd-01 owns only the payload semantics. Full types are in
+writer only for pre-run `ConfigLoaded` plus the injected `occurredAt` timestamp used for deterministic
+event payloads. Resolution supplies `runId`, the same injected `occurredAt`, and an optional
+`correlationId`, but no writer. Successful and failed adoption/resolution paths return structural
+append intents for the owning core domain to append through core-01's single leased `RunWriter` before
+binding or blocking the Run. Those intents include the structural core-01 envelope fields (`domain`,
+`type`, `occurredAt`, durability, payload, and optional `correlationId`) while fnd-01 owns only the
+payload semantics. Full types are in
 [Interfaces, events & verification](interfaces-events-and-verification.md).
 
 ## 6. Events & data

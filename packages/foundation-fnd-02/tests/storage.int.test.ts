@@ -1,4 +1,4 @@
-import { readdir, readFile, rm, writeFile, appendFile, mkdtemp } from 'node:fs/promises';
+import { readdir, readFile, rm, writeFile, appendFile, mkdtemp, unlink } from 'node:fs/promises';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -74,6 +74,25 @@ const text = (content: Uint8Array): string => decoder.decode(content);
 
 const digest = (content: Uint8Array | string): string => createHash('sha256').update(content).digest('hex');
 
+const canonicalJson = (value: unknown): string => JSON.stringify(sortForJson(value));
+
+const digestJson = (value: unknown): string => digest(canonicalJson(value));
+
+const sortForJson = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => sortForJson(item));
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, entryValue]) => entryValue !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entryValue]) => [key, sortForJson(entryValue)]),
+    );
+  }
+  return value;
+};
+
 const expectStorageError = <T>(value: T, code: string) => {
   expect(isStorageError(value)).toBe(true);
   if (!isStorageError(value)) {
@@ -91,6 +110,13 @@ const findOnlyFile = async (root: string, directory: string): Promise<string> =>
 };
 
 const leaseGuardFile = (root: string, name: string): string => join(root, 'leases', `${digest(name)}.guard`);
+
+const leaseRecordFile = (root: string, name: string): string => join(root, 'leases', `${digest(name)}.json`);
+
+const artifactMetadataFile = (root: string, id: string): string =>
+  join(root, 'artifacts', 'metadata', `${digest(id)}.json`);
+
+const logFile = (root: string, logId: string): string => join(root, 'logs', `${digest(logId)}.jsonl`);
 
 const guardRecord = (name: string, guardExpiresAt: string, holder: string) => ({
   schema: 'kit-vnext.lease-guard.v1',
@@ -253,6 +279,7 @@ describe('filesystem storage root', () => {
 
     const corrupt = storage.eventLog.replay('run:corruption');
     expect(corrupt.health).toBe('log-interior-corrupt');
+    expectStorageError(storage.eventLog.openForAppend('run:corruption', lease), 'log-interior-corrupt');
     const rejected = storage.eventLog.append(handle, {
       expectedSequence: 3,
       durability: 'durable',
@@ -610,6 +637,381 @@ describe('filesystem storage root', () => {
     const blobPath = await artifactBlobPath(root, beta);
     await writeFile(blobPath, 'tampered');
     expectStorageError(storage.artifacts.export({ artifactIds: [beta.id] }), 'export-incomplete-forbidden');
+  });
+
+  it('fails closed on invalid artifact, lease, and append inputs', async () => {
+    const { storage } = await makeRoot({
+      maxArtifactBytes: 4,
+      redactionHooks: new Map([['mask', (content) => content]]),
+    });
+
+    expectStorageError(
+      storage.artifacts.put({
+        content: bytes('abc'),
+        mediaType: '',
+        retentionClass: 'evidence',
+        classification: 'internal',
+      }),
+      'invalid-input',
+    );
+    expectStorageError(
+      storage.artifacts.put({
+        content: bytes('abc'),
+        mediaType: 'text/plain',
+        retentionClass: 'evidence',
+        classification: 'internal',
+        redactionHookId: 'missing',
+      }),
+      'artifact-quarantined',
+    );
+    const redacted = storage.artifacts.put({
+      content: bytes('abc'),
+      mediaType: 'text/plain',
+      retentionClass: 'evidence',
+      classification: 'internal',
+      redactionHookId: 'mask',
+    });
+    expect(isStorageError(redacted)).toBe(false);
+    if (isStorageError(redacted)) {
+      return;
+    }
+    expect(redacted.redactionState).toBe('redacted');
+    const redactedContent = storage.artifacts.get(redacted, 'redacted');
+    expect(isStorageError(redactedContent)).toBe(false);
+    if (isStorageError(redactedContent)) {
+      return;
+    }
+    expect(text(redactedContent.bytes)).toBe('abc');
+    expectStorageError(
+      storage.artifacts.put({
+        content: bytes('too-large'),
+        mediaType: 'text/plain',
+        retentionClass: 'evidence',
+        classification: 'internal',
+      }),
+      'artifact-quarantined',
+    );
+    expectStorageError(
+      storage.artifacts.putScratch({
+        content: bytes('too-large'),
+        mediaType: 'text/plain',
+        retentionClass: 'scratch',
+        classification: 'internal',
+      }),
+      'artifact-quarantined',
+    );
+    const redactedScratch = storage.artifacts.putScratch({
+      content: bytes('abc'),
+      mediaType: 'text/plain',
+      retentionClass: 'scratch',
+      classification: 'internal',
+      redactionHookId: 'mask',
+    });
+    expect(isStorageError(redactedScratch)).toBe(false);
+    if (isStorageError(redactedScratch)) {
+      return;
+    }
+    expect(redactedScratch.redactionState).toBe('redacted');
+    expectStorageError(storage.artifacts.resolve('scratch:temporary'), 'not-found');
+    expectStorageError(
+      storage.artifacts.get(
+        {
+          id: 'artifact:missing',
+          digest: digest('missing'),
+          size: 7,
+          mediaType: 'text/plain',
+          retentionClass: 'evidence',
+          classification: 'internal',
+          redactionState: 'raw',
+        },
+        'raw',
+      ),
+      'not-found',
+    );
+
+    expectStorageError(storage.leases.acquire('', 'holder', 60_000), 'invalid-input');
+    expectStorageError(storage.leases.acquire('lease:bad-ttl', 'holder', 0), 'invalid-input');
+    const lease = storage.leases.acquire('lease:valid', 'holder', 60_000);
+    expect(isStorageError(lease)).toBe(false);
+    if (isStorageError(lease)) {
+      return;
+    }
+    const releasable = storage.leases.acquire('lease:release', 'holder', 60_000);
+    expect(isStorageError(releasable)).toBe(false);
+    if (isStorageError(releasable)) {
+      return;
+    }
+    expectStorageError(storage.leases.acquire('lease:valid', 'other', 60_000), 'lease-unavailable');
+    expectStorageError(storage.leases.renew('lease:valid', lease.epoch, 'wrong-token', 60_000), 'lease-unavailable');
+    expectStorageError(storage.leases.release('lease:valid', lease.epoch, 'wrong-token'), 'lease-unavailable');
+    expect(isStorageError(storage.leases.renew('lease:valid', lease.epoch, lease.token, 60_000))).toBe(false);
+    expect(storage.leases.release('lease:release', releasable.epoch, releasable.token)).toBeUndefined();
+    expectStorageError(storage.leases.renew('lease:missing', 1, 'token', 60_000), 'lease-unavailable');
+    expect(storage.leases.fence('lease:missing', 1, 'token')).toBe(false);
+
+    const handle = storage.eventLog.openForAppend('run:invalid', lease);
+    expect(isStorageError(handle)).toBe(false);
+    if (isStorageError(handle)) {
+      return;
+    }
+    expectStorageError(
+      storage.eventLog.append(handle, { expectedSequence: 0, durability: 'durable', payloads: [bytes('bad')] }),
+      'invalid-input',
+    );
+    expectStorageError(
+      storage.eventLog.append(handle, { expectedSequence: 1, durability: 'durable', payloads: [] }),
+      'invalid-input',
+    );
+  });
+
+  it('returns buffered acknowledgements and rejects sequence conflicts', async () => {
+    const { storage } = await makeRoot();
+    const lease = storage.leases.acquire('run-writer:buffered', 'worker-a', 60_000);
+    expect(isStorageError(lease)).toBe(false);
+    if (isStorageError(lease)) {
+      return;
+    }
+    const handle = storage.eventLog.openForAppend('run:buffered', lease);
+    expect(isStorageError(handle)).toBe(false);
+    if (isStorageError(handle)) {
+      return;
+    }
+
+    const buffered = storage.eventLog.append(handle, {
+      expectedSequence: 1,
+      durability: 'buffered',
+      payloads: [bytes('buffered')],
+    });
+    expect(isStorageError(buffered)).toBe(false);
+    if (isStorageError(buffered)) {
+      return;
+    }
+    expect(buffered.kind).toBe('non-durable-ack');
+
+    expectStorageError(
+      storage.eventLog.append(handle, { expectedSequence: 1, durability: 'durable', payloads: [bytes('conflict')] }),
+      'sequence-conflict',
+    );
+  });
+
+  it('allows explicit raw access to tombstoned artifacts when configured', async () => {
+    const { storage } = await makeRoot({
+      allowRawTombstoneAccess: true,
+      redactionHooks: new Map([['mask', () => bytes('redacted')]]),
+    });
+    const raw = storage.artifacts.put({
+      content: bytes('secret'),
+      mediaType: 'text/plain',
+      retentionClass: 'evidence',
+      classification: 'sensitive',
+    });
+    expect(isStorageError(raw)).toBe(false);
+    if (isStorageError(raw)) {
+      return;
+    }
+    expect(isStorageError(storage.artifacts.redact(raw, 'mask'))).toBe(false);
+    const tombstoned = storage.artifacts.resolve(raw.id);
+    expect(isStorageError(tombstoned)).toBe(false);
+    if (isStorageError(tombstoned)) {
+      return;
+    }
+
+    const originalBytes = storage.artifacts.get(tombstoned, 'raw');
+    expect(isStorageError(originalBytes)).toBe(false);
+    if (isStorageError(originalBytes)) {
+      return;
+    }
+    expect(text(originalBytes.bytes)).toBe('secret');
+  });
+
+  it('rejects corrupted artifact metadata and missing blobs', async () => {
+    const { root, storage } = await makeRoot();
+    const first = storage.artifacts.put({
+      content: bytes('first'),
+      mediaType: 'text/plain',
+      retentionClass: 'evidence',
+      classification: 'internal',
+    });
+    const second = storage.artifacts.put({
+      content: bytes('second'),
+      mediaType: 'text/plain',
+      retentionClass: 'evidence',
+      classification: 'internal',
+    });
+    expect(isStorageError(first)).toBe(false);
+    expect(isStorageError(second)).toBe(false);
+    if (isStorageError(first) || isStorageError(second)) {
+      return;
+    }
+
+    await unlink(await artifactBlobPath(root, first));
+    expectStorageError(storage.artifacts.get(first, 'raw'), 'artifact-quarantined');
+
+    const metadataFiles = await readdir(join(root, 'artifacts', 'metadata'), { withFileTypes: true });
+    const metadataPath = join(root, 'artifacts', 'metadata', metadataFiles[0]?.name ?? '');
+    const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as Record<string, unknown>;
+    await writeFile(metadataPath, `${JSON.stringify({ ...metadata, recordDigest: 'sha256:wrong' })}\n`);
+    expectStorageError(storage.artifacts.resolve(String(metadata.id)), 'not-found');
+  });
+
+  it('rejects stale log handles and log appends while degraded', async () => {
+    const { storage, clock } = await makeRoot();
+    const firstLease = storage.leases.acquire('run-writer:stale-open', 'worker-a', 100);
+    expect(isStorageError(firstLease)).toBe(false);
+    if (isStorageError(firstLease)) {
+      return;
+    }
+    clock.advance(101);
+    expect(isStorageError(storage.leases.acquire('run-writer:stale-open', 'worker-b', 60_000))).toBe(false);
+    expectStorageError(storage.eventLog.openForAppend('run:stale-open', firstLease), 'stale-writer-fenced');
+
+    const degraded = await makeRoot({ probe: () => 'read-only' });
+    const handle = { logId: 'run:degraded', leaseName: 'lease', epoch: 1, token: 'token' };
+    expectStorageError(
+      degraded.storage.eventLog.openForAppend('run:degraded', {
+        name: 'lease',
+        epoch: 1,
+        token: 'token',
+        expiresAt: new Date('2026-06-19T00:01:00.000Z'),
+      }),
+      'storage-unavailable',
+    );
+    expectStorageError(
+      degraded.storage.eventLog.append(handle, { expectedSequence: 1, durability: 'durable', payloads: [bytes('x')] }),
+      'storage-unavailable',
+    );
+    expectStorageError(
+      degraded.storage.artifacts.put({
+        content: bytes('x'),
+        mediaType: 'text/plain',
+        retentionClass: 'evidence',
+        classification: 'internal',
+      }),
+      'storage-unavailable',
+    );
+  });
+
+  it('exports empty logs and fails closed on corrupt logs, leases, and tombstone replacement drift', async () => {
+    const { root, storage } = await makeRoot({
+      allowRawTombstoneAccess: true,
+      redactionHooks: new Map([['mask', () => bytes('redacted')]]),
+    });
+
+    const lease = storage.leases.acquire('lease:corrupt', 'worker-a', 60_000);
+    expect(isStorageError(lease)).toBe(false);
+    if (isStorageError(lease)) {
+      return;
+    }
+    await writeFile(leaseRecordFile(root, 'lease:corrupt'), '{"not": "a lease"}\n');
+    expect(storage.leases.read('lease:corrupt').health).toBe('unusable');
+    expect(storage.leases.fence('lease:corrupt', lease.epoch, lease.token)).toBe(false);
+
+    const emptyExport = storage.artifacts.export({ logIds: ['run:empty'] });
+    expect(isStorageError(emptyExport)).toBe(false);
+    if (isStorageError(emptyExport)) {
+      return;
+    }
+    expect(emptyExport.logs).toEqual([{ logId: 'run:empty', health: 'ok', recordCount: 0 }]);
+
+    await writeFile(logFile(root, 'run:invalid-json'), '{"kind": "record"}\n');
+    expect(storage.eventLog.replay('run:invalid-json').health).toBe('log-tail-repaired');
+
+    const original = storage.artifacts.put({
+      content: bytes('secret'),
+      mediaType: 'text/plain',
+      retentionClass: 'evidence',
+      classification: 'sensitive',
+      expiresAt: new Date('2026-06-20T00:00:00.000Z'),
+    });
+    expect(isStorageError(original)).toBe(false);
+    if (isStorageError(original)) {
+      return;
+    }
+    const redacted = storage.artifacts.redact(original, 'mask');
+    expect(isStorageError(redacted)).toBe(false);
+    if (isStorageError(redacted)) {
+      return;
+    }
+    const tombstoned = storage.artifacts.resolve(original.id);
+    expect(isStorageError(tombstoned)).toBe(false);
+    if (isStorageError(tombstoned)) {
+      return;
+    }
+    const rawManifest = storage.artifacts.export({ artifactIds: [tombstoned.id], includeRawTombstoned: true });
+    expect(isStorageError(rawManifest)).toBe(false);
+    if (isStorageError(rawManifest)) {
+      return;
+    }
+    expect(rawManifest.artifacts).toMatchObject([{ id: tombstoned.id, redactionState: 'redacted' }]);
+    expect(storage.artifacts.export({ artifactIds: [tombstoned.id], includeRawTombstoned: true })).toMatchObject({
+      id: rawManifest.id,
+    });
+
+    const metadataPath = artifactMetadataFile(root, original.id);
+    const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as Record<string, unknown>;
+    const withoutReplacement: Record<string, unknown> = {
+      ...metadata,
+      replacementId: undefined,
+      replacementDigest: undefined,
+    };
+    const { recordDigest: _recordDigest, ...digestInput } = withoutReplacement;
+    await writeFile(
+      metadataPath,
+      `${JSON.stringify({ ...withoutReplacement, recordDigest: digestJson(digestInput) })}\n`,
+    );
+    expectStorageError(storage.artifacts.export({ artifactIds: [tombstoned.id] }), 'export-incomplete-forbidden');
+
+    const badReplacement: Record<string, unknown> = { ...metadata, replacementId: 'artifact:missing' };
+    const { recordDigest: _badDigest, ...badDigestInput } = badReplacement;
+    await writeFile(
+      metadataPath,
+      `${JSON.stringify({ ...badReplacement, recordDigest: digestJson(badDigestInput) })}\n`,
+    );
+    expectStorageError(storage.artifacts.export({ artifactIds: [tombstoned.id] }), 'export-incomplete-forbidden');
+    expectStorageError(storage.artifacts.export({ artifactIds: ['scratch:temporary'] }), 'export-incomplete-forbidden');
+    expectStorageError(storage.artifacts.export({ artifactIds: ['artifact:missing'] }), 'export-incomplete-forbidden');
+  });
+
+  it('fails closed when artifact redaction cannot resolve, read, or commit replacement content', async () => {
+    const missingHook = await makeRoot();
+    const raw = missingHook.storage.artifacts.put({
+      content: bytes('secret'),
+      mediaType: 'text/plain',
+      retentionClass: 'evidence',
+      classification: 'sensitive',
+    });
+    expect(isStorageError(raw)).toBe(false);
+    if (isStorageError(raw)) {
+      return;
+    }
+    expectStorageError(missingHook.storage.artifacts.redact(raw, 'missing'), 'artifact-quarantined');
+
+    const missingBlob = await makeRoot({ redactionHooks: new Map([['mask', () => bytes('redacted')]]) });
+    const blobRaw = missingBlob.storage.artifacts.put({
+      content: bytes('secret'),
+      mediaType: 'text/plain',
+      retentionClass: 'evidence',
+      classification: 'sensitive',
+    });
+    expect(isStorageError(blobRaw)).toBe(false);
+    if (isStorageError(blobRaw)) {
+      return;
+    }
+    await unlink(await artifactBlobPath(missingBlob.root, blobRaw));
+    expectStorageError(missingBlob.storage.artifacts.redact(blobRaw, 'mask'), 'artifact-quarantined');
+
+    const oversize = await makeRoot({
+      maxArtifactBytes: 3,
+      redactionHooks: new Map([['mask', () => bytes('too-large')]]),
+    });
+    const tooLargeRedaction = oversize.storage.artifacts.put({
+      content: bytes('abc'),
+      mediaType: 'text/plain',
+      retentionClass: 'evidence',
+      classification: 'sensitive',
+      redactionHookId: 'mask',
+    });
+    expectStorageError(tooLargeRedaction, 'artifact-quarantined');
   });
 });
 

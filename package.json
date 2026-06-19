@@ -36,12 +36,14 @@
     "test:int": "vitest run --project integration --passWithNoTests",
     "test:conf": "vitest run --project conformance-mock --passWithNoTests",
     "test:smoke": "vitest run --project smoke-real --passWithNoTests",
-    "check": "pnpm format:check && pnpm lint && pnpm deps && pnpm typecheck && pnpm test:unit && pnpm test:int && pnpm test:conf",
+    "coverage:foundation": "vitest run --config vitest.foundation-coverage.config.ts --coverage",
+    "check": "pnpm format:check && pnpm lint && pnpm deps && pnpm typecheck && pnpm test:unit && pnpm test:int && pnpm test:conf && pnpm coverage:foundation",
     "pack:dry-run": "pnpm -r pack --dry-run"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
     "@types/node": "^25.9.3",
+    "@vitest/coverage-v8": "^4.1.9",
     "dependency-cruiser": "^17.4.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"

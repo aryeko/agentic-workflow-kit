@@ -4,5 +4,5 @@
     "outDir": "./.tsbuild",
     "rootDir": "."
   },
-  "include": ["tooling", "tests", "vitest.config.ts"]
+  "include": ["tooling", "tests", "vitest.config.ts", "vitest.foundation-coverage.config.ts"]
 }

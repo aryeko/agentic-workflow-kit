@@ -177,6 +177,10 @@ const contractFor = (
     readonly egress?: PolicyLayer['egress'];
     readonly injectionModeFor?: Parameters<typeof createCredentialsAndSecrets>[0]['injectionModeFor'];
     readonly secretMaterial?: string;
+    readonly secretResolver?: SecretResolver;
+    readonly tempFileRemover?: Parameters<typeof createCredentialsAndSecrets>[0]['tempFileRemover'];
+    readonly runnerForgePhases?: readonly string[];
+    readonly attesterMetadata?: Parameters<typeof createCredentialsAndSecrets>[0]['attesterMetadata'];
   } = {},
 ) => {
   const auditEvents = options.auditEvents ?? [];
@@ -186,14 +190,17 @@ const contractFor = (
     clock: new FixedClock(),
     idGenerator: new SequenceIds(),
     fingerprintKey: 'test-fingerprint-key',
-    secretResolver: options.secretMaterial ? secretResolverFor(options.secretMaterial) : secretResolver,
+    secretResolver:
+      options.secretResolver ?? (options.secretMaterial ? secretResolverFor(options.secretMaterial) : secretResolver),
     egress: options.egress ?? egressSource(options.ref ?? sourceRef()),
-    attesterMetadata: {
+    attesterMetadata: options.attesterMetadata ?? {
       'local-host': { platform: 'darwin-arm64', driverVersion: '1.0.0' },
     },
     attestations: options.attestations ?? [],
     injectionModeFor: options.injectionModeFor,
     auditWriter: auditWriter as AuditWriter,
+    tempFileRemover: options.tempFileRemover,
+    runnerForgePhases: options.runnerForgePhases,
   });
 };
 
@@ -376,6 +383,77 @@ describe('Credentials & Secrets', () => {
     });
   });
 
+  it('allows matching command prefixes and documents unknown attester metadata as policy data', () => {
+    const forge: CredentialRef = { ...sourceRef(), allowedCommandPrefixes: ['gh pr'] };
+    const runnerScope = scope({ commandPrefix: 'gh pr view 113' });
+    const egress: PolicyLayer['egress'] = {
+      ...egressSource(forge),
+      requiredAttesters: [{ point: 'execution-host', capability: 'egress-confinement', driverId: 'unknown-host' }],
+    };
+    const policyResult = contractFor({ ref: forge, egress, attesterMetadata: {} }).issueEgressPolicy(
+      [forge],
+      runnerScope,
+    );
+    expect(policyResult).toMatchObject({
+      audience: 'runner',
+      requiredAttesters: [{ platform: 'unknown', driverVersion: 'unknown' }],
+    });
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+
+    const contract = contractFor({
+      ref: forge,
+      egress,
+      attesterMetadata: {},
+      attestations: [matchingAttestation(policyResult)],
+    });
+    expect(contract.planInjection([forge], runnerScope)).toMatchObject({ ok: true });
+    expect(contract.resolveCredential(forge, runnerScope)).toMatchObject({ ok: true });
+  });
+
+  it('denies resolver access when scope or attestation gates are closed', () => {
+    const forge = sourceRef();
+    const runnerScope = scope();
+    const policyResult = contractFor({ ref: forge }).issueEgressPolicy([forge], runnerScope);
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+    const contract = contractFor({ ref: forge });
+
+    expect(contract.resolveCredential(forge, scope({ hosts: ['evil.example.test'] }))).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+    });
+    expect(contract.resolveCredential(forge, runnerScope)).toMatchObject({
+      ok: false,
+      reason: 'egress-policy-unattested',
+    });
+  });
+
+  it('denies egress when rules assign an operation host outside the referenced credential policy', () => {
+    const github = sourceRef({ id: 'github-runner', allowedHosts: ['github.com'] });
+    const registry = registryRef();
+    const runnerScope = scope({ hosts: ['registry.npmjs.org'] });
+    const egress: PolicyLayer['egress'] = {
+      ...egressSource(github),
+      rules: [
+        {
+          credentialRefIds: [github.id],
+          protocols: ['https'],
+          hosts: ['registry.npmjs.org'],
+          phase: 'merge',
+          purpose: 'misbound host',
+        },
+      ],
+    };
+
+    expect(contractFor({ ref: github, egress }).issueEgressPolicy([github, registry], runnerScope)).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+    });
+  });
+
   it('makes plan-time redaction explicit and denies capture until material is resolved', () => {
     const registry = registryRef();
     const workerScope = scope({
@@ -551,6 +629,7 @@ describe('Credentials & Secrets', () => {
     expect(output).not.toContain(jsonEscapedPlaceholder);
     expect(output).toContain('[REDACTED:credential:registry-read]');
     expect(redacted.replacementCount).toBeGreaterThanOrEqual(11);
+    expect(contract.redact(null, resolved.redactionSet)).toMatchObject({ ok: true, value: null, replacementCount: 0 });
   });
 
   it('property-tests that no raw or encoded secret survives nested key and value redaction', () => {
@@ -596,6 +675,37 @@ describe('Credentials & Secrets', () => {
       ),
       { seed: 20_260_619, numRuns: 75 },
     );
+  });
+
+  it('redacts unencoded materials without adding URL variants', () => {
+    const registry = registryRef();
+    const workerScope = scope({
+      party: 'worker',
+      phase: 'install',
+      operationId: 'operation-redact-unencoded',
+      hosts: ['registry.npmjs.org'],
+    });
+    const policyResult = contractFor({ ref: registry }).issueEgressPolicy([registry], workerScope);
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+    const contract = contractFor({
+      ref: registry,
+      attestations: [matchingAttestation(policyResult)],
+      secretResolver: {
+        resolve: (ref) => ({ ok: true, value: { materialHandle: `handle:${ref.id}`, material: 'plainTOKEN' } }),
+      },
+    });
+    const resolved = contract.resolveCredential(registry, workerScope);
+    expect(resolved).toMatchObject({ ok: true });
+    if (!resolved.ok) {
+      throw new Error('expected resolved credential');
+    }
+
+    expect(contract.redact('plainTOKEN', resolved.redactionSet)).toMatchObject({
+      ok: true,
+      value: '[REDACTED:credential:registry-read]',
+    });
   });
 
   it('records tamper-evident audit start, deny, finish, and destroy invariants without material leakage', () => {
@@ -672,5 +782,168 @@ describe('Credentials & Secrets', () => {
       tempFilesRemoved: false,
       memoryHandlesDropped: true,
     });
+  });
+
+  it('reports destroy failures from resolver and temp-file boundaries', () => {
+    const registry = registryRef();
+    const workerScope = scope({
+      party: 'worker',
+      phase: 'install',
+      operationId: 'operation-destroy-fail',
+      hosts: ['registry.npmjs.org'],
+    });
+    const policyResult = contractFor({ ref: registry }).issueEgressPolicy([registry], workerScope);
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+    const contract = contractFor({
+      ref: registry,
+      attestations: [matchingAttestation(policyResult)],
+      injectionModeFor: () => 'file',
+      secretResolver: {
+        resolve: (ref) => ({ ok: true, value: { materialHandle: `handle:${ref.id}`, material: placeholderMaterial } }),
+        destroy: () => ({ ok: false, error: 'credential-destroy-unconfirmed' }),
+      },
+      tempFileRemover: {
+        remove: () => ({ ok: false, error: 'credential-destroy-unconfirmed' }),
+      },
+    });
+    expect(contract.resolveCredential(registry, workerScope)).toMatchObject({ ok: true });
+
+    expect(contract.destroy('operation-destroy-fail')).toMatchObject({
+      type: 'CredentialMaterialDestroyed',
+      tempFilesRemoved: false,
+      memoryHandlesDropped: false,
+    });
+  });
+
+  it('denies empty refs, invalid expiry, missing hosts, disallowed phases, and runner forge phase policy', () => {
+    const forge = sourceRef();
+    const contract = contractFor({ ref: forge, runnerForgePhases: ['push'] });
+
+    expect(contract.planInjection([], scope())).toMatchObject({ ok: false, reason: 'credential-scope-denied' });
+    expect(contract.planInjection([forge], scope({ expiresAt: 'not-a-date' }))).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+    });
+    expect(contract.planInjection([forge], scope({ hosts: undefined }))).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+    });
+    expect(contract.planInjection([forge], scope({ phase: 'install' }))).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+    });
+    expect(contract.planInjection([forge], scope({ phase: 'merge' }))).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+    });
+  });
+
+  it('reports unresolved credentials without leaking material', () => {
+    const forge = sourceRef();
+    const runnerScope = scope({ operationId: 'operation-unresolved' });
+    const policyResult = contractFor({ ref: forge }).issueEgressPolicy([forge], runnerScope);
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+
+    const contract = contractFor({
+      ref: forge,
+      attestations: [matchingAttestation(policyResult)],
+      secretResolver: { resolve: () => ({ ok: false, error: 'credential-ref-unresolved' }) },
+    });
+
+    const resolved = contract.resolveCredential(forge, runnerScope);
+    expect(resolved).toMatchObject({ ok: false, reason: 'credential-ref-unresolved' });
+    expect(JSON.stringify(resolved)).not.toContain(placeholderMaterial);
+  });
+
+  it('fails closed when audit writes are unavailable on issue, plan, resolve, redact, destroy, and finish', () => {
+    const registry = registryRef();
+    const workerScope = scope({
+      party: 'worker',
+      phase: 'install',
+      operationId: 'operation-audit-fail',
+      hosts: ['registry.npmjs.org'],
+    });
+    const policyResult = contractFor({ ref: registry }).issueEgressPolicy([registry], workerScope);
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+    const auditWriter = { append: () => ({ ok: false as const, error: 'audit-write-unavailable' as const }) };
+    const contract = contractFor({
+      ref: registry,
+      attestations: [matchingAttestation(policyResult)],
+      auditWriter,
+    });
+
+    expect(contract.issueEgressPolicy([registry], workerScope)).toMatchObject({
+      ok: false,
+      reason: 'audit-write-unavailable',
+    });
+    const plan = contract.planInjection([registry], workerScope);
+    expect(plan).toMatchObject({ ok: false, reason: 'audit-write-unavailable' });
+    const resolved = contract.resolveCredential(registry, workerScope);
+    expect(resolved).toMatchObject({ ok: false, reason: 'audit-write-unavailable' });
+    const unavailableRedaction = contract.redact('secret', {
+      id: 'missing',
+      state: 'materialized',
+      credentialRefIds: [registry.id],
+      labels: {},
+      fingerprintIds: [],
+      expiresAt: later,
+    });
+    expect(unavailableRedaction).toMatchObject({ ok: false, reason: 'audit-write-unavailable' });
+
+    expect(contract.destroy('unknown-operation')).toMatchObject({
+      type: 'CredentialMaterialDestroyed',
+      memoryHandlesDropped: false,
+    });
+    expect(contract.finishCredentialUse('unknown-operation', { result: 'failure', exitCode: 1 })).toMatchObject({
+      type: 'CredentialUseFinished',
+      result: 'failure',
+      exitCode: 1,
+      destroyed: true,
+    });
+  });
+
+  it('tracks merged operation context across plan and resolve before file cleanup succeeds', () => {
+    const registry = registryRef();
+    const workerScope = scope({
+      party: 'worker',
+      phase: 'install',
+      operationId: 'operation-merged-cleanup',
+      hosts: ['registry.npmjs.org'],
+    });
+    const policyResult = contractFor({ ref: registry }).issueEgressPolicy([registry], workerScope);
+    if ('ok' in policyResult) {
+      throw new Error('expected egress policy');
+    }
+    const removedPaths: string[][] = [];
+    const contract = contractFor({
+      ref: registry,
+      attestations: [matchingAttestation(policyResult)],
+      injectionModeFor: () => 'file',
+      tempFileRemover: {
+        remove: (paths) => {
+          removedPaths.push([...paths]);
+          return { ok: true, value: undefined };
+        },
+      },
+    });
+
+    expect(contract.planInjection([registry], workerScope)).toMatchObject({ ok: true });
+    expect(contract.resolveCredential(registry, workerScope)).toMatchObject({ ok: true });
+    const destroyed = contract.destroy('operation-merged-cleanup');
+
+    expect(destroyed).toMatchObject({
+      type: 'CredentialMaterialDestroyed',
+      tempFilesRemoved: true,
+      memoryHandlesDropped: true,
+    });
+    expect(removedPaths.flat()).toContain(
+      `/tmp/kit-vnext-credentials/${encodeURIComponent(workerScope.operationId)}/${encodeURIComponent(registry.id)}`,
+    );
   });
 });

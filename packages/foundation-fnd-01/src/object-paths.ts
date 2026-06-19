@@ -8,7 +8,7 @@ export const leafPaths = (value: unknown, prefix = ''): readonly string[] => {
 
   const entries = Object.entries(value).filter(([, entry]) => entry !== undefined);
   if (entries.length === 0) {
-    return prefix ? [prefix] : [];
+    return [];
   }
 
   return entries.flatMap(([key, entry]) => leafPaths(entry, prefix ? `${prefix}.${key}` : key));
