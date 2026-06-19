@@ -4,10 +4,15 @@
     "rootDir": ".",
     "outDir": "./dist",
     "paths": {
+      "@kit-vnext/conformance-kit": ["../conformance-kit/src/index.ts"],
       "@kit-vnext/contracts-execution-host": ["../contracts-execution-host/src/index.ts"],
       "@kit-vnext/foundation-fnd-01": ["../foundation-fnd-01/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"],
-  "references": [{ "path": "../contracts-execution-host" }, { "path": "../foundation-fnd-01" }]
+  "references": [
+    { "path": "../conformance-kit" },
+    { "path": "../contracts-execution-host" },
+    { "path": "../foundation-fnd-01" }
+  ]
 }
