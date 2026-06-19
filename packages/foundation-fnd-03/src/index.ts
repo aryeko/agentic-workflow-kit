@@ -1,0 +1,25 @@
+export { createWorkspaceRepository } from './workspace-repository.js';
+export { isWorkspaceFailure } from './types.js';
+export type {
+  BranchPolicy,
+  CleanupRequest,
+  CleanupResult,
+  CleanupTombstone,
+  DeclaredSetup,
+  LocalGitEvidence,
+  LocalGitEvidenceCommit,
+  LocalGitEvidenceFailure,
+  LocalGitEvidenceWorkingTree,
+  RepositoryIdentity,
+  RepositoryRegistration,
+  SetupEvaluation,
+  SetupFreshness,
+  SetupFreshnessReason,
+  WorkspaceClock,
+  WorkspaceFailure,
+  WorkspaceIdGenerator,
+  WorkspaceRepository,
+  WorkspaceRepositoryOptions,
+  WorktreeLease,
+  WorktreeLeaseState,
+} from './types.js';

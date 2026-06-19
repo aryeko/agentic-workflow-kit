@@ -1,0 +1,25 @@
+{
+  "name": "@kit-vnext/foundation-fnd-03",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "test:int": "vitest --config ../../vitest.config.ts run --project integration tests/workspace-repository.fences-and-setup.int.test.ts tests/workspace-repository.lifecycle.int.test.ts tests/workspace-repository.persistence-and-git.int.test.ts",
+    "typecheck": "tsc -b --force"
+  },
+  "dependencies": {
+    "@kit-vnext/foundation-fnd-01": "workspace:*",
+    "@kit-vnext/foundation-fnd-02": "workspace:*",
+    "isomorphic-git": "^1.36.0"
+  }
+}

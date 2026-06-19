@@ -35,6 +35,7 @@ type AdoptionReport = {
 };
 type AdoptionContext = {
   eventWriter: DurableEventWriter;
+  occurredAt: string;
 };
 type ResolvedPolicy = {
   schema: "kit-vnext.resolved-policy.v1";
@@ -73,6 +74,8 @@ type AdoptionDiagnostic = {
 };
 type ResolutionContext = {
   runId: string;
+  occurredAt: string;
+  correlationId?: string;
 };
 // Run-scoped config events (ConfigFieldResolved/ConfigResolved, carrying runId) are appended by
 // core-01's single RunWriter. This structural type is assignable to core-01 AppendIntent while
@@ -114,7 +117,9 @@ interface ConfigurationPolicy {
 
 Consumed interfaces: none above Foundation. File loading and artifact discovery are supplied by lower
 foundation mechanics. `DurableEventWriter` is injected foundation infrastructure only for committing
-pre-run `ConfigLoaded`. Adoption and resolution return structural core-01 append intents for
+pre-run `ConfigLoaded`; `occurredAt` is injected by the caller so fnd-01 never reads ambient time.
+Resolution also accepts an optional `correlationId` and copies it into returned append intents when
+present. Adoption and resolution return structural core-01 append intents for
 `AdoptionDiagnosticEmitted`, `PolicyResolutionFailed`, `ConfigFieldResolved`, and `ConfigResolved`;
 the owning core domain appends those intents through core-01's single leased `RunWriter` before
 binding the policy to a Run. If the caller cannot durably append the returned intents, no policy is
