@@ -27,6 +27,51 @@ importers:
         specifier: ^4.1.9
         version: 4.1.9(@types/node@25.9.3)(@vitest/coverage-istanbul@4.1.9)(@vitest/coverage-v8@4.1.9)(vite@8.0.16(@types/node@25.9.3))
 
+  packages/conformance-kit:
+    dependencies:
+      '@kit-vnext/foundation-fnd-02':
+        specifier: workspace:*
+        version: link:../foundation-fnd-02
+      zod:
+        specifier: ^4.2.1
+        version: 4.4.3
+    devDependencies:
+      fast-check:
+        specifier: ^4.4.0
+        version: 4.8.0
+
+  packages/contracts-execution-host:
+    dependencies:
+      '@kit-vnext/foundation-fnd-02':
+        specifier: workspace:*
+        version: link:../foundation-fnd-02
+      '@kit-vnext/foundation-fnd-04':
+        specifier: workspace:*
+        version: link:../foundation-fnd-04
+      zod:
+        specifier: ^4.2.1
+        version: 4.4.3
+    devDependencies:
+      '@kit-vnext/conformance-kit':
+        specifier: workspace:*
+        version: link:../conformance-kit
+
+  packages/drivers-mocks:
+    dependencies:
+      '@kit-vnext/contracts-execution-host':
+        specifier: workspace:*
+        version: link:../contracts-execution-host
+      '@kit-vnext/foundation-fnd-01':
+        specifier: workspace:*
+        version: link:../foundation-fnd-01
+    devDependencies:
+      '@kit-vnext/conformance-kit':
+        specifier: workspace:*
+        version: link:../conformance-kit
+      fast-check:
+        specifier: ^4.4.0
+        version: 4.8.0
+
   packages/foundation-fnd-01:
     dependencies:
       zod:

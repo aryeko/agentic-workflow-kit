@@ -80,10 +80,15 @@ event:
 
 ```
 CapabilityAttestation {
-  capability, probeMethod, result (positive|negative), evidenceRef,
+  eventId?, capability, probeMethod, result (positive|negative), evidenceRef,
   scope, expiry, driverVersion, platform, freshnessKey, at
 }
 ```
+
+`eventId` is optional in driver-returned attestation payloads because the durable event writer owns final
+event identity. When a provider already has an attestation event id, downstream seams may use it to link
+credential plans or capability gates back to the recorded attestation without using `evidenceRef` as a
+surrogate identifier.
 
 ```mermaid
 flowchart LR

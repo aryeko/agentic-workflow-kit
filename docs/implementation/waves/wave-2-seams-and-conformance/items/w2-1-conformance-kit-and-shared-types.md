@@ -21,8 +21,9 @@ mocks). Ambiguous or under-specified → STOP and surface; do not invent.
 
 - **`CapabilityAttestation`** (canonical — owned here, cited by every seam): `capability`,
   `probeMethod`, `result: "positive" | "negative"`, `evidenceRef`, `scope`, `expiry`, `driverVersion`,
-  `platform`, `freshnessKey`, `at`, and an optional `details?` (carrying `containmentStrength` /
-  `negativeProbeResults` / `egressPolicyDigest` for seams that need them).
+  `platform`, `freshnessKey`, `at`, optional `eventId?` for linking to an already-recorded attestation
+  event, and an optional `details?` (carrying `containmentStrength` / `negativeProbeResults` /
+  `egressPolicyDigest` for seams that need them).
 - **Cross-cutting attestation tokens** (owned here): `attestation-stale`, `attestation-absent`,
   `attestation-negative`, `evidence-missing`. (Per-seam failure tokens are owned by each seam.)
 - **`ArtifactRef`** — re-exported / referenced from `fnd-02` (W1); not redefined here.
@@ -58,7 +59,8 @@ Depended on by all four seam items + every future driver. Must NOT depend on con
 ## Acceptance criteria (the shared rubric)
 
 - **AC-1** The exported `CapabilityAttestation` Zod schema accepts a value with all ten required fields
-  and rejects one missing any required field (10 negative cases, one per field). — *trace: architecture.md §3.*
+  plus optional `eventId?`, and rejects one missing any required field (10 negative cases, one per field).
+  — *trace: architecture.md §3.*
 - **AC-2** `result` is the literal union `"positive" | "negative"` only; any other string is rejected. — *architecture.md §3.*
 - **AC-3** `details?` is optional and round-trips `containmentStrength` / `negativeProbeResults` /
   `egressPolicyDigest` without making them required for seams that omit them. — *prov-04 attestation extension.*

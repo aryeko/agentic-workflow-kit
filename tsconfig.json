@@ -5,6 +5,9 @@
     { "path": "./packages/foundation-fnd-01" },
     { "path": "./packages/foundation-fnd-02" },
     { "path": "./packages/foundation-fnd-03" },
-    { "path": "./packages/foundation-fnd-04" }
+    { "path": "./packages/foundation-fnd-04" },
+    { "path": "./packages/conformance-kit" },
+    { "path": "./packages/contracts-execution-host" },
+    { "path": "./packages/drivers-mocks" }
   ]
 }
