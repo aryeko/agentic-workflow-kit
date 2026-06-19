@@ -1,4 +1,8 @@
 {
   "files": [],
-  "references": [{ "path": "./tsconfig.infra.json" }, { "path": "./packages/foundation-fnd-01" }]
+  "references": [
+    { "path": "./tsconfig.infra.json" },
+    { "path": "./packages/foundation-fnd-01" },
+    { "path": "./packages/foundation-fnd-02" }
+  ]
 }
