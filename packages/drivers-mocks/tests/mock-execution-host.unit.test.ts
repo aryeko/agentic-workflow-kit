@@ -259,6 +259,23 @@ describe('Mock Execution Host', () => {
     });
 
     expect(
+      host.terminateWorker(worker, {
+        initialSignal: 'SIGTERM',
+        graceSeconds: 1,
+        forceKill: false,
+        proveEmptyTimeoutSeconds: 1,
+      }),
+    ).toMatchObject({
+      proof: {
+        signalSent: true,
+        graceObserved: true,
+        forceKillSent: false,
+        reaped: true,
+        containmentEmpty: true,
+      },
+    });
+
+    expect(
       host.terminateWorker(
         {
           ...worker,

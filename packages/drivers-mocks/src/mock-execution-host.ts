@@ -277,7 +277,10 @@ class InMemoryMockExecutionHost implements MockExecutionHost {
       reaped: !this.#options.termination?.hostWontDie && !omitted.has('reaped'),
     };
     const containmentEmpty =
-      proofBase.signalSent && proofBase.graceObserved && proofBase.forceKillSent && proofBase.reaped;
+      proofBase.signalSent &&
+      proofBase.graceObserved &&
+      (!policy.forceKill || proofBase.forceKillSent) &&
+      proofBase.reaped;
     const evidenceRef = this.#artifact(
       { handleId: handle.handleId, policy, proof: proofBase, containmentEmpty },
       'application/json',
