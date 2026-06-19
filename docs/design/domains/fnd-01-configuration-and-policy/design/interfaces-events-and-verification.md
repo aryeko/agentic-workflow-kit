@@ -46,8 +46,16 @@ type ResolvedPolicyResult = {
   appendIntents: NonEmptyArray<ConfigurationPolicyAppendIntent>;
 };
 type ConfigurationPolicyAppendIntent = {
+  domain: "fnd-01";
+  type:
+    | "ConfigFieldResolved"
+    | "ConfigResolved"
+    | "AdoptionDiagnosticEmitted"
+    | "PolicyResolutionFailed";
+  occurredAt: string;
   payload: ConfigFieldResolved | ConfigResolved | AdoptionDiagnosticEmitted | PolicyResolutionFailed;
   durability: "durable" | "barrier";
+  correlationId?: string;
 };
 type FieldProvenance = {
   fieldPath: string;
@@ -67,7 +75,8 @@ type ResolutionContext = {
   runId: string;
 };
 // Run-scoped config events (ConfigFieldResolved/ConfigResolved, carrying runId) are appended by
-// core-01's single RunWriter; this domain RETURNS event-ready payloads rather than owning a writer.
+// core-01's single RunWriter. This structural type is assignable to core-01 AppendIntent while
+// keeping fnd-01 free of core imports.
 // Pre-run ConfigLoaded (no runId, instance-scoped) is the only event this writer commits directly.
 type DurableEventWriter = {
   appendConfigLoaded(event: ConfigLoaded): Result<{ transactionId: string }, "append_failed">;
@@ -105,9 +114,9 @@ interface ConfigurationPolicy {
 
 Consumed interfaces: none above Foundation. File loading and artifact discovery are supplied by lower
 foundation mechanics. `DurableEventWriter` is injected foundation infrastructure only for committing
-pre-run `ConfigLoaded`. Adoption and resolution return event-ready append intents for
+pre-run `ConfigLoaded`. Adoption and resolution return structural core-01 append intents for
 `AdoptionDiagnosticEmitted`, `PolicyResolutionFailed`, `ConfigFieldResolved`, and `ConfigResolved`;
-the owning core domain appends those payloads through core-01's single leased `RunWriter` before
+the owning core domain appends those intents through core-01's single leased `RunWriter` before
 binding the policy to a Run. If the caller cannot durably append the returned intents, no policy is
 active for that Run and launch remains blocked.
 

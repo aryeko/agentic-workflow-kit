@@ -92,9 +92,11 @@ interface ConfigurationPolicy {
 
 It consumes no core, provider, or driver interface. `AdoptionContext` supplies a foundation event
 writer only for pre-run `ConfigLoaded`; resolution supplies `runId` but no writer. Successful and
-failed adoption/resolution paths return event-ready append intents for the owning core domain to
-append through core-01's single leased `RunWriter` before binding or blocking the Run. Full types are
-in [Interfaces, events & verification](design/interfaces-events-and-verification.md).
+failed adoption/resolution paths return structural append intents for the owning core domain to
+append through core-01's single leased `RunWriter` before binding or blocking the Run. Those intents
+include the structural core-01 envelope fields (`domain`, `type`, `occurredAt`, durability, and
+payload) while fnd-01 owns only the payload semantics. Full types are in
+[Interfaces, events & verification](design/interfaces-events-and-verification.md).
 
 ## 6. Events & data
 
@@ -106,8 +108,8 @@ Owned event payloads:
 - `AdoptionDiagnosticEmitted`
 - `PolicyResolutionFailed`
 
-The key invariant is one `ConfigFieldResolved` payload per resolved leaf field, returned in canonical
-lexicographic field order before `ConfigResolved`. Core-01 appends those event-ready payloads in one
+The key invariant is one `ConfigFieldResolved` intent per resolved leaf field, returned in canonical
+lexicographic field order before `ConfigResolved`. Core-01 appends those event-ready intents in one
 atomic RunWriter transaction. Projections may read the latest resolved policy and provenance map; they
 do not author policy.
 Adoption preflight returns one `AdoptionDiagnosticEmitted` append intent per blocking config or
@@ -163,7 +165,7 @@ all autonomous capabilities absent. The degraded state is supervised and blocked
 Satisfies policy-side FR-4 and FR-7, FR-13, NFR-SAFE, NFR-DET, NFR-SOLID, and NFR-TEST.
 
 Tests are pure and use in-memory sinks: schema fixtures, safe-default snapshots, precedence property
-tests, provenance order/hash tests over returned event-ready payloads, adoption config/artifact
+tests, provenance order/hash tests over returned structural append intents, adoption config/artifact
 diagnostic tests, deferred-capability rejection tests, and capability default-off tests. Core-01
 integration covers RunWriter append failure. No real providers, credentials, processes, or Forge
 operations are used, satisfying NFR-TEST.

@@ -146,9 +146,9 @@ Algorithm:
    defaults.
 7. Merge only object maps; arrays and scalar values replace atomically. `null` is invalid unless the
    field schema explicitly allows it.
-8. Return one event-ready `ConfigFieldResolved` payload per leaf in the same canonical order, followed
-   by `ConfigResolved`.
-9. The caller appends those payloads through core-01's single RunWriter before treating
+8. Return one structural `ConfigFieldResolved` append intent per leaf in the same canonical order,
+   followed by `ConfigResolved`.
+9. The caller appends those intents through core-01's single RunWriter before treating
    `ResolvedPolicy` as active for the Run.
 
 This makes the resolved policy a pure function of recorded inputs, schema version, and immutable

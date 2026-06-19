@@ -21,9 +21,9 @@ durability mapping, and corruption handling over the Storage & Artifacts primiti
 
 Out of scope: domain-specific payload semantics, recovery action selection, analysis, supervision,
 approval adjudication, completion gates, Forge operations, Work Source status writes, and concrete
-Driver behavior. Sibling domains do not hold a `RunWriter` and do not author run state directly; they
-return event-ready payloads (`AppendIntent`s), and the owning core domain appends them through
-core-01's single leased `RunWriter`.
+Driver behavior. Core-01 owns writer fencing and the append protocol; sibling domains either return
+`AppendIntent` batches for the owning core flow to append or, where their approved contract says so,
+receive the active leased `RunWriter` to append their own records through the same core-01 protocol.
 
 Dependency Rule: this design depends only on Configuration & Policy for resolved policy inputs and
 Storage & Artifacts for log, lease, durability, and artifact primitives. It introduces no dependency on
@@ -51,7 +51,7 @@ flowchart LR
     STA["Storage & Artifacts"]
   end
   OP["Operator & Entry Surface"] -->|"start/cancel intent"| RL
-  OTHER -->|"return event-ready payloads / AppendIntents"| RL
+  OTHER -->|"return AppendIntents or append with leased writer"| RL
   RL -->|"read resolved policy"| CFG
   RL -->|"lease + append + replay"| STA
   RL -->|"projections + replay health"| OTHER
@@ -125,11 +125,12 @@ Core-01 emitted events: `RunCreated`, `RunPolicyBound`, `TaskSnapshotRecorded`,
 `RunAppendRejected`. Only `RunLifecycleTransitioned` authors lifecycle state; the factual events it
 references provide metadata and gating evidence for the transition payload.
 
-Consumed events: any valid `RunEventEnvelope` appended by the owning core domain through core-01's
-single leased `RunWriter` after sibling domains return event-ready payloads or `AppendIntent`s.
-Core-01 consumes only envelope, lifecycle, linkage, and durability metadata needed for projections
-and state-machine safety; payload-specific meaning stays with the emitting domain. Well-formed
-unknown future payloads do not fail replay or projection and are preserved in `summary.unknownEvents`.
+Consumed events: any valid `RunEventEnvelope` appended through core-01's single leased `RunWriter`.
+Sibling domains may contribute records by returning `AppendIntent`s for the owning flow or by using
+the active leased writer when their approved contract exposes one. Core-01 consumes only envelope,
+lifecycle, linkage, and durability metadata needed for projections and state-machine safety;
+payload-specific meaning stays with the emitting domain. Well-formed unknown future payloads do not
+fail replay or projection and are preserved in `summary.unknownEvents`.
 
 Projected data: `state`, `summary`, `metrics`, and `launch`. Reducers are pure functions and cannot
 call append APIs, mutate artifacts, write projection files, or inspect live external state. Projection

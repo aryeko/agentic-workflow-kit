@@ -120,11 +120,11 @@ Core-01 owns these event roles:
   durable recording is still available. Stale-writer, corrupt-log, and unavailable-log failures are
   returned to the caller but are not self-recorded by the rejected writer.
 
-Sibling domains do not hold `RunWriter`; they return event-ready payloads or `AppendIntent`s to the
-owning core domain, which appends additional event types through core-01's single leased `RunWriter`.
-Core-01 consumes only envelope, lifecycle, linkage, and durability metadata needed for replay safety.
-Well-formed event payloads from unknown future types are retained in `summary.unknownEvents` and
-otherwise ignored.
+Sibling domains contribute records through core-01's single leased `RunWriter`: they either return
+`AppendIntent`s to the owning core flow or use the active writer when their approved contract exposes
+writer-based recording. Core-01 consumes only envelope, lifecycle, linkage, and durability metadata
+needed for replay safety. Well-formed event payloads from unknown future types are retained in
+`summary.unknownEvents` and otherwise ignored.
 
 ## Failure and degraded modes
 
