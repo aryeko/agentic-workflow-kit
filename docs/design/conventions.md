@@ -37,7 +37,7 @@ Read **only** these (scoped — no legacy, no full incident history):
 6. Any sibling **contracts** your charter names (e.g. a core domain that consumes the Agent contract
    reads `prov-01`'s contract section).
 
-If you find you need something outside `docs/kit-vnext/`, stop and raise it with the chief architect —
+If you find you need something outside `docs/design/`, stop and raise it with the chief architect —
 the design should be self-contained. **Exception:** a provider domain may capture external facts
 (e.g. a generated Codex/GitHub schema) in a dated **`evidence/` appendix** inside its own folder — see
 "Provider evidence & conformance" below.
@@ -48,7 +48,7 @@ Provider domains (`prov-*`) depend on real external behavior, so they get two ex
 
 - **`evidence/` appendix.** Capture the external facts you relied on under `domains/<id>/evidence/`,
   dated, with the exact commands run, output hashes, and schema snapshots. This keeps the proof inside
-  `docs/kit-vnext/` (no live re-fetch needed to review) and is the source for capability attestation.
+  `docs/design/` (no live re-fetch needed to review) and is the source for capability attestation.
 - **Conformance suite.** Define the suite every driver of this seam must pass (schema probes,
   real-driver smoke tests, recorded incident replays, and **adversarial mocks** that omit, delay, or
   lie about signals). "Runs on mocks" is only trustworthy if the mocks are held to the same contract as

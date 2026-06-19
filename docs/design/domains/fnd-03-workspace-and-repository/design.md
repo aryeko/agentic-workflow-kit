@@ -20,11 +20,11 @@ review, merge, process spawning, containment, or CI concept. Forge owns remote a
 operations. Execution Host owns process execution and containment, including running the declared
 setup command as the worker's contracted first step.
 ## 2. Required reading
-- `docs/kit-vnext/README.md`
-- `docs/kit-vnext/architecture.md`, especially section 5 seam boundaries
-- `docs/kit-vnext/conventions.md`
-- `docs/kit-vnext/glossary.md`
-- `docs/kit-vnext/domains/fnd-03-workspace-and-repository/charter.md`
+- `docs/design/README.md`
+- `docs/design/architecture.md`, especially section 5 seam boundaries
+- `docs/design/conventions.md`
+- `docs/design/glossary.md`
+- `docs/design/domains/fnd-03-workspace-and-repository/charter.md`
 
 No sibling contracts were read. Assumptions are listed in Open questions.
 ## 3. Context diagram

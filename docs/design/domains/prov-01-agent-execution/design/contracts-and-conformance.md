@@ -7,7 +7,7 @@ last-reviewed: "2026-06-18"
 # Contract types
 
 This file holds the typed Agent contract for
-`docs/kit-vnext/domains/prov-01-agent-execution/design.md`. Capability and conformance detail lives
+`docs/design/domains/prov-01-agent-execution/design.md`. Capability and conformance detail lives
 in [capabilities-and-conformance.md](capabilities-and-conformance.md).
 
 ## Contract types
