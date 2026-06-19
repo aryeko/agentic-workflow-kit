@@ -9,7 +9,7 @@ last-reviewed: 2026-06-18
 The design home for the next-generation workflow kit. This folder is a **fresh, greenfield
 design**: it does not depend on, derive from, or modify any prior kit code or docs. Read it top
 to bottom to understand the system; design a single domain by reading this plus that domain's
-charter. Docs are **human-readable first** and layered **high-to-low** — read only the depth you
+README. Docs are **human-readable first** and layered **high-to-low** — read only the depth you
 need (see [Documentation principles](conventions.md#documentation-principles)).
 
 ## Mission
@@ -53,20 +53,21 @@ diagnosable state rather than taking a risky action.
 | 4 | [architecture.md](architecture.md) | Layers, the Dependency Rule, the capability model, diagrams, the domain map. |
 | 5 | [conventions.md](conventions.md) | How every domain design is written and reviewed. |
 | 6 | [glossary.md](glossary.md) | Shared vocabulary — use these terms exactly. |
-| 7 | [domains/](domains/README.md) | The 13 domain charters — each is the brief for one design session. |
+| 7 | [domains/](domains/README.md) | The 16 domain entries — each starts with its Mandate and then its design. |
 
 ## Scope & status
 
 - **Greenfield.** Local-first; remote execution is a later driver behind the Agent seam.
 - This is the **high-level scaffold only.** Each domain's low-level design is produced in its own
-  session, from that domain's charter, following [conventions.md](conventions.md).
+  session, from that domain's Mandate, following [conventions.md](conventions.md).
 - The high-level design is chief-architect-owned. Domain designs are reviewed and approved against
-  their charter + conventions before they are considered done.
+  their Mandate + conventions before they are considered done.
 
 ## Working model
 
 A senior engineer picks up one domain. They read this README, [architecture.md](architecture.md),
-[conventions.md](conventions.md), [glossary.md](glossary.md), and their domain's `charter.md` (plus
-any sibling contracts the charter names). They produce a `design.md` in their domain folder using the
-[domain design template](_templates/domain-design-template.md). The chief architect reviews it against
-the charter and conventions. Nothing outside `docs/design/` needs to be read.
+[domains/README.md](domains/README.md), [conventions.md](conventions.md),
+[glossary.md](glossary.md), and their domain's `README.md` (Mandate first, then design, plus any flat
+sibling aspect files and sibling contracts the Mandate names). They update the domain `README.md`
+using the [domain design template](_templates/domain-design-template.md). The chief architect reviews
+it against the Mandate and conventions. Nothing outside `docs/design/` needs to be read.

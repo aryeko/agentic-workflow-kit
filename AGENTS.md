@@ -29,7 +29,7 @@ The design corpus is the source of truth. Read the file that owns your task's su
 | Vocabulary | `docs/design/glossary.md` |
 | How designs are written and scoped | `docs/design/conventions.md` |
 | The 16 domains: index, layers, dependencies, build order | `docs/design/domains/README.md` |
-| A specific domain's mandate, then its design | `docs/design/domains/<id>/charter.md`, then `design.md` |
+| A specific domain's mandate and design | `docs/design/domains/<layer>/<id>/README.md` |
 | Verify gate, test lanes, tooling, CI | `docs/foundation/` |
 | Rebuild status and steps | `docs/roadmap.md` |
 | Incident postmortems and research (context, not spec) | `docs/history/` |
@@ -40,8 +40,8 @@ The design corpus is the source of truth. Read the file that owns your task's su
 
 Pull only what the task touches — do not load the whole corpus.
 
-- **Implement or change a domain** → its `charter.md` (the mandate), then `design.md`
-  (and any `design/<aspect>.md` sub-files); confirm its layer and dependencies in
+- **Implement or change a domain** → its `README.md` (Mandate first, then design)
+  and any flat sibling aspect files; confirm its layer and dependencies in
   `docs/design/domains/README.md`.
 - **Cross-domain, seam, or layering question** → `docs/design/architecture.md`.
 - **"Why is it this way?"** → `docs/design/decisions.md` (AD-* records).
