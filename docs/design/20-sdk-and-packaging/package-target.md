@@ -1,35 +1,46 @@
+---
+title: kit-vnext — package target
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
 # Package target
 
-The packaging model is SDK-centered. Design domains remain useful as design reference, but they are not one-to-one npm packages.
+The packaging model is SDK-centered. Eight packages form the complete kit-vnext delivery surface.
+Design domains are a useful organizing tool, but they do not map one-to-one to npm packages; packages
+represent runtime and dependency boundaries, not design groupings.
 
 ## Package tree
 
 ```txt
 packages/
-  sdk/
-  cli/
-  mcp/
-  provider-codex/
-  provider-local/
-  provider-github/
-  provider-markdown/
-  testkit/
+  sdk/              — core runtime library; provider interfaces; storage ports + defaults
+  cli/              — terminal executable; provider wiring; filesystem store wiring
+  mcp/              — MCP server executable; provider wiring; filesystem store wiring
+  provider-codex/   — AgentProvider driver (Codex protocol)
+  provider-local/   — ExecutionHostProvider driver (local process execution)
+  provider-github/  — ForgeProvider driver (GitHub push / PR / merge)
+  provider-markdown/ — WorkSourceProvider driver (Markdown task tracker)
+  testkit/          — test-only: provider mocks, conformance helpers, incident fixtures
 ```
 
 ## Dependency direction
 
 ```mermaid
 flowchart LR
-  CLI["cli executable"] --> SDK["sdk"]
-  MCP["mcp executable"] --> SDK
-  CLI --> Providers["provider packages"]
+  CLI["cli"] --> SDK["sdk"]
+  MCP["mcp"] --> SDK
+  CLI --> Providers["provider-*"]
   MCP --> Providers
   Providers --> SDK
-  SDK --> Interfaces["provider interfaces<br/>inside sdk"]
+  SDK --> Interfaces["provider interfaces<br/>(inside sdk)"]
+  CLI --> Store["filesystem store<br/>(wired by executable)"]
+  MCP --> Store
 ```
 
 ## Why not one package per design domain?
 
-The design has domains to organize thinking and ownership. Packages should represent runtime and dependency boundaries.
-
-A package per design domain would add build complexity before there is evidence that independent package boundaries are needed. The SDK can still keep internal folders for design domains.
+A package per design domain would introduce build and versioning complexity before there is evidence
+that independent publish boundaries are needed. The SDK maintains internal folder structure that
+mirrors the domain map, so ownership and boundaries remain clear without multiplying packages. The
+complete dependency matrix is in [dependency-rules.md](dependency-rules.md).

@@ -4,7 +4,7 @@ id: "prov-03-work-source"
 layer: "providers"
 status: approved
 owner: "domain designer"
-last-reviewed: "2026-06-18"
+last-reviewed: "2026-06-19"
 depends-on: ["fnd-02-storage-and-artifacts"]
 ---
 # Work Source - design
@@ -159,6 +159,8 @@ interface WorkSourceProbeScope {
   trackIds?: string[];
   at: string;
 }
+// SDK-owned type (AD-16). Defined in the SDK; referenced here, not redefined.
+// See docs/design/10-architecture/capability-attestation.md for the canonical shape.
 interface CapabilityAttestation {
   capability: WorkSourceCapability;
   probeMethod: string;
@@ -190,7 +192,8 @@ interface WorkSource {
     expectedRecordDigest: string; sourceRevision: string }): ClaimResult | WorkSourceError;
   release(input: { task: TaskKey; runId: string; reason: string; expectedEpoch: number }): void | WorkSourceError;
   writeStatus(input: { task: TaskKey; status: TaskStatus; expectedRecordDigest: string;
-    evidenceRef?: ArtifactRef; note?: string }): StatusWriteResult | WorkSourceError;
+    evidenceRef?: ArtifactRef; note?: string;
+    auditCitation?: { runId: string; taskSnapshotRef: ArtifactRef; statusEvidenceRef?: ArtifactRef } }): StatusWriteResult | WorkSourceError;
 }
 type ClaimResult = { task: TaskView; snapshotRef: ArtifactRef; snapshotDigest: string };
 ```

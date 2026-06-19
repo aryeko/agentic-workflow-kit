@@ -1,3 +1,9 @@
+---
+title: kit-vnext — domain reference
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
 # Domain reference
 
 This layer contains the full detailed design corpus, migrated into a reader-friendly reference tree.

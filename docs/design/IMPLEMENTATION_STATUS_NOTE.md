@@ -1,7 +1,34 @@
+---
+title: kit-vnext — implementation status note
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
 # Implementation status note
 
-This documentation bundle intentionally excludes implementation waves and readiness tracking.
+This documentation bundle covers the design corpus only. It intentionally excludes implementation
+wave charters, readiness tracking, review history, and historical research material. Those are
+maintained separately.
 
-Some migrated design files originally linked to implementation readiness material. In this restructured bundle, those links point here instead.
+## What is in this bundle
 
-The design semantics are still present in this bundle. Implementation planning, wave charters, reviews, and historical research are excluded by request and should be maintained separately if needed.
+- The orientation layer: mission, requirements, vocabulary, conventions, and this reading structure.
+- The architecture layer: runtime model, event log, capability model, provider seams, gates, recovery,
+  and observability.
+- The SDK and packaging layer: package structure, boundary rules, provider interface model, and
+  dependency matrix.
+- The full domain-level design specs, under `docs/design/30-domain-reference/`. These remain
+  authoritative for low-level design regardless of implementation wave status.
+- Accepted design decisions, under `docs/design/40-decisions/`.
+
+## What is not in this bundle
+
+Wave charters, implementation readiness matrices, wave-scoped reviews, and historical research notes
+were excluded by design. If a migrated design file originally linked to readiness material, that link
+now resolves here instead.
+
+## Where to find implementation state
+
+Implementation planning, wave charters, and readiness tracking are maintained separately from this
+design corpus. Consult the project's issue tracker or the implementation planning documents for
+current wave status.

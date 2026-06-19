@@ -1,35 +1,38 @@
+---
+title: kit-vnext — design corpus overview
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
 # Design
 
-The design is organized as a guided descent:
+The design is organized as a guided descent. Each layer explains itself and points to the next.
+Read the level that answers your question; go deeper only into the domain you are changing.
 
 ```txt
-00-orientation
-  Why the system exists and what it must guarantee.
-
-10-architecture
-  How the system works conceptually.
-
-20-sdk-and-packaging
-  How the design is packaged for vNext implementation.
-
-30-domain-reference
-  Full low-level domain specs and provider evidence.
-
-40-decisions
-  Accepted design decisions and rationale.
+00-orientation      Why the system exists, what it must guarantee, and how to read the rest.
+10-architecture     How the system works conceptually: runtime model, state, seams, gates, recovery.
+20-sdk-and-packaging  How the design maps to packages and which dependencies are permitted.
+30-domain-reference Full domain specs, organized by layer (core / foundation / providers / edge).
+40-decisions        Accepted design decisions and their rationale.
 ```
 
-## First read
+## Recommended first read
 
-Start with:
+1. [Mission and scope](00-orientation/mission-and-scope.md) — what the kit does and why the redesign
+   was necessary.
+2. [Requirements](00-orientation/requirements.md) — what the system must do and how each requirement
+   is verified.
+3. [Component model](10-architecture/component-model.md) — the runtime shape and the four provider
+   seams.
+4. [Package target](20-sdk-and-packaging/package-target.md) — how the design maps to the eight
+   packages.
 
-- [Mission and scope](00-orientation/mission-and-scope.md)
-- [Requirements](00-orientation/requirements.md)
-- [Component model](10-architecture/component-model.md)
-- [Package target](20-sdk-and-packaging/package-target.md)
-
-Then go deep only into the domain you are changing.
+Then go deep only into the domain layer you are changing. Use the
+[reading guide](00-orientation/reading-guide.md) to find the minimum path for your task.
 
 ## Design rule
 
-A reader should be able to understand the system without opening every domain spec. Domain specs are reference depth, not the front door. Humanity has suffered enough from documentation that starts at the basement.
+A reader must be able to understand the system without opening every domain spec. The orientation and
+architecture layers carry the front-door explanation. Domain specs are reference depth, not the
+starting point.

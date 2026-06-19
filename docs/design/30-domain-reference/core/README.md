@@ -1,3 +1,9 @@
+---
+title: kit-vnext — core domain reference
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
 # Core domain reference
 
 Core is the deterministic control plane.

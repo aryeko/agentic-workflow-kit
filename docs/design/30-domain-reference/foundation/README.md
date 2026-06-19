@@ -1,3 +1,9 @@
+---
+title: kit-vnext — foundation domain reference
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
 # Foundation domain reference
 
 Foundation provides reusable substrate for SDK internals and providers.

@@ -1,3 +1,9 @@
+---
+title: kit-vnext — provider domain reference
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
 # Provider domain reference
 
 Providers are abstract seams. Concrete packages implement SDK-owned provider interfaces.

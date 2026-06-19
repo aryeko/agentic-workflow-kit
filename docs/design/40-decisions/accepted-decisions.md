@@ -1,7 +1,7 @@
 ---
 title: kit-vnext — architecture decisions
 status: high-level design (scaffold)
-last-reviewed: 2026-06-18
+last-reviewed: 2026-06-19
 ---
 
 # Architecture decisions
@@ -96,3 +96,60 @@ dependent on the Agent's honesty); remote-exec has a real abstraction rather tha
 **Consequence.** Removes the determinism tension for v1: every v1 control decision is a pure function
 of recorded evidence; non-deterministic inputs (human decisions, and later LLM judgments) enter
 **only as recorded events**, never as replayable logic.
+
+### AD-15 — SDK-centered packaging
+**Decision.** kit-vnext ships as **eight packages**: `sdk`, `cli`, `mcp`, `provider-codex`,
+`provider-local`, `provider-github`, `provider-markdown`, and `testkit`. Design domains are an
+organizing tool for specifications; they do **not** map one-to-one to npm packages. Packages
+represent runtime and dependency boundaries. The SDK maintains internal folder structure that mirrors
+the domain map until a concrete split trigger exists (see AD-20). See
+[package-target.md](../20-sdk-and-packaging/package-target.md) for the full package tree and
+dependency direction. **Consequence.** Build and versioning complexity is not introduced before
+independent publish boundaries are evidenced; design ownership and seam boundaries remain enforced via
+internal folder layout.
+
+### AD-16 — SDK owns provider interfaces and CapabilityAttestation
+**Decision.** The four provider interfaces — `AgentProvider`, `ExecutionHostProvider`,
+`ForgeProvider`, and `WorkSourceProvider` — and the `CapabilityAttestation` type are **SDK-owned
+production surface**. Concrete provider packages implement the interfaces and emit attestations; the
+testkit imports and validates the SDK type but does not own or redefine it. See
+[capability-attestation.md](../10-architecture/capability-attestation.md) for the required
+CapabilityAttestation shape. (Refines AD-5: the attestation type is owned by the SDK, not by test or
+conformance infrastructure.) **Consequence.** Provider conformance is validated against the canonical
+SDK type; no duplicate or divergent attestation shape can appear in testkit or provider packages.
+
+### AD-17 — Work Source audit citation is task metadata only
+**Decision.** The Work Source **MAY** store a small audit citation — run id, task snapshot ref, and
+an optional status-evidence ref — as **task metadata** written alongside the status update. This
+citation is **not run truth**; the run event log (AD-6) remains the sole authority for run activity.
+This resolves the previously-open Work Source Q2 to **Option A**: Work Source records the citation as
+task metadata. (Refines AD-8's two-authorities boundary: task status authority and task-level audit
+citation both live in the Work Source; run activity does not.) **Consequence.** `StatusWriteResult`
+and the `writeStatus` input carry a typed, optional `auditCitation` field; no run-truth data crosses
+into the Work Source.
+
+### AD-18 — Normative launch coordination order
+**Decision.** Story launch follows this strict sequence: (1) acquire the `story-launch` lease; (2)
+call `nextEligible`; (3) call `claim` with the expected digest; (4) make the `TaskSnapshot` durable;
+(5) append lifecycle event to the run event log; (6) on any failure before step 5, release the claim
+(when supported) and record a recovery or blocked fact. See
+[launch-coordination.md](../10-architecture/launch-coordination.md) for the full sequence diagram.
+**Consequence.** The `story-launch` lease prevents duplicate run starts across processes; the Work
+Source claim protects task status authority; the TaskSnapshot is durable before the run treats the
+task as snapshotted. Recovery is well-defined at every failure point.
+
+### AD-19 — testkit is test-only
+**Decision.** Mocks, conformance helpers, fixtures, and recorded incident-replay fixtures live in the
+`testkit` package. **Production surface — provider interfaces, `CapabilityAttestation`, core DTOs,
+and runtime wiring — does not live in testkit.** Testkit has no production runtime dependents.
+**Consequence.** The test-only / production boundary is structurally enforced by package membership;
+dependency lint rules can treat any `testkit` import in a production package as a violation.
+
+### AD-20 — Future package-split criteria (YAGNI)
+**Decision.** A new package is created only when one or more of the following concrete triggers
+applies: (a) the code needs an independent release cadence from the `sdk`; (b) it introduces a
+heavy or native optional dependency; (c) it has a separate public consumption surface; (d) a seam
+boundary cannot be enforced by folder-level lint inside the `sdk`; (e) build or test pain under a
+shared package; or (f) runtime portability requirements differ. The **default is internal folders
+inside `sdk`**. (Companion to AD-15.) **Consequence.** Package proliferation is deferred until
+justified; current internal folder layout is the correct default until a trigger fires.

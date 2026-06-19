@@ -1,14 +1,33 @@
-# Engineering
+---
+title: kit-vnext — Engineering Policy Index
+status: high-level design
+last-reviewed: "2026-06-19"
+---
 
-Engineering docs describe how implementation work should be verified and kept inside the design boundaries.
+# Engineering Policy
 
-This folder replaces the old top-level `foundation/` tooling-doc meaning to avoid confusion with the Foundation design layer.
+This directory holds the implementation-side policy for the kit-vnext rebuild: how
+packages are verified, how dependency rules are enforced, and what the test
+infrastructure requires. It is the counterpart to `docs/design/`, which owns
+invariants and seam contracts.
 
-## Files
+`docs/design/` is normative for package names, allowed edges, and domain behavior.
+When this directory and `docs/design/` conflict, `docs/design/` wins.
 
-- [Dependency policy](dependency-policy.md)
-- [Dependency rule enforcement](dependency-rule-enforcement.md)
-- [Testing policy](testing-policy.md)
-- [Test lanes](test-lanes.md)
-- [Check gate](check-gate.md)
-- [Tooling and CI](tooling-and-ci.md)
+## Documents
+
+| File | Contents |
+|---|---|
+| [check-gate.md](check-gate.md) | `pnpm check` gate — all steps, ordering rationale, CI split, smoke gating |
+| [dependency-policy.md](dependency-policy.md) | Package dependency rules, SDK bans, injection and determinism policy |
+| [dependency-rule-enforcement.md](dependency-rule-enforcement.md) | How dependency-cruiser and TypeScript project references enforce the rules |
+| [test-lanes.md](test-lanes.md) | Four Vitest lanes, hermetic guards, file-glob conventions |
+| [testing-policy.md](testing-policy.md) | When each lane is required, coverage targets, evidence expectations |
+| [tooling-and-ci.md](tooling-and-ci.md) | Toolchain versions, TypeScript layout, build strategy, GitHub Actions jobs |
+
+## Relationship to `docs/design/`
+
+The ground truth for package names and allowed dependency edges is
+[docs/design/20-sdk-and-packaging/dependency-rules.md](../design/20-sdk-and-packaging/dependency-rules.md).
+The files here describe how those rules are *enforced* and *verified* — they must
+not be looser than the design specification.

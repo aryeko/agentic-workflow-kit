@@ -1,3 +1,9 @@
+---
+title: kit-vnext — roadmap
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
 # Roadmap
 
 ## Near-term

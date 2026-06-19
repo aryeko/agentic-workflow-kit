@@ -63,13 +63,22 @@ type TaskSnapshot = {
 
 type ClaimResult = { task: TaskView; snapshotRef: ArtifactRef; snapshotDigest: string };
 
-// Minimal reconciliation shape for a verified status write. writeStatus already accepts
-// evidenceRef?: ArtifactRef and note? as inputs (see WorkSource.writeStatus); this result reports
-// only the verified post-write facts. It deliberately adds no audit-citation field — see Q2 below.
+// Audit citation written as task metadata alongside a status update (AD-17, Option A).
+// This is NOT run truth; the run event log remains the authority for run activity.
+type AuditCitation = {
+  runId: string;
+  taskSnapshotRef: ArtifactRef;
+  statusEvidenceRef?: ArtifactRef;
+};
+
+// Reconciliation shape for a verified status write. writeStatus accepts evidenceRef?: ArtifactRef
+// and note? as inputs (see WorkSource.writeStatus); this result reports the verified post-write
+// facts and carries the audit citation written as task metadata (AD-17).
 type StatusWriteResult = {
   written: boolean;
   updatedRecordDigest: string;
   evidenceRef?: ArtifactRef;
+  auditCitation?: AuditCitation;
   at: string;
 };
 
@@ -97,7 +106,8 @@ interface WorkSource {
     expectedRecordDigest: string; sourceRevision: string }): ClaimResult | WorkSourceError;
   release(input: { task: TaskKey; runId: string; reason: string; expectedEpoch: number }): void | WorkSourceError;
   writeStatus(input: { task: TaskKey; status: TaskStatus; expectedRecordDigest: string;
-    evidenceRef?: ArtifactRef; note?: string }): StatusWriteResult | WorkSourceError;
+    evidenceRef?: ArtifactRef; note?: string;
+    auditCitation?: AuditCitation }): StatusWriteResult | WorkSourceError;
 }
 ```
 
@@ -107,10 +117,10 @@ claim, and rejects stale writes; `supportsStatusWrite` writes and verifies statu
 precondition model; `supportsDependencies` parses simple `TaskKey` dependencies and excludes
 incomplete dependencies.
 
-`CapabilityAttestation` is the shared attestation type owned by the conformance kit and shared
-contract types (w2-1); it is referenced here, not redefined. As in the rest of the providers layer,
-consumers qualify attestations by provider so a `WorkSourceCapability` is never confused with a
-same-named capability from another seam.
+`CapabilityAttestation` is the shared attestation type owned by the **SDK** (AD-16); it is
+referenced here, not redefined. Testkit imports and validates the SDK type; it does not own or
+redefine it. As in the rest of the providers layer, consumers qualify attestations by provider so a
+`WorkSourceCapability` is never confused with a same-named capability from another seam.
 
 `ArtifactRef` is the fnd-02 artifact reference, defined in
 `../../foundation/fnd-02-storage-and-artifacts/README.md`. It is used here for `ClaimResult.snapshotRef`
@@ -168,25 +178,13 @@ Mock driver conformance:
   omitted signals, delayed writes, and false (lied-about) status writes — so the Control plane and the
   Capability & Safety gates prove fail-closed behavior, each yielding a named `WorkSourceError`.
 
-## Open questions
+## Resolved decisions
 
-Q2 (FR-11 two-authorities boundary) is a genuine design decision and is **not** resolved by this
-contract. It is recorded here verbatim and `StatusWriteResult` is defined without a new audit-citation
-field pending its resolution.
+**Q2 (FR-11 two-authorities boundary) — RESOLVED to Option A (AD-17).**
 
-> **Q2 (blocking, FR-11 boundary).** The spec says `writeStatus` "may cite a run id and snapshot ref
-> for audit." Pin whether prov-03 writes that citation into the task record (and the exact
-> field/format) or the control plane records it as a run event — this touches the two-authorities
-> boundary.
-
-The two options under decision are:
-
-- **Option A — Work Source records the citation.** prov-03 writes the run id and snapshot ref into the
-  Task record as Task metadata; this would require a typed audit-citation field on the status-write
-  input and/or `StatusWriteResult` (field name and format to be defined).
-- **Option B — Control plane records the citation.** prov-03 writes only the status (with optional
-  `evidenceRef`/`note` it already accepts), and the Control plane records the run id and snapshot ref
-  as a run event in the Event log; `StatusWriteResult` stays as defined above with no audit-citation
-  field.
-
-Status: **pending design-owner decision — blocking for prov-03 dispatch.**
+`writeStatus` MAY accept an `auditCitation` on input and the Work Source writes it as **task
+metadata** alongside the status update. `StatusWriteResult` carries the `auditCitation?` field to
+confirm what was written. This citation (run id + task snapshot ref + optional status-evidence ref)
+is task metadata only — it is **not run truth**. The run event log (AD-6) remains the sole authority
+for run activity. The two-authorities boundary is preserved: task status and task-level audit citation
+live in the Work Source; run events live in the event log, and neither cross-writes the other.
