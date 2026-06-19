@@ -29,7 +29,8 @@ cross-layer mixing.
   allowed package: `octokit` → github driver only; `execa` (+ the native helper) → local exec-host
   driver only; `pino` / `@opentelemetry/*` → telemetry adapter / edge only; `awilix` →
   composition-root only; `*sqlite*` → storage package only. This turns every "forbidden placement" cell
-  in the infra-tooling research into a CI failure.
+  in the [infra-tooling research](../../../../reviews/2026-06-19-infra-tooling-framework-research.md)
+  into a CI failure.
 
 ## Out of scope
 
@@ -43,7 +44,9 @@ NFR-EXT, NFR-SOLID; the Dependency Rule as an enforced invariant.
 ## Required reading
 
 `architecture.md` (Dependency Rule §); the current `.dependency-cruiser.cjs` (committed + template
-rules); `packages/README.md`; the infra-tooling research (placement matrix, required-decision #2).
+rules); `packages/README.md`; the
+[infra-tooling research](../../../../reviews/2026-06-19-infra-tooling-framework-research.md)
+(placement matrix, required-decision #2).
 
 ## Deliverable
 

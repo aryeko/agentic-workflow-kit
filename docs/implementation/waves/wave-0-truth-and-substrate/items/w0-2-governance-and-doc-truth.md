@@ -4,7 +4,7 @@ id: "w0-2"
 wave: 0
 layer: "governance"
 status: "item: ready"
-spec: "n/a — repo governance/docs (review report §1, §3)"
+spec: "docs/reviews/2026-06-19-current-branch-repo-review.md (§1, §3)"
 ---
 
 # w0-2 — Governance & doc truth
@@ -37,7 +37,8 @@ Documentation truthfulness; the safe-to-read-by-worker guarantee.
 
 ## Required reading
 
-The repo-review report (§1, §3); `AGENTS.md`; current root governance files; `docs/foundation/*`.
+The [repo-review report](../../../../reviews/2026-06-19-current-branch-repo-review.md) (§1, §3);
+`AGENTS.md`; current root governance files; `docs/foundation/*`.
 
 ## Deliverable
 

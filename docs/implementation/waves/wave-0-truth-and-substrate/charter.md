@@ -15,11 +15,15 @@ policies — so every later wave builds on a stable, self-consistent, mechanical
 **No production code in this wave.**
 
 **Why first.** Operator-confirmed: *Wave 0 gates everything.* It absorbs every confirmed finding from
-the two 2026-06-19 Codex reviews (repo-review + infra-tooling-research). Build waves start only once it
-lands.
+the two 2026-06-19 Codex reviews
+([repo-review](../../../reviews/2026-06-19-current-branch-repo-review.md) +
+[infra-tooling-research](../../../reviews/2026-06-19-infra-tooling-framework-research.md)). Build waves
+start only once it lands.
 
-**Frozen inputs.** The approved design corpus (`docs/design/**`); the two review reports as the finding
-source.
+**Frozen inputs.** The approved design corpus (`docs/design/**`); the
+[repo-review](../../../reviews/2026-06-19-current-branch-repo-review.md) and
+[infra-tooling-research](../../../reviews/2026-06-19-infra-tooling-framework-research.md) reports as the
+finding source.
 
 ## Work items (one commit each; Codex plans the agent delegation)
 
