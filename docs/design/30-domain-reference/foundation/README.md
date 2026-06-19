@@ -1,0 +1,12 @@
+# Foundation domain reference
+
+Foundation provides reusable substrate for SDK internals and providers.
+
+## Domains
+
+| Domain | Original ID | Owns |
+|---|---|---|
+| [Configuration and policy](configuration-and-policy/README.md) | fnd-01 | Config schema, resolution, provenance, policy. |
+| [Storage and artifacts](storage-and-artifacts/README.md) | fnd-02 | Event-log persistence, leases, artifact store. |
+| [Workspace and repository](workspace-and-repository/README.md) | fnd-03 | Local worktree lifecycle and local git evidence. |
+| [Credentials and secrets](credentials-and-secrets/README.md) | fnd-04 | Scoped credentials, redaction, audit, egress policy. |

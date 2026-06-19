@@ -1,0 +1,14 @@
+{
+  "file_count": 456,
+  "markdown_file_count": 94,
+  "source_files_mapped": "414/414",
+  "excluded_dirs_present": [],
+  "broken_markdown_links": [],
+  "unbalanced_code_fences": [],
+  "mermaid_diagrams": 57,
+  "missing_mapped_targets": [],
+  "non_markdown_not_exact": [],
+  "markdown_files_over_400_lines": [],
+  "markdown_files_over_800_lines": [],
+  "stale_normative_path_patterns": []
+}

@@ -1,0 +1,38 @@
+docs/kit-vnext/domains/prov-04-execution-host/design.md:85:- `probeCapabilities(scope): CapabilityAttestation[]`
+docs/kit-vnext/domains/prov-04-execution-host/design.md:86:- `attachWorkspace(workspace): HostWorkspaceHandle | HostFailure`
+docs/kit-vnext/domains/prov-04-execution-host/design.md:87:- `spawnWorker(request): WorkerHandle | HostFailure`
+docs/kit-vnext/domains/prov-04-execution-host/design.md:88:- `observeWorker(handle): AsyncIterable<HostObservation>`
+docs/kit-vnext/domains/prov-04-execution-host/design.md:89:- `terminateWorker(handle, policy): TerminationResult`
+docs/kit-vnext/domains/prov-04-execution-host/design.md:90:- `runCommand(request): CommandResult | HostFailure`
+docs/kit-vnext/domains/prov-04-execution-host/design.md:91:- `releaseWorkspace(handle): HostReleaseResult`
+docs/kit-vnext/domains/prov-04-execution-host/design.md:125:  CP->>EH: probeCapabilities(policy with negative probes)
+docs/kit-vnext/domains/prov-04-execution-host/design.md:127:  CP->>EH: attachWorkspace(local-worktree)
+docs/kit-vnext/domains/prov-04-execution-host/design.md:128:  CP->>EH: spawnWorker(worker-scoped injection)
+docs/kit-vnext/domains/prov-04-execution-host/design.md:132:  CP->>EH: terminateWorker(if needed)
+docs/kit-vnext/domains/prov-04-execution-host/design.md:135:  CP->>EH: runCommand(verify)
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:16:type HostCapability = "canKill" | "containmentStrength" | "emitsStructuredToolExit" | "egress-confinement";
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:20:type HostFailureReason =
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:26:interface WorkspaceAttachment {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:30:interface HostWorkspaceHandle {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:33:interface HostInjectionContext {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:38:interface WorkerLaunch {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:42:interface SpawnWorkerRequest {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:46:interface HostCommandRequest {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:51:interface CommandResult {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:56:interface WorkerHandle {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:61:type HostObservation =
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:67:interface TerminationPolicy { initialSignal: string; graceSeconds: number; forceKill: boolean; proveEmptyTimeoutSeconds: number }
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:68:interface TerminationProof {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:72:interface TerminationResult { handleId: string; terminalExitCode?: number; terminalSignal?: string; proof: TerminationProof }
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:73:interface HostReleaseResult {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:76:interface HostFailure { reason: HostFailureReason; message: string; retryable: boolean; evidenceRef?: string; at: string }
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:77:interface HostProbeScope {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:81:interface CapabilityAttestation {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:87:interface ExecutionHost {
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:88:  probeCapabilities(scope: HostProbeScope): CapabilityAttestation[];
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:89:  attachWorkspace(workspace: WorkspaceAttachment): HostWorkspaceHandle | HostFailure;
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:90:  spawnWorker(request: SpawnWorkerRequest): WorkerHandle | HostFailure;
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:91:  observeWorker(handle: WorkerHandle): AsyncIterable<HostObservation>;
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:92:  terminateWorker(handle: WorkerHandle, policy: TerminationPolicy): TerminationResult;
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:93:  runCommand(request: HostCommandRequest): CommandResult | HostFailure;
+docs/kit-vnext/domains/prov-04-execution-host/design/contracts-and-conformance.md:94:  releaseWorkspace(handle: HostWorkspaceHandle): HostReleaseResult;
