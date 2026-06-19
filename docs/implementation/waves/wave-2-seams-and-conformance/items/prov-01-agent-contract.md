@@ -3,7 +3,7 @@ title: "prov-01 — Agent contract + mock — implementation charter"
 id: "prov-01-contract"
 wave: 2
 layer: "contracts (providers)"
-status: "item: blocked-on-spec"
+status: "item: ready"
 spec: "docs/design/domains/providers/prov-01-agent-execution/ (README.md + contracts-and-conformance.md + capabilities-and-conformance.md + mock-driver.md)"
 ---
 
@@ -17,9 +17,7 @@ driver is the driver track. (FR-3/FR-4/FR-5, AD-12.)
 `docs/design/domains/providers/prov-01-agent-execution/`. Normalized event shapes, the approval-relay
 protocol, and structured tool-exit are normative. Ambiguous → STOP and surface.
 
-> **BLOCKED on spec reconciliation** — three return types are used but undefined (see Open questions).
-> The ACs below cover the *defined* surface; the deferred ACs cannot be written until the spec defines
-> those types. Do not invent them (R4).
+> **Spec reconciliation done** — the three return types (`AgentResumeRequest`, `ApprovalAnswerResult`, `AgentReleaseResult`) are now defined in the agent `contracts-and-conformance.md` (Q1 closed). Remaining open questions are non-blocking.
 
 ## Spec surface (manifest)
 
@@ -37,7 +35,7 @@ protocol, and structured tool-exit are normative. Ambiguous → STOP and surface
   `agent-linkage-lost`, `approval-relay-unattested`, `approval-answer-channel-lost`,
   `agent-resume-unattested`, `structured-tool-exit-missing`, `tool-output-ref-missing`,
   `guardian-review-untrusted`, `host-parentage-unproven`, `agent-terminal-ambiguous`.
-- **UNDEFINED (blocking, see Open questions):** `AgentResumeRequest`, `ApprovalAnswerResult`,
+- **Defined in `contracts-and-conformance.md`:** `AgentResumeRequest`, `ApprovalAnswerResult`,
   `AgentReleaseResult`.
 
 ## Responsibilities (in scope)
@@ -84,7 +82,7 @@ via the driver at runtime), `w2-1`. Consumed by core-02/03/04/06. Must NOT depen
 - **AC-7** `answerApproval(session, answer)` with `answer.requestId` matching the observed
   `approval-requested` routes the `ScopedGrant` through the `ApprovalAnswerChannel` and emits an
   `AgentApprovalAnswered` log event; it fabricates no provider response. *(Asserts behavior + the
-  emitted event; the `ApprovalAnswerResult` return shape is deferred — see Open questions.)* — *contracts; README §4.*
+  emitted event; `ApprovalAnswerResult` return shape is defined in `contracts-and-conformance.md`.)* — *contracts; README §4.*
 - **AC-8** The mock can attest a capability `positive` yet not deliver the signal, and the capability
   gate still fails closed with the correct `AgentFailureReason` (property test across all six
   capabilities). — *mock-driver.md ("it can lie … and Capability & Safety still fails closed").*
@@ -92,9 +90,9 @@ via the driver at runtime), `w2-1`. Consumed by core-02/03/04/06. Must NOT depen
   event are emitted at the corresponding stream points. — *README §6.*
 - **AC-10** No Codex SDK / app-server / `child_process` import in the contract or mock package
   (depcruise + grep). — *charter Libraries; dependency-policy.md.*
-- **AC-11 (deferred — blocked)** `resumeOwned` requires fresh `canResumeOwned` and otherwise returns
-  `agent-resume-unattested`; `stopObserving` returns its release result. *Cannot be finalized until
-  `AgentResumeRequest` / `AgentReleaseResult` are defined (Open questions Q1).*
+- **AC-11** `resumeOwned` requires fresh `canResumeOwned` and otherwise returns
+  `agent-resume-unattested`; `stopObserving` returns its release result. *(`AgentResumeRequest` and
+  `AgentReleaseResult` are now defined in `contracts-and-conformance.md`.)*
 
 ## Failure & degraded outcomes (first-class)
 
@@ -130,19 +128,19 @@ This domain's spec (`README.md` + `contracts-and-conformance.md` + `capabilities
 ## Deliverable
 
 The Agent contract package + mock agent, passing the conformance kit; the evidence pack
-(test-per-AC, coverage, depcruise). **Plus** the resolved definitions for the three blocked types once
-the spec is amended.
+(test-per-AC, coverage, depcruise). The three previously-blocked types (`AgentResumeRequest`,
+`ApprovalAnswerResult`, `AgentReleaseResult`) are now defined in the spec (`contracts-and-conformance.md`).
 
 ## Boundaries
 
 Contract + mock only; references prov-04's `WorkerHandle`, never a real host. If the agent/host boundary
 is ambiguous, **STOP and surface** (don't fold host concerns into the agent seam).
 
-## Open questions / spec reconciliation required (blocking — close before dispatch)
+## Open questions (non-blocking; tracked)
 
-- **Q1 (blocking).** Define in the spec: `AgentResumeRequest` (input to `resumeOwned`),
-  `ApprovalAnswerResult` (return of `answerApproval`), `AgentReleaseResult` (return of `stopObserving`).
-  All three are used in the `AgentDriver` interface but never defined. AC-7/AC-11 are partial until then.
+- **Q1 — RESOLVED.** `AgentResumeRequest` (input to `resumeOwned`), `ApprovalAnswerResult` (return of
+  `answerApproval`), and `AgentReleaseResult` (return of `stopObserving`) are now defined in
+  `docs/design/domains/providers/prov-01-agent-execution/contracts-and-conformance.md`. AC-7/AC-11 unblocked.
 - **Q2.** Which `ownershipClass` values are valid for `startWorker` vs `resumeOwned`? (approval relay +
   parentage gate on it.)
 - **Q3.** How is `ApprovalAnswerChannel.persistable` set by the mock — scenario config, or derived from

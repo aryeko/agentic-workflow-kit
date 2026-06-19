@@ -3,7 +3,7 @@ title: "prov-02 — Forge contract + mock — implementation charter"
 id: "prov-02-contract"
 wave: 2
 layer: "contracts (providers)"
-status: "item: blocked-on-spec"
+status: "item: ready"
 spec: "docs/design/domains/providers/prov-02-forge-collaboration/ (README.md + evidence/)"
 ---
 
@@ -17,9 +17,7 @@ only; the real GitHub/octokit driver is the driver track. (FR-6/FR-7, NFR-SAFE.)
 `docs/design/domains/providers/prov-02-forge-collaboration/` (`README.md` + `evidence/` index for the
 observed GitHub shapes). DTOs are **defined independently of any SDK shape**. Ambiguous → STOP and surface.
 
-> **BLOCKED on spec reconciliation** — prov-02 has **no `contracts-and-conformance.md`**; `ForgeDegraded`,
-> the `ForgeActionResult` discriminant, and the evidence sub-DTOs are prose-only. ACs cover the defined
-> surface; the DTO-shape ACs are deferred until the spec types them (R4). Do not invent shapes.
+> **Spec reconciliation done** — `contracts-and-conformance.md` now exists and types `ForgeEvidenceSnapshot` (+ its CI/PR/review/protection/merge-queue sub-DTOs), `ForgeDegraded`, and the `ForgeActionResult` discriminant (Q1/Q2 closed). Q3/Q4 are confirm-only owner-ratification items, non-blocking.
 
 ## Spec surface (manifest)
 
@@ -87,9 +85,9 @@ on core/edge/drivers/SDK. No cross-item shape produced.
   confines `octokit` to `packages/drivers-github`. — *dependency-policy.md (SDK behind a seam).*
 - **AC-8** The conformance run reproduces the dated `evidence/.../mock-forge-conformance.json` structure
   (capabilities = 4, operations = 7, adversarialCases ≥ 8, every degraded token present). — *evidence/ index.*
-- **AC-9 (deferred — blocked)** Every evidence DTO and `ForgeActionResult` is expressible from the mock
-  with no octokit type, validated by a Zod/JSON-Schema round-trip. *Cannot be finalized until the DTO
-  shapes + the `ForgeActionResult` discriminant are typed in the spec (Open questions Q1/Q2).*
+- **AC-9** Every evidence DTO and `ForgeActionResult` is expressible from the mock with no octokit type,
+  validated by a Zod/JSON-Schema round-trip. *(DTO shapes + `ForgeActionResult` discriminant are now
+  typed in `contracts-and-conformance.md`.)*
 
 ## Failure & degraded outcomes (first-class)
 
@@ -131,14 +129,15 @@ the spec is amended.
 Contract + mock only; evidence DTOs must be expressible from both a mock and (future) octokit without
 leaking SDK shapes. If a DTO can only be expressed in octokit terms, **STOP and surface**.
 
-## Open questions / spec reconciliation required (blocking — close before dispatch)
+## Open questions (non-blocking; tracked)
 
-- **Q1 (blocking).** prov-02 has **no `contracts-and-conformance.md`** (unlike prov-01/prov-04). Add one
-  that types `ForgeEvidenceSnapshot` and its CI/PR/review/merge sub-DTOs with explicit partial/degraded
-  states.
-- **Q2 (blocking).** Define `ForgeDegraded` (token field + observed-facts field) and the
-  `ForgeActionResult` discriminant field name + the `accepted | refused | degraded` variant shapes.
-- **Q3.** Confirm `forge-lies-merge-state` is covered by `forge-head-mismatch` (re-read before merge),
-  not a separate token.
-- **Q4.** Confirm the partial-protection case (`supportsRulesets` available but `canInspectProtection`
-  not) returns a degraded snapshot, not a partial one.
+- **Q1 — RESOLVED.** `contracts-and-conformance.md` now exists and types `ForgeEvidenceSnapshot` and its
+  CI/PR/review/protection/merge-queue sub-DTOs with explicit partial/degraded states.
+- **Q2 — RESOLVED.** `ForgeDegraded` (token field + observed-facts field) and the `ForgeActionResult`
+  discriminant (`kind`: `accepted | refused | degraded`; `accepted`/`refused` carry `observedHeadSha`,
+  `degraded` carries it optionally — the head may be unread when a degrade occurs) are typed in
+  `contracts-and-conformance.md`.
+- **Q3 (confirm-only — design owner to ratify).** Confirm `forge-lies-merge-state` is covered by
+  `forge-head-mismatch` (re-read before merge), not a separate token.
+- **Q4 (confirm-only — design owner to ratify).** Confirm the partial-protection case (`supportsRulesets`
+  available but `canInspectProtection` not) returns a degraded snapshot, not a partial one.
