@@ -4,7 +4,7 @@ id: "w0-4"
 wave: 0
 layer: "foundation-docs"
 status: "item: ready"
-spec: "n/a — produces policy docs (infra-tooling research)"
+spec: "docs/reviews/2026-06-19-infra-tooling-framework-research.md"
 ---
 
 # w0-4 — Implementation policies
@@ -15,7 +15,8 @@ wave (and every Codex worker) follows — the written guardrail behind the depcr
 ## Scope — two docs
 
 ### `docs/foundation/dependency-policy.md`
-- The **library placement matrix** (from the infra research).
+- The **library placement matrix** (from the
+  [infra-tooling research](../../../../reviews/2026-06-19-infra-tooling-framework-research.md)).
 - **Explicit constructor/factory injection; no DI container in core.** Awilix only ever at the
   composition root, if at all (default: not at all).
 - **Clock / id / randomness are injected ports** — no ambient `Date.now`/`Math.random`. This is a
@@ -48,8 +49,8 @@ NFR-DET, NFR-TEST, NFR-SOLID, NFR-SEC (redaction/credential rules in logs).
 
 ## Required reading
 
-The infra-tooling research; `architecture.md`; `decisions.md` (AD-2, AD-3, AD-6, AD-10);
-`conventions.md`; w0-3's package map.
+The [infra-tooling research](../../../../reviews/2026-06-19-infra-tooling-framework-research.md);
+`architecture.md`; `decisions.md` (AD-2, AD-3, AD-6, AD-10); `conventions.md`; w0-3's package map.
 
 ## Deliverable
 

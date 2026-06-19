@@ -42,8 +42,10 @@ Corpus internal consistency; AD-1..AD-14 remain authoritative (this item makes t
 
 ## Required reading
 
-Both 2026-06-19 review reports; `decisions.md`; `architecture.md`; the affected domain spec files;
-`conventions.md`.
+Both 2026-06-19 review reports:
+[repo-review](../../../../reviews/2026-06-19-current-branch-repo-review.md) and
+[infra-tooling-research](../../../../reviews/2026-06-19-infra-tooling-framework-research.md);
+`decisions.md`; `architecture.md`; the affected domain spec files; `conventions.md`.
 
 ## Deliverable
 

@@ -4,7 +4,7 @@ id: "w0-5"
 wave: 0
 layer: "tracking"
 status: "item: ready"
-spec: "n/a — produces the readiness matrix (both review reports)"
+spec: "docs/reviews/2026-06-19-current-branch-repo-review.md + docs/reviews/2026-06-19-infra-tooling-framework-research.md"
 ---
 
 # w0-5 — Implementation readiness tracker
@@ -34,8 +34,10 @@ Readiness transparency; capability-gate honesty (evidence ≠ live capability).
 
 ## Required reading
 
-Both review reports (the readiness / `approved`-ambiguity findings); `decisions.md` (AD-5, AD-10
-capability attestation); `conventions.md` (provider evidence/conformance).
+Both review reports (the readiness / `approved`-ambiguity findings):
+[repo-review](../../../../reviews/2026-06-19-current-branch-repo-review.md) and
+[infra-tooling-research](../../../../reviews/2026-06-19-infra-tooling-framework-research.md);
+`decisions.md` (AD-5, AD-10 capability attestation); `conventions.md` (provider evidence/conformance).
 
 ## Deliverable
 
