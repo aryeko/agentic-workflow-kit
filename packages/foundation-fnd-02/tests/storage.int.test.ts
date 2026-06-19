@@ -192,10 +192,29 @@ describe('filesystem storage root', () => {
     expect(barrier.durability).toBe('barrier');
     expect(operations.some((operation) => operation.startsWith('fsync-file:'))).toBe(true);
     expect(operations.some((operation) => operation.startsWith('fsync-directory:'))).toBe(true);
+
+    const conflict = storage.eventLog.append(handle, {
+      expectedSequence: 2,
+      durability: 'durable',
+      payloads: [bytes('conflict')],
+    });
+    expectStorageError(conflict, 'sequence-conflict');
+
+    const next = storage.eventLog.append(handle, {
+      expectedSequence: 3,
+      durability: 'durable',
+      payloads: [bytes('next')],
+    });
+    expect(isStorageError(next)).toBe(false);
+    const replay = storage.eventLog.replay('run:durability');
+    expect(replay.records.map((record) => text(record.payload))).toEqual(['durable', 'barrier', 'next']);
   });
 
   it('repairs torn tails and fails closed on interior corruption', async () => {
-    const { root, storage } = await makeRoot();
+    const operations: string[] = [];
+    const { root, storage } = await makeRoot({
+      durabilityObserver: (event) => operations.push(`${event.operation}:${event.path}`),
+    });
     const lease = storage.leases.acquire('run-writer:corruption', 'worker-a', 60_000);
     expect(isStorageError(lease)).toBe(false);
     if (isStorageError(lease)) {
@@ -216,9 +235,15 @@ describe('filesystem storage root', () => {
     const logFile = await findOnlyFile(root, 'logs');
     await appendFile(logFile, '{"torn":');
 
+    operations.splice(0);
     const repaired = storage.eventLog.replay('run:corruption');
     expect(repaired.health).toBe('log-tail-repaired');
     expect(repaired.records.map((record) => text(record.payload))).toEqual(['one', 'two']);
+    expect(operations.some((operation) => operation.startsWith('fsync-file:'))).toBe(true);
+    expect(operations.some((operation) => operation === `fsync-directory:${join(root, 'logs')}`)).toBe(true);
+    expect(await readFile(logFile, 'utf8')).not.toContain('{"torn":');
+    const quarantined = await readdir(join(root, 'logs', 'quarantine'));
+    expect(quarantined).toHaveLength(1);
 
     const originalLines = (await readFile(logFile, 'utf8')).trimEnd().split('\n');
     const firstFrame = JSON.parse(originalLines[0] ?? '{}') as { payloadBase64: string };
@@ -234,6 +259,46 @@ describe('filesystem storage root', () => {
       payloads: [bytes('three')],
     });
     expectStorageError(rejected, 'log-interior-corrupt');
+  });
+
+  it('does not repair a torn tail while replaying degraded storage', async () => {
+    const { root, clock, storage } = await makeRoot();
+    const lease = storage.leases.acquire('run-writer:degraded-replay', 'worker-a', 60_000);
+    expect(isStorageError(lease)).toBe(false);
+    if (isStorageError(lease)) {
+      return;
+    }
+    const handle = storage.eventLog.openForAppend('run:degraded-replay', lease);
+    expect(isStorageError(handle)).toBe(false);
+    if (isStorageError(handle)) {
+      return;
+    }
+    const append = storage.eventLog.append(handle, {
+      expectedSequence: 1,
+      durability: 'barrier',
+      payloads: [bytes('one'), bytes('two')],
+    });
+    expect(isStorageError(append)).toBe(false);
+
+    const logFile = await findOnlyFile(root, 'logs');
+    await appendFile(logFile, '{"torn":');
+    const generator = new SequenceGenerator();
+    const operations: string[] = [];
+    const degraded = createFileSystemStorageRoot({
+      root,
+      clock,
+      idGenerator: generator,
+      tokenGenerator: generator,
+      probe: () => 'network-fs-degraded',
+      durabilityObserver: (event) => operations.push(`${event.operation}:${event.path}`),
+    });
+
+    const replay = degraded.eventLog.replay('run:degraded-replay');
+    expect(replay.health).toBe('network-fs-degraded');
+    expect(replay.records.map((record) => text(record.payload))).toEqual(['one', 'two']);
+    expect(operations).toEqual([]);
+    expect(await readFile(logFile, 'utf8')).toContain('{"torn":');
+    expect(await readdir(join(root, 'logs', 'quarantine'))).toEqual([]);
   });
 
   it('fences stale writers before bytes are appended', async () => {
@@ -407,6 +472,48 @@ describe('filesystem storage root', () => {
     expectStorageError(storage.artifacts.export({ artifactIds: [scratch.id] }), 'export-incomplete-forbidden');
   });
 
+  it.each([
+    'read-only',
+    'unusable',
+  ] as const)('propagates %s health and refuses authoritative writes', async (health) => {
+    const { storage } = await makeRoot({ probe: () => health });
+    const fakeLease = {
+      name: 'run-writer:health',
+      epoch: 1,
+      token: 'token',
+      expiresAt: new Date('2026-06-19T01:00:00.000Z'),
+    };
+    const fakeHandle = {
+      logId: 'run:health',
+      leaseName: fakeLease.name,
+      epoch: fakeLease.epoch,
+      token: fakeLease.token,
+    };
+
+    expect(storage.health).toBe(health);
+    expect(storage.leases.read('run-writer:health').health).toBe(health);
+    expectStorageError(storage.leases.acquire('run-writer:health', 'worker-a', 60_000), 'lease-unavailable');
+    expectStorageError(storage.eventLog.openForAppend('run:health', fakeLease), 'storage-unavailable');
+    expectStorageError(
+      storage.eventLog.append(fakeHandle, {
+        expectedSequence: 1,
+        durability: 'durable',
+        payloads: [bytes('event')],
+      }),
+      'storage-unavailable',
+    );
+    expectStorageError(
+      storage.artifacts.put({
+        content: bytes('authoritative'),
+        mediaType: 'text/plain',
+        retentionClass: 'evidence',
+        classification: 'internal',
+      }),
+      'storage-unavailable',
+    );
+    expectStorageError(storage.artifacts.export({ logIds: ['run:health'] }), 'export-incomplete-forbidden');
+  });
+
   it('degrades at open when the guarded lease CAS probe cannot be proven', async () => {
     const root = await mkdtemp(join(tmpdir(), 'fnd-02-'));
     tempRoots.push(root);
@@ -429,8 +536,10 @@ describe('filesystem storage root', () => {
   });
 
   it('exports redacted manifests with stable ordering and verifies selected blobs', async () => {
+    const operations: string[] = [];
     const { root, storage } = await makeRoot({
       redactionHooks: new Map([['mask', () => bytes('redacted-alpha')]]),
+      durabilityObserver: (event) => operations.push(`${event.operation}:${event.path}`),
     });
     const alpha = storage.artifacts.put({
       content: bytes('alpha'),
@@ -471,6 +580,7 @@ describe('filesystem storage root', () => {
       payloads: [bytes('export-event')],
     });
 
+    operations.splice(0);
     const manifest = storage.artifacts.export({ artifactIds: [beta.id, alpha.id], logIds: ['run:export'] });
     expect(isStorageError(manifest)).toBe(false);
     if (isStorageError(manifest)) {
@@ -488,6 +598,14 @@ describe('filesystem storage root', () => {
     ]);
     expect(manifest.artifacts.map((artifact) => artifact.id)).toEqual([redactedAlpha.id, beta.id]);
     expect(manifest.artifacts.map((artifact) => artifact.redactionState)).toEqual(['redacted', 'raw']);
+    expect(
+      operations.some(
+        (operation) =>
+          operation.startsWith(`fsync-file:${join(root, 'artifacts', 'exports')}`) && operation.endsWith('.tmp'),
+      ),
+    ).toBe(true);
+    expect(operations).toContain(`fsync-directory:${join(root, 'artifacts', 'exports')}`);
+    expect(operations.some((operation) => operation.endsWith('.json'))).toBe(false);
 
     const blobPath = await artifactBlobPath(root, beta);
     await writeFile(blobPath, 'tampered');

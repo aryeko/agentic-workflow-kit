@@ -11,6 +11,7 @@ import {
   type StoragePaths,
 } from './fs-utils.js';
 import type { StorageRootState } from './state.js';
+import { isStorageError } from './types.js';
 import type {
   AppendBatch,
   AppendReceipt,
@@ -40,7 +41,14 @@ type FinalizedFrame<T extends RecordFrame | CommitFrame> = {
   readonly line: string;
 };
 
+type AppendCursor = {
+  readonly nextSequence: number;
+  readonly byteOffset: number;
+};
+
 export class FileSystemEventLogStore implements EventLogStore {
+  private readonly appendCursors = new WeakMap<LogHandle, AppendCursor>();
+
   constructor(
     private readonly paths: StoragePaths,
     private readonly state: StorageRootState,
@@ -61,7 +69,12 @@ export class FileSystemEventLogStore implements EventLogStore {
     if (replay.health === 'log-interior-corrupt') {
       return storageError('log-interior-corrupt', 'event log is interior corrupt', replay.health, { logId });
     }
-    return { logId, leaseName: lease.name, epoch: lease.epoch, token: lease.token };
+    const handle = { logId, leaseName: lease.name, epoch: lease.epoch, token: lease.token };
+    this.appendCursors.set(handle, {
+      nextSequence: nextSequenceAfter(replay.records),
+      byteOffset: logSize(this.paths, logId),
+    });
+    return handle;
   }
 
   append(handle: LogHandle, batch: AppendBatch): AppendReceipt | NonDurableAck | StorageError {
@@ -84,13 +97,16 @@ export class FileSystemEventLogStore implements EventLogStore {
       });
     }
 
-    const replay = this.replay(handle.logId);
-    if (replay.health === 'log-interior-corrupt') {
-      return storageError('log-interior-corrupt', 'event log is interior corrupt', replay.health, {
+    const logPath = logFilePath(this.paths, handle.logId);
+    if (existsSync(logCorruptMarkerPath(this.paths, handle.logId))) {
+      return storageError('log-interior-corrupt', 'event log is interior corrupt', 'log-interior-corrupt', {
         logId: handle.logId,
       });
     }
-    const expected = replay.records.length === 0 ? 1 : (replay.records.at(-1)?.sequence ?? 0) + 1;
+    const expected = this.expectedSequenceForAppend(handle, logPath);
+    if (isStorageError(expected)) {
+      return expected;
+    }
     if (batch.expectedSequence !== expected) {
       return storageError('sequence-conflict', 'append expected sequence does not match replay', this.state.health, {
         expected,
@@ -98,7 +114,6 @@ export class FileSystemEventLogStore implements EventLogStore {
       });
     }
 
-    const logPath = logFilePath(this.paths, handle.logId);
     const createdLog = !existsSync(logPath);
     const byteStart = createdLog ? 0 : statSync(logPath).size;
     const finalized = buildBatchFrames(handle, batch, byteStart);
@@ -127,6 +142,7 @@ export class FileSystemEventLogStore implements EventLogStore {
         logId: handle.logId,
       });
     }
+    this.appendCursors.set(handle, { nextSequence: lastSequence + 1, byteOffset: commit.byteEnd + 1 });
 
     if (batch.durability === 'buffered') {
       return {
@@ -205,10 +221,34 @@ export class FileSystemEventLogStore implements EventLogStore {
       tailRepairNeeded = true;
     }
     if (tailRepairNeeded) {
+      if (!this.state.authoritativeWritesAvailable()) {
+        return { records: committed, health: this.state.health };
+      }
       this.repairTail(logId, logPath, committedOffset);
       return { records: committed, health: 'log-tail-repaired' };
     }
     return { records: committed, health: this.state.health };
+  }
+
+  private expectedSequenceForAppend(handle: LogHandle, logPath: string): number | StorageError {
+    const cached = this.appendCursors.get(handle);
+    const currentSize = existsSync(logPath) ? statSync(logPath).size : 0;
+    if (cached !== undefined && cached.byteOffset === currentSize) {
+      return cached.nextSequence;
+    }
+
+    const replay = this.replay(handle.logId);
+    if (replay.health === 'log-interior-corrupt') {
+      return storageError('log-interior-corrupt', 'event log is interior corrupt', replay.health, {
+        logId: handle.logId,
+      });
+    }
+    const nextSequence = nextSequenceAfter(replay.records);
+    this.appendCursors.set(handle, {
+      nextSequence,
+      byteOffset: existsSync(logPath) ? statSync(logPath).size : 0,
+    });
+    return nextSequence;
   }
 
   private repairTail(logId: string, logPath: string, committedOffset: number): void {
@@ -318,6 +358,13 @@ const computeBatchDigest = (records: readonly RecordFrame[]): string =>
     writerEpoch: records[0]?.writerEpoch,
     leaseName: records[0]?.leaseName,
   });
+
+const nextSequenceAfter = (records: readonly StoredRecord[]): number => (records.at(-1)?.sequence ?? 0) + 1;
+
+const logSize = (paths: StoragePaths, logId: string): number => {
+  const path = logFilePath(paths, logId);
+  return existsSync(path) ? statSync(path).size : 0;
+};
 
 const parseLogBuffer = (buffer: Buffer): readonly ParsedLine[] => {
   const lines: ParsedLine[] = [];

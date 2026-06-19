@@ -9,6 +9,7 @@ import {
   metadataPath,
   readTextIfExists,
   storageKey,
+  writeFileAtomicDurable,
   type StoragePaths,
 } from './fs-utils.js';
 import { isStorageError } from './types.js';
@@ -214,9 +215,12 @@ export class FileSystemArtifactStore implements ArtifactStore {
     const exportPath = join(this.paths.artifactExports, `${storageKey(id)}.json`);
     if (!existsSync(exportPath)) {
       try {
-        writeFileSync(exportPath, `${canonicalJson(manifest)}\n`);
-        fsyncFile(exportPath, this.options.durabilityObserver);
-        fsyncDirectory(this.paths.artifactExports, this.options.durabilityObserver);
+        writeFileAtomicDurable(
+          exportPath,
+          `${canonicalJson(manifest)}\n`,
+          join(this.paths.artifactExports, `${storageKey(id)}.${this.options.idGenerator.nextId('export')}.tmp`),
+          this.options.durabilityObserver,
+        );
       } catch {
         this.state.mark('network-fs-degraded');
         return storageError(
