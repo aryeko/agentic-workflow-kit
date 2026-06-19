@@ -12,7 +12,10 @@ depends-on: ["fnd-01 Configuration & Policy"]
 
 ## 1. Purpose & boundaries
 
-Credentials & Secrets turns configured secret references into tightly scoped, auditable credential use. It owns the credential model, scoped injection rules, redaction policy, audit event shapes, and egress-policy document handed to Execution Host and Agent drivers for attestation.
+Credentials & Secrets turns configured secret references into tightly scoped, auditable credential
+use. It owns the credential model, scoped injection rules, redaction policy, audit event shapes, and
+egress-policy document handed to the Execution Host for attestation and to consuming drivers as
+policy input.
 
 Out of scope: enforcing egress, implementing a secret manager, provider-specific Forge/Agent/Work Source/Execution Host behavior, and event-log storage mechanics. This Foundation domain depends only on Configuration & Policy for credential references and policy input; it does not call Edge, Control plane, provider contracts, drivers, or concrete secret backends.
 
@@ -69,7 +72,12 @@ Redaction is source-side and recursive. A `RedactionSet` covers the raw secret p
 
 The `EgressPolicy` type in [contracts-and-events.md](design/contracts-and-events.md) is default-deny data for attestation, not enforcement. It includes rules, negative probes, required attesters, freshness key, and expiry.
 
-Worker egress policies can reference only non-Forge credentials. Runner egress policies can reference Forge credentials only for runner Forge phases. A credential requiring egress confinement is released only after every configured enforcement point has a fresh positive `CapabilityAttestation` matching policy id, scope/audience, freshness key, platform, driver version, expiry, evidence ref, and negative probes. Missing, stale, partial, or mismatched attestation denies injection.
+Worker egress policies can reference only non-Forge credentials. Runner egress policies can
+reference Forge credentials only for runner Forge phases. A credential requiring egress confinement
+is released only after the Execution Host enforcement point has a fresh positive
+`CapabilityAttestation` (`capability: "egress-confinement"`) matching the egress-policy `scope` and
+`egressPolicyDigest`, freshness key, platform, driver version, expiry, evidence ref, and negative
+probes. Missing, stale, partial, or mismatched attestation denies injection.
 
 ## 5. Contracts & interfaces
 
@@ -100,14 +108,11 @@ sequenceDiagram
   participant CP as Control plane
   participant C as Credentials & Secrets
   participant EH as Execution Host
-  participant AG as Agent
   participant FG as Forge
   CP->>C: planInjection(forge credential, runner Forge phase)
-  C-->>CP: EgressPolicy(requiredAttesters: Execution Host + Agent) + InjectionPlan
-  CP->>EH: attest policy id, scope/audience, freshness key, platform, version, negative probes
+  C-->>CP: EgressPolicy(requiredAttesters: Execution Host) + InjectionPlan
+  CP->>EH: attest egress-confinement: scope, egressPolicyDigest, freshness key, platform, version, negative probes
   EH-->>CP: CapabilityAttestation positive + evidence ref
-  CP->>AG: attest policy id, scope/audience, freshness key, platform, version, negative probes
-  AG-->>CP: CapabilityAttestation positive + evidence ref
   CP->>C: resolveCredential(attestation refs) + CredentialUseStarted
   CP->>FG: runner performs push / PR / merge
   CP->>C: CredentialUseFinished + CredentialMaterialDestroyed
@@ -130,7 +135,11 @@ Capability gates treat all failures as absent capability. Unknown or ambiguous s
 
 ## 9. Testing strategy
 
-Requirements satisfied: FR-12 and NFR-SEC. Supports NFR-TEST, NFR-SAFE, NFR-DET, and NFR-SOLID. NFR-TEST is met with mock secret resolvers, mock Configuration & Policy input, mock Execution Host and Agent attestations, and zero real processes or network in control-plane tests. Driver conformance suites must prove real and mock drivers honor `InjectionPlan`, `RedactionSet`, and `EgressPolicy`.
+Requirements satisfied: FR-12 and NFR-SEC. Supports NFR-TEST, NFR-SAFE, NFR-DET, and NFR-SOLID.
+NFR-TEST is met with mock secret resolvers, mock Configuration & Policy input, mock Execution Host
+egress attestations, consuming-driver policy inputs, and zero real processes or network in
+control-plane tests. Driver conformance suites must prove real and mock drivers honor
+`InjectionPlan`, `RedactionSet`, and `EgressPolicy`.
 
 Focused tests: property-test `mayInject` so no policy or grant injects Forge credentials into the worker; prove worker env construction starts closed and only adds typed non-Forge `CredentialRef` bindings; enforce audit start/deny and finish/destroy invariants; verify tamper fields bind policy, grants, attestations, evidence, core-01 envelope metadata, and the payload-local hash chain; redact generated secrets and encodings across structured data, logs, provider responses, and text artifacts; deny missing/stale/partial/mismatched egress attestations; replay decisions from recorded references, scopes, grants, attestations, and events.
 

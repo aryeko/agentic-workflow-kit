@@ -15,7 +15,6 @@ and driver conformance matrix are cohesive detail.
 ```ts
 type HostCapability = "canKill" | "containmentStrength" | "emitsStructuredToolExit" | "egress-confinement";
 type ContainmentStrength = "none" | "process-group" | "kernel-tree" | "job-object";
-type OperationParty = "worker" | "runner";
 type CommandKind = "repo-setup" | "verify" | "diagnostic";
 type HostFailureReason =
   | "host-capability-unattested" | "workspace-mount-unavailable" | "workspace-cwd-outside-mount"
@@ -31,7 +30,7 @@ interface HostWorkspaceHandle {
   handleId: string; workspace: WorkspaceAttachment; cwdRoot: string; driverId: string; attachedAt: string;
 }
 interface HostInjectionContext {
-  operationId: string; party: OperationParty; credentialRefIds: string[]; bindings: InjectionBinding[];
+  operationId: string; party: CredentialParty; credentialRefIds: string[]; bindings: InjectionBinding[];
   egressPolicy: EgressPolicy; redactionSet: RedactionSet; requiredAuditEvent: CredentialUsePlanned;
   scopeDigest: string; attestationEventIds: string[]; expiresAt: string;
 }
@@ -44,7 +43,7 @@ interface SpawnWorkerRequest {
   launch: WorkerLaunch; injection: HostInjectionContext; timeoutSeconds: number;
 }
 interface HostCommandRequest {
-  runId: string; operationId: string; party: OperationParty; kind: CommandKind;
+  runId: string; operationId: string; party: CredentialParty; kind: CommandKind;
   workspace: HostWorkspaceHandle; argv: string[]; cwd: string; injection: HostInjectionContext;
   timeoutSeconds: number;
 }
@@ -100,14 +99,15 @@ interface ExecutionHost {
 }
 ```
 
-`HostInjectionContext` is the host-side subset of the `fnd-04` `InjectionPlan`. It preserves party,
-credential refs, bindings, egress policy, redaction set, required audit event, freshness through
-`expiresAt`, and attestation ids. `spawnWorker` and `runCommand` must reject requests whose
-`injection.party` differs from `party`, whose `egressPolicy.audience` differs from `party`, whose
-`operationId` differs from the request, or whose attestations do not match the egress policy.
+`HostInjectionContext` is the host-side projection of the `fnd-04` `InjectionPlan`. It preserves
+party, credential refs, bindings, egress policy, redaction set, and required audit event, and adds
+attestation-binding fields through `scopeDigest`, `attestationEventIds`, and `expiresAt`.
+`spawnWorker` and `runCommand` must reject requests whose `injection.party` differs from `party`,
+whose `egressPolicy.audience` differs from `party`, whose `operationId` differs from the request, or
+whose attestations do not match the egress policy.
 
 The fnd-04 public types used here are `InjectionBinding`, `EgressPolicy`, `RedactionSet`,
-`CredentialUsePlanned`, and `NegativeProbe`, defined in
+`CredentialParty`, `CredentialUsePlanned`, and `NegativeProbe`, defined in
 `../../fnd-04-credentials-and-secrets/design/contracts-and-events.md`.
 
 ## Capability set

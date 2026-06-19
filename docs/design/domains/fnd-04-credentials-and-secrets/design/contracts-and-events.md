@@ -14,7 +14,7 @@ catalog is cohesive detail and would otherwise push the design entry point past 
 type CredentialKind = "forge" | "registry-read" | "registry-publish" | "tool-api" | "verification";
 type CredentialParty = "runner" | "worker";
 type InjectionMode = "env" | "file";
-type EnforcementPoint = "execution-host" | "agent";
+type EnforcementPoint = "execution-host";
 type CredentialDenialReason =
   | "credential-ref-unresolved" | "credential-scope-denied" | "worker-forge-credential-denied"
   | "egress-policy-unattested" | "redaction-unavailable" | "audit-write-unavailable";

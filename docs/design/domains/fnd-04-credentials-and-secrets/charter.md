@@ -16,11 +16,12 @@ invariant: **the worker never holds Forge credentials** (FR-12).
 - **Scoped injection**: give each party only what it needs — the runner gets Forge credentials; the
   worker gets only its narrow needs (e.g. a registry scope), **never Forge credentials**.
 - **Redaction** of secrets in all telemetry and artifacts; **audit** of every credential use.
-- The **egress policy** (host allowlists) handed to the Execution Host / Agent for enforcement and
-  **attestation** (enforcement is delegated and proven, not performed here — AD-5).
+- The **egress policy** (host allowlists) handed to the Execution Host for enforcement and
+  **attestation**, and to consuming drivers as policy input (enforcement is delegated and proven, not
+  performed here — AD-5).
 
 ## Out of scope
-- Enforcing egress (delegated + attested by the Execution Host / Agent, prov-04/prov-01).
+- Enforcing egress (delegated + attested by the Execution Host, prov-04).
 - The secret-storage backend (env / secret manager — referenced, not reimplemented).
 
 ## Requirements owned
@@ -37,7 +38,8 @@ Standard set + the worker/runner boundary (AD-12) and NFR-SEC in
 
 ## Deliverable
 `design.md` defining: the credential model + scoped-injection rules (who gets what); the redaction
-policy; the audit events; the egress-policy shape consumed by Execution Host attestation.
+policy; the audit events; the egress-policy shape consumed by Execution Host attestation and
+consuming-driver policy input.
 
 ## Definition of done (domain-specific)
 - The worker provably never receives Forge credentials; every credential use is audited.
