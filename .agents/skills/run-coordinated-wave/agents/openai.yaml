@@ -1,0 +1,4 @@
+interface:
+  display_name: "Run Coordinated Wave"
+  short_description: "Start orchestrating ready coordinated worker wave plans."
+  default_prompt: "Start orchestrating the READY coordinated worker wave at docs/coordinated-waves/<wave-id>/README.md from this main thread."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Coordinated Wave"
+  short_description: "Draft and readiness-check coordinated worker wave plans."
+  default_prompt: "Use $create-coordinated-wave to draft a coordinated worker wave plan from the current goal and source inputs."
