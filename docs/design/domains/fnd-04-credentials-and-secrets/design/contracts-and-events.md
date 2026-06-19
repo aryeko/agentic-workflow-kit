@@ -99,7 +99,9 @@ interface AuditBase {
   runId: string; taskId: string; operationId: string; credentialRefIds: string[];
   party: CredentialParty; phase: string; policyDigest: string; credentialRefDigest: string;
   scopeDigest: string; grantEventId?: string; attestationEventIds: string[]; evidenceRefs: string[];
-  writerId: string; sequence: number; prevEventHash: string; eventHash: string; at: string;
+  // Global ordering and writer identity come from the core-01 RunEventEnvelope.
+  // This hash chain is payload-local over prior credential-audit events only.
+  prevEventHash: string; eventHash: string; at: string;
 }
 interface CredentialUsePlanned extends AuditBase { type: "CredentialUsePlanned"; egressPolicyId: string; expiresAt: string; reason: string }
 interface CredentialUseStarted extends AuditBase { type: "CredentialUseStarted"; injectionModes: InjectionMode[]; redactionFingerprintIds: string[] }
