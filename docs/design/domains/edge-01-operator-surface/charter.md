@@ -33,7 +33,9 @@ FR-10 (human-in-the-loop), the operator side of FR-4; contributes to NFR-OBS (in
 
 ## Required reading
 Standard set (see [conventions](../../conventions.md)) + [core-02](../core-02-capability-and-safety/charter.md)
-and [core-03](../core-03-approval-and-escalation/charter.md) (what the surface relays/explains).
+and [core-03](../core-03-approval-and-escalation/charter.md) (what the surface relays/explains);
+[core-01](../core-01-run-lifecycle-and-state/charter.md) owns the event-log reference vocabulary the
+surface imports for explanation evidence.
 
 ## Deliverable
 `design.md` defining: the tool + CLI command set and request/response envelope; how an operator

@@ -153,6 +153,9 @@ be mapped to a Control plane call.
 
 ## Response envelope
 
+`OperatorEventRef` is edge-01's local reference to the Operator audit event. It is distinct from
+core-01 `EvidenceEventRef`, which is imported where the edge cites arbitrary recorded evidence.
+
 ```ts
 type OperatorCommandStatus = "completed" | "accepted" | "rejected" | "deferred";
 
@@ -190,6 +193,10 @@ was writable. A `deferred` result is used for v1 external-trigger entry.
 
 ## Operator audit payload
 
+`PolicyGrantScope` is imported from core-03 Approval & Escalation. Its values are
+`"per-command" | "per-command-prefix" | "per-host" | "session"`; denial is a decision disposition,
+not a grant scope.
+
 ```ts
 interface OperatorActionRecordedPayload {
   schema: "kit-vnext.operator-action-recorded.v1";
@@ -209,7 +216,7 @@ interface OperatorActionRecordedPayload {
   approvalDecision?: {
     requestId: string;
     decision: "grant" | "deny" | "park";
-    requestedScope?: string;
+    requestedScope?: PolicyGrantScope;
   };
   override?: {
     fieldKey: string;
@@ -234,7 +241,9 @@ Parameter shapes stay intent-level and host-neutral:
 - `WaitRunParams`: run id, cursor, timeout, and attention filters. This delegates to Control plane
   wait semantics and never refreshes liveness.
 - `ApprovalDecisionParams`: approval request id, decision (`grant`, `deny`, or `park`), requested
-  scope, optional grant bounds, and Operator reason.
+  `PolicyGrantScope` (`per-command`, `per-command-prefix`, `per-host`, or `session`) for grants,
+  optional grant bounds, and Operator reason. `deny` and `park` are decision dispositions and never
+  scopes.
 - `StopRunParams`: run id, stop intent (`cancel`, `terminate-owned-worker`, or `park`), and reason.
 - `HandoffRunParams`: run id, target Operator/session reference, scope, and reason.
 - `OverrideFieldParams`: run id, profile or protected-policy field key, proposed value digest,

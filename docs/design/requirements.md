@@ -33,7 +33,7 @@ charters reference these IDs to declare which requirements they own.
 | ID | Attribute | Acceptance check |
 |---|---|---|
 | NFR-TEST | **Testable** | The control plane runs against mock providers with **zero real processes/network**. Every driver passes a **provider conformance suite** (schema probes, real-driver smoke tests, incident replays, adversarial mocks that omit/delay/lie about signals). |
-| NFR-OBS | **Observable** | Every run-state change is an event; **every terminal run has an `analysis` or `analysis-failed` record**. Invariant-tested. |
+| NFR-OBS | **Observable** | Every run-state change is an event; **every terminal run has an `AnalysisRecorded` or `AnalysisFailed` event**. Invariant-tested. |
 | NFR-EXT | **Extensible** | Adding a driver **touches only that provider's folder** — no core change. The Dependency Rule holds. |
 | NFR-SAFE | **Safe & recoverable** | No irreversible action without its capability guarantees **attested**; unknown/ambiguous external state **fails closed** to a named state. Capability-gate + fail-closed tests. |
 | NFR-SOLID | **SOLID / readable** | One responsibility per module; the **core depends only on contracts**. Review + dependency lint. |
