@@ -38,12 +38,13 @@ claimed here.
 
 ## Outputs
 
-- Eight-package workspace skeleton matching the frozen package boundary.
-- Static dependency guardrails that enforce the Dependency Rule.
-- Root TypeScript solution wiring and package reference conventions.
-- Package export conventions and reusable package templates for later domain stories.
-- Local `pnpm check` gate wired so later epics can prove format, lint, dependency, typecheck, and test
-  lanes through one command.
+| Output | Owning story | Disposition |
+|---|---|---|
+| Eight-package workspace skeleton matching the frozen package boundary. | `epic0-s1-package-graph` | covered |
+| Static dependency guardrails that enforce the Dependency Rule. | `epic0-s2-dependency-guardrails` | covered |
+| Root TypeScript solution wiring and package reference conventions. | `epic0-s3-typescript-solution` | covered |
+| Package export conventions and reusable package templates for later domain stories. | `epic0-s4-export-templates` | covered |
+| Local `pnpm check` gate wired so later epics can prove format, lint, dependency, typecheck, and test lanes through one command. | `epic0-s5-check-gate` | covered |
 
 ## Scope boundaries
 
