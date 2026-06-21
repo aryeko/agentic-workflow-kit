@@ -2,7 +2,7 @@
 title: "epic0-s5-check-gate - local check gate implementation story"
 id: "epic0-s5-check-gate"
 epic: 0
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/implementation/epics/epic-0-implementation-substrate-and-guardrails/README.md"
   - "docs/engineering/check-gate.md"

@@ -2,7 +2,7 @@
 title: "epic0-s3-typescript-solution - TypeScript solution implementation story"
 id: "epic0-s3-typescript-solution"
 epic: 0
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/implementation/epics/epic-0-implementation-substrate-and-guardrails/README.md"
   - "docs/engineering/dependency-rule-enforcement.md"

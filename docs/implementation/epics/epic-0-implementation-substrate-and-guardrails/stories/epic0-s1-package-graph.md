@@ -2,7 +2,7 @@
 title: "epic0-s1-package-graph - package graph implementation story"
 id: "epic0-s1-package-graph"
 epic: 0
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/implementation/epics/epic-0-implementation-substrate-and-guardrails/README.md"
   - "docs/design/20-sdk-and-packaging/package-target.md"

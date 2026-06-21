@@ -1,7 +1,7 @@
 ---
 title: Epic 0 - story DAG
 epic: 0
-status: "story-dag: draft"
+status: "story-dag: frozen"
 last-reviewed: "2026-06-22"
 ---
 
