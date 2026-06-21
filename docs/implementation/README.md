@@ -32,8 +32,7 @@ The implementation plan is being **re-derived from scratch** against the now-fro
 - [`work-item-authoring-guide.md`](work-item-authoring-guide.md) - how to write falsifiable story
   contracts (the standard every epic charter and story must meet).
 - [`domain-dag.md`](domain-dag.md) - the domain-level dependency picture used to derive the epic DAG.
-- [`epic-dag.md`](epic-dag.md) - the epic-level implementation DAG used to derive charters and
-  stories.
+- [`epic-dag.md`](epic-dag.md) - the milestone-level epic DAG used to derive charters and stories.
 
 The remaining derived planning artifacts — epic charters, per-story contracts, package rollout, and
 the readiness matrix — are intentionally authored from the frozen design using the authoring guide

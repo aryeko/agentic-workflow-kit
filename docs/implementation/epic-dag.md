@@ -6,12 +6,13 @@ last-reviewed: "2026-06-22"
 
 # Epic dependency DAG
 
-This document translates the domain dependency picture into implementation epics. It is a planning
-artifact between [`domain-dag.md`](domain-dag.md) and dispatch-ready story contracts.
+This document translates the domain dependency picture into high-level implementation milestones.
+It is a planning artifact between [`domain-dag.md`](domain-dag.md) and dispatch-ready story
+contracts.
 
-An epic is larger than a story and smaller than the whole rebuild. It groups work by package surface,
-dependency boundary, and evidence type. It is not a PR batch, not a worker assignment, and not a
-one-to-one copy of the design-domain list.
+An epic is a milestone. It should describe a reviewable capability band, not a package task, provider
+driver, or story group. Stories under each epic will later carry the concrete package surfaces,
+interfaces, DTOs, tests, and evidence packs.
 
 ## Sources
 
@@ -28,181 +29,128 @@ one-to-one copy of the design-domain list.
 
 ## Reading rules
 
-- Hard arrows are implementation readiness dependencies. A downstream epic should not get
-  dispatch-ready story contracts until those inputs exist.
-- Dotted arrows are risk-order or evidence-order edges. They do not imply package imports.
+- Hard arrows are milestone readiness dependencies. They answer "what must exist before this epic can
+  close?"
+- Dotted arrows are story-order or evidence-order guidance. They do not imply package imports or
+  top-level epic dependencies.
 - Provider interfaces and shared DTOs are SDK-owned. Provider mocks, conformance helpers, and
   incident fixtures are testkit-owned.
 - Concrete providers do not unblock core logic that can be built against SDK ports and testkit mocks.
-- CLI and MCP stay thin. A mock-backed CLI smoke story may happen early, but production composition
-  waits for the relevant SDK runtime and concrete providers.
+- CLI and MCP stay thin. A mock-backed executable smoke story may happen earlier, but production
+  composition waits for the core runtime, recovery path, and concrete providers.
 
 ## Epic nodes
 
-| ID | Epic | Package surface | Design scope | Primary outputs |
-|---|---|---|---|---|
-| `E0` | Package graph and guardrails | workspace, tooling | Package target, dependency rules, check gate | Eight package directories, package manifests, TypeScript references, dependency-cruiser rules, exports/types conventions |
-| `E1` | SDK foundation substrate | `packages/sdk` | `fnd-01`, `fnd-02` | Config/policy model, storage port interfaces, in-memory storage defaults, deterministic clock/id ports, storage failure tokens |
-| `E2` | SDK workspace and credentials substrate | `packages/sdk` | `fnd-03`, `fnd-04` | Local workspace/repository contracts, local git evidence model, credential refs, redaction and egress policy contracts |
-| `E3` | SDK provider ports and testkit baseline | `packages/sdk`, `packages/testkit` | `prov-01` through `prov-04` contract surfaces | Four provider interfaces, `CapabilityAttestation`, shared provider DTOs, testkit mocks, conformance helper skeleton |
-| `E4` | Run lifecycle spine | `packages/sdk` | `core-01` | Event envelopes, append/replay integration, run lifecycle state machine, projections, task snapshot model |
-| `E5` | Capability gates and analysis base | `packages/sdk`, `packages/testkit` | `core-02`, `core-07` | Capability registry, gate evaluation, telemetry/analysis invariants, incident fixture inputs for gate outcomes |
-| `E6` | Approval and liveness control | `packages/sdk` | `core-03`, `core-04` | Approval relay model, park/resume states, supervision fold, wait primitive, termination handoff model |
-| `E7` | Completion and merge readiness | `packages/sdk` | `core-05` | Evidence predicates, verify capture model, merge readiness predicate, policy snapshot handling, fail-closed outcomes |
-| `E8` | Recovery and coordination | `packages/sdk`, `packages/testkit` | `core-06` | Recovery classifier, reconciliation actions, repo-level lease coordination, action-safety gates, adversarial fixture coverage |
-| `E9` | Markdown Work Source provider | `packages/provider-markdown` | `prov-03` concrete driver | Markdown tracker parser, claim/release/status writes, Work Source conformance, file-backed evidence |
-| `E10` | Local Execution Host provider | `packages/provider-local` | `prov-04` concrete driver | Local process execution, containment/kill probes, runner-owned verify command capture, Execution Host conformance |
-| `E11` | GitHub Forge provider | `packages/provider-github` | `prov-02` concrete driver | Push/PR/check/review/merge operations, runner-scoped credential use, Forge conformance, live evidence gates |
-| `E12` | Codex Agent provider | `packages/provider-codex` | `prov-01` concrete driver | Codex session linkage, approval transport, tool/progress observation, Agent conformance, live smoke evidence |
-| `E13` | Edge composition and operator surface | `packages/cli`, `packages/mcp` | `edge-01` | `createWorkflowKit` wiring, filesystem store wiring, default composition helper, CLI commands, MCP tools, operator attention and explainability |
+| ID | Milestone | Done when | Main story groups |
+|---|---|---|---|
+| `Epic 0` | Implementation substrate and guardrails | The eight-package workspace shape, static dependency guardrails, TypeScript references, exports conventions, and local check gate are ready for feature work. | Package graph; dependency-cruiser rules; root solution wiring; package templates |
+| `Epic 1` | Foundation substrate | The SDK has the root deterministic substrate: config/policy, storage/artifact/lease ports plus in-memory defaults, workspace/repository contracts, and credential/redaction/egress policy contracts. | `fnd-01`; `fnd-02`; `fnd-03`; `fnd-04` |
+| `Epic 2` | Provider contract layer and test harness | The SDK owns the four provider interfaces and `CapabilityAttestation`; testkit owns mocks, conformance helpers, and incident fixture inputs. | Provider ports; shared DTOs; capability attestation; testkit mocks; conformance baseline |
+| `Epic 3` | Core runtime spine | The deterministic SDK runtime can record, replay, project, gate, and analyze runs against SDK ports and testkit mocks. | Run lifecycle; event state; projections; capability gates; observability and analysis |
+| `Epic 4` | Human control and liveness loop | Approval, escalation, park/resume, supervision, liveness, wait, and termination-handoff behavior are modeled and testable without concrete providers. | Approval and escalation; supervision and liveness; failure/degraded outcomes |
+| `Epic 5` | Completion, verification, and recovery | The SDK can decide completion and merge readiness from evidence, then classify recovery and reconciliation actions safely. | Completion predicates; verify capture; merge readiness; recovery classifier; coordination leases |
+| `Epic 6` | Concrete provider drivers | The four concrete provider packages pass conformance and produce the evidence their seams require. | Markdown Work Source; Local Execution Host; GitHub Forge; Codex Agent |
+| `Epic 7` | Operator surfaces and end-to-end composition | CLI and MCP expose thin operator surfaces over the SDK, wire default providers/storage, and prove the supported end-to-end flows. | CLI; MCP; default composition helper; filesystem store wiring; operator attention and explainability |
 
 ## Direct dependency table
 
-| Epic | Hard dependencies | Notes |
+| Epic | Hard dependencies | Why |
 |---|---|---|
-| `E0` | none | Establishes the package and static dependency frame. |
-| `E1` | `E0` | First SDK runtime substrate. |
-| `E2` | `E1` | Workspace consumes config/storage; credentials consume policy. |
-| `E3` | `E1`, `E2` | All four SDK provider ports and testkit mocks need the foundation substrate. |
-| `E4` | `E1` | Run lifecycle depends on config and storage, not provider ports. |
-| `E5` | `E3`, `E4` | Gates consume recorded attestations from SDK ports; analysis consumes the run log. |
-| `E6` | `E3`, `E4`, `E5` | Approval consumes capability gates; supervision consumes Agent and Execution Host ports. |
-| `E7` | `E2`, `E3`, `E4`, `E5`, `E6` | Completion consumes workspace evidence, gates, approvals, Forge and Execution Host ports. |
-| `E8` | `E1`, `E3`, `E4`, `E5`, `E6`, `E7` | Recovery consumes run state, gates, liveness, completion, storage coordination, and all seams. |
-| `E9` | `E3` | First concrete provider by risk order. |
-| `E10` | `E2`, `E3` | Uses workspace and credential/redaction contracts plus the Execution Host port. |
-| `E11` | `E2`, `E3` | Uses credential/redaction contracts plus the Forge port. |
-| `E12` | `E3` | Package-level dependency is the SDK Agent port; production smoke evidence also needs a real Execution Host provider. |
-| `E13` | `E3`, `E4` for mock smoke; `E8`, `E9`, `E10`, `E11`, `E12` for production composition | Keep mock smoke and production composition as separate stories inside the epic. |
+| `Epic 0` | none | Package and guardrail substrate comes first. |
+| `Epic 1` | `Epic 0` | Foundation code needs package boundaries and dependency enforcement. |
+| `Epic 2` | `Epic 1` | Provider contracts and mocks use foundation policy, credentials, workspace, and storage DTOs. |
+| `Epic 3` | `Epic 1`, `Epic 2` | Core runtime consumes foundation ports plus provider attestations/mocks. A `core-01` story may start after `Epic 1`; the epic closes only after provider-consuming core stories exist. |
+| `Epic 4` | `Epic 2`, `Epic 3` | Approval and liveness consume Agent/Execution Host ports plus run lifecycle and capability gates. |
+| `Epic 5` | `Epic 3`, `Epic 4` | Completion and recovery consume run state, gates, approval decisions, liveness facts, storage coordination, and seam evidence. |
+| `Epic 6` | `Epic 1`, `Epic 2` | Concrete providers implement SDK ports, use foundation contracts, and prove conformance. They can proceed in parallel with core after the contract layer is stable. |
+| `Epic 7` | `Epic 5`, `Epic 6` | Production composition needs the SDK control path and real providers. A mock-backed executable smoke story may happen after `Epic 3`. |
 
-## Split DAG views
-
-### SDK and testkit spine
+## Milestone DAG
 
 ```mermaid
 flowchart TB
-  E0["E0<br/>Package graph<br/>and guardrails"]
-  E1["E1<br/>SDK foundation<br/>substrate"]
-  E2["E2<br/>Workspace and<br/>credentials substrate"]
-  E3["E3<br/>SDK provider ports<br/>and testkit baseline"]
-  E4["E4<br/>Run lifecycle<br/>spine"]
-  E5["E5<br/>Capability gates<br/>and analysis"]
-  E6["E6<br/>Approval and<br/>liveness"]
-  E7["E7<br/>Completion and<br/>merge readiness"]
-  E8["E8<br/>Recovery and<br/>coordination"]
+  EP0["Epic 0<br/>Implementation substrate<br/>and guardrails"]
+  EP1["Epic 1<br/>Foundation<br/>substrate"]
+  EP2["Epic 2<br/>Provider contracts<br/>and test harness"]
+  EP3["Epic 3<br/>Core runtime<br/>spine"]
+  EP4["Epic 4<br/>Human control<br/>and liveness"]
+  EP5["Epic 5<br/>Completion, verification,<br/>and recovery"]
+  EP6["Epic 6<br/>Concrete provider<br/>drivers"]
+  EP7["Epic 7<br/>Operator surfaces<br/>and composition"]
 
-  E0 --> E1
-  E1 --> E2
-  E1 --> E4
-  E2 --> E3
-  E1 --> E3
-  E3 --> E5
-  E4 --> E5
-  E3 --> E6
-  E4 --> E6
-  E5 --> E6
-  E2 --> E7
-  E3 --> E7
-  E4 --> E7
-  E5 --> E7
-  E6 --> E7
-  E1 --> E8
-  E3 --> E8
-  E4 --> E8
-  E5 --> E8
-  E6 --> E8
-  E7 --> E8
+  EP0 --> EP1
+  EP1 --> EP2
+  EP1 --> EP3
+  EP2 --> EP3
+  EP2 --> EP4
+  EP3 --> EP4
+  EP3 --> EP5
+  EP4 --> EP5
+  EP1 --> EP6
+  EP2 --> EP6
+  EP5 --> EP7
+  EP6 --> EP7
+  EP3 -. "mock-backed executable smoke story" .-> EP7
 ```
 
-This is the core critical path. `E4` can run before all provider ports are done because `core-01`
-only needs config and storage. Provider-consuming core epics wait for `E3`.
+The dotted edge allows an early thin CLI smoke story without making operator production composition
+available too soon.
 
-### Concrete providers
+## Provider story-order guidance
+
+This is not a top-level epic split. It is scheduling guidance for stories inside `Epic 6`.
 
 ```mermaid
-flowchart TB
-  E2["E2<br/>Workspace and<br/>credentials substrate"]
-  E3["E3<br/>SDK provider ports<br/>and testkit baseline"]
-  E9["E9<br/>Markdown<br/>Work Source"]
-  E10["E10<br/>Local<br/>Execution Host"]
-  E11["E11<br/>GitHub<br/>Forge"]
-  E12["E12<br/>Codex<br/>Agent"]
+flowchart LR
+  Contracts["Epic 2<br/>SDK ports + testkit<br/>conformance"]
+  Markdown["Markdown<br/>Work Source"]
+  Local["Local<br/>Execution Host"]
+  GitHub["GitHub<br/>Forge"]
+  Codex["Codex<br/>Agent"]
 
-  E3 --> E9
-  E2 --> E10
-  E3 --> E10
-  E2 --> E11
-  E3 --> E11
-  E3 --> E12
-  E10 -. "live smoke evidence" .-> E12
-  E9 -. "risk order" .-> E10
-  E9 -. "risk order" .-> E11
-  E9 -. "risk order" .-> E12
+  Contracts --> Markdown
+  Contracts --> Local
+  Contracts --> GitHub
+  Contracts --> Codex
+  Markdown -. "lowest operational risk first" .-> Local
+  Markdown -. "lowest operational risk first" .-> GitHub
+  Local -. "live host evidence" .-> Codex
 ```
 
-The dotted provider edges are scheduling guidance, not import edges. Markdown is first because it is
-file-backed and avoids process, network, and credential risk. Local and GitHub can become separate
-story streams once the SDK port and testkit conformance surface exist. Codex can type against the SDK
-Agent port after `E3`, but real smoke evidence needs a working Execution Host provider.
+Markdown remains first by risk because it is file-backed and avoids process, network, and credential
+risk. Local and GitHub can proceed as separate story streams once their port contracts and
+conformance suites exist. Codex can type against the SDK Agent port after `Epic 2`, but real live
+smoke evidence depends on a working Execution Host story.
 
-### Edge and vertical slices
+## Demoted story groups
 
-```mermaid
-flowchart TB
-  E3["E3<br/>SDK provider ports<br/>and testkit baseline"]
-  E4["E4<br/>Run lifecycle<br/>spine"]
-  E8["E8<br/>Recovery and<br/>coordination"]
-  E9["E9<br/>Markdown<br/>Work Source"]
-  E10["E10<br/>Local<br/>Execution Host"]
-  E11["E11<br/>GitHub<br/>Forge"]
-  E12["E12<br/>Codex<br/>Agent"]
-  E13A["E13a<br/>Mock-backed<br/>CLI smoke"]
-  E13B["E13b<br/>CLI/MCP production<br/>composition"]
+The earlier low-level DAG slices are still useful, but they belong under epics as story groups:
 
-  E3 --> E13A
-  E4 --> E13A
-  E8 --> E13B
-  E9 --> E13B
-  E10 --> E13B
-  E11 --> E13B
-  E12 --> E13B
-  E13A -. "same epic,<br/>later story" .-> E13B
-```
-
-The early smoke story proves the SDK can be driven from an executable wrapper without moving run
-logic into the edge. The production composition story waits for recovery, concrete providers, and
-filesystem/default wiring.
-
-## Topological bands
-
-These bands are a story-authoring order. They are not PR batches.
-
-| Band | Epics | Why this band exists |
-|---|---|---|
-| 0 | `E0` | Establish package graph and dependency guardrails before code lands in packages. |
-| 1 | `E1` | Build the SDK root substrate: config, policy, storage ports, and in-memory defaults. |
-| 2 | `E2`, `E4` | Workspace/credentials and run lifecycle can proceed after the foundation substrate. |
-| 3 | `E3` | Provider-consuming core and all concrete drivers need SDK ports and testkit mocks. |
-| 4 | `E5`, `E9` | Capability/analysis and the low-risk Markdown provider can begin once ports and lifecycle exist. |
-| 5 | `E6`, `E10`, `E11` | Approval/liveness and the Local/GitHub providers consume the established port surfaces. |
-| 6 | `E7`, `E12` | Completion integrates gates/approval/workspace/Forge/Host; Codex follows port plus host evidence. |
-| 7 | `E8` | Recovery is late because it consumes the whole control spine. |
-| 8 | `E13` production composition | Edge remains thin and depends on the SDK runtime plus concrete providers. |
+| Previous low-level slice | New home |
+|---|---|
+| Package graph and guardrails | `Epic 0` story group |
+| SDK config, policy, storage, workspace, credentials | `Epic 1` story groups |
+| SDK provider ports, shared DTOs, testkit mocks, conformance baseline | `Epic 2` story groups |
+| Run lifecycle, event envelopes, projections, capability gates, observability | `Epic 3` story groups |
+| Approval, escalation, supervision, liveness, wait, termination handoff | `Epic 4` story groups |
+| Completion predicates, verify capture, merge readiness, recovery, reconciliation | `Epic 5` story groups |
+| Markdown, Local, GitHub, and Codex concrete drivers | `Epic 6` story groups |
+| CLI, MCP, default composition, filesystem storage wiring, operator attention | `Epic 7` story groups |
 
 ## Story contract inputs
 
-The next artifact should turn each epic into an epic charter, then split each charter into story
-contracts using [`work-item-authoring-guide.md`](work-item-authoring-guide.md). In those contracts:
+The next artifact should create one epic charter per milestone, then split each charter into
+dispatch-ready story contracts using [`work-item-authoring-guide.md`](work-item-authoring-guide.md).
+Those contracts should:
 
-1. `E0` should carry the workspace and dependency-rule acceptance criteria that every later package
-   depends on.
-2. SDK epics should enumerate exact DTOs, event types, failure tokens, and projection outputs from
-   the design docs.
-3. `E3` should separate SDK production interfaces from testkit mocks and conformance helpers.
-4. Provider epics should require conformance tests before live driver smoke evidence is considered
-   meaningful.
-5. `E13` should keep mock-backed smoke and production composition as separate stories so the early
-   vertical slice does not drag concrete-provider risk into the first CLI proof.
+1. Keep the epic charter high level: purpose, included domains, milestone dependencies, outputs, and
+   readiness for downstream epics.
+2. Put package paths, exact DTOs, event types, failure tokens, and test commands in story contracts,
+   not in the epic DAG.
+3. Split `Epic 2` stories so SDK production interfaces are not conflated with testkit mocks and
+   conformance helpers.
+4. Require provider conformance before live driver smoke evidence is counted as meaningful.
+5. Keep `Epic 7` mock-backed smoke and production composition as separate stories.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
