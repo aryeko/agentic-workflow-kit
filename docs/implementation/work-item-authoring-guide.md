@@ -6,18 +6,19 @@ last-reviewed: "2026-06-22"
 
 # Work item authoring guide
 
-This guide defines how to write implementation story contracts. A good story contract lets a builder,
-maintainer, or verifier reach the same DONE verdict from the same written evidence.
+This guide defines how to author the three implementation-planning layers for kit-vnext, top-down:
+**domain charters -> epic charters -> story contracts**. Each layer has its own job, its own altitude,
+and its own readiness bar. The shared goal is that a builder, maintainer, or verifier reaches the same
+verdict from the same written artifact, with no private re-derivation.
 
-It defines WHAT each story must deliver. It does not define operational prompts, review-loop
-mechanics, PR mechanics, commit policy, or session orchestration.
+It defines WHAT each layer must deliver. It does not define operational prompts, review-loop mechanics,
+PR mechanics, commit policy, or session orchestration.
 
 ## Why this standard exists
 
-The initial Epic 0/1 implementation charters created avoidable ambiguity. Their charters were coherent
-enough for design review, but not precise enough for implementation review: DONE conditions were
-sometimes prose, failure behavior was sometimes adjectival, and some branches left design choices to
-the implementer.
+The initial Epic 0/1 implementation charters created avoidable ambiguity. They were coherent enough for
+design review, but not precise enough for implementation review: DONE conditions were sometimes prose,
+failure behavior was sometimes adjectival, and some branches left design choices to the implementer.
 
 Epic 2 worked because the item contracts gave one shared rubric:
 
@@ -27,44 +28,212 @@ Epic 2 worked because the item contracts gave one shared rubric:
 - required evidence and test catalogues;
 - explicit boundaries and STOP conditions.
 
-That is the standard here. The epic charter frames the epic; the story contract is the dispatch
-surface.
+That is the standard at the story layer. But the lesson generalizes: ambiguity is cheapest to remove at
+the layer where it is introduced. A fuzzy domain boundary seeds a dozen fuzzy stories. So each layer
+gets a bar matched to what it actually owns, not a copy of the story bar.
 
-## One principle
+## The three authoring layers
 
-Write for the implementation gate, not the design gate.
+Implementation planning descends through three layers. The **domain layer is authored first**. It is
+**not an implementation spec** - it is the generative source the epics and stories are derived from
+later. Epics group domains into milestones; stories under an epic are the dispatch surface.
 
-Design prose can be coherent without being directly testable. Implementation stories must be
-countable and falsifiable. A story like "resolution precedence exactly as specified" is not ready,
-because every reader has to privately re-derive what "exactly" means. A ready story names the exact
-spec surface, the acceptance criteria, the failure outcomes, and the evidence that proves them.
+| Layer | Artifact | Authored | Job | Altitude | Graded on |
+|---|---|---|---|---|---|
+| Domain | `domains/<layer>/<id>.md` | first | name what a domain owns, what it does not own, and the signals that seed its stories | WHAT only; no HOW, no AC | crisp boundary; signals trace to design |
+| Epic | `epics/epic-<n>/README.md` | second | frame one reviewable milestone over a set of domains | milestone outcomes; no story detail | concrete outputs; explicit readiness; domain coverage |
+| Story | `epics/epic-<n>/stories/<id>.md` | last | the dispatch surface a builder implements and a verifier grades | precise DONE; free HOW | the five hard rules |
 
-Three consequences follow:
+Two rules hold across all three layers.
 
-1. Evidence over prose applies to story contracts too. A story states checkable conditions and the
-   evidence that proves them, not intentions.
-2. One shared rubric. Builders, maintainers, and verifiers grade against the same enumerated AC list
-   and failure table. A bar that lives only in someone's head guarantees divergence.
-3. High altitude on HOW, precise on DONE. The story should not dictate internal file layout,
-   signatures, or algorithms unless the design makes them normative. It must pin acceptance criteria,
-   failure outcomes, evidence, and public contract shapes.
+- **Subset of the source.** Each layer is a checkable subset of the one above it, and ultimately of
+  [`../design/`](../design/). A domain charter adds nothing beyond its design README; an epic charter
+  adds nothing beyond its domain charters; a story adds nothing beyond design. A new requirement means
+  amending the source first, never inventing it at a lower layer.
+- **Altitude flows down, never up.** A domain charter must not carry acceptance criteria; an epic
+  charter must not carry story-level DTO, event, or test detail; a story must not re-decide a domain
+  boundary. Lower-layer detail placed in a higher layer rots, because the lower layer is where it is
+  actually maintained.
 
-Altitude governs HOW. Acceptance criteria govern DONE. These do not conflict: keep HOW free, keep
-DONE pinned. Where the design names a type, event, field, token, or semantic, that is not internal
-implementation detail; it is spec surface.
+The DAGs own dependency edges: [`domain-dag.md`](domain-dag.md) for domain edges,
+[`epic-dag.md`](epic-dag.md) for epic edges. Every layer names its edges for readability but defers to
+the DAGs; when they disagree, the DAG wins.
 
-## The five hard rules
+## One principle: evidence over prose, sharpened per layer
 
-Each rule fixes a failure mode from the early epic work. A story that violates any of them is not
-ready to use.
+Write for the next reader's verdict, not for narrative coherence. Design prose can be coherent without
+being checkable. The same instinct applies at every layer, and it sharpens as you descend:
+
+1. **Evidence over prose.** A domain signal names a real design surface; an epic output names a concrete
+   contract, package, or evidence artifact; a story AC is a single assertion that is true or false
+   against a test or artifact. "Handles it correctly" is never ready at any layer.
+2. **One shared rubric.** Authors and reviewers grade against the same written check for that layer, not
+   a bar that lives in someone's head.
+3. **Altitude on HOW, precise on the layer's contract.** Where the design names a type, event, field,
+   token, or semantic, that is spec surface, not internal detail - and it is named, not paraphrased,
+   at whatever layer first references it.
+
+The rest of this guide gives each layer its purpose, its shape or template, its readiness check, and
+the lesson it encodes.
+
+---
+
+## Layer 1 - Domain charter
+
+### Purpose
+
+A domain charter is a compact planning card, authored first, derived from exactly one design-domain
+README (`source-design`). It is **not for implementation** and carries **no acceptance criteria**. Its
+job is to fix what a domain owns, what it explicitly does not own, and the story-group signals that
+later seed its epics and stories. A wrong boundary or an untraceable signal here propagates into every
+story under the domain, so this is where that class of defect is cheapest to stop.
+
+### Shape
+
+Frontmatter carries `id`, `layer`, `status`, `source-design`, and `last-reviewed`. The body uses this
+shape, in order:
+
+- `What` - the implementation-planning responsibility in plain language, naming owned spec surface with
+  the design's own type/event/token names where it helps a later story author.
+- `Why` - why the domain matters to the rebuild sequence and what it unblocks.
+- `Does Not Own` - nearby concerns that belong elsewhere, each attributed to the owning domain, epic, or
+  story group by id.
+- `Inputs And Dependencies` - the `source-design` README, direct domain dependencies (or `none`), and
+  the planning artifacts that order the work. Layer-specific lines are expected: provider charters split
+  SDK vs testkit inputs; core charters name their implementation DAG band.
+- `Downstream Epics` - milestone epics that consume this domain.
+- `Story Group Signals` - likely story groups this domain will shape, without acceptance criteria or
+  implementation HOW.
+
+The catalog of authored charters lives in [`domains/README.md`](domains/README.md).
+
+### Readiness check (Gate 1)
+
+A domain charter is planning-ready only when all four hold:
+
+- [ ] **Boundary is crisp.** `Does Not Own` names each excluded concern and attributes it to a specific
+  owner id, with no overlap against sibling charters in the same layer.
+- [ ] **Signals trace to design.** Every `Story Group Signal` and every named type/event/token maps to
+  the `source-design` README or a cited sibling design file. Nothing is invented beyond design.
+- [ ] **Altitude holds.** The charter states WHAT the domain owns, not HOW. No acceptance criteria,
+  algorithms, file layout, or session mechanics.
+- [ ] **Edges defer to the DAGs.** `Inputs And Dependencies` and `Downstream Epics` are consistent with
+  the domain and epic DAGs and do not restate edge rationale the DAGs own.
+
+If any box is empty, the charter is not ready and its stories must not be authored.
+
+### Lesson encoded
+
+The early epic charters were coherent for design review but seeded ambiguous stories. The fix at the
+domain layer is not acceptance criteria - it is boundary crispness and signal traceability, because
+those two properties are exactly what the stories under the domain inherit.
+
+---
+
+## Layer 2 - Epic charter
+
+### Purpose
+
+An epic charter frames one reviewable milestone over a set of domains. It states what becomes possible
+when those domains land together and what later epic it unblocks. It holds no story-level detail: it
+bounds the stories, it does not pre-write them.
+
+### Template
+
+Copy this block for each epic. Keep it to the epic frame; per-story detail belongs in story contracts.
+
+```markdown
+---
+title: "Epic <n> - <epic name>"
+epic: <n>
+status: "epic: draft"
+depends-on-epics: [<...>]
+---
+
+# Epic <n> - <epic name>
+
+## Purpose
+
+<What this epic makes possible.>
+
+## Included domains
+
+| Domain | Role in this epic | Primary spec surface |
+|---|---|---|
+
+## Why this epic exists
+
+<Why these domains become eligible together and what later epic they unblock.>
+
+## Frozen inputs
+
+- <Prior epic outputs and design sources consumed by this epic.>
+
+## Outputs
+
+- <Contract surfaces, packages, modules, tests, or evidence this epic must leave behind.>
+
+## Scope boundaries
+
+- In:
+- Out:
+- STOP when:
+
+## Per-domain expectations
+
+### `<domain-id>` - <name>
+
+- Responsibility:
+- Expected story files:
+- Evidence expectation:
+
+## Epic readiness
+
+- <Conditions that make the next epic safe to author or dispatch.>
+
+## Deferred work
+
+- <Work intentionally left to later epics, named by owning domain or epic.>
+```
+
+### Readiness check (Gate 2)
+
+An epic charter is planning-ready only when all five hold:
+
+- [ ] **Domains map down.** Every included domain has an authored domain charter, and its role here is
+  consistent with that charter's `What` and `Downstream Epics`.
+- [ ] **Outputs are concrete.** Each output names a contract surface, package, module, test lane, or
+  evidence artifact - not an adjective like "robust" or "complete".
+- [ ] **Readiness names the unblock.** `Epic readiness` states the conditions that make the next epic
+  safe to author or dispatch, in terms a later author can check.
+- [ ] **Edges match the DAG.** `depends-on-epics` and dependency prose agree with
+  [`epic-dag.md`](epic-dag.md); no edge rationale the DAG owns is re-argued.
+- [ ] **No story detail leaks up.** No acceptance criteria, DTO field lists, event payloads, test
+  catalogues, or file layouts appear; those are story surface.
+
+If any box is empty, the epic is not ready and its story DAG must not be frozen.
+
+### Lesson encoded
+
+Epic 2 worked because its frame was clear and the rubric lived in its stories. The epic charter's job is
+to make the milestone reviewable and bound the stories - not to inflate into a spec, and not to deflate
+into adjectives.
+
+---
+
+## Layer 3 - Story contract
+
+The story is the dispatch surface. It owns DONE, not HOW. A builder implements it and a verifier grades
+it from the same written contract. Every story must satisfy the five hard rules below; each fixes a
+failure mode from the early epic work.
 
 ### R1 - Enumerate acceptance criteria and list the spec surface
 
 Every story carries:
 
 - an ordered list of `AC-n` entries, each a single falsifiable assertion;
-- a spec-surface manifest naming the interfaces, events, DTOs, commands, evidence records, and
-  failure modes the normative design defines.
+- a spec-surface manifest naming the interfaces, events, DTOs, commands, evidence records, and failure
+  modes the normative design defines.
 
 Done means every AC is met and every manifest item is present with the design's names, shapes, and
 semantics.
@@ -85,12 +254,12 @@ Failure behavior is contract surface. For each way the story can fail or degrade
 |---|---|---|---|
 | `<kebab-token>` | Condition that activates the failure. | Required response. | `AC-n` |
 
-Bare prose like "fail closed", "degrade safely", or "handle errors" is not enough. The trigger,
-required behavior, and proving AC must be explicit.
+Bare prose like "fail closed", "degrade safely", or "handle errors" is not enough. The trigger, required
+behavior, and proving AC must be explicit.
 
-This rule matters because many review blockers happen in degraded paths: audit bypass when no writer
-is configured, authoritative writes during filesystem degradation, lease renewal after TTL expiry,
-or missing redaction hooks. Those are not edge cases; they are the contract.
+This rule matters because many review blockers happen in degraded paths: audit bypass when no writer is
+configured, authoritative writes during filesystem degradation, lease renewal after TTL expiry, or
+missing redaction hooks. Those are not edge cases; they are the contract.
 
 ### R3 - Quantify and enforce the quality bar
 
@@ -114,20 +283,20 @@ implementation and usually reappears as review churn.
 The normative design source wins. A story may make design requirements countable, but it must not add
 requirements absent from design.
 
-Before a story is ready, each AC must trace to the design. An AC with no design basis is a defect in
-the story or a gap in the design:
+Before a story is ready, each AC must trace to the design. An AC with no design basis is a defect in the
+story or a gap in the design:
 
 - if the design should require it, amend design first;
 - if the design does not require it, drop the AC.
 
-This avoids false findings where implementation is graded against a stronger bar than the approved
-spec. The story does not outrun the design.
+This avoids false findings where implementation is graded against a stronger bar than the approved spec.
+The story does not outrun the design.
 
 ### R5 - No unresolved option branches
 
-A story must not hand unresolved design choices to implementation. Avoid "do A or B" branches. Pick
-the design-backed outcome, name the exact output, and include sweep commands when the change crosses
-docs or packages.
+A story must not hand unresolved design choices to implementation. Avoid "do A or B" branches. Pick the
+design-backed outcome, name the exact output, and include sweep commands when the change crosses docs or
+packages.
 
 Bad:
 
@@ -140,10 +309,10 @@ Good:
 - consumer Y cites that shape verbatim;
 - `rg 'old_token' docs packages` returns zero hits, with output captured in the evidence pack.
 
-Producer/consumer contracts name the shared shape once. Consumers cite that shape verbatim, never
-"the fields X supplies."
+Producer/consumer contracts name the shared shape once. Consumers cite that shape verbatim, never "the
+fields X supplies."
 
-## Story contract template
+### Story contract template
 
 Copy this block for each implementation story. The story owns DONE, not HOW.
 
@@ -255,119 +424,7 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 - STOP when:
 ```
 
-## Epic charter template
-
-Copy this block for each epic. Keep it to the epic frame; per-story detail belongs in
-story contracts.
-
-```markdown
----
-title: "Epic <n> - <epic name>"
-epic: <n>
-status: "epic: draft"
-depends-on-epics: [<...>]
----
-
-# Epic <n> - <epic name>
-
-## Purpose
-
-<What this epic makes possible.>
-
-## Included domains
-
-| Domain | Role in this epic | Primary spec surface |
-|---|---|---|
-
-## Why this epic exists
-
-<Why these domains become eligible together and what later epic they unblock.>
-
-## Frozen inputs
-
-- <Prior epic outputs and design sources consumed by this epic.>
-
-## Outputs
-
-- <Contract surfaces, packages, modules, tests, or evidence this epic must leave behind.>
-
-## Scope boundaries
-
-- In:
-- Out:
-- STOP when:
-
-## Per-domain expectations
-
-### `<domain-id>` - <name>
-
-- Responsibility:
-- Expected story files:
-- Evidence expectation:
-
-## Epic readiness
-
-- <Conditions that make the next epic safe to author or dispatch.>
-
-## Deferred work
-
-- <Work intentionally left to later epics, named by owning domain or epic.>
-```
-
-## Contract readiness gates
-
-These are authoring gates for the contract documents. They are not an execution process.
-
-### Gate D0 - Domain charter is planning-ready
-
-Domain charters are authored before the stories under them, so they gate everything below. A charter
-is a planning card, not a story contract: it states WHAT a domain owns and does not own, never
-acceptance criteria or HOW. Its shape and four-item readiness check live with the charters in
-[`domains/README.md`](domains/README.md). The load-bearing rule for the layers below: every
-`Story Group Signal` must trace to the charter's `source-design`, because those signals seed the
-stories, and an untraceable signal propagates an invented requirement into every story it spawns.
-
-### Gate A - Story is authoring-ready
-
-For every story:
-
-- [ ] AC list exists; every AC is falsifiable and traces to the design.
-- [ ] Spec-surface manifest exists and matches the design.
-- [ ] Failure/degraded outcome table exists; every named state has a proving AC.
-- [ ] Coverage number and enforcement command are stated.
-- [ ] Required tests are catalogued, not presented as examples.
-- [ ] Zero unresolved option branches remain.
-- [ ] Cross-story contracts name exact shapes.
-- [ ] Sweep commands are listed for cross-corpus or cross-package changes.
-- [ ] Boundaries include owned package/module, dependency-rule edge, and STOP conditions.
-
-If any box is empty, the story is not ready.
-
-### Gate B - Evidence pack is complete
-
-An implementation claim can be evaluated only when the evidence pack contains:
-
-- a test or artifact for every AC;
-- a test or artifact for every failure/degraded outcome row;
-- gate output or a named unrelated gate blocker;
-- coverage command and result for the stated scope;
-- sweep-grep output for cross-corpus or cross-package changes;
-- conformance evidence for provider ports and mocks, plus runtime / production attestation evidence
-  only for real driver capabilities or live production powers.
-
-Mock-driven core evidence proves SDK/core readiness; real runtime probes prove production readiness
-for concrete drivers.
-
-No manifest item may be missing. No requirement may be invented beyond design. Any spec ambiguity
-must be surfaced as a design gap, not guessed in implementation.
-
-### Gate C - Readiness matrix can be updated
-
-The readiness matrix may move an implementation axis to `yes` only with cited executable evidence.
-Design approval, prose, migrated code, fixtures, schema snapshots, or worker self-report may justify
-`partial`; they do not prove implementation readiness.
-
-## Worked fragment: prose vs enumerated
+### Worked fragment: prose vs enumerated
 
 From the Epic 1 redaction lesson.
 
@@ -375,8 +432,8 @@ Wrong:
 
 > Redaction proven by property tests: no secret survives a log, telemetry, or artifact path.
 
-That leaves the hard cases implicit. A weak property can pass while secrets leak as object keys,
-base64 strings, JSON-escaped text, command lines, stack traces, or provider payloads.
+That leaves the hard cases implicit. A weak property can pass while secrets leak as object keys, base64
+strings, JSON-escaped text, command lines, stack traces, or provider payloads.
 
 Right:
 
@@ -401,23 +458,70 @@ Failure row:
 
 Now the story names the cases that matter. There is no private re-derivation left for a later reader.
 
+---
+
+## Readiness gates
+
+Authoring gates for the contract documents, one per layer plus the two evidence gates. They are
+authoring gates, not an execution process. Gate 1 is defined in [Layer 1](#readiness-check-gate-1) and
+Gate 2 in [Layer 2](#readiness-check-gate-2); the story gates follow.
+
+### Gate 3 - Story is authoring-ready
+
+For every story:
+
+- [ ] AC list exists; every AC is falsifiable and traces to the design.
+- [ ] Spec-surface manifest exists and matches the design.
+- [ ] Failure/degraded outcome table exists; every named state has a proving AC.
+- [ ] Coverage number and enforcement command are stated.
+- [ ] Required tests are catalogued, not presented as examples.
+- [ ] Zero unresolved option branches remain.
+- [ ] Cross-story contracts name exact shapes.
+- [ ] Sweep commands are listed for cross-corpus or cross-package changes.
+- [ ] Boundaries include owned package/module, dependency-rule edge, and STOP conditions.
+
+If any box is empty, the story is not ready.
+
+### Gate 4 - Evidence pack is complete
+
+An implementation claim can be evaluated only when the evidence pack contains:
+
+- a test or artifact for every AC;
+- a test or artifact for every failure/degraded outcome row;
+- gate output or a named unrelated gate blocker;
+- coverage command and result for the stated scope;
+- sweep-grep output for cross-corpus or cross-package changes;
+- conformance evidence for provider ports and mocks, plus runtime / production attestation evidence only
+  for real driver capabilities or live production powers.
+
+Mock-driven core evidence proves SDK/core readiness; real runtime probes prove production readiness for
+concrete drivers.
+
+No manifest item may be missing. No requirement may be invented beyond design. Any spec ambiguity must
+be surfaced as a design gap, not guessed in implementation.
+
+### Gate 5 - Readiness matrix can be updated
+
+The readiness matrix may move an implementation axis to `yes` only with cited executable evidence.
+Design approval, prose, migrated code, fixtures, schema snapshots, or worker self-report may justify
+`partial`; they do not prove implementation readiness.
+
 ## Quick reference
 
-A story is ready when it has:
+A **domain charter** is ready when: `Does Not Own` attributes every excluded concern to an owner id;
+every signal traces to `source-design`; it carries no AC or HOW; edges match the DAGs.
 
-- falsifiable `AC-n` list;
-- spec-surface manifest;
-- failure/degraded outcome table;
-- coverage number and enforcement command;
-- required-test catalogue;
-- zero unresolved option branches;
-- exact cross-story shapes;
-- sweep commands where needed;
-- evidence pack expectations;
-- owned boundary and STOP conditions.
+An **epic charter** is ready when: every included domain maps to a charter; outputs are concrete
+surfaces, not adjectives; `Epic readiness` names the next-epic unblock; edges match the epic DAG; no
+story-level detail leaks up.
 
-The five rules in one line: R1 enumerate ACs and manifest; R2 name failure outcomes; R3 quantify and
-enforce quality; R4 story is a subset of design; R5 no unresolved branches.
+A **story contract** is ready when it has: a falsifiable `AC-n` list; a spec-surface manifest; a
+failure/degraded outcome table; a coverage number and enforcement command; a required-test catalogue;
+zero unresolved option branches; exact cross-story shapes; sweep commands where needed; evidence-pack
+expectations; and an owned boundary with STOP conditions.
+
+The five story rules in one line: R1 enumerate ACs and manifest; R2 name failure outcomes; R3 quantify
+and enforce quality; R4 story is a subset of design; R5 no unresolved branches.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

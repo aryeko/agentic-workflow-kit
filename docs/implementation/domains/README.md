@@ -43,20 +43,11 @@ When they disagree, the DAG wins and the charter is corrected.
 
 ## Charter readiness check
 
-A domain charter is planning-ready only when all four hold. This is the contract the charters are
-graded against; it is the domain-layer analogue of the story and epic gates in
-[`../work-item-authoring-guide.md`](../work-item-authoring-guide.md).
-
-- [ ] **Boundary is crisp.** `Does Not Own` names each excluded concern and attributes it to a
-  specific owner id, with no overlap against sibling charters in the same layer.
-- [ ] **Signals trace to design.** Every `Story Group Signal` and every named type/event/token maps to
-  the `source-design` README or a cited sibling design file. Nothing is invented beyond design (R4).
-- [ ] **Altitude holds.** The charter states WHAT the domain owns, not HOW. No acceptance criteria,
-  algorithms, file layout, or session mechanics — those belong to story contracts.
-- [ ] **Edges defer to the DAGs.** `Inputs And Dependencies` and `Downstream Epics` are consistent
-  with the domain and epic DAGs and do not restate edge rationale the DAGs own.
-
-If any box is empty, the charter is not ready and must be corrected before its stories are authored.
+A domain charter is planning-ready only when its four-item readiness check passes (boundary crisp;
+signals trace to design; altitude holds; edges defer to the DAGs). That check is the canonical Gate 1
+in [`../work-item-authoring-guide.md`](../work-item-authoring-guide.md#readiness-check-gate-1), which
+defines all three planning layers — domain charter, epic charter, story contract — and the lesson each
+layer encodes. Author and grade charters against Gate 1 there; do not duplicate it here.
 
 ## Layers
 
