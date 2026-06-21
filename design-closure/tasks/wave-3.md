@@ -2,7 +2,7 @@
 
 Read `../README.md` first. This spec states **what** and **why** plus acceptance criteria; *how* (incl.
 whether to split the surfaces across sub-agents) is the session's call. Depends on Wave-1 T3 — read
-`outputs/wave-1/T3-port-hoist/` first; if it is missing/ambiguous, record a blocker rather than guessing
+`outputs/wave-1/T3/` first; if it is missing/ambiguous, record a blocker rather than guessing
 the new port location. Write only under `outputs/wave-3/T9/`.
 
 ---

@@ -4,8 +4,9 @@ You are a fresh session with no memory of prior conversation. You are the **Wave
 the kit-vnext design-closure work package.
 
 ## Setup
-1. Confirm the worktree: `git rev-parse --show-toplevel` ends in `.worktrees/docs-restructure` (branch
-   `docs/layered-restructure`). Else stop and report.
+1. Confirm you are in a working copy that contains the restructured corpus: `docs/design/30-domain-reference/`
+   must exist, and you must not be in the repo's primary checkout (any isolated worktree is fine — the
+   branch name does not matter). If the corpus is absent, stop and report.
 2. Read `design-closure/README.md` (binding rules + deliverable format) and
    `design-closure/tasks/wave-2.md` (tasks T5–T8).
 3. Read the frozen Wave-1 outputs this wave builds on: `outputs/wave-1/WAVE-1-SUMMARY.md` and the

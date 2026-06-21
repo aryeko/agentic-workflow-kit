@@ -4,12 +4,13 @@ You are a fresh session with no memory of prior conversation. You are the **Wave
 the kit-vnext design-closure work package.
 
 ## Setup
-1. Confirm the worktree: `git rev-parse --show-toplevel` ends in `.worktrees/docs-restructure` (branch
-   `docs/layered-restructure`). Else stop and report.
+1. Confirm you are in a working copy that contains the restructured corpus: `docs/design/30-domain-reference/`
+   must exist, and you must not be in the repo's primary checkout (any isolated worktree is fine — the
+   branch name does not matter). If the corpus is absent, stop and report.
 2. Read `design-closure/README.md` (binding rules + deliverable format) and
    `design-closure/tasks/wave-3.md` (task T9).
-3. Read the frozen Wave-1 T3 output this wave builds on: `outputs/wave-1/T3-port-hoist/`. If it is
-   missing or ambiguous, record a blocker rather than guessing the new port location.
+3. Read the frozen Wave-1 T3 output this wave builds on: `outputs/wave-1/T3/`. If it is missing or
+   ambiguous, record a blocker rather than guessing the new port location.
 
 ## Binding constraint (non-negotiable)
 Read the corpus (`docs/**`) read-only; write only under `design-closure/outputs/wave-3/`. Never edit
