@@ -1,7 +1,7 @@
 ---
 title: Epic 1 - Foundation substrate
 epic: 1
-status: "epic: draft"
+status: "epic: frozen"
 depends-on-epics: [0]
 last-reviewed: "2026-06-22"
 ---

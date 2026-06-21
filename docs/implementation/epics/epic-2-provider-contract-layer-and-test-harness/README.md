@@ -1,7 +1,7 @@
 ---
 title: Epic 2 - Provider contract layer and test harness
 epic: 2
-status: "epic: draft"
+status: "epic: ready"
 depends-on-epics: [1]
 last-reviewed: "2026-06-22"
 ---

@@ -375,6 +375,13 @@ Start from the signals the epic owns for each domain (its `Per-domain expectatio
 - Every owned signal maps to exactly one story node (or named `split` parts). When the DAG is frozen,
   backfill the epic charter's `Owning story` column from `TBD` to the real story ids.
 
+**Epic with no included domains.** Some epics own no domain signals - Epic 0 (substrate and guardrails)
+is the case. Their stories are sliced from the epic's **`Outputs`** instead: each Output (package
+skeleton, dependency guardrails, solution wiring, templates, the check gate) becomes one story or a tight
+cluster, by the same one-deliverable-per-node rule. The story DAG still orders them and Gate 3 still
+applies, reading "signal" as "Output line" and "covered" against the Outputs list rather than a domain
+charter.
+
 ### Story sizing heuristic
 
 A right-sized story:
@@ -397,6 +404,21 @@ are **consumers** that cite it verbatim. This is R5's "name the shape once" give
   `<producer-story>/<type>` and never redeclare the shape.
 - A shared shape with two producers is a defect — exactly one node owns it.
 
+### Delivery readiness
+
+The story DAG is the input a plan-first delivery orchestrator (e.g. the `orchestrated-delivery` skill)
+consumes, so author it to dispatch cleanly:
+
+- **Bands are waves.** The topological bands are the delivery waves; nodes in the same band share no
+  edge and can run in parallel. An edge is a hard gate — a node starts only after its dependencies are
+  committed.
+- **One ownership scope per node.** Each story owns one path boundary (the files/globs it may create or
+  modify) so the orchestrator can stage and commit strictly that pathset. Record it as the story's owned
+  pathset (a story-contract field).
+- **Suggested tier (optional).** A node may carry a suggested delivery tier - `light` / `standard` /
+  `elevated` - to hint implementer/reviewer effort. If a node looks like it needs more than the top
+  tier, it is mis-sized: decompose it, do not escalate effort.
+
 ### Readiness check (Gate 3)
 
 A story DAG is ready to freeze only when all five hold:
@@ -411,6 +433,8 @@ A story DAG is ready to freeze only when all five hold:
   creates it.
 - [ ] **Defensible sizing.** No node bundles unrelated signals; no node is too thin to carry a
   falsifiable AC.
+- [ ] **Dispatch-ready.** Each node names one owned pathset and sits in a topological band (its delivery
+  wave); every edge is a commit-gate a delivery orchestrator can enforce.
 
 If any box is empty, the story DAG is not ready and its story contracts must not be authored.
 
@@ -624,6 +648,7 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 ## Boundaries and STOP conditions
 
 - Package or module boundary:
+- Owned pathset (globs the implementer may create or modify; the orchestrator commits strictly this):
 - Forbidden dependencies:
 - STOP when:
 ```
@@ -705,7 +730,7 @@ For every story:
 - [ ] Zero unresolved option branches remain.
 - [ ] Cross-story contracts name exact shapes.
 - [ ] Sweep commands are listed for cross-corpus or cross-package changes.
-- [ ] Boundaries include owned package/module, dependency-rule edge, and STOP conditions.
+- [ ] Boundaries include owned package/module, owned pathset, dependency-rule edge, and STOP conditions.
 
 If any box is empty, the story is not ready.
 

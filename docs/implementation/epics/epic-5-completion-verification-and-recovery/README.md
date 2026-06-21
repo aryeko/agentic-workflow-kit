@@ -1,7 +1,7 @@
 ---
 title: Epic 5 - Completion, verification, and recovery
 epic: 5
-status: "epic: draft"
+status: "epic: ready"
 depends-on-epics: [3, 4]
 last-reviewed: "2026-06-22"
 ---

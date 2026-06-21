@@ -1,7 +1,7 @@
 ---
 title: Epic 3 - Core runtime spine
 epic: 3
-status: "epic: draft"
+status: "epic: ready"
 depends-on-epics: [1, 2]
 last-reviewed: "2026-06-22"
 ---

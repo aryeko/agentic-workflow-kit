@@ -1,7 +1,7 @@
 ---
 title: Epic 4 - Human control and liveness loop
 epic: 4
-status: "epic: draft"
+status: "epic: ready"
 depends-on-epics: [2, 3]
 last-reviewed: "2026-06-22"
 ---
