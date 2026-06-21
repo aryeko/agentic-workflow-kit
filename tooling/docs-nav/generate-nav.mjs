@@ -17,6 +17,7 @@
 // Usage:
 //   node tooling/docs-nav/generate-nav.mjs            # write nav into files
 //   node tooling/docs-nav/generate-nav.mjs --dry      # print plan, write nothing
+//   node tooling/docs-nav/generate-nav.mjs --check    # write nothing; exit 1 if nav is stale (CI gate)
 //   node tooling/docs-nav/generate-nav.mjs --root docs
 
 import fs from 'node:fs';
@@ -24,6 +25,7 @@ import path from 'node:path';
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
+const CHECK = args.includes('--check');
 const rootArgIdx = args.indexOf('--root');
 const DOCS = path.resolve(rootArgIdx !== -1 ? args[rootArgIdx + 1] : 'docs');
 
@@ -64,21 +66,27 @@ function indexOfDir(dir) {
   }
 }
 
-// title from frontmatter `title:` (strip "kit-vnext —" prefix) else first H1 else basename
+// title from frontmatter `title:` (strip "kit-vnext —" prefix) else first H1 else basename.
+// Memoized: each page is read once even though it is linked from several nav blocks.
+const titleCache = new Map();
 function titleOf(p) {
+  const cached = titleCache.get(p);
+  if (cached !== undefined) return cached;
   const txt = fs.readFileSync(p, 'utf8');
+  let title;
   const fm = txt.match(/^---\n([\s\S]*?)\n---/);
-  if (fm) {
-    const m = fm[1].match(/^title:\s*["']?(.+?)["']?\s*$/m);
-    if (m)
-      return m[1]
-        .replace(/^kit-vnext\s*[—-]\s*/i, '')
-        .replace(/\s*[-—]+\s*design\s*$/i, '')
-        .trim();
+  const m = fm ? fm[1].match(/^title:\s*["']?(.+?)["']?\s*$/m) : null;
+  if (m) {
+    title = m[1]
+      .replace(/^kit-vnext\s*[—-]\s*/i, '')
+      .replace(/\s*[-—]+\s*design\s*$/i, '')
+      .trim();
+  } else {
+    const h1 = txt.match(/^#\s+(.+)$/m);
+    title = h1 ? h1[1].trim() : path.basename(p, '.md');
   }
-  const h1 = txt.match(/^#\s+(.+)$/m);
-  if (h1) return h1[1].trim();
-  return path.basename(p, '.md');
+  titleCache.set(p, title);
+  return title;
 }
 
 // link order inside an index README, restricted to targets that are real children
@@ -92,7 +100,7 @@ function linkOrder(indexPath, candidates) {
   while (m) {
     const tgt = m[1].split('#')[0].trim();
     if (tgt && !/^(https?:|mailto:)/.test(tgt)) {
-      const abs = path.normpath ? path.normpath(path.join(base, tgt)) : path.normalize(path.join(base, tgt));
+      const abs = path.normalize(path.join(base, tgt));
       if (candidates.includes(abs) && !order.has(abs)) order.set(abs, i++);
     }
     m = re.exec(txt);
@@ -194,11 +202,20 @@ for (const p of linear) {
   const next = body + '\n\n' + navBlock(p) + '\n';
   if (next !== orig) {
     changed++;
-    if (!DRY) fs.writeFileSync(p, next);
+    if (!DRY && !CHECK) fs.writeFileSync(p, next);
   }
 }
 
-if (DRY) {
+if (CHECK) {
+  if (changed > 0) {
+    console.error(
+      `Nav out of date: ${changed}/${linear.length} files would change. ` +
+        'Run `node tooling/docs-nav/generate-nav.mjs` and commit the result.',
+    );
+    process.exit(1);
+  }
+  console.log(`Nav up to date (${linear.length} files).`);
+} else if (DRY) {
   console.log('READING ORDER (' + linear.length + ' pages):');
   linear.forEach((p, i) => {
     const depth = path.relative(DOCS, p).split(path.sep).length - 1;
