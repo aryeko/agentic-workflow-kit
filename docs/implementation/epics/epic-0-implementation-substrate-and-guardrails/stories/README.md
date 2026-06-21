@@ -13,6 +13,6 @@ Story contracts for Epic 0 will live in this directory.
 
 ---
 
-**↑ Up:** [Epic 0 - Implementation substrate and guardrails](../README.md) · **← Prev:** [Epic 0 - story DAG](../story-dag.md) · **Next →:** [Epic 1 - Foundation substrate](../../epic-1-foundation-substrate/README.md)
+**↑ Up:** [Epic 0 - Implementation substrate and guardrails](../README.md) · **← Prev:** [Epic 0 - Implementation substrate and guardrails](../README.md) · **Next →:** [Epic 0 - story DAG](../story-dag.md)
 
 <!-- /DOCS-NAV -->

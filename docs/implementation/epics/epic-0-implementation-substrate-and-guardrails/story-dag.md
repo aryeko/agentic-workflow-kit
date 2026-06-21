@@ -13,6 +13,6 @@ Story DAG placeholder. This file will order dispatch-ready stories inside Epic 0
 
 ---
 
-**↑ Up:** [Epic 0 - Implementation substrate and guardrails](./README.md) · **← Prev:** [Epic 0 - Implementation substrate and guardrails](./README.md) · **Next →:** [Epic 0 - stories](./stories/README.md)
+**↑ Up:** [Epic 0 - Implementation substrate and guardrails](./README.md) · **← Prev:** [Epic 0 - stories](./stories/README.md) · **Next →:** [Epic 1 - Foundation substrate](../epic-1-foundation-substrate/README.md)
 
 <!-- /DOCS-NAV -->
