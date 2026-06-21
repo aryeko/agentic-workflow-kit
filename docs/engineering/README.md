@@ -36,7 +36,7 @@ not be looser than the design specification.
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [epic dependency DAG](../implementation/epic-dag.md) · **Next →:** [Check Gate](./check-gate.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Epic 7 - stories](../implementation/epics/epic-7-operator-surfaces-and-composition/stories/README.md) · **Next →:** [Check Gate](./check-gate.md)
 
 **Children:** [Check Gate](./check-gate.md) · [Dependency Policy](./dependency-policy.md) · [Dependency Rule Enforcement](./dependency-rule-enforcement.md) · [Test Lanes](./test-lanes.md) · [Testing Policy](./testing-policy.md) · [Tooling and CI](./tooling-and-ci.md)
 

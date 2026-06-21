@@ -156,6 +156,6 @@ Those contracts should:
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [domain dependency DAG](./domain-dag.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [domain dependency DAG](./domain-dag.md) · **Next →:** [domain implementation charters](./domains/README.md)
 
 <!-- /DOCS-NAV -->

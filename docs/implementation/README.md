@@ -33,6 +33,9 @@ The implementation plan is being **re-derived from scratch** against the now-fro
   contracts (the standard every epic charter and story must meet).
 - [`domain-dag.md`](domain-dag.md) - the domain-level dependency picture used to derive the epic DAG.
 - [`epic-dag.md`](epic-dag.md) - the milestone-level epic DAG used to derive charters and stories.
+- [`domains/`](domains/README.md) - domain implementation charters, grouped by design layer.
+- [`epics/`](epics/README.md) - epic charter bundles, story DAG placeholders, and future story
+  contracts.
 
 The remaining derived planning artifacts — epic charters, per-story contracts, package rollout, and
 the readiness matrix — are intentionally authored from the frozen design using the authoring guide
@@ -85,6 +88,6 @@ standard is in [`work-item-authoring-guide.md`](work-item-authoring-guide.md).
 
 **↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [work item authoring guide](./work-item-authoring-guide.md)
 
-**Children:** [work item authoring guide](./work-item-authoring-guide.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md)
+**Children:** [work item authoring guide](./work-item-authoring-guide.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md)
 
 <!-- /DOCS-NAV -->
