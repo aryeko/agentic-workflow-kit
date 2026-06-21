@@ -42,7 +42,7 @@ The active package-boundary rules are named for the frozen package target:
 | `sdk-must-not-import-banned-external-libraries` | `sdk` importing provider clients, process helpers, executable runtimes, or CLI parsers |
 | `provider-production-must-not-import-executables-or-testkit` | `provider-*` production source importing `cli`, `mcp`, or `testkit` |
 | `provider-*-must-not-import-peer-provider` | Concrete providers importing peer provider packages |
-| `testkit-must-import-sdk-only` | `testkit` importing anything other than `sdk` |
+| `testkit-must-import-sdk-only` | `testkit` importing providers or executable packages; self-imports and `sdk` are allowed |
 | `production-must-not-import-testkit-or-fixtures` | Production source importing `testkit`, conformance helpers, fixtures, or test helpers |
 | `octokit-github-provider-only` | Octokit outside `provider-github` |
 | `execa-local-provider-only` | Execa or native containment helpers outside `provider-local` |

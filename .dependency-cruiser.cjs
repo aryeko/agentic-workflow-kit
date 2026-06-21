@@ -112,9 +112,9 @@ module.exports = {
     {
       name: 'testkit-must-import-sdk-only',
       severity: 'error',
-      comment: 'testkit may depend on sdk but not providers or executable packages.',
+      comment: 'testkit may depend on sdk and its own modules, but not providers or executable packages.',
       from: { path: TARGET.testkit },
-      to: { path: `^packages/(?!sdk(?:/|$))[^/]+(?:/|$)` },
+      to: { path: `(?:${TARGET.providers}|${TARGET.cli}|${TARGET.mcp})` },
     },
     {
       name: 'production-must-not-import-testkit-or-fixtures',
