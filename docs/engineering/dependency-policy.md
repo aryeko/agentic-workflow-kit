@@ -36,7 +36,7 @@ All package dependencies must follow:
 
 | Package | May import | Must not import |
 |---|---|---|
-| `sdk` | Pure runtime libraries only (zod + small pure utilities) | `provider-*`, `cli`, `mcp`, `testkit`, octokit, execa, native containment helper, concrete Codex client, MCP server runtime, CLI parser |
+| `sdk` | Pure runtime libraries only (zod + small pure utilities) | `provider-*`, `cli`, `mcp`, `testkit`, octokit, execa, native containment helper, child_process, concrete Codex client, MCP server runtime, CLI parser |
 | `provider-*` | `sdk` | `cli`, `mcp`, `testkit` (in production source), peer providers |
 | `cli` | `sdk`, `provider-*` | — |
 | `mcp` | `sdk`, `provider-*` | — |
@@ -52,6 +52,7 @@ The `sdk` package must not import:
 - `octokit` / `@octokit/*`
 - `execa`
 - The native containment helper
+- `node:child_process` / `child_process`
 - Any concrete Codex protocol client
 - The MCP server runtime
 - Any CLI parser

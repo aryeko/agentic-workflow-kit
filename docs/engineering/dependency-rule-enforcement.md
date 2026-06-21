@@ -39,6 +39,7 @@ The active package-boundary rules are named for the frozen package target:
 |---|---|
 | `sdk-must-not-import-runtime-packages` | `sdk` importing `provider-*`, `cli`, `mcp`, or `testkit` |
 | `sdk-must-not-import-banned-external-libraries` | `sdk` importing provider clients, process helpers, executable runtimes, or CLI parsers |
+| `sdk-must-not-import-child-process` | `sdk` importing `node:child_process` or `child_process` |
 | `provider-production-must-not-import-executables-or-testkit` | `provider-*` production source importing `cli`, `mcp`, or `testkit` |
 | `provider-*-must-not-import-peer-provider` | Concrete providers importing peer provider packages |
 | `testkit-must-import-sdk-only` | `testkit` importing providers or executable packages; self-imports and `sdk` are allowed |

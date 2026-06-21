@@ -87,6 +87,13 @@ module.exports = {
       },
     },
     {
+      name: 'sdk-must-not-import-child-process',
+      severity: 'error',
+      comment: 'sdk must not spawn runtime processes; local execution belongs behind provider-local.',
+      from: { path: TARGET.sdk },
+      to: { path: ['^node:child_process$', '^child_process$'] },
+    },
+    {
       name: 'provider-production-must-not-import-executables-or-testkit',
       severity: 'error',
       comment: 'provider-* production source may import sdk only, not cli, mcp, or testkit.',
