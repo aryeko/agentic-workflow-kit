@@ -38,47 +38,48 @@ filled. `Owning epics` is the expected home from [`epic-dag.md`](epic-dag.md) an
 
 | Domain | Charter | Owning epics (expected) | Status |
 |---|---|---|---|
-| `fnd-01` Configuration & Policy | [charter](domains/foundation/fnd-01-configuration-and-policy.md) | Epic 1 | pending |
-| `fnd-02` Storage & Artifacts | [charter](domains/foundation/fnd-02-storage-and-artifacts.md) | Epic 1 | pending |
-| `fnd-03` Workspace & Repository | [charter](domains/foundation/fnd-03-workspace-and-repository.md) | Epic 1 | pending |
-| `fnd-04` Credentials & Secrets | [charter](domains/foundation/fnd-04-credentials-and-secrets.md) | Epic 1 | pending |
+| `fnd-01` Configuration & Policy | [charter](domains/foundation/fnd-01-configuration-and-policy.md) | Epic 1 | closed |
+| `fnd-02` Storage & Artifacts | [charter](domains/foundation/fnd-02-storage-and-artifacts.md) | Epic 1 | closed |
+| `fnd-03` Workspace & Repository | [charter](domains/foundation/fnd-03-workspace-and-repository.md) | Epic 1 | closed |
+| `fnd-04` Credentials & Secrets | [charter](domains/foundation/fnd-04-credentials-and-secrets.md) | Epic 1 | closed |
 
 ### Providers
 
 | Domain | Charter | Owning epics (expected) | Status |
 |---|---|---|---|
-| `prov-01` Agent Execution | [charter](domains/providers/prov-01-agent-execution.md) | Epic 2 (port/mock), Epic 6 (driver) | pending |
-| `prov-02` Forge / Collaboration | [charter](domains/providers/prov-02-forge-collaboration.md) | Epic 2 (port/mock), Epic 6 (driver) | pending |
-| `prov-03` Work Source | [charter](domains/providers/prov-03-work-source.md) | Epic 2 (port/mock), Epic 6 (driver) | pending |
-| `prov-04` Execution Host | [charter](domains/providers/prov-04-execution-host.md) | Epic 2 (port/mock), Epic 6 (driver) | pending |
+| `prov-01` Agent Execution | [charter](domains/providers/prov-01-agent-execution.md) | Epic 2 (port/mock), Epic 6 (driver) | closed |
+| `prov-02` Forge / Collaboration | [charter](domains/providers/prov-02-forge-collaboration.md) | Epic 2 (port/mock), Epic 6 (driver) | closed |
+| `prov-03` Work Source | [charter](domains/providers/prov-03-work-source.md) | Epic 2 (port/mock), Epic 6 (driver) | closed |
+| `prov-04` Execution Host | [charter](domains/providers/prov-04-execution-host.md) | Epic 2 (port/mock), Epic 6 (driver) | closed |
 
 ### Core
 
 | Domain | Charter | Owning epics (expected) | Status |
 |---|---|---|---|
-| `core-01` Run Lifecycle & Event State | [charter](domains/core/core-01-run-lifecycle-and-state.md) | Epic 3 | pending |
-| `core-02` Capability & Safety | [charter](domains/core/core-02-capability-and-safety.md) | Epic 3 | pending |
-| `core-03` Approval & Escalation | [charter](domains/core/core-03-approval-and-escalation.md) | Epic 4 | pending |
-| `core-04` Supervision & Liveness | [charter](domains/core/core-04-supervision-and-liveness.md) | Epic 4 | pending |
-| `core-05` Completion, Verification & Merge | [charter](domains/core/core-05-completion-and-merge.md) | Epic 5 | pending |
-| `core-06` Recovery, Reconciliation & Coordination | [charter](domains/core/core-06-recovery-and-reconciliation.md) | Epic 5 | pending |
-| `core-07` Observability & Analysis | [charter](domains/core/core-07-observability-and-analysis.md) | Epic 3 | pending |
+| `core-01` Run Lifecycle & Event State | [charter](domains/core/core-01-run-lifecycle-and-state.md) | Epic 3 | closed |
+| `core-02` Capability & Safety | [charter](domains/core/core-02-capability-and-safety.md) | Epic 3 | closed |
+| `core-03` Approval & Escalation | [charter](domains/core/core-03-approval-and-escalation.md) | Epic 4 | closed |
+| `core-04` Supervision & Liveness | [charter](domains/core/core-04-supervision-and-liveness.md) | Epic 4 | closed |
+| `core-05` Completion, Verification & Merge | [charter](domains/core/core-05-completion-and-merge.md) | Epic 5 | closed |
+| `core-06` Recovery, Reconciliation & Coordination | [charter](domains/core/core-06-recovery-and-reconciliation.md) | Epic 5 | closed |
+| `core-07` Observability & Analysis | [charter](domains/core/core-07-observability-and-analysis.md) | Epic 3 | closed |
 
 ### Edge
 
 | Domain | Charter | Owning epics (expected) | Status |
 |---|---|---|---|
-| `edge-01` Operator & Entry Surface | [charter](domains/edge/edge-01-operator-surface.md) | Epic 7 (Epic 3 mock smoke) | pending |
+| `edge-01` Operator & Entry Surface | [charter](domains/edge/edge-01-operator-surface.md) | Epic 3 (mock smoke), Epic 7 (production composition) | closed |
 
 ## Epic-set completeness
 
-The epic set is coverage-complete when every row above is `closed`. Until then this page tracks which
-domains are still unaccounted for. No epic set may be frozen with a `pending` or gapped domain.
+The epic set is coverage-complete: every row above is `closed`. Epic 3 owns only the mock-backed
+Edge command-envelope smoke signal; Epic 7 owns production Edge composition and defers external
+triggers until trigger auth and transport contracts exist. No domain has a pending or gapped signal.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Epic 7 - stories](./epics/epic-7-operator-surfaces-and-composition/stories/README.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Epic 7 - story DAG](./epics/epic-7-operator-surfaces-and-composition/story-dag.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
 
 <!-- /DOCS-NAV -->
