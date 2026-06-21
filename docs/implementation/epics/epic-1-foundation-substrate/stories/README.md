@@ -13,6 +13,6 @@ Story contracts for Epic 1 will live in this directory.
 
 ---
 
-**↑ Up:** [Epic 1 - Foundation substrate](../README.md) · **← Prev:** [Epic 1 - story DAG](../story-dag.md) · **Next →:** [Epic 2 - Provider contract layer and test harness](../../epic-2-provider-contract-layer-and-test-harness/README.md)
+**↑ Up:** [Epic 1 - Foundation substrate](../README.md) · **← Prev:** [Epic 1 - Foundation substrate](../README.md) · **Next →:** [Epic 1 - story DAG](../story-dag.md)
 
 <!-- /DOCS-NAV -->
