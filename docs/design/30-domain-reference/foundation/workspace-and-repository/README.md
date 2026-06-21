@@ -47,8 +47,9 @@ declared-setup contract + fresh-worktree detection; cleanup.
 - Local git only — no remote/credential/process leakage (the hard boundary is explicit and testable).
 - Git evidence is read-only inspection; worktree lifecycle is leak-free (always cleaned up).
 
-### Open questions
-- Worktree prune/repair on missing/moved; concurrent worktrees per repo.
+### Planning answer
+- Missing or moved leased worktrees are tombstoned in v1. A replacement workspace must be created
+  through an explicit recovery action or new run path.
 
 ## 1. Purpose & boundaries
 Workspace & Repository owns the local git workspace for a Run: isolated worktree leasing, task branch
@@ -235,8 +236,8 @@ stale fence, cleanup tombstone, diff/stat artifact persistence, and boundary tes
 API has no remote, credential, push, PR, check, merge, process, or CI fields. Cleanup tests cover
 blocked retry records, stale-path tombstoning, dirty-path escalation, and finally settled cleanup.
 ## 10. Open questions
-- For a missing or moved leased worktree, is the only allowed repair a tombstone, or may a new lease
-  be recreated from `baseSha`?
+- Resolved for v1 planning: missing or moved leased worktrees are tombstoned. The domain does not
+  silently recreate a lease from `baseSha`; replacement requires explicit recovery or a new run path.
 
 Resolved in design closure: fnd-03 is path-lease-only. It allocates unique
 `<worktreeRoot>/<repoId>/<runId>/` paths and uses fnd-02 lease fencing; any run concurrency cap is

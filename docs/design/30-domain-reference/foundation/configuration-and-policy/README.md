@@ -47,8 +47,9 @@ the capability default-off model; the escalation/approval/merge policy shapes.
 - Precedence is deterministic and tested (operator override provably wins); provenance is recorded.
 - Defaults are safe; no schema field silently enables autonomy.
 
-### Open questions
-- Whether the narrow dependency-install auto-grant is default-on or explicit opt-in.
+### Planning answer
+- For v1, narrow dependency-install auto-grants are explicit opt-in. Safe defaults must not silently
+  enable install powers.
 
 ## 1. Purpose & boundaries
 
@@ -221,8 +222,8 @@ operations are used, satisfying NFR-TEST.
 
 ## 10. Open questions
 
-- The charter asks whether narrow dependency-install auto-grant is default-on or explicit opt-in.
-  This design chooses default-on but tightly bounded; chief architect should confirm.
+- Resolved for v1 planning: narrow dependency-install auto-grants are explicit opt-in. Presets may
+  enable them later, but the base default remains off.
 
 Resolved in design closure: approval/escalation handoff fields are frozen as
 `ResolvedPolicy.policy.approval`, `ResolvedPolicy.policy.approval.decisionWindowMs`,

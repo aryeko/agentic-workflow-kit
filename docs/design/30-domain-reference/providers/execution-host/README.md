@@ -58,9 +58,10 @@ must not bake in locality).
 - Egress confinement is attested with negative probes; `containmentStrength` attested honestly.
 - Verify capture is runner-owned (never the Agent's self-report). Contract satisfiable by Local + mock.
 
-### Open questions
-- Kernel-tree vs process-group containment as the floor for autonomy; native language (Rust vs Go);
-  the remote-host protocol shape (deferred).
+### Planning answer
+- Strong kill and containment proof is not required for the first simple CLI or supervised local
+  execution slice. It is required before unattended autonomy or kill-dependent recovery is enabled.
+  No Go or Rust native helper is part of the initial implementation plan.
 
 ## 1. Purpose & boundaries
 
@@ -229,9 +230,12 @@ negative probes.
 
 ## 10. Open questions
 
-- Which containment strength is the floor for unattended autonomy: `process-group` or a stronger
-  kernel-tree / Job Object guarantee?
-- Which native helper language is selected for the Local driver?
+- Resolved for v1 planning: `process-group` is sufficient only for supervised local execution. It is
+  not sufficient for unattended autonomy or kill-dependent recovery; those powers remain disabled
+  until stronger containment and termination proof are positively attested.
+- No native helper language is selected for the initial implementation plan. A Go or Rust helper may
+  be added later behind the Execution Host seam if the Local provider story proves Node cannot satisfy
+  the required containment capability.
 - What is the future remote-host protocol shape for `workspace-mount` attachments?
 - Which Local driver implementation will provide real egress confinement and negative-probe evidence?
 

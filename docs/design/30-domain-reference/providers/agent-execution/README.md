@@ -59,9 +59,11 @@ degraded modes.
   mock; the mock reproduces each named incident failure mode.
 - Approval relay, resume, and structured exit-code capture are attested honestly (degrade, never fake).
 
-### Open questions
-- Guardian: integrate (consume risk levels, answer `approveGuardianDeniedAction`) vs bypass.
-- Phase 0 vs app-server-first; worker-command parentage under app-server (with prov-04).
+### Planning answer
+- The first implementation slice does not start with a concrete Codex provider. It starts with
+  `sdk`, `testkit` mocks/in-memory ports, and a thin `cli`. When the Codex provider is implemented,
+  use app-server-first as the production path; keep Phase 0 MCP-server behavior as research/probe
+  evidence unless it proves persistent approval answer channels.
 
 ## 1. Purpose & boundaries
 
@@ -236,8 +238,10 @@ parentage probes are captured for the target Codex version.
 - Worker-command parentage under app-server is explicitly deferred to a joint prov-01/prov-04 probe.
   Until `preservesHostProcessParentage` is positive, app-server worker commands cannot unlock
   unattended autonomy or kill-dependent recovery.
-- Whether Phase 0 `mcp-server` can persist approval answer channels through `elicitation/create`
-  remains unsatisfied by current evidence.
+- Resolved for implementation planning: the first vertical slice uses `sdk`, `testkit` mocks/in-memory
+  ports, and a thin `cli`, not a concrete Codex provider. When the Codex provider starts, app-server is
+  the production path; Phase 0 `mcp-server` remains research/probe evidence unless it proves
+  persistent approval answer channels through `elicitation/create`.
 - Resolved: `outputRef` is an fnd-02 `ArtifactRef.id`, resolvable via
   `ArtifactStore.resolve(id)`; this domain still treats it as an opaque, redacted output reference.
 
