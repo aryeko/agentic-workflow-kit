@@ -17,6 +17,7 @@
 // Usage:
 //   node tooling/docs-nav/generate-nav.mjs            # write nav into files
 //   node tooling/docs-nav/generate-nav.mjs --dry      # print plan, write nothing
+//   node tooling/docs-nav/generate-nav.mjs --check    # verify up to date, exit 1 on drift
 //   node tooling/docs-nav/generate-nav.mjs --root docs
 
 import fs from 'node:fs';
@@ -24,6 +25,8 @@ import path from 'node:path';
 
 const args = process.argv.slice(2);
 const DRY = args.includes('--dry');
+// --check verifies the nav is up to date without writing; exits non-zero on drift.
+const CHECK = args.includes('--check');
 const rootArgIdx = args.indexOf('--root');
 const DOCS = path.resolve(rootArgIdx !== -1 ? args[rootArgIdx + 1] : 'docs');
 
@@ -92,7 +95,7 @@ function linkOrder(indexPath, candidates) {
   while (m) {
     const tgt = m[1].split('#')[0].trim();
     if (tgt && !/^(https?:|mailto:)/.test(tgt)) {
-      const abs = path.normpath ? path.normpath(path.join(base, tgt)) : path.normalize(path.join(base, tgt));
+      const abs = path.normalize(path.join(base, tgt));
       if (candidates.includes(abs) && !order.has(abs)) order.set(abs, i++);
     }
     m = re.exec(txt);
@@ -194,11 +197,20 @@ for (const p of linear) {
   const next = body + '\n\n' + navBlock(p) + '\n';
   if (next !== orig) {
     changed++;
-    if (!DRY) fs.writeFileSync(p, next);
+    if (!DRY && !CHECK) fs.writeFileSync(p, next);
   }
 }
 
-if (DRY) {
+if (CHECK) {
+  if (changed > 0) {
+    console.error(
+      `Nav out of date: ${changed}/${linear.length} files would change. ` +
+        'Run `node tooling/docs-nav/generate-nav.mjs` and commit the result.',
+    );
+    process.exit(1);
+  }
+  console.log(`Nav up to date (${linear.length} files).`);
+} else if (DRY) {
   console.log('READING ORDER (' + linear.length + ' pages):');
   linear.forEach((p, i) => {
     const depth = path.relative(DOCS, p).split(path.sep).length - 1;
