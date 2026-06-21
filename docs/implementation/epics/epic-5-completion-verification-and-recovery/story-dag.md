@@ -13,6 +13,6 @@ Story DAG placeholder. This file will order dispatch-ready stories inside Epic 5
 
 ---
 
-**↑ Up:** [Epic 5 - Completion, verification, and recovery](./README.md) · **← Prev:** [Epic 5 - Completion, verification, and recovery](./README.md) · **Next →:** [Epic 5 - stories](./stories/README.md)
+**↑ Up:** [Epic 5 - Completion, verification, and recovery](./README.md) · **← Prev:** [Epic 5 - stories](./stories/README.md) · **Next →:** [Epic 6 - Concrete provider drivers](../epic-6-concrete-provider-drivers/README.md)
 
 <!-- /DOCS-NAV -->

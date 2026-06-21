@@ -13,6 +13,6 @@ Story contracts for Epic 5 will live in this directory.
 
 ---
 
-**↑ Up:** [Epic 5 - Completion, verification, and recovery](../README.md) · **← Prev:** [Epic 5 - story DAG](../story-dag.md) · **Next →:** [Epic 6 - Concrete provider drivers](../../epic-6-concrete-provider-drivers/README.md)
+**↑ Up:** [Epic 5 - Completion, verification, and recovery](../README.md) · **← Prev:** [Epic 5 - Completion, verification, and recovery](../README.md) · **Next →:** [Epic 5 - story DAG](../story-dag.md)
 
 <!-- /DOCS-NAV -->

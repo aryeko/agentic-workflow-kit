@@ -13,6 +13,6 @@ Story DAG placeholder. This file will order dispatch-ready stories inside Epic 4
 
 ---
 
-**↑ Up:** [Epic 4 - Human control and liveness loop](./README.md) · **← Prev:** [Epic 4 - Human control and liveness loop](./README.md) · **Next →:** [Epic 4 - stories](./stories/README.md)
+**↑ Up:** [Epic 4 - Human control and liveness loop](./README.md) · **← Prev:** [Epic 4 - stories](./stories/README.md) · **Next →:** [Epic 5 - Completion, verification, and recovery](../epic-5-completion-verification-and-recovery/README.md)
 
 <!-- /DOCS-NAV -->

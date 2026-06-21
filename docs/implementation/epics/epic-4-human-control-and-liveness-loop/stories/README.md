@@ -13,6 +13,6 @@ Story contracts for Epic 4 will live in this directory.
 
 ---
 
-**↑ Up:** [Epic 4 - Human control and liveness loop](../README.md) · **← Prev:** [Epic 4 - story DAG](../story-dag.md) · **Next →:** [Epic 5 - Completion, verification, and recovery](../../epic-5-completion-verification-and-recovery/README.md)
+**↑ Up:** [Epic 4 - Human control and liveness loop](../README.md) · **← Prev:** [Epic 4 - Human control and liveness loop](../README.md) · **Next →:** [Epic 4 - story DAG](../story-dag.md)
 
 <!-- /DOCS-NAV -->

@@ -13,6 +13,6 @@ Story DAG placeholder. This file will order dispatch-ready stories inside Epic 3
 
 ---
 
-**↑ Up:** [Epic 3 - Core runtime spine](./README.md) · **← Prev:** [Epic 3 - Core runtime spine](./README.md) · **Next →:** [Epic 3 - stories](./stories/README.md)
+**↑ Up:** [Epic 3 - Core runtime spine](./README.md) · **← Prev:** [Epic 3 - stories](./stories/README.md) · **Next →:** [Epic 4 - Human control and liveness loop](../epic-4-human-control-and-liveness-loop/README.md)
 
 <!-- /DOCS-NAV -->

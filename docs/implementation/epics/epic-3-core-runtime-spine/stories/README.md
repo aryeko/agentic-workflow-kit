@@ -13,6 +13,6 @@ Story contracts for Epic 3 will live in this directory.
 
 ---
 
-**↑ Up:** [Epic 3 - Core runtime spine](../README.md) · **← Prev:** [Epic 3 - story DAG](../story-dag.md) · **Next →:** [Epic 4 - Human control and liveness loop](../../epic-4-human-control-and-liveness-loop/README.md)
+**↑ Up:** [Epic 3 - Core runtime spine](../README.md) · **← Prev:** [Epic 3 - Core runtime spine](../README.md) · **Next →:** [Epic 3 - story DAG](../story-dag.md)
 
 <!-- /DOCS-NAV -->
