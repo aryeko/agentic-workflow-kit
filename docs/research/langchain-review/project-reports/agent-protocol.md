@@ -99,3 +99,11 @@ There are useful generated artifacts, but they should not be mistaken for a comp
 - [Agent Protocol Python client package metadata](https://github.com/langchain-ai/agent-protocol/blob/main/client-python/pyproject.toml)
 - [langchain-protocol PyPI metadata](https://pypi.org/pypi/langchain-protocol/json)
 - [LangChain announcement: Agent Protocol interoperability for LLM agents](https://www.langchain.com/blog/agent-protocol-interoperability-for-llm-agents)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Open SWE adoption review for kit-vnext](../adoption-reports/open-swe-adoption.md) · **Next →:** [Deep Agents Code](./deep-agents-code.md)
+
+<!-- /DOCS-NAV -->

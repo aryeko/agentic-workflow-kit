@@ -81,3 +81,11 @@ The risky parts are mostly operational. Stdio MCP servers are subprocesses and t
 - [PyPI package](https://pypi.org/project/langchain-mcp-adapters/)
 - [LangChainJS MCP adapters README](https://github.com/langchain-ai/langchainjs/tree/main/libs/langchain-mcp-adapters)
 - [JavaScript reference](https://reference.langchain.com/javascript/langchain-mcp-adapters)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangSmith](./langsmith.md) · **Next →:** [Open SWE](./open-swe.md)
+
+<!-- /DOCS-NAV -->

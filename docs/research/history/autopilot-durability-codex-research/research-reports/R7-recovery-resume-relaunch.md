@@ -373,3 +373,11 @@ Precise `codex resume` semantics:
 - Should missing worktree cleanup (`prune`, branch delete, claim clear) ever be auto-safe, or always require a
   visible operator action because it changes Git administrative state?
 - How much legacy 0.7.0 recovery should be supported beyond read-only analysis and operator guidance?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R6 - Worker Supervision and Liveness](./R6-worker-supervision-liveness.md) · **Next →:** [R8 - Verification and Completion Authority](./R8-verification-completion-authority.md)
+
+<!-- /DOCS-NAV -->

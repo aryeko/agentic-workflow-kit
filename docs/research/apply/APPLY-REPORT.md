@@ -293,3 +293,11 @@ core gates -> real drivers in parallel -> edge.
 Implementation story writing can start after architect review of this apply commit. The only gate
 blockers found are existing repo hygiene failures in `_old_docs` formatting and the docs-nav generator
 lint style, not design-closure corpus conflicts.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [Tooling and CI](../../engineering/tooling-and-ci.md) · **Next →:** [Agent provider motivation and needs](../codex-agent-provider/agent-provider-motivation.md)
+
+<!-- /DOCS-NAV -->

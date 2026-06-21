@@ -163,3 +163,11 @@ patterns into contract tests.
   [core-06](../../../../docs/design/30-domain-reference/core/recovery-and-reconciliation/README.md),
   [core-07](../../../../docs/design/30-domain-reference/core/observability-and-analysis/README.md),
   [edge-01](../../../../docs/design/30-domain-reference/edge/operator-surface/README.md).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [MCP Adapters adoption review for kit-vnext](./mcp-adapters-adoption.md) · **Next →:** [Agent Protocol](../project-reports/agent-protocol.md)
+
+<!-- /DOCS-NAV -->

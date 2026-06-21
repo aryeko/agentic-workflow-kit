@@ -95,3 +95,11 @@ Operationally, LangSmith introduces external service dependency, API keys, works
 - [Bulk export trace data](https://docs.langchain.com/langsmith/data-export)
 - [langchain-ai/langsmith-sdk](https://github.com/langchain-ai/langsmith-sdk)
 - [langsmith-sdk releases](https://github.com/langchain-ai/langsmith-sdk/releases)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangGraph](./langgraph.md) · **Next →:** [MCP Adapters](./mcp-adapters.md)
+
+<!-- /DOCS-NAV -->

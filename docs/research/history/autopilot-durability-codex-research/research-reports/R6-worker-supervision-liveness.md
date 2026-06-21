@@ -311,3 +311,11 @@ This should be paired with a projection field set that is fully derived:
 - Should `approvalSla` be a hard block, a notification-only threshold, or a policy-driven choice?
 - Should the operator wait API expose SSE/HTTP directly, or only through MCP tools that return long-poll results?
 - What exact Codex app-server and MCP-server event classes are available in the target version chosen by R1?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R5 - Event-Sourced Run State](./R5-event-sourced-run-state.md) · **Next →:** [R7 - Recovery, Resume, and Relaunch](./R7-recovery-resume-relaunch.md)
+
+<!-- /DOCS-NAV -->

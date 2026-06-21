@@ -115,3 +115,11 @@ If a required probe fails, the run must downgrade before launch or stop with a n
 - Spawn descendant processes and prove termination empties the containment.
 - Compare kit-spawned `codex resume` with human-run `codex resume`.
 - Confirm parent polling never refreshes child progress timers.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Codex MCP server provider-neutral capability report](../../../codex-agent-provider/research/codex-mcp-provider-neutral-report.md) · **Next →:** [Approval and provisioning recommendations](./02-approval-provisioning.md)
+
+<!-- /DOCS-NAV -->

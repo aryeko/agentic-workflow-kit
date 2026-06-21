@@ -113,3 +113,11 @@ CI green (CollaborationInspector)  ∧  required reviews satisfied  ∧  no unre
 |---|---|
 | H | Completion + merge decided by independent evidence + declared policy; prose is a hint; merge policy explicit and recorded; irreversible actions gated (incl. on `killable`) |
 | A (verify-gate facet) | Verify evidence gathered/cross-checked independently; the gate **fails closed** when it can't run, parking recoverable instead of guessing |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [D2 — Child lifecycle & control plane](./02-lifecycle-and-control-plane.md) · **Next →:** [D4 — Run state, recovery & reconciliation](./04-run-state-and-recovery.md)
+
+<!-- /DOCS-NAV -->

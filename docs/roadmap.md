@@ -27,6 +27,6 @@ last-reviewed: "2026-06-19"
 
 ---
 
-**↑ Up:** [documentation home](./README.md) · **← Prev:** [1. Provider variability research](./agent-provider-contract-researches/gpt55thinking.md)
+**↑ Up:** [documentation home](./README.md) · **← Prev:** [Tooling and CI](./engineering/tooling-and-ci.md)
 
 <!-- /DOCS-NAV -->

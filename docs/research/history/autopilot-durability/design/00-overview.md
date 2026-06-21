@@ -244,3 +244,11 @@ Defined here at the spine level; field-level detail lives with the owning domain
 | D (enables) | Process ownership + two-tier control channel make a child killable; `auto-merge` gated on it |
 | H (enables) | Capability gates make completion/merge evidence-gated and inspectable |
 | C (sets up) | Deterministic override precedence declared here; specified in D1 |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R12 - Distributed Coordination and Concurrency](../../autopilot-durability-codex-research/research-reports/R12-coordination-concurrency.md) · **Next →:** [D1 — Execution substrate & provisioning](./01-execution-substrate-and-provisioning.md)
+
+<!-- /DOCS-NAV -->

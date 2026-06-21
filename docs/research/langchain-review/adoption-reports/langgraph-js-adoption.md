@@ -161,3 +161,11 @@ checkpoint-like stale state. Do not add LangGraph.js to kit-vnext dependencies o
   [fault tolerance](https://docs.langchain.com/oss/javascript/langgraph/fault-tolerance),
   [LangGraph.js repository](https://github.com/langchain-ai/langgraphjs),
   [LangGraph.js releases](https://github.com/langchain-ai/langgraphjs/releases)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangGraph adoption review for kit-vnext](./langgraph-adoption.md) · **Next →:** [LangSmith adoption review for kit-vnext](./langsmith-adoption.md)
+
+<!-- /DOCS-NAV -->

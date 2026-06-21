@@ -115,3 +115,11 @@ authority, and explicit provider attestations.
 - [Observability and evals](opportunities/observability-evals.md)
 - [Coding-agent operations](opportunities/coding-agent-operations.md)
 - [Tool and MCP adapter patterns](opportunities/tool-mcp-adapters.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [Codex runtime findings — controllability & approval protocol](../history/autopilot-durability/design/notes/codex-runtime-findings.md) · **Next →:** [AgentProvider acceleration](./opportunities/agent-provider-acceleration.md)
+
+<!-- /DOCS-NAV -->

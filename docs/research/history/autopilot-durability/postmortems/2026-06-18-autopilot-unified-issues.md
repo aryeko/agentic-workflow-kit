@@ -316,3 +316,11 @@ safely.** "Systemic" = reproduced under both orchestrators.
   commands."
 - **Do not** delete/rewrite those incident artifacts or re-run `/workflow-autopilot` against the
   target repos to investigate — the committed source docs + on-disk artifacts are sufficient.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Postmortem: Workflow Autopilot — RR3 runs (2026-06-17)](./2026-06-17-autopilot-rr3-runs.md) · **Next →:** [Pathway autopilot incident report](./pathway-autopilot-incident-2026-06-18.md)
+
+<!-- /DOCS-NAV -->

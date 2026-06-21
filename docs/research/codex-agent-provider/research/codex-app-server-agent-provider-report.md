@@ -628,6 +628,6 @@ human Desktop/App/TUI session and do not let them mutate the main checkout.
 
 ---
 
-**↑ Up:** [implementation contract](../README.md) · **← Prev:** [Frontier 6 charter - operator surface](../frontiers/frontier-6-operator-surface/charter.md) · **Next →:** [Codex app-server provider-neutral assessment](./codex-app-server-provider-neutral-report.md)
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Agent provider functional requirements](../agent-provider-requirements.md) · **Next →:** [Codex app-server provider-neutral assessment](./codex-app-server-provider-neutral-report.md)
 
 <!-- /DOCS-NAV -->

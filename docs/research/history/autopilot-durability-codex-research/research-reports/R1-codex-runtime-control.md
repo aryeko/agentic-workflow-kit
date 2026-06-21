@@ -281,3 +281,11 @@ Reasoning:
   without treating any unstable path as a control handle?
 - Does `codex mcp-server` in current and target versions always map sandbox/network approvals to
   `elicitation/create`, or are there versions where approval is surfaced differently?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Observability and migration recommendations](../post-research-design-recommendations/06-observability-migration.md) · **Next →:** [R2 - Child Execution Ownership and Termination](./R2-process-ownership-termination.md)
+
+<!-- /DOCS-NAV -->

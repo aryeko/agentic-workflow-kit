@@ -13,9 +13,9 @@ codex-version: "codex-cli 0.141.0"
 This report evaluates `codex app-server` against
 [`docs/implementation/agent-provider-requirements.md`](../agent-provider-requirements.md) and the
 Agent Execution design in
-[`docs/design/30-domain-reference/providers/agent-execution/README.md`](../../design/30-domain-reference/providers/agent-execution/README.md)
+[`docs/design/30-domain-reference/providers/agent-execution/README.md`](../../../design/30-domain-reference/providers/agent-execution/README.md)
 and
-[`contracts-and-conformance.md`](../../design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md).
+[`contracts-and-conformance.md`](../../../design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md).
 
 It is a fresh second-pass assessment. It does not use prior reports under
 `docs/implementation/research/`.
@@ -510,6 +510,6 @@ version, platform, config, and ownership mode.
 
 ---
 
-**↑ Up:** [implementation contract](../README.md) · **← Prev:** [Codex app-server Agent provider research](./codex-app-server-agent-provider-report.md) · **Next →:** [Codex CLI agent provider research report](./codex-cli-agent-provider-report.md)
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Codex app-server Agent provider research](./codex-app-server-agent-provider-report.md) · **Next →:** [Codex CLI agent provider research report](./codex-cli-agent-provider-report.md)
 
 <!-- /DOCS-NAV -->

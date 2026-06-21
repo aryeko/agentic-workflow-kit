@@ -286,15 +286,15 @@ app-server capabilities to MCP server.
   `initialize` probe, bounded `tools/list` probe.
 - Agent provider requirements and design corpus:
   [`agent-provider-requirements.md`](../agent-provider-requirements.md),
-  [`README.md`](../../design/30-domain-reference/providers/agent-execution/README.md),
-  [`contracts-and-conformance.md`](../../design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md),
-  [`capabilities-and-conformance.md`](../../design/30-domain-reference/providers/agent-execution/capabilities-and-conformance.md),
-  and [`codex-driver.md`](../../design/30-domain-reference/providers/agent-execution/codex-driver.md).
+  [`README.md`](../../../design/30-domain-reference/providers/agent-execution/README.md),
+  [`contracts-and-conformance.md`](../../../design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md),
+  [`capabilities-and-conformance.md`](../../../design/30-domain-reference/providers/agent-execution/capabilities-and-conformance.md),
+  and [`codex-driver.md`](../../../design/30-domain-reference/providers/agent-execution/codex-driver.md).
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---
 
-**↑ Up:** [implementation contract](../README.md) · **← Prev:** [Codex MCP Agent provider research report](./codex-mcp-agent-provider-report.md) · **Next →:** [Engineering Policy Index](../../engineering/README.md)
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Codex MCP Agent provider research report](./codex-mcp-agent-provider-report.md) · **Next →:** [Runtime and control recommendations](../../history/autopilot-durability-codex-research/post-research-design-recommendations/01-runtime-control.md)
 
 <!-- /DOCS-NAV -->

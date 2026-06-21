@@ -145,3 +145,11 @@ contracts and reports pass/fail gaps.
   [backends](https://docs.langchain.com/oss/javascript/deepagents/backends),
   [event streaming](https://docs.langchain.com/oss/javascript/deepagents/event-streaming),
   [production guide](https://docs.langchain.com/oss/javascript/deepagents/going-to-production)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Deep Agents Code adoption review for kit-vnext](./deep-agents-code-adoption.md) · **Next →:** [LangChain adoption review for kit-vnext](./langchain-adoption.md)
+
+<!-- /DOCS-NAV -->

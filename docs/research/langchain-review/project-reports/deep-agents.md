@@ -126,3 +126,11 @@ The security posture is candid: the repo says Deep Agents follows a "trust the L
 - [Deep Agents v0.6 release note](https://www.langchain.com/blog/deep-agents-0-6)
 - [deepagents on PyPI](https://pypi.org/project/deepagents/)
 - [langchain-ai/deepagentsjs GitHub repository](https://github.com/langchain-ai/deepagentsjs)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Deep Agents.js](./deep-agents-js.md) · **Next →:** [LangChain.js](./langchain-js.md)
+
+<!-- /DOCS-NAV -->

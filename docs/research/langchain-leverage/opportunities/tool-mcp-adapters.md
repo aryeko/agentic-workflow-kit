@@ -247,3 +247,11 @@ and Execution Host seams with recorded capability evidence.
 - Upstream secondary comparison: [Agent Protocol](https://github.com/langchain-ai/agent-protocol)
 - Upstream secondary comparison:
   [Agent Protocol OpenAPI](https://langchain-ai.github.io/agent-protocol/openapi.json)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Observability and evals](./observability-evals.md) · **Next →:** [LangChain leverage report](../README.md)
+
+<!-- /DOCS-NAV -->

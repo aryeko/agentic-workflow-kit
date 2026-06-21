@@ -220,6 +220,6 @@ Treat these CLI surfaces as a weak but useful provider:
 
 ---
 
-**↑ Up:** [implementation contract](../README.md) · **← Prev:** [Codex CLI agent provider research report](./codex-cli-agent-provider-report.md) · **Next →:** [Codex MCP Agent provider research report](./codex-mcp-agent-provider-report.md)
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Codex CLI agent provider research report](./codex-cli-agent-provider-report.md) · **Next →:** [Codex MCP Agent provider research report](./codex-mcp-agent-provider-report.md)
 
 <!-- /DOCS-NAV -->

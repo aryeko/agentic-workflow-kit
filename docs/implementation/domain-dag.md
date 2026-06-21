@@ -286,6 +286,6 @@ projection; the table is the audit surface.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation contract](./README.md) · **Next →:** [Agent provider motivation and needs](./agent-provider-motivation.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation contract](./README.md) · **Next →:** [package rollout](./package-rollout.md)
 
 <!-- /DOCS-NAV -->

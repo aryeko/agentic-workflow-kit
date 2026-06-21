@@ -75,3 +75,11 @@ handler), first-class in v2, impossible in `codex exec`.
 Read-only: `--help`, `codex app-server generate-ts` / `generate-json-schema`, binary string inspection, MCP
 SDK source, and kit source. No Codex session was started. All `app-server` / `remote-control` / `exec-server`
 surfaces are experimental and version-churny — pin the Codex version and re-probe the schema on upgrade.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../../README.md) · **← Prev:** [D5 — Observability & analysis](../05-observability-and-analysis.md) · **Next →:** [Postmortem: Workflow Autopilot — RR3 runs (2026-06-17)](../../postmortems/2026-06-17-autopilot-rr3-runs.md)
+
+<!-- /DOCS-NAV -->

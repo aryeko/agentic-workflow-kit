@@ -152,3 +152,11 @@ is produced here: true when `ownershipClass == owned` **and** the driver adverti
 | D | Own the pid; two-tier guaranteed termination on every terminal path; control outcomes recorded; no orphans |
 | E | Linkage is an append-only event; the launch projection derives it; clobber and "no linked session" impossible |
 | F | Supervision from real child progress; wake on real events; host-agnostic wait (no `fswatch`); terminated runs stop emitting |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [D1 — Execution substrate & provisioning](./01-execution-substrate-and-provisioning.md) · **Next →:** [D3 — Completion, verification & merge safety](./03-completion-verification-and-merge.md)
+
+<!-- /DOCS-NAV -->

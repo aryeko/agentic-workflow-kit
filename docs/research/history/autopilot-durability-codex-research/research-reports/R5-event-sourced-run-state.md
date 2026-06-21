@@ -241,3 +241,11 @@ Migration:
 - Should projection files keep the old top-level shape for compatibility, or move to `{source, data}` with compatibility unwrapping at API boundaries?
 - Should the event log remain NDJSON or move to RFC 7464 JSON text sequences for better recovery from truncated records? NDJSON is simpler and already used, but RFC 7464 has stronger resynchronization semantics.
 - How much legacy inference is acceptable for old runs with no event log? Recommendation: no writable migration, only read-only reports.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R4 - Sandbox, Dependency Install, and Supply Chain](./R4-sandbox-dependency-supply-chain.md) · **Next →:** [R6 - Worker Supervision and Liveness](./R6-worker-supervision-liveness.md)
+
+<!-- /DOCS-NAV -->

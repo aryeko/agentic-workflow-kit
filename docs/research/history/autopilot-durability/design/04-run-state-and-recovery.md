@@ -110,3 +110,11 @@ is **restarted** — no silent loss. *(Owned-resume classification is defined in
 |---|---|
 | G | Projections can't diverge; reconciliation/duplicate-clear via events not edits; single tracker authority; defensive recovery guard; lifecycle-bound timers |
 | K | In-band recovery as a first-class, evidence-classified stage — manual out-of-band recovery becomes the surfaced exception, not the required path |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [D3 — Completion, verification & merge safety](./03-completion-verification-and-merge.md) · **Next →:** [D5 — Observability & analysis](./05-observability-and-analysis.md)
+
+<!-- /DOCS-NAV -->

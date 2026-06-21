@@ -176,6 +176,6 @@ Frontier 6 is ready when:
 
 ---
 
-**↑ Up:** [implementation contract](../../README.md) · **← Prev:** [Frontier 5 charter - completion and recovery](../frontier-5-completion-and-recovery/charter.md) · **Next →:** [Codex app-server Agent provider research](../../research/codex-app-server-agent-provider-report.md)
+**↑ Up:** [implementation contract](../../README.md) · **← Prev:** [Frontier 5 charter - completion and recovery](../frontier-5-completion-and-recovery/charter.md) · **Next →:** [Engineering Policy Index](../../../engineering/README.md)
 
 <!-- /DOCS-NAV -->

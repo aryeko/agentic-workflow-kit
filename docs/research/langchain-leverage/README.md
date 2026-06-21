@@ -60,3 +60,13 @@ The fit target was kit-vnext's applied design closure:
 - [SDK provider ports](../../../docs/design/20-sdk-and-packaging/provider-ports.md)
 - [Domain DAG](../../../docs/implementation/domain-dag.md)
 - [Readiness matrix](../../../docs/implementation/readiness-matrix.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [Tool and MCP adapter patterns](./opportunities/tool-mcp-adapters.md) · **Next →:** [LangChain leverage report for kit-vnext](./LEVERAGE-REPORT.md)
+
+**Children:** [LangChain leverage report for kit-vnext](./LEVERAGE-REPORT.md) · [LangChain leverage sources](./SOURCES.md) · [AgentProvider acceleration](./opportunities/agent-provider-acceleration.md) · [Durable execution and tests](./opportunities/durable-execution-tests.md) · [Observability and evals](./opportunities/observability-evals.md) · [Coding-agent operations](./opportunities/coding-agent-operations.md) · [Tool and MCP adapter patterns](./opportunities/tool-mcp-adapters.md)
+
+<!-- /DOCS-NAV -->

@@ -65,3 +65,11 @@ Record LangGraph as "reference only" in the unified adoption summary. Revisit af
 - Readiness matrix: [readiness-matrix.md](../../../../docs/implementation/readiness-matrix.md)
 - Relevant domain designs: [core-01](../../../../docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md), [core-03](../../../../docs/design/30-domain-reference/core/approval-and-escalation/README.md), [core-04](../../../../docs/design/30-domain-reference/core/supervision-and-liveness/README.md), [core-05](../../../../docs/design/30-domain-reference/core/completion-and-merge/README.md), [core-06](../../../../docs/design/30-domain-reference/core/recovery-and-reconciliation/README.md), [core-07](../../../../docs/design/30-domain-reference/core/observability-and-analysis/README.md), [prov-01](../../../../docs/design/30-domain-reference/providers/agent-execution/README.md), [prov-04](../../../../docs/design/30-domain-reference/providers/execution-host/README.md)
 - External sources summarized by the project report: [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview), [Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api), [Functional API](https://docs.langchain.com/oss/python/langgraph/functional-api), [Persistence](https://docs.langchain.com/oss/python/langgraph/persistence), [Interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts), [Event streaming](https://docs.langchain.com/oss/python/langgraph/event-streaming), [Streaming](https://docs.langchain.com/oss/python/langgraph/streaming), [Time travel](https://docs.langchain.com/oss/python/langgraph/use-time-travel), [LangGraph releases](https://github.com/langchain-ai/langgraph/releases)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangChain.js adoption review for kit-vnext](./langchain-js-adoption.md) · **Next →:** [LangGraph.js adoption review for kit-vnext](./langgraph-js-adoption.md)
+
+<!-- /DOCS-NAV -->

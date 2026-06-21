@@ -207,3 +207,11 @@ need network must run `on-request` (or `untrusted`).
 | A | Child installs itself via scoped escalation; setup is a contracted child step; default policy pre-approves install (per-host, audited) |
 | B | Approval requests are caught, risk-classified, adjudicated (modes/tiers), and answered with a scoped grant — never dropped; `never` default removed |
 | C | Deterministic precedence (operator override wins); resolved profile recorded with per-field provenance |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [D0 — Architecture spine & contracts](./00-overview.md) · **Next →:** [D2 — Child lifecycle & control plane](./02-lifecycle-and-control-plane.md)
+
+<!-- /DOCS-NAV -->

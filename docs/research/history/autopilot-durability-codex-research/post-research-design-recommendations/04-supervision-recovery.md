@@ -132,3 +132,11 @@ A session id alone is never ownership.
 - Lease-fencing stale writer replay.
 - Approval recovery across parent restart.
 - Legacy 0.7.0 incident import.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [State and coordination recommendations](./03-state-coordination.md) · **Next →:** [Completion and merge recommendations](./05-completion-merge.md)
+
+<!-- /DOCS-NAV -->

@@ -558,6 +558,6 @@ Expected default: negative until the joint prov-01/prov-04 probe passes.
 
 ---
 
-**↑ Up:** [implementation contract](../README.md) · **← Prev:** [Codex CLI provider-neutral Agent provider assessment](./codex-cli-provider-neutral-report.md) · **Next →:** [Codex MCP server provider-neutral capability report](./codex-mcp-provider-neutral-report.md)
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Codex CLI provider-neutral Agent provider assessment](./codex-cli-provider-neutral-report.md) · **Next →:** [Codex MCP server provider-neutral capability report](./codex-mcp-provider-neutral-report.md)
 
 <!-- /DOCS-NAV -->

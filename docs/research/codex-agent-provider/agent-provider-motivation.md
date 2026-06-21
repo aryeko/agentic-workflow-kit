@@ -14,7 +14,7 @@ obligations, guarantees, shapes, or degraded behavior — those are requirements
 downstream against this brief.
 
 Read this first when designing the Agent seam from fresh. Read the requirements doc and the design
-corpus ([`../design/30-domain-reference/providers/agent-execution/`](../design/30-domain-reference/providers/agent-execution/README.md))
+corpus ([`../design/30-domain-reference/providers/agent-execution/`](../../design/30-domain-reference/providers/agent-execution/README.md))
 second, once the needs here are agreed.
 
 ## Why this doc exists (the layer split)
@@ -182,6 +182,6 @@ the requirements are incomplete.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [domain dependency DAG](./domain-dag.md) · **Next →:** [Agent provider functional requirements](./agent-provider-requirements.md)
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [Design closure apply report](../apply/APPLY-REPORT.md) · **Next →:** [Agent provider functional requirements](./agent-provider-requirements.md)
 
 <!-- /DOCS-NAV -->

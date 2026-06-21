@@ -49,6 +49,6 @@ not duplicate them.
 
 **Next →:** [design corpus overview](./design/README.md)
 
-**Children:** [design corpus overview](./design/README.md) · [implementation contract](./implementation/README.md) · [Engineering Policy Index](./engineering/README.md) · [Provider-Neutral Agent Driver Contract (v2)](./agent-provider-contract-researches/gemini31pro.md) · [Design Proposal: Provider-Neutral Agent Driver Contract (v2)](./agent-provider-contract-researches/gemini35flash.md) · [1. Provider variability research](./agent-provider-contract-researches/gpt55thinking.md) · [roadmap](./roadmap.md)
+**Children:** [design corpus overview](./design/README.md) · [implementation contract](./implementation/README.md) · [Engineering Policy Index](./engineering/README.md) · [roadmap](./roadmap.md)
 
 <!-- /DOCS-NAV -->

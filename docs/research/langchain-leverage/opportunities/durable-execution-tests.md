@@ -220,3 +220,11 @@ stale-state scenario from scratch.
 - Official docs: [LangGraph.js time travel](https://docs.langchain.com/oss/javascript/langgraph/use-time-travel).
 - Official docs: [LangGraph.js backward compatibility](https://docs.langchain.com/oss/javascript/langgraph/backward-compatibility).
 - Official docs: [LangGraph Python fault tolerance](https://docs.langchain.com/oss/python/langgraph/fault-tolerance).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Coding-agent operations](./coding-agent-operations.md) · **Next →:** [Observability and evals](./observability-evals.md)
+
+<!-- /DOCS-NAV -->

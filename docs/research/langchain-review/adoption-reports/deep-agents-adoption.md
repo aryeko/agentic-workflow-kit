@@ -164,3 +164,11 @@ be honestly attested.
 - [Run Lifecycle & Event State domain](../../../../docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md)
 - [Storage & Artifacts domain](../../../../docs/design/30-domain-reference/foundation/storage-and-artifacts/README.md)
 - [Observability & Analysis domain](../../../../docs/design/30-domain-reference/core/observability-and-analysis/README.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Agent Protocol adoption review for kit-vnext](./agent-protocol-adoption.md) · **Next →:** [Deep Agents Code adoption review for kit-vnext](./deep-agents-code-adoption.md)
+
+<!-- /DOCS-NAV -->

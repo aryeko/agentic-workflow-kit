@@ -103,3 +103,11 @@ As of the current GitHub releases page, there are no published releases, so adop
 - [Open SWE CI monitor](https://github.com/langchain-ai/open-swe/blob/main/agent/ci_monitor.py)
 - [Open SWE releases page](https://github.com/langchain-ai/open-swe/releases)
 - [LangChain announcement blog, March 17, 2026](https://www.langchain.com/blog/open-swe-an-open-source-framework-for-internal-coding-agents)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [MCP Adapters](./mcp-adapters.md) · **Next →:** [LangChain ecosystem review](../README.md)
+
+<!-- /DOCS-NAV -->

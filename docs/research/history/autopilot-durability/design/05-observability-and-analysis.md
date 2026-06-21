@@ -86,3 +86,11 @@ promised.
 |---|---|
 | I | Structured `child-run-result` + nested-agent telemetry + honest nullable metrics; free-text `evidenceParser` retired |
 | J | Analysis auto-fires on terminal/block and correlates the event log; regression-tested against the two real incidents |
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [D4 — Run state, recovery & reconciliation](./04-run-state-and-recovery.md) · **Next →:** [Codex runtime findings — controllability & approval protocol](./notes/codex-runtime-findings.md)
+
+<!-- /DOCS-NAV -->

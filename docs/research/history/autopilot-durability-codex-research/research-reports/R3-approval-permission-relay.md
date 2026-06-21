@@ -432,3 +432,11 @@ Required failure behavior:
   lockfile, or keep lifecycle scripts separately escalated by default?
 - What audit retention and redaction policy should apply to approval events that include command previews or
   destination hosts?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R2 - Child Execution Ownership and Termination](./R2-process-ownership-termination.md) · **Next →:** [R4 - Sandbox, Dependency Install, and Supply Chain](./R4-sandbox-dependency-supply-chain.md)
+
+<!-- /DOCS-NAV -->

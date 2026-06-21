@@ -289,3 +289,11 @@ without owning orchestration, state, approval, verification, Forge credentials, 
   [remote sandboxes](https://docs.langchain.com/oss/python/deepagents/code/remote-sandboxes),
   [architecture note](https://raw.githubusercontent.com/langchain-ai/deepagents/main/libs/code/ARCHITECTURE.md),
   [threat model](https://raw.githubusercontent.com/langchain-ai/deepagents/main/libs/code/THREAT_MODEL.md).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [AgentProvider acceleration](./agent-provider-acceleration.md) · **Next →:** [Durable execution and tests](./durable-execution-tests.md)
+
+<!-- /DOCS-NAV -->

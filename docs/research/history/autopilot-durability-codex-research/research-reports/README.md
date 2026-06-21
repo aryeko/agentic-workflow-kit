@@ -84,3 +84,13 @@ Each report follows the same shape:
 - Incident context: [../../autopilot-durability/README.md](../../autopilot-durability/README.md)
 - Unified issue report:
   [../../autopilot-durability/postmortems/2026-06-18-autopilot-unified-issues.md](../../autopilot-durability/postmortems/2026-06-18-autopilot-unified-issues.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Observability and migration recommendations](../post-research-design-recommendations/06-observability-migration.md) · **Next →:** [R1 - Codex Runtime Control](./R1-codex-runtime-control.md)
+
+**Children:** [R1 - Codex Runtime Control](./R1-codex-runtime-control.md) · [R2 - Child Execution Ownership and Termination](./R2-process-ownership-termination.md) · [R3 - Approval and Permission Relay](./R3-approval-permission-relay.md) · [R4 - Sandbox, Dependency Install, and Supply Chain](./R4-sandbox-dependency-supply-chain.md) · [R5 - Event-Sourced Run State](./R5-event-sourced-run-state.md) · [R6 - Worker Supervision and Liveness](./R6-worker-supervision-liveness.md) · [R7 - Recovery, Resume, and Relaunch](./R7-recovery-resume-relaunch.md) · [R8 - Verification and Completion Authority](./R8-verification-completion-authority.md) · [R9 - PR, Review, CI, and Merge Gating](./R9-pr-review-ci-merge-gating.md) · [R10 - Observability and Incident Analysis](./R10-observability-analysis.md) · [R11 - Config, Policy, and Migration](./R11-config-policy-migration.md) · [R12 - Distributed Coordination and Concurrency](./R12-coordination-concurrency.md)
+
+<!-- /DOCS-NAV -->

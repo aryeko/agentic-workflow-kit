@@ -435,3 +435,11 @@ Initial categories:
 - Which raw telemetry, if any, may be included in exported bundles under an explicit operator flag?
 - What exact OTel/OpenInference attribute mapping should be supported first, given GenAI agent
   conventions are still developing?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R9 - PR, Review, CI, and Merge Gating](./R9-pr-review-ci-merge-gating.md) · **Next →:** [R11 - Config, Policy, and Migration](./R11-config-policy-migration.md)
+
+<!-- /DOCS-NAV -->

@@ -143,3 +143,11 @@ produce kit-native events, attestations, and evidence without owning orchestrati
 - [LangChain human-in-the-loop](https://docs.langchain.com/oss/python/langchain/human-in-the-loop)
 - [LangSmith Observability](https://docs.langchain.com/langsmith/observability)
 - [LangSmith Evaluation](https://docs.langchain.com/langsmith/evaluation)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Deep Agents.js adoption review for kit-vnext](./deep-agents-js-adoption.md) · **Next →:** [LangChain.js adoption review for kit-vnext](./langchain-js-adoption.md)
+
+<!-- /DOCS-NAV -->

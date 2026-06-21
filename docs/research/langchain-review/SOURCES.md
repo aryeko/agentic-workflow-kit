@@ -215,3 +215,11 @@ Open SWE, MCP Adapters, and Agent Protocol.
 - [Agent Protocol Python client package metadata](https://github.com/langchain-ai/agent-protocol/blob/main/client-python/pyproject.toml)
 - [langchain-protocol PyPI metadata](https://pypi.org/pypi/langchain-protocol/json)
 - [LangChain announcement: Agent Protocol interoperability for LLM agents](https://www.langchain.com/blog/agent-protocol-interoperability-for-llm-agents)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [LangChain ecosystem review for kit-vnext](./UNIFIED-REPORT.md) · **Next →:** [Agent Protocol adoption review for kit-vnext](./adoption-reports/agent-protocol-adoption.md)
+
+<!-- /DOCS-NAV -->

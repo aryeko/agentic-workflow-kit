@@ -154,3 +154,11 @@ Changed-file scope should be a first-class gate:
 - What is the minimum local-only completion contract for repositories without GitHub PRs?
 - Should `done` mean "implementation branch verified and PR ready" while `verified` means "merged/CI accepted on base", or should status semantics change in vNext?
 - How much raw verification output should be retained locally by default, and what retention/cleanup policy should avoid creating evidence sprawl?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R7 - Recovery, Resume, and Relaunch](./R7-recovery-resume-relaunch.md) · **Next →:** [R9 - PR, Review, CI, and Merge Gating](./R9-pr-review-ci-merge-gating.md)
+
+<!-- /DOCS-NAV -->

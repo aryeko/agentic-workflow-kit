@@ -61,3 +61,11 @@ The README states a "trust the LLM" model: the agent can do anything its tools a
 - [LangChain Deep Agents event streaming](https://docs.langchain.com/oss/javascript/deepagents/event-streaming)
 - [LangChain Deep Agents production guide](https://docs.langchain.com/oss/javascript/deepagents/going-to-production)
 - [Deep Agents.js latest release API](https://api.github.com/repos/langchain-ai/deepagentsjs/releases/latest)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Deep Agents Code](./deep-agents-code.md) · **Next →:** [Deep Agents](./deep-agents.md)
+
+<!-- /DOCS-NAV -->

@@ -141,3 +141,11 @@ verification is replaced by typed blocker evidence. Merging it must not mark the
 - Merge queue pass/fail flow.
 - Bot finding adapter fixture.
 - Changed verification script escalation.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Supervision and recovery recommendations](./04-supervision-recovery.md) · **Next →:** [Observability and migration recommendations](./06-observability-migration.md)
+
+<!-- /DOCS-NAV -->

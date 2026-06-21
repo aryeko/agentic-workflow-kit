@@ -27,16 +27,17 @@ design, the design must be amended before the story is dispatch-ready.
 ## Reading order
 
 1. [`domain-dag.md`](domain-dag.md) - dependency frontiers and direct domain edges.
-2. [`agent-provider-motivation.md`](agent-provider-motivation.md) - what we need from an Agent
-   provider and why, before requirements; the needs and distinctions the requirements descend from.
-3. [`agent-provider-requirements.md`](agent-provider-requirements.md) - functional requirements for
-   researching and validating Agent provider surfaces.
-4. [`package-rollout.md`](package-rollout.md) - how domain work maps onto the SDK-centered package
+2. [`package-rollout.md`](package-rollout.md) - how domain work maps onto the SDK-centered package
    target.
-5. [`work-item-authoring-guide.md`](work-item-authoring-guide.md) - how to write falsifiable story
+3. [`work-item-authoring-guide.md`](work-item-authoring-guide.md) - how to write falsifiable story
    contracts.
-6. [`readiness-matrix.md`](readiness-matrix.md) - evidence-backed implementation readiness state.
-7. [`frontiers/`](frontiers/) - frontier charters and, later, item/story contracts.
+4. [`readiness-matrix.md`](readiness-matrix.md) - evidence-backed implementation readiness state.
+5. [`frontiers/`](frontiers/) - frontier charters and, later, item/story contracts.
+
+The Agent provider needs/requirements and the Codex provider research that informed the frozen design
+now live as dormant provenance under
+[`../research/codex-agent-provider/`](../research/codex-agent-provider/); the normative Agent provider
+contract is owned by the [design corpus](../design/30-domain-reference/providers/agent-execution/README.md).
 
 ## Frontiers
 
@@ -80,6 +81,6 @@ to author next. Per-story contracts are not present yet.
 
 **↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [domain dependency DAG](./domain-dag.md)
 
-**Children:** [domain dependency DAG](./domain-dag.md) · [Agent provider motivation and needs](./agent-provider-motivation.md) · [Agent provider functional requirements](./agent-provider-requirements.md) · [package rollout](./package-rollout.md) · [work item authoring guide](./work-item-authoring-guide.md) · [implementation readiness matrix](./readiness-matrix.md) · [Frontier 0 charter - independent substrate](./frontiers/frontier-0-independent-substrate/charter.md) · [Frontier 1 charter - foundation dependents](./frontiers/frontier-1-foundation-dependents/charter.md) · [Frontier 2 charter - provider seams](./frontiers/frontier-2-provider-seams/charter.md) · [Frontier 3 charter - agent and core gates](./frontiers/frontier-3-agent-and-core-gates/charter.md) · [Frontier 4 charter - run control](./frontiers/frontier-4-run-control/charter.md) · [Frontier 5 charter - completion and recovery](./frontiers/frontier-5-completion-and-recovery/charter.md) · [Frontier 6 charter - operator surface](./frontiers/frontier-6-operator-surface/charter.md) · [Codex app-server Agent provider research](./research/codex-app-server-agent-provider-report.md) · [Codex app-server provider-neutral assessment](./research/codex-app-server-provider-neutral-report.md) · [Codex CLI agent provider research report](./research/codex-cli-agent-provider-report.md) · [Codex CLI provider-neutral Agent provider assessment](./research/codex-cli-provider-neutral-report.md) · [Codex MCP Agent provider research report](./research/codex-mcp-agent-provider-report.md) · [Codex MCP server provider-neutral capability report](./research/codex-mcp-provider-neutral-report.md)
+**Children:** [domain dependency DAG](./domain-dag.md) · [package rollout](./package-rollout.md) · [work item authoring guide](./work-item-authoring-guide.md) · [implementation readiness matrix](./readiness-matrix.md) · [Frontier 0 charter - independent substrate](./frontiers/frontier-0-independent-substrate/charter.md) · [Frontier 1 charter - foundation dependents](./frontiers/frontier-1-foundation-dependents/charter.md) · [Frontier 2 charter - provider seams](./frontiers/frontier-2-provider-seams/charter.md) · [Frontier 3 charter - agent and core gates](./frontiers/frontier-3-agent-and-core-gates/charter.md) · [Frontier 4 charter - run control](./frontiers/frontier-4-run-control/charter.md) · [Frontier 5 charter - completion and recovery](./frontiers/frontier-5-completion-and-recovery/charter.md) · [Frontier 6 charter - operator surface](./frontiers/frontier-6-operator-surface/charter.md)
 
 <!-- /DOCS-NAV -->

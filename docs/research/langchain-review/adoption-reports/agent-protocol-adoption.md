@@ -145,3 +145,11 @@ capabilities can be freshly, positively attested.
 - [core-02 Capability & Safety](../../../../docs/design/30-domain-reference/core/capability-and-safety/README.md)
 - [core-04 Supervision & Liveness](../../../../docs/design/30-domain-reference/core/supervision-and-liveness/README.md)
 - [core-07 Observability & Analysis](../../../../docs/design/30-domain-reference/core/observability-and-analysis/README.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangChain leverage sources](../../langchain-leverage/SOURCES.md) · **Next →:** [Deep Agents adoption review for kit-vnext](./deep-agents-adoption.md)
+
+<!-- /DOCS-NAV -->

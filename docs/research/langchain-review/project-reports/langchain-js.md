@@ -112,3 +112,11 @@ The ecosystem is broad but fast-moving. The docs and repo reference LangChain, L
 - [langchainjs root package.json](https://raw.githubusercontent.com/langchain-ai/langchainjs/main/package.json)
 - [langchainjs pnpm workspace](https://raw.githubusercontent.com/langchain-ai/langchainjs/main/pnpm-workspace.yaml)
 - [published langchain package.json](https://raw.githubusercontent.com/langchain-ai/langchainjs/main/libs/langchain/package.json)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Deep Agents](./deep-agents.md) · **Next →:** [LangChain](./langchain.md)
+
+<!-- /DOCS-NAV -->

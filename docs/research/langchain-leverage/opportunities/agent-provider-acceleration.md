@@ -331,3 +331,11 @@ adapter and fixture leverage, not direct core reuse.
   https://raw.githubusercontent.com/langchain-ai/agent-protocol/main/openapi.json
 - Agent Protocol streaming README:
   https://raw.githubusercontent.com/langchain-ai/agent-protocol/main/streaming/README.md
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangChain leverage report for kit-vnext](../LEVERAGE-REPORT.md) · **Next →:** [Coding-agent operations](./coding-agent-operations.md)
+
+<!-- /DOCS-NAV -->

@@ -125,3 +125,11 @@ commands exist and the team is ready to evaluate real provider-driver production
 - [Forge / Collaboration](../../../../docs/design/30-domain-reference/providers/forge-collaboration/README.md)
 - [Work Source](../../../../docs/design/30-domain-reference/providers/work-source/README.md)
 - [Operator & Entry Surface](../../../../docs/design/30-domain-reference/edge/operator-surface/README.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangSmith adoption review for kit-vnext](./langsmith-adoption.md) · **Next →:** [Open SWE adoption review for kit-vnext](./open-swe-adoption.md)
+
+<!-- /DOCS-NAV -->

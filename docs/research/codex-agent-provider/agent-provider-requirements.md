@@ -20,10 +20,10 @@ merge-ready.
 
 The normative design lives in:
 
-- [`../design/30-domain-reference/providers/agent-execution/README.md`](../design/30-domain-reference/providers/agent-execution/README.md)
-- [`../design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md`](../design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md)
-- [`../design/30-domain-reference/providers/agent-execution/capabilities-and-conformance.md`](../design/30-domain-reference/providers/agent-execution/capabilities-and-conformance.md)
-- [`../design/30-domain-reference/providers/agent-execution/codex-driver.md`](../design/30-domain-reference/providers/agent-execution/codex-driver.md)
+- [`../design/30-domain-reference/providers/agent-execution/README.md`](../../design/30-domain-reference/providers/agent-execution/README.md)
+- [`../design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md`](../../design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md)
+- [`../design/30-domain-reference/providers/agent-execution/capabilities-and-conformance.md`](../../design/30-domain-reference/providers/agent-execution/capabilities-and-conformance.md)
+- [`../design/30-domain-reference/providers/agent-execution/codex-driver.md`](../../design/30-domain-reference/providers/agent-execution/codex-driver.md)
 
 When this brief conflicts with those files, the design corpus wins. The purpose here is to make the
 provider requirements easy to research and validate without needing prior conversation context.
@@ -184,6 +184,6 @@ also owned, probed, and included in the capability claim.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Agent provider motivation and needs](./agent-provider-motivation.md) · **Next →:** [package rollout](./package-rollout.md)
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [Agent provider motivation and needs](./agent-provider-motivation.md) · **Next →:** [Codex app-server Agent provider research](./research/codex-app-server-agent-provider-report.md)
 
 <!-- /DOCS-NAV -->

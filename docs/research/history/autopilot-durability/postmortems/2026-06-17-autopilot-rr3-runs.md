@@ -285,3 +285,11 @@ rebase conflicts during the salvage, plus ongoing ambiguity about which is autho
   (`.toISOString().slice(0,10)`), wrong for non-UTC studios. Fixed by threading studio-local date
   labels through `PeriodRollup`; also fixed pre-existing `findStudioTimezone` mock breakage (11 tsc
   errors).
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Codex runtime findings — controllability & approval protocol](../design/notes/codex-runtime-findings.md) · **Next →:** [Autopilot unified issue report (RR3 + Pathway)](./2026-06-18-autopilot-unified-issues.md)
+
+<!-- /DOCS-NAV -->

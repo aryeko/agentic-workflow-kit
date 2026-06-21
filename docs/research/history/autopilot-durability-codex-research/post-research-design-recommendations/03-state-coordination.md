@@ -134,3 +134,11 @@ and packaging decisions. External coordinators are future hosted-runner work, no
 - Crash after each launch step.
 - Legacy artifact migration from divergent 0.7.0 runs.
 - Network filesystem capability probe.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Approval and provisioning recommendations](./02-approval-provisioning.md) · **Next →:** [Supervision and recovery recommendations](./04-supervision-recovery.md)
+
+<!-- /DOCS-NAV -->

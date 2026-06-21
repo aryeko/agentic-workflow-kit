@@ -79,3 +79,13 @@ kit-vnext dependency:
 - [Adoption reports](adoption-reports/)
 - [LangChain AI GitHub profile README](https://github.com/langchain-ai/.github/blob/main/profile/README.md)
 - [Applied design closure report](../apply/APPLY-REPORT.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [Open SWE](./project-reports/open-swe.md) · **Next →:** [LangChain ecosystem review for kit-vnext](./UNIFIED-REPORT.md)
+
+**Children:** [LangChain ecosystem review for kit-vnext](./UNIFIED-REPORT.md) · [LangChain ecosystem review sources](./SOURCES.md) · [Agent Protocol adoption review for kit-vnext](./adoption-reports/agent-protocol-adoption.md) · [Deep Agents adoption review for kit-vnext](./adoption-reports/deep-agents-adoption.md) · [Deep Agents Code adoption review for kit-vnext](./adoption-reports/deep-agents-code-adoption.md) · [Deep Agents.js adoption review for kit-vnext](./adoption-reports/deep-agents-js-adoption.md) · [LangChain adoption review for kit-vnext](./adoption-reports/langchain-adoption.md) · [LangChain.js adoption review for kit-vnext](./adoption-reports/langchain-js-adoption.md) · [LangGraph adoption review for kit-vnext](./adoption-reports/langgraph-adoption.md) · [LangGraph.js adoption review for kit-vnext](./adoption-reports/langgraph-js-adoption.md) · [LangSmith adoption review for kit-vnext](./adoption-reports/langsmith-adoption.md) · [MCP Adapters adoption review for kit-vnext](./adoption-reports/mcp-adapters-adoption.md) · [Open SWE adoption review for kit-vnext](./adoption-reports/open-swe-adoption.md) · [Agent Protocol](./project-reports/agent-protocol.md) · [Deep Agents Code](./project-reports/deep-agents-code.md) · [Deep Agents.js](./project-reports/deep-agents-js.md) · [Deep Agents](./project-reports/deep-agents.md) · [LangChain.js](./project-reports/langchain-js.md) · [LangChain](./project-reports/langchain.md) · [LangGraph.js](./project-reports/langgraph-js.md) · [LangGraph](./project-reports/langgraph.md) · [LangSmith](./project-reports/langsmith.md) · [MCP Adapters](./project-reports/mcp-adapters.md) · [Open SWE](./project-reports/open-swe.md)
+
+<!-- /DOCS-NAV -->

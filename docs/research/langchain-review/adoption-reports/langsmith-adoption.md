@@ -115,3 +115,11 @@ gates, and core-07 analyzer have executable story evidence.
 - [prov-02 Forge / Collaboration](../../../../docs/design/30-domain-reference/providers/forge-collaboration/README.md)
 - [prov-03 Work Source](../../../../docs/design/30-domain-reference/providers/work-source/README.md)
 - [prov-04 Execution Host](../../../../docs/design/30-domain-reference/providers/execution-host/README.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangGraph.js adoption review for kit-vnext](./langgraph-js-adoption.md) · **Next →:** [MCP Adapters adoption review for kit-vnext](./mcp-adapters-adoption.md)
+
+<!-- /DOCS-NAV -->

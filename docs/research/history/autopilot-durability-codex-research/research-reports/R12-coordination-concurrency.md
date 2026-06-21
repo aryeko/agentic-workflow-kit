@@ -134,3 +134,11 @@ What stale thresholds should be policy defaults for launch reservation, child pr
 Should stale-lease clearing require an explicit `workflow_run_control` operation in all cases, or may the runner auto-clear specific safe classes such as "reservation never spawned and no tracker claim"?
 
 How should hosted or multi-host orchestration be exposed later: as a GitHub-backed coordinator, Kubernetes Lease backend, or an external database backend?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R11 - Config, Policy, and Migration](./R11-config-policy-migration.md) · **Next →:** [Runtime and control recommendations](../post-research-design-recommendations/01-runtime-control.md)
+
+<!-- /DOCS-NAV -->

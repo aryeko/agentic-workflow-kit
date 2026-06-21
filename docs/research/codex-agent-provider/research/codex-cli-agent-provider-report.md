@@ -526,6 +526,6 @@ tested, so they were not run for this report.
 
 ---
 
-**↑ Up:** [implementation contract](../README.md) · **← Prev:** [Codex app-server provider-neutral assessment](./codex-app-server-provider-neutral-report.md) · **Next →:** [Codex CLI provider-neutral Agent provider assessment](./codex-cli-provider-neutral-report.md)
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Codex app-server provider-neutral assessment](./codex-app-server-provider-neutral-report.md) · **Next →:** [Codex CLI provider-neutral Agent provider assessment](./codex-cli-provider-neutral-report.md)
 
 <!-- /DOCS-NAV -->

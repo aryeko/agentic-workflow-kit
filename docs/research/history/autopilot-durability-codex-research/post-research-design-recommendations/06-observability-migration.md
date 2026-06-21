@@ -167,3 +167,11 @@ events are read-only analysis targets. Do not mutate them as if they were cohere
 - Privacy fixture proves redaction.
 - Config migration fixtures for push-only, push-and-merge, custom profiles, and legacy versions.
 - Capability preview for default repo, auto-merge policy repo, and driver without approval relay.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Completion and merge recommendations](./05-completion-merge.md) · **Next →:** [Autopilot durability design recommendations](./README.md)
+
+<!-- /DOCS-NAV -->

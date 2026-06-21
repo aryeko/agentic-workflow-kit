@@ -41,7 +41,13 @@ function walk(dir) {
   return out;
 }
 
-const allMd = walk(DOCS).filter((p) => !p.split(path.sep).includes("evidence"));
+// `evidence/` holds raw transcripts; `research/` holds dormant provenance
+// (prior-art reviews, superseded research). Neither is part of the normative
+// reading corpus, so both are excluded from nav generation.
+const allMd = walk(DOCS).filter((p) => {
+  const segs = p.split(path.sep);
+  return !segs.includes("evidence") && !segs.includes("research");
+});
 const mdSet = new Set(allMd);
 const isIndex = (p) => path.basename(p) === "README.md" || p === path.join(DOCS, "README.md");
 const dirHasReadme = (dir) => mdSet.has(path.join(dir, "README.md"));
@@ -97,11 +103,14 @@ function childrenOf(indexPath) {
     const st = fs.statSync(p);
     if (st.isFile() && name.endsWith(".md") && p !== indexPath) {
       candidates.push(p);
-    } else if (st.isDirectory() && name !== "evidence") {
+    } else if (st.isDirectory() && name !== "evidence" && name !== "research") {
       if (dirHasReadme(p)) candidates.push(path.join(p, "README.md"));
       else {
         // README-less subdir: pull its md files up as children of this index
-        for (const f of walk(p)) if (!f.split(path.sep).includes("evidence")) candidates.push(f);
+        for (const f of walk(p)) {
+          const segs = f.split(path.sep);
+          if (!segs.includes("evidence") && !segs.includes("research")) candidates.push(f);
+        }
       }
     }
   }

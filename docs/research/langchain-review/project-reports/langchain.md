@@ -65,3 +65,11 @@ LangChain's core value is an LLM application and agent harness. kit-vnext's desi
 - [LangSmith Evaluation](https://docs.langchain.com/langsmith/evaluation)
 - [LangChain v1 release notes](https://docs.langchain.com/oss/python/releases/langchain-v1)
 - [LangChain GitHub releases](https://github.com/langchain-ai/langchain/releases)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangChain.js](./langchain-js.md) · **Next →:** [LangGraph.js](./langgraph-js.md)
+
+<!-- /DOCS-NAV -->

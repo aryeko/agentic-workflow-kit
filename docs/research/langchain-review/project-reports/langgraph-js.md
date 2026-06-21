@@ -103,3 +103,11 @@ The same release notes also show that the runtime is still evolving in areas kit
 - [Fault tolerance](https://docs.langchain.com/oss/javascript/langgraph/fault-tolerance)
 - [Workflows and agents](https://docs.langchain.com/oss/javascript/langgraph/workflows-agents)
 - [LangChain models and tool calling](https://docs.langchain.com/oss/javascript/langchain/models)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangChain](./langchain.md) · **Next →:** [LangGraph](./langgraph.md)
+
+<!-- /DOCS-NAV -->

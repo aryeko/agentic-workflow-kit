@@ -137,3 +137,11 @@ core-first SDK/testkit stories are underway: evaluate whether Deep Agents Code c
   [Deep Agents Code configuration](https://docs.langchain.com/oss/python/deepagents/code/configuration),
   [Deep Agents Code remote sandboxes](https://docs.langchain.com/oss/python/deepagents/code/remote-sandboxes),
   [Deep Agents Code PyPI package](https://pypi.org/project/deepagents-code/)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Deep Agents adoption review for kit-vnext](./deep-agents-adoption.md) · **Next →:** [Deep Agents.js adoption review for kit-vnext](./deep-agents-js-adoption.md)
+
+<!-- /DOCS-NAV -->

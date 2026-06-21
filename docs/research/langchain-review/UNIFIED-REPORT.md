@@ -184,3 +184,11 @@ Adoption reports:
 - [Open SWE adoption](adoption-reports/open-swe-adoption.md)
 - [MCP Adapters adoption](adoption-reports/mcp-adapters-adoption.md)
 - [Agent Protocol adoption](adoption-reports/agent-protocol-adoption.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [LangChain ecosystem review](./README.md) · **Next →:** [LangChain ecosystem review sources](./SOURCES.md)
+
+<!-- /DOCS-NAV -->

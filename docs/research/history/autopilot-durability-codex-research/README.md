@@ -137,3 +137,13 @@ The research supports six design directions:
   [2026-06-17 RR3 runs](../autopilot-durability/postmortems/2026-06-17-autopilot-rr3-runs.md),
   [Pathway incident](../autopilot-durability/postmortems/pathway-autopilot-incident-2026-06-18.md)
 - Earlier draft design background: [../autopilot-durability/design/](../autopilot-durability/design/)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Observability and migration recommendations](./post-research-design-recommendations/06-observability-migration.md) · **Next →:** [Autopilot durability design recommendations](./post-research-design-recommendations/README.md)
+
+**Children:** [Autopilot durability design recommendations](./post-research-design-recommendations/README.md) · [R1 - Codex Runtime Control](./research-reports/R1-codex-runtime-control.md) · [R2 - Child Execution Ownership and Termination](./research-reports/R2-process-ownership-termination.md) · [R3 - Approval and Permission Relay](./research-reports/R3-approval-permission-relay.md) · [R4 - Sandbox, Dependency Install, and Supply Chain](./research-reports/R4-sandbox-dependency-supply-chain.md) · [R5 - Event-Sourced Run State](./research-reports/R5-event-sourced-run-state.md) · [R6 - Worker Supervision and Liveness](./research-reports/R6-worker-supervision-liveness.md) · [R7 - Recovery, Resume, and Relaunch](./research-reports/R7-recovery-resume-relaunch.md) · [R8 - Verification and Completion Authority](./research-reports/R8-verification-completion-authority.md) · [R9 - PR, Review, CI, and Merge Gating](./research-reports/R9-pr-review-ci-merge-gating.md) · [R10 - Observability and Incident Analysis](./research-reports/R10-observability-analysis.md) · [R11 - Config, Policy, and Migration](./research-reports/R11-config-policy-migration.md) · [R12 - Distributed Coordination and Concurrency](./research-reports/R12-coordination-concurrency.md) · [Runtime and control recommendations](./post-research-design-recommendations/01-runtime-control.md) · [Approval and provisioning recommendations](./post-research-design-recommendations/02-approval-provisioning.md) · [State and coordination recommendations](./post-research-design-recommendations/03-state-coordination.md) · [Supervision and recovery recommendations](./post-research-design-recommendations/04-supervision-recovery.md) · [Completion and merge recommendations](./post-research-design-recommendations/05-completion-merge.md) · [Observability and migration recommendations](./post-research-design-recommendations/06-observability-migration.md) · [Autopilot durability research reports](./research-reports/README.md)
+
+<!-- /DOCS-NAV -->

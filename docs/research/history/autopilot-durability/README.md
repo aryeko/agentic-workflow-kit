@@ -126,7 +126,7 @@ under *both* orchestrators are kit-substrate defects.
   [design/notes/codex-runtime-findings.md](design/notes/codex-runtime-findings.md) (Codex 0.139.0, read-only spikes).
 - Code references throughout were verified against kit **v0.7.0** `main` on 2026-06-18.
 - This effort builds on, but does not replace, the existing redesign under
-  [`docs/prds/agentic-workflow-kit-redesign/`](../../prds/agentic-workflow-kit-redesign/) — it reconciles that
+  `docs/prds/agentic-workflow-kit-redesign/` — it reconciles that
   approved design against shipped reality and closes the gaps the incidents exposed.
 
 ## Glossary
@@ -142,3 +142,13 @@ under *both* orchestrators are kit-substrate defects.
 - **Escalation / approval** — a child request for elevated permission (e.g. network), adjudicated by policy
   or a human.
 - **Projection** — a derived view (state, metrics) recomputed from the event log, never authored directly.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Pathway autopilot incident report](./postmortems/pathway-autopilot-incident-2026-06-18.md) · **Next →:** [Autopilot unified issue report (RR3 + Pathway)](./postmortems/2026-06-18-autopilot-unified-issues.md)
+
+**Children:** [Autopilot unified issue report (RR3 + Pathway)](./postmortems/2026-06-18-autopilot-unified-issues.md) · [D0 — Architecture spine & contracts](./design/00-overview.md) · [Postmortem: Workflow Autopilot — RR3 runs (2026-06-17)](./postmortems/2026-06-17-autopilot-rr3-runs.md) · [Pathway autopilot incident report](./postmortems/pathway-autopilot-incident-2026-06-18.md) · [D1 — Execution substrate & provisioning](./design/01-execution-substrate-and-provisioning.md) · [D2 — Child lifecycle & control plane](./design/02-lifecycle-and-control-plane.md) · [D3 — Completion, verification & merge safety](./design/03-completion-verification-and-merge.md) · [D4 — Run state, recovery & reconciliation](./design/04-run-state-and-recovery.md) · [D5 — Observability & analysis](./design/05-observability-and-analysis.md) · [Codex runtime findings — controllability & approval protocol](./design/notes/codex-runtime-findings.md)
+
+<!-- /DOCS-NAV -->

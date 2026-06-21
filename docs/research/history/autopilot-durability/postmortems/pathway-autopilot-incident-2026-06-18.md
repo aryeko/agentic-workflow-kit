@@ -1009,3 +1009,10 @@ This report does not:
 - Re-open or alter PR #121.
 - Claim POH01 is complete. POH01 remains blocked by missing protected Backend Release evidence.
 
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Autopilot unified issue report (RR3 + Pathway)](./2026-06-18-autopilot-unified-issues.md) · **Next →:** [Autopilot durability — incidents, diagnosis, and design](../README.md)
+
+<!-- /DOCS-NAV -->

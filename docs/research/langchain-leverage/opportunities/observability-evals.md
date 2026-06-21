@@ -214,3 +214,11 @@ capability gates, approvals, recovery, completion, and merge.
 - [LangSmith Automation rules](https://docs.langchain.com/langsmith/rules)
 - [LangSmith Bulk export trace data](https://docs.langchain.com/langsmith/data-export)
 - [LangSmith CLI](https://docs.langchain.com/langsmith/langsmith-cli)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Durable execution and tests](./durable-execution-tests.md) · **Next →:** [Tool and MCP adapter patterns](./tool-mcp-adapters.md)
+
+<!-- /DOCS-NAV -->

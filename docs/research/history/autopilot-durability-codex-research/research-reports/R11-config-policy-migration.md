@@ -204,3 +204,11 @@ Migration path from current 0.7.0-style config:
 - What is the exact transition window for `codex.childSession` and `approvalPolicy: never` story profiles?
 - Should live autopilot block on supported-stale config by default, or allow one run after an explicit per-run acknowledgement?
 - Which R1/R3 probe result names become stable public capability keys?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R10 - Observability and Incident Analysis](./R10-observability-analysis.md) · **Next →:** [R12 - Distributed Coordination and Concurrency](./R12-coordination-concurrency.md)
+
+<!-- /DOCS-NAV -->

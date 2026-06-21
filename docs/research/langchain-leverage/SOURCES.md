@@ -117,3 +117,11 @@ The live README still listed the same 11 projects used by the first-pass report.
 - [LangChain Python MCP docs](https://docs.langchain.com/oss/python/langchain/mcp)
 - [LangChain JavaScript MCP docs](https://docs.langchain.com/oss/javascript/langchain/mcp)
 - [MultiServerMCPClient reference](https://reference.langchain.com/python/langchain-mcp-adapters/client/MultiServerMCPClient)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../README.md) · **← Prev:** [LangChain leverage report for kit-vnext](./LEVERAGE-REPORT.md) · **Next →:** [AgentProvider acceleration](./opportunities/agent-provider-acceleration.md)
+
+<!-- /DOCS-NAV -->

@@ -36,7 +36,7 @@ not be looser than the design specification.
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Codex MCP server provider-neutral capability report](../implementation/research/codex-mcp-provider-neutral-report.md) · **Next →:** [Check Gate](./check-gate.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Frontier 6 charter - operator surface](../implementation/frontiers/frontier-6-operator-surface/charter.md) · **Next →:** [Check Gate](./check-gate.md)
 
 **Children:** [Check Gate](./check-gate.md) · [Dependency Policy](./dependency-policy.md) · [Dependency Rule Enforcement](./dependency-rule-enforcement.md) · [Test Lanes](./test-lanes.md) · [Testing Policy](./testing-policy.md) · [Tooling and CI](./tooling-and-ci.md)
 

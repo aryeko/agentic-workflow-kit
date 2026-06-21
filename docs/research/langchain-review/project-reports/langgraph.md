@@ -70,3 +70,11 @@ The LangSmith deployment/observability story is useful to study but risky as a d
 - [LangGraph GitHub releases](https://github.com/langchain-ai/langgraph/releases)
 - [LangSmith tracing quickstart](https://docs.langchain.com/langsmith/observability-quickstart)
 - [LangSmith evaluation docs](https://docs.langchain.com/langsmith/evaluation)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangGraph.js](./langgraph-js.md) · **Next →:** [LangSmith](./langsmith.md)
+
+<!-- /DOCS-NAV -->

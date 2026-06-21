@@ -119,3 +119,11 @@ Tool integration includes:
 - [Deep Agents Code threat model](https://github.com/langchain-ai/deepagents/blob/main/libs/code/THREAT_MODEL.md)
 - [Deep Agents SDK overview](https://docs.langchain.com/oss/python/deepagents/overview)
 - [Deep Agents comparison with Claude Agent SDK](https://docs.langchain.com/oss/python/deepagents/comparison)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [Agent Protocol](./agent-protocol.md) · **Next →:** [Deep Agents.js](./deep-agents-js.md)
+
+<!-- /DOCS-NAV -->

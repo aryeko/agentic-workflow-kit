@@ -134,3 +134,11 @@ When core-first stories land, run a bounded `provider-langchain` spike against t
 - [Approval & Escalation](../../../../docs/design/30-domain-reference/core/approval-and-escalation/README.md)
 - [Completion, Verification & Merge](../../../../docs/design/30-domain-reference/core/completion-and-merge/README.md)
 - [Observability & Analysis](../../../../docs/design/30-domain-reference/core/observability-and-analysis/README.md)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../README.md) · **← Prev:** [LangChain adoption review for kit-vnext](./langchain-adoption.md) · **Next →:** [LangGraph adoption review for kit-vnext](./langgraph-adoption.md)
+
+<!-- /DOCS-NAV -->

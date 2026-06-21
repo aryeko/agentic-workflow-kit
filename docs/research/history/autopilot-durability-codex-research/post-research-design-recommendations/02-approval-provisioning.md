@@ -140,3 +140,11 @@ itself enable the vNext `autoMerge` capability.
 - Dependency install with registry-only egress and separate lifecycle script escalation.
 - Secret redaction fixture for approval events.
 - Policy table tests across mode, tier, policy, runtime capability, and outcome.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Runtime and control recommendations](./01-runtime-control.md) · **Next →:** [State and coordination recommendations](./03-state-coordination.md)
+
+<!-- /DOCS-NAV -->

@@ -193,3 +193,11 @@ Blocker-evidence PR policy:
 - Should the runner ever resolve review threads automatically, or should it only comment/re-request review and wait for the reviewer/bot?
 - For blocker-evidence PRs, what minimum evidence allows merge without local verification: reproduced blocker command output, CI failure artifact, human approval, or all of these?
 - How should non-GitHub providers map into the normalized evidence model when they lack conversation resolution or merge queue equivalents?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R8 - Verification and Completion Authority](./R8-verification-completion-authority.md) · **Next →:** [R10 - Observability and Incident Analysis](./R10-observability-analysis.md)
+
+<!-- /DOCS-NAV -->

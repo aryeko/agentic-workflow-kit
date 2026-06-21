@@ -128,3 +128,13 @@ The research narrows the design, but these product/engineering decisions remain:
 - exact vNext config version and transition window for legacy `codex.childSession` / `approvalPolicy`;
 - default timeout values for startup, idle, no-progress, approval SLA, and termination;
 - whether unresolved but outdated review threads block by default.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [Observability and migration recommendations](./06-observability-migration.md) · **Next →:** [Runtime and control recommendations](./01-runtime-control.md)
+
+**Children:** [Runtime and control recommendations](./01-runtime-control.md) · [Approval and provisioning recommendations](./02-approval-provisioning.md) · [State and coordination recommendations](./03-state-coordination.md) · [Supervision and recovery recommendations](./04-supervision-recovery.md) · [Completion and merge recommendations](./05-completion-merge.md) · [Observability and migration recommendations](./06-observability-migration.md)
+
+<!-- /DOCS-NAV -->

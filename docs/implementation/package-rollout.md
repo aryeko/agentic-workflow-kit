@@ -62,6 +62,6 @@ runtime / production attestation evidence for the capabilities it claims.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Agent provider functional requirements](./agent-provider-requirements.md) · **Next →:** [work item authoring guide](./work-item-authoring-guide.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [domain dependency DAG](./domain-dag.md) · **Next →:** [work item authoring guide](./work-item-authoring-guide.md)
 
 <!-- /DOCS-NAV -->

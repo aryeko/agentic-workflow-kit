@@ -213,3 +213,11 @@ The capability gate should distinguish:
 - What default termination grace windows are acceptable for common repo verify commands that may need cleanup time?
 - Should repos be able to whitelist intentionally persistent external daemons, and if so how should those be distinguished from leaked descendants without weakening the default invariant?
 - Should parent-crash cleanup be automatic for stale owned workers, or should it always require operator confirmation unless the worker is in a kernel-owned containment unit that proves identity?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R1 - Codex Runtime Control](./R1-codex-runtime-control.md) · **Next →:** [R3 - Approval and Permission Relay](./R3-approval-permission-relay.md)
+
+<!-- /DOCS-NAV -->

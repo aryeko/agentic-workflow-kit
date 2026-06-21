@@ -295,3 +295,11 @@ Escalation boundaries:
   blocks lifecycle scripts and arbitrary egress by default?
 - How should non-JavaScript ecosystems be represented: one common policy model with ecosystem adapters, or
   separate policy sections per package manager?
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../../../../README.md) · **← Prev:** [R3 - Approval and Permission Relay](./R3-approval-permission-relay.md) · **Next →:** [R5 - Event-Sourced Run State](./R5-event-sourced-run-state.md)
+
+<!-- /DOCS-NAV -->
