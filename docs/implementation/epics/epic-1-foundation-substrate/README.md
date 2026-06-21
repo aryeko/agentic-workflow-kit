@@ -68,18 +68,18 @@ stable.
 ## Per-domain expectations
 
 For each included domain, the table lists the `Story Group Signals` this epic claims. Story ownership
-stays `TBD` until the Epic 1 story DAG is frozen.
+is backfilled from the Epic 1 story DAG for independent review.
 
 ### `fnd-01` - Configuration & Policy
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Config schema and accepted vNext marker. | TBD | covered |
-| Deterministic precedence across defaults, profile, and operator override. | TBD | covered |
-| Per-field provenance and policy-resolution event payloads. | TBD | covered |
-| Safe defaults, default-off capabilities, and deferred autonomy rejection. | TBD | covered |
-| Adoption diagnostics for legacy, unknown, or incompatible config and artifacts. | TBD | covered |
-| Consumer policy shapes for capability, approval, escalation, merge, credential refs, and egress. | TBD | covered |
+| Config schema and accepted vNext marker. | `fnd-01-s1-config-schema` | covered |
+| Deterministic precedence across defaults, profile, and operator override. | `fnd-01-s2-policy-resolution` | covered |
+| Per-field provenance and policy-resolution event payloads. | `fnd-01-s2-policy-resolution` | covered |
+| Safe defaults, default-off capabilities, and deferred autonomy rejection. | `fnd-01-s1-config-schema` | covered |
+| Adoption diagnostics for legacy, unknown, or incompatible config and artifacts. | `fnd-01-s3-adoption-diagnostics` | covered |
+| Consumer policy shapes for capability, approval, escalation, merge, credential refs, and egress. | `fnd-01-s1-config-schema` | covered |
 
 - Evidence expectation: Epic 1 stories leave checkable SDK policy contracts and diagnostic evidence
   that later epics can consume without re-deciding policy precedence or defaults.
@@ -88,12 +88,12 @@ stays `TBD` until the Epic 1 story DAG is frozen.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Event-log persistence, durability classes, append receipts, and replay health. | TBD | covered |
-| Lease acquisition, renewal, release, and epoch fencing. | TBD | covered |
-| Artifact refs, scratch refs, digest metadata, redaction hooks, tombstones, and export manifests. | TBD | covered |
-| Storage health and fail-closed degraded modes. | TBD | covered |
-| Filesystem-backed storage behavior and conformance fixtures. | TBD | covered |
-| Evidence bundles that preserve stable refs, digests, and redacted-by-default exports. | TBD | covered |
+| Event-log persistence, durability classes, append receipts, and replay health. | `fnd-02-s2-event-log` | covered |
+| Lease acquisition, renewal, release, and epoch fencing. | `fnd-02-s3-lease-store` | covered |
+| Artifact refs, scratch refs, digest metadata, redaction hooks, tombstones, and export manifests. | `fnd-02-s4-artifact-evidence` | covered |
+| Storage health and fail-closed degraded modes. | `fnd-02-s1-storage-health` | covered |
+| Filesystem-backed storage behavior and conformance fixtures. | `fnd-02-s5-filesystem-conformance` | covered |
+| Evidence bundles that preserve stable refs, digests, and redacted-by-default exports. | `fnd-02-s4-artifact-evidence` | covered |
 
 - Evidence expectation: Epic 1 stories prove storage, lease, artifact, and evidence-reference surfaces
   are durable enough for later run-state, recovery, provider-evidence, and operator-export consumers.
@@ -102,12 +102,12 @@ stays `TBD` until the Epic 1 story DAG is frozen.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Repository identity and local-only branch model. | TBD | covered |
-| Worktree lease lifecycle and cleanup state. | TBD | covered |
-| Declared setup metadata and freshness evaluation handoff. | TBD | covered |
-| Local git evidence for branch existence, commits, base/head SHAs, merge base, diff, and working tree state. | TBD | covered |
-| Boundary checks proving no remote, credential, process, CI, PR, check, review, or merge fields. | TBD | covered |
-| Cleanup tombstones, blocked cleanup records, and missing or moved worktree settlement. | TBD | covered |
+| Repository identity and local-only branch model. | `fnd-03-s1-repository-branch` | covered |
+| Worktree lease lifecycle and cleanup state. | `fnd-03-s2-worktree-setup` | covered |
+| Declared setup metadata and freshness evaluation handoff. | `fnd-03-s2-worktree-setup` | covered |
+| Local git evidence for branch existence, commits, base/head SHAs, merge base, diff, and working tree state. | `fnd-03-s3-local-git-evidence` | covered |
+| Boundary checks proving no remote, credential, process, CI, PR, check, review, or merge fields. | `fnd-03-s1-repository-branch` | covered |
+| Cleanup tombstones, blocked cleanup records, and missing or moved worktree settlement. | `fnd-03-s4-cleanup-settlement` | covered |
 
 - Evidence expectation: Epic 1 stories leave local repository evidence and cleanup records that
   completion, recovery, and concrete providers can consume without remote or process authority.
@@ -116,12 +116,12 @@ stays `TBD` until the Epic 1 story DAG is frozen.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Credential references, scopes, allowed parties, phases, hosts, TTL, and policy digests. | TBD | covered |
-| Injection plans that distinguish runner-only Forge credentials from worker-safe grants. | TBD | covered |
-| Redaction sets for telemetry, process output, provider responses, and artifacts. | TBD | covered |
-| Credential audit events, tamper-evidence fields, finish and destroy records, and denial records. | TBD | covered |
-| Egress policy issuance and matching attestation evidence before confined credential release. | TBD | covered |
-| Failure modes for unresolved refs, denied scopes, worker Forge exposure, missing audit, failed redaction, missing egress attestation, and unconfirmed destruction. | TBD | covered |
+| Credential references, scopes, allowed parties, phases, hosts, TTL, and policy digests. | `fnd-04-s1-credential-refs` | covered |
+| Injection plans that distinguish runner-only Forge credentials from worker-safe grants. | `fnd-04-s2-injection-egress` | covered |
+| Redaction sets for telemetry, process output, provider responses, and artifacts. | `fnd-04-s3-redaction` | covered |
+| Credential audit events, tamper-evidence fields, finish and destroy records, and denial records. | `fnd-04-s4-audit-failures` | covered |
+| Egress policy issuance and matching attestation evidence before confined credential release. | `fnd-04-s2-injection-egress` | covered |
+| Failure modes for unresolved refs, denied scopes, worker Forge exposure, missing audit, failed redaction, missing egress attestation, and unconfirmed destruction. | `fnd-04-s4-audit-failures` | covered |
 
 - Evidence expectation: Epic 1 stories prove secret references, redaction, audit, and egress-policy
   contracts are available before provider ports, grants, or concrete credentialed drivers consume them.
