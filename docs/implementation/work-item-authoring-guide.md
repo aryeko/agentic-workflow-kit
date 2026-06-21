@@ -1,7 +1,7 @@
 ---
 title: kit-vnext - work item authoring guide
 status: draft
-last-reviewed: "2026-06-20"
+last-reviewed: "2026-06-22"
 ---
 
 # Work item authoring guide
@@ -317,6 +317,15 @@ depends-on-epics: [<...>]
 ## Contract readiness gates
 
 These are authoring gates for the contract documents. They are not an execution process.
+
+### Gate D0 - Domain charter is planning-ready
+
+Domain charters are authored before the stories under them, so they gate everything below. A charter
+is a planning card, not a story contract: it states WHAT a domain owns and does not own, never
+acceptance criteria or HOW. Its shape and four-item readiness check live with the charters in
+[`domains/README.md`](domains/README.md). The load-bearing rule for the layers below: every
+`Story Group Signal` must trace to the charter's `source-design`, because those signals seed the
+stories, and an untraceable signal propagates an invented requirement into every story it spawns.
 
 ### Gate A - Story is authoring-ready
 

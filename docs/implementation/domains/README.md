@@ -21,15 +21,42 @@ When a charter conflicts with design, design wins and the charter must be correc
 
 ## Charter Shape
 
-Use this shape for every domain charter:
+A domain charter carries frontmatter with `id`, `layer`, `status`, `source-design` (the normative
+design README it derives from), and `last-reviewed`. The body uses this shape, in order:
 
-- `What` - the implementation-planning responsibility in plain language.
-- `Why` - why the domain matters to the rebuild sequence.
-- `Does Not Own` - nearby concerns that belong to another domain, epic, or story group.
-- `Inputs And Dependencies` - direct design dependencies and prerequisite planning artifacts.
+- `What` - the implementation-planning responsibility in plain language. Names the spec surface the
+  domain owns, using the design's own type/event/token names where it helps a later story author.
+- `Why` - why the domain matters to the rebuild sequence and what it unblocks.
+- `Does Not Own` - nearby concerns that belong elsewhere, each attributed to the owning domain, epic,
+  or story group by id. This boundary is load-bearing: every story under the domain inherits it.
+- `Inputs And Dependencies` - the `source-design` README, direct domain dependencies (or `none`), and
+  the planning artifacts that order the work. Layer-specific lines are expected and allowed: provider
+  charters split SDK vs testkit inputs; core charters name their implementation DAG band.
 - `Downstream Epics` - milestone epics that consume this domain.
 - `Story Group Signals` - likely story groups this domain will shape, without acceptance criteria or
   implementation HOW.
+
+The DAGs own dependency edges. [`../domain-dag.md`](../domain-dag.md) is authoritative for domain
+edges and [`../epic-dag.md`](../epic-dag.md) for epic edges. A charter names its direct dependencies
+and downstream epics for readability, but must not contradict the DAGs or re-argue their rationale.
+When they disagree, the DAG wins and the charter is corrected.
+
+## Charter readiness check
+
+A domain charter is planning-ready only when all four hold. This is the contract the charters are
+graded against; it is the domain-layer analogue of the story and epic gates in
+[`../work-item-authoring-guide.md`](../work-item-authoring-guide.md).
+
+- [ ] **Boundary is crisp.** `Does Not Own` names each excluded concern and attributes it to a
+  specific owner id, with no overlap against sibling charters in the same layer.
+- [ ] **Signals trace to design.** Every `Story Group Signal` and every named type/event/token maps to
+  the `source-design` README or a cited sibling design file. Nothing is invented beyond design (R4).
+- [ ] **Altitude holds.** The charter states WHAT the domain owns, not HOW. No acceptance criteria,
+  algorithms, file layout, or session mechanics — those belong to story contracts.
+- [ ] **Edges defer to the DAGs.** `Inputs And Dependencies` and `Downstream Epics` are consistent
+  with the domain and epic DAGs and do not restate edge rationale the DAGs own.
+
+If any box is empty, the charter is not ready and must be corrected before its stories are authored.
 
 ## Layers
 
