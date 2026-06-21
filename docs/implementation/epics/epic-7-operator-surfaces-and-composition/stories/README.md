@@ -13,6 +13,6 @@ Story contracts for Epic 7 will live in this directory.
 
 ---
 
-**↑ Up:** [Epic 7 - Operator surfaces and end-to-end composition](../README.md) · **← Prev:** [Epic 7 - story DAG](../story-dag.md) · **Next →:** [implementation coverage rollup](../../../coverage.md)
+**↑ Up:** [Epic 7 - Operator surfaces and end-to-end composition](../README.md) · **← Prev:** [Epic 7 - Operator surfaces and end-to-end composition](../README.md) · **Next →:** [Epic 7 - story DAG](../story-dag.md)
 
 <!-- /DOCS-NAV -->
