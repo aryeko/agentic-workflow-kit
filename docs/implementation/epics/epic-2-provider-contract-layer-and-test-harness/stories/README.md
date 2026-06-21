@@ -13,6 +13,6 @@ Story contracts for Epic 2 will live in this directory.
 
 ---
 
-**↑ Up:** [Epic 2 - Provider contract layer and test harness](../README.md) · **← Prev:** [Epic 2 - story DAG](../story-dag.md) · **Next →:** [Epic 3 - Core runtime spine](../../epic-3-core-runtime-spine/README.md)
+**↑ Up:** [Epic 2 - Provider contract layer and test harness](../README.md) · **← Prev:** [Epic 2 - Provider contract layer and test harness](../README.md) · **Next →:** [Epic 2 - story DAG](../story-dag.md)
 
 <!-- /DOCS-NAV -->

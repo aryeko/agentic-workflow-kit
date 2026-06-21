@@ -13,6 +13,6 @@ Story DAG placeholder. This file will order dispatch-ready stories inside Epic 2
 
 ---
 
-**↑ Up:** [Epic 2 - Provider contract layer and test harness](./README.md) · **← Prev:** [Epic 2 - Provider contract layer and test harness](./README.md) · **Next →:** [Epic 2 - stories](./stories/README.md)
+**↑ Up:** [Epic 2 - Provider contract layer and test harness](./README.md) · **← Prev:** [Epic 2 - stories](./stories/README.md) · **Next →:** [Epic 3 - Core runtime spine](../epic-3-core-runtime-spine/README.md)
 
 <!-- /DOCS-NAV -->
