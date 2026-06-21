@@ -14,8 +14,15 @@ The domain charters are the coverage oracle. The unit of coverage is the **Story
 domain, because domains span epics. Each signal must resolve to exactly one disposition:
 
 - `covered` - claimed by exactly one epic (and, once its story DAG is frozen, one story).
-- `deferred(<why>, <until>)` - intentionally out of v1 scope; accounted-for, not a gap.
-- `split(<parts>)` - one signal divided across stories, each part named so it stays exactly-once.
+- `deferred(<why>, <until>)` - **no epic owns it in v1**; intentionally out of scope, accounted-for, not
+  a gap.
+- `split(<parts>)` - one signal divided across stories within an epic, each part named so it stays
+  exactly-once.
+
+A domain's signals may be **partitioned** across epics (e.g. a provider's port signals to Epic 2, its
+driver signal to Epic 6). That is normal multi-epic ownership: each signal is still `covered` by exactly
+one epic, and this rollup is where the partition is reconciled. Partition is not `deferred` — `deferred`
+means *no* epic owns the signal.
 
 The detailed signal-to-story tables live in each epic charter's `Per-domain expectations`. This page is
 the rollup that proves the set is complete; it does not restate every signal.
