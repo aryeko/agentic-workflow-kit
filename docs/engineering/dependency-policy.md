@@ -85,9 +85,9 @@ the ports, collaborators, and configuration it needs as typed arguments. This ke
 control plane replayable, testable, and free of hidden ambient state.
 
 No dependency injection container is allowed in `sdk`, `provider-*`, `cli`, `mcp`, or
-`testkit`. If a container is ever justified, it belongs only in a composition-root
-layer that assembles the runtime graph and must not leak into business logic, contract
-types, or package internals.
+`testkit`. Runtime wiring happens explicitly through factories and executable startup
+code; a container must not leak into business logic, contract types, or package
+internals.
 
 ## Determinism
 

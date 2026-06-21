@@ -1,11 +1,13 @@
 // =============================================================================
-// Package and layer boundary rules for dependency-cruiser.
+// Package boundary rules for dependency-cruiser.
 //
-// These rules enforce the Dependency Rule before packages are implemented:
-// Edge -> Control plane -> Contracts, Drivers -> Contracts, and everything
-// may depend on Foundation. Contracts may depend on Foundation and sibling
-// Contracts packages; Foundation must not depend on any layer above it.
+// The frozen package target is SDK-centered:
+//   sdk, cli, mcp, provider-*, testkit
 //
+// Existing foundation-*, contracts-*, drivers-*, and conformance-kit packages are
+// pre-transition implementation packages. They remain in the build graph until
+// their source is folded into the target packages, but they are not the current
+// package model.
 // =============================================================================
 
 const packagePath = (packageName) => `^packages/${packageName}(?:/|$)`;
@@ -19,24 +21,30 @@ const npmPackagePath = (packageNamePattern) => [
 
 const NPM_DEPENDENCY_TYPES = ['npm', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-bundled', 'npm-no-pkg', 'npm-unknown'];
 
-const LAYERS = {
-  foundation: packageGroupPath('foundation-'),
-  contracts: packageGroupPath('contracts-'),
-  core: packageGroupPath('core-'),
-  drivers: packageGroupPath('drivers-'),
-  edge: packageGroupPath('edge-'),
-  compositionRoot: packagePath('composition-root'),
+const TARGET = {
+  sdk: packagePath('sdk'),
+  cli: packagePath('cli'),
+  mcp: packagePath('mcp'),
+  providers: packageGroupPath('provider-'),
+  testkit: packagePath('testkit'),
 };
 
-const DRIVER_PACKAGES = ['codex', 'github', 'local', 'markdown', 'mocks'];
+const TARGET_PROVIDER_NAMES = ['codex', 'local', 'github', 'markdown'];
 
-const peerDriverRules = DRIVER_PACKAGES.map((driverName) => ({
-  name: `driver-${driverName}-must-not-import-peer-driver`,
+const PRE_TRANSITION = {
+  foundation: packageGroupPath('foundation-'),
+  contracts: packageGroupPath('contracts-'),
+  drivers: packageGroupPath('drivers-'),
+  conformanceKit: packagePath('conformance-kit'),
+};
+
+const targetProviderPeerRules = TARGET_PROVIDER_NAMES.map((providerName) => ({
+  name: `provider-${providerName}-must-not-import-peer-provider`,
   severity: 'error',
-  comment: 'Driver packages must not import peer driver adapters.',
-  from: { path: packagePath(`drivers-${driverName}`) },
+  comment: 'Provider packages must not import peer provider packages.',
+  from: { path: packagePath(`provider-${providerName}`) },
   to: {
-    path: `^packages/drivers-(?!${driverName}(?:/|$))[^/]+(?:/|$)`,
+    path: `^packages/provider-(?!${providerName}(?:/|$))[^/]+(?:/|$)`,
   },
 }));
 
@@ -68,120 +76,149 @@ module.exports = {
       to: {},
     },
     {
-      name: 'core-must-not-import-edge-or-driver',
+      name: 'sdk-must-not-import-runtime-packages',
       severity: 'error',
-      comment: 'Control-plane packages must not depend on edge entrypoints or concrete drivers.',
-      from: { path: LAYERS.core },
-      to: { path: `(?:${LAYERS.edge}|${LAYERS.drivers})` },
-    },
-    {
-      name: 'contracts-must-not-import-implementation-layers',
-      severity: 'error',
-      comment: 'Contracts may depend on foundation and sibling contracts only, never core, edge, or drivers.',
-      from: { path: LAYERS.contracts },
-      to: { path: `(?:${LAYERS.core}|${LAYERS.edge}|${LAYERS.drivers})` },
-    },
-    {
-      name: 'foundation-must-not-import-upper-layers',
-      severity: 'error',
-      comment: 'Foundation packages may import foundation peers only; upper layers must depend on foundation instead.',
-      from: { path: LAYERS.foundation },
+      comment:
+        'sdk owns deterministic runtime and provider interfaces; it must not import providers, executables, or testkit.',
+      from: { path: TARGET.sdk },
       to: {
-        path: `(?:${LAYERS.contracts}|${LAYERS.core}|${LAYERS.edge}|${LAYERS.drivers})`,
+        path: `(?:${TARGET.providers}|${TARGET.cli}|${TARGET.mcp}|${TARGET.testkit})`,
       },
     },
     {
-      name: 'drivers-must-not-import-core-or-edge',
+      name: 'sdk-must-not-import-banned-external-libraries',
       severity: 'error',
-      comment: 'Drivers implement contracts; they must not reach into the control plane or edge.',
-      from: { path: LAYERS.drivers },
-      to: { path: `(?:${LAYERS.core}|${LAYERS.edge})` },
-    },
-    ...peerDriverRules,
-    {
-      name: 'edge-must-not-import-drivers',
-      severity: 'error',
-      comment: 'Edge packages call the control plane, not concrete drivers.',
-      from: { path: LAYERS.edge },
-      to: { path: LAYERS.drivers },
+      comment:
+        'sdk may import pure runtime libraries only, not provider clients, process helpers, executable runtimes, or parsers.',
+      from: { path: TARGET.sdk },
+      to: {
+        dependencyTypes: NPM_DEPENDENCY_TYPES,
+        path: npmPackagePath(
+          '(?:@octokit/[^/]+|octokit|execa|native-containment-helper|@kit-vnext/native-containment-helper|@modelcontextprotocol/sdk|commander|yargs|cac|clipanion|ink)',
+        ),
+      },
     },
     {
-      name: 'lower-layers-must-not-import-composition-root',
+      name: 'provider-production-must-not-import-executables-or-testkit',
       severity: 'error',
-      comment: 'Composition root assembles lower layers; lower layers must not depend on it.',
+      comment: 'provider-* production source may import sdk only, not cli, mcp, or testkit.',
       from: {
-        path: `(?:${LAYERS.foundation}|${LAYERS.contracts}|${LAYERS.core}|${LAYERS.drivers}|${LAYERS.edge})`,
+        path: TARGET.providers,
+        pathNot: ['\\.(test|spec)\\.[cm]?[tj]sx?$', '(^|/)(__fixtures__|__tests__|test-helpers)(/|$)'],
       },
-      to: { path: LAYERS.compositionRoot },
+      to: { path: `(?:${TARGET.cli}|${TARGET.mcp}|${TARGET.testkit})` },
+    },
+    ...targetProviderPeerRules,
+    {
+      name: 'testkit-must-import-sdk-only',
+      severity: 'error',
+      comment: 'testkit may depend on sdk but not providers or executable packages.',
+      from: { path: TARGET.testkit },
+      to: { path: `^packages/(?!sdk(?:/|$))[^/]+(?:/|$)` },
     },
     {
-      name: 'production-must-not-import-test-fixtures',
+      name: 'production-must-not-import-testkit-or-fixtures',
       severity: 'error',
-      comment: 'Production package and tooling source must not import test-only fixtures or conformance helpers.',
+      comment: 'Production source must not import testkit, conformance helpers, fixtures, or test helpers.',
       from: {
         path: '^(packages|tooling)/',
         pathNot: [
           '\\.(test|spec)\\.[cm]?[tj]sx?$',
           '(^|/)(__fixtures__|__tests__|test-helpers)(/|$)',
-          packagePath('conformance-kit'),
+          TARGET.testkit,
+          PRE_TRANSITION.conformanceKit,
         ],
       },
       to: {
-        path: '(^|/)(__fixtures__|__tests__|test-helpers)(/|$)|^packages/conformance-kit(?:/|$)',
+        path: `(?:${TARGET.testkit}|${PRE_TRANSITION.conformanceKit}|(^|/)(__fixtures__|__tests__|test-helpers)(/|$))`,
       },
     },
     {
-      name: 'octokit-github-driver-only',
+      name: 'octokit-github-provider-only',
       severity: 'error',
-      comment: 'Octokit imports are allowed only inside the GitHub driver.',
-      from: { pathNot: [packagePath('drivers-github')] },
+      comment: 'Octokit imports belong only in provider-github.',
+      from: { pathNot: [packagePath('provider-github')] },
       to: {
         dependencyTypes: NPM_DEPENDENCY_TYPES,
         path: npmPackagePath('(?:@octokit/[^/]+|octokit)'),
       },
     },
     {
-      name: 'execa-local-driver-only',
+      name: 'execa-local-provider-only',
       severity: 'error',
-      comment: 'Execa and native containment helper imports are allowed only inside the local execution-host driver.',
-      from: { pathNot: [packagePath('drivers-local')] },
+      comment: 'Execa and native containment helper imports belong only in provider-local.',
+      from: { pathNot: [packagePath('provider-local')] },
       to: {
         dependencyTypes: NPM_DEPENDENCY_TYPES,
         path: npmPackagePath('(?:execa|native-containment-helper|@kit-vnext/native-containment-helper)'),
       },
     },
     {
-      name: 'telemetry-sdks-edge-or-telemetry-adapter-only',
+      name: 'mcp-runtime-mcp-only',
       severity: 'error',
-      comment: 'Pino and OpenTelemetry SDK imports are allowed only in the edge package.',
-      from: {
-        pathNot: [packagePath('edge-01')],
-      },
+      comment: 'MCP server runtime imports belong only in mcp.',
+      from: { pathNot: [TARGET.mcp] },
       to: {
         dependencyTypes: NPM_DEPENDENCY_TYPES,
-        path: npmPackagePath('(?:pino|@opentelemetry/[^/]+)'),
+        path: npmPackagePath('@modelcontextprotocol/sdk'),
       },
     },
     {
-      name: 'awilix-composition-root-only',
+      name: 'cli-parser-cli-only',
       severity: 'error',
-      comment: 'Awilix container imports are allowed only in composition-root.',
-      from: { pathNot: [packagePath('composition-root')] },
+      comment: 'CLI parser and terminal rendering imports belong only in cli.',
+      from: { pathNot: [TARGET.cli] },
+      to: {
+        dependencyTypes: NPM_DEPENDENCY_TYPES,
+        path: npmPackagePath('(?:commander|yargs|cac|clipanion|ink)'),
+      },
+    },
+    {
+      name: 'no-runtime-di-container',
+      severity: 'error',
+      comment: 'Runtime packages use explicit factory injection; dependency injection containers are not allowed.',
+      from: { path: '^packages/' },
       to: {
         dependencyTypes: NPM_DEPENDENCY_TYPES,
         path: npmPackagePath('awilix'),
       },
     },
     {
-      name: 'sqlite-storage-package-only',
+      name: 'sqlite-store-adapter-only',
       severity: 'error',
-      comment: 'SQLite imports are allowed only inside the storage package.',
-      from: { pathNot: [packagePath('foundation-fnd-02')] },
+      comment:
+        'Native-backed stores belong in a store adapter package, never in sdk; foundation-fnd-02 is the pre-transition storage implementation.',
+      from: { pathNot: [packageGroupPath('store-'), packagePath('foundation-fnd-02')] },
       to: {
         path: [
           '^node:sqlite$',
           ...npmPackagePath('(?:sqlite|sqlite3|better-sqlite3|libsql|@sqlite\\.org/sqlite-wasm|@libsql/client)'),
         ],
+      },
+    },
+    {
+      name: 'pretransition-foundation-impl-must-not-import-nonfoundation-impl',
+      severity: 'error',
+      comment: 'Pre-transition foundation implementation packages may depend only on pre-transition foundation peers.',
+      from: { path: PRE_TRANSITION.foundation },
+      to: {
+        path: `(?:${PRE_TRANSITION.contracts}|${PRE_TRANSITION.drivers}|${PRE_TRANSITION.conformanceKit})`,
+      },
+    },
+    {
+      name: 'pretransition-contract-impl-must-not-import-driver-impl',
+      severity: 'error',
+      comment: 'Pre-transition contract implementation packages must not import pre-transition drivers.',
+      from: { path: PRE_TRANSITION.contracts },
+      to: { path: PRE_TRANSITION.drivers },
+    },
+    {
+      name: 'pretransition-driver-impl-must-not-import-peer-driver-impl',
+      severity: 'error',
+      comment: 'Pre-transition driver implementation packages must not import peer driver implementations.',
+      from: { path: PRE_TRANSITION.drivers },
+      to: {
+        path: '^packages/drivers-(?!mocks(?:/|$))[^/]+(?:/|$)',
       },
     },
   ],

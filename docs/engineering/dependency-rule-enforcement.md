@@ -22,61 +22,81 @@ errors that fail `pnpm check` (step 3). It is configured in
 
 ### Active baseline rules
 
-Two rules are active from the start, before any packages exist:
+Two graph-hygiene rules are always active:
 
 | Rule | What It Forbids |
 |---|---|
 | `no-circular` | Any import cycle of any length |
 | `no-orphans` | Modules with no imports and no importers (excludes `*.test.*`, `*.d.ts`, `tooling/`, `tests/`, `*.config.*`, `*.cjs`) |
 
-These catch graph hygiene problems as soon as the first packages are added.
+These catch graph hygiene problems across both target packages and pre-transition
+implementation packages.
 
-### Layer-rule template (design-owned — not yet active)
+### Target package rules
 
-The following rules are a template. Design owners activate them in
-`.dependency-cruiser.cjs` once real package paths are known. Do not activate them
-before packages exist; pattern mismatches against an empty `packages/` directory
-produce false positives.
+The active package-boundary rules are named for the frozen package target:
 
-**Checklist for design owners:**
+| Rule | What It Forbids |
+|---|---|
+| `sdk-must-not-import-runtime-packages` | `sdk` importing `provider-*`, `cli`, `mcp`, or `testkit` |
+| `sdk-must-not-import-banned-external-libraries` | `sdk` importing provider clients, process helpers, executable runtimes, or CLI parsers |
+| `provider-production-must-not-import-executables-or-testkit` | `provider-*` production source importing `cli`, `mcp`, or `testkit` |
+| `provider-*-must-not-import-peer-provider` | Concrete providers importing peer provider packages |
+| `testkit-must-import-sdk-only` | `testkit` importing anything other than `sdk` |
+| `production-must-not-import-testkit-or-fixtures` | Production source importing `testkit`, conformance helpers, fixtures, or test helpers |
+| `octokit-github-provider-only` | Octokit outside `provider-github` |
+| `execa-local-provider-only` | Execa or native containment helpers outside `provider-local` |
+| `mcp-runtime-mcp-only` | MCP server runtime outside `mcp` |
+| `cli-parser-cli-only` | CLI parser or terminal rendering libraries outside `cli` |
+| `no-runtime-di-container` | Runtime package imports of dependency injection containers |
+| `sqlite-store-adapter-only` | SQLite/native store libraries outside store adapters; `foundation-fnd-02` is temporarily allowed as the pre-transition storage implementation |
 
-- [ ] **`sdk` must not import `provider-*`, `cli`, `mcp`, or `testkit`.**
-  `from: { path: '^packages/sdk' }` → `to: { path: '^packages/(provider-|cli|mcp|testkit)' }`
+These rules are safe before the target package directories exist: dependency-cruiser
+matches no source files for absent packages and begins enforcing each rule as soon as a
+matching package lands.
 
-- [ ] **`sdk` must not import banned external libraries.**
-  Ban `octokit`, `@octokit/*`, `execa`, the native containment helper, any concrete
-  Codex client, the MCP server runtime, and any CLI parser.
+### Pre-transition implementation packages
 
-- [ ] **`provider-*` must not import `cli`, `mcp`, or `testkit` in production source.**
-  `from: { path: '^packages/provider-', pathNot: '\\.(test|spec)\\.' }` →
-  `to: { path: '^packages/(cli|mcp|testkit)' }`
+The worktree currently includes older implementation packages:
 
-- [ ] **`provider-*` must not import peer providers.**
-  `from: { path: '^packages/provider-' }` →
-  `to: { path: '^packages/provider-', pathNot: 'same package' }`
+```txt
+foundation-fnd-*
+contracts-execution-host
+drivers-mocks
+conformance-kit
+```
 
-- [ ] **Production source must not import `testkit` or test fixtures.**
-  `from: { pathNot: '\\.(test|spec)\\.' }` →
-  `to: { path: '^packages/testkit|(^|/)__fixtures__/' }`
+They are buildable source packages, not the current package model. The
+`.dependency-cruiser.cjs` file encodes explicit `pretransition-*` rules so these
+packages keep passing without pretending that the old package decomposition is still
+canonical:
 
-Bind these templates to real package path patterns before the first implementation
-package is added. The `.dependency-cruiser.cjs` file includes comments pointing here.
+| Rule | What It Forbids |
+|---|---|
+| `pretransition-foundation-impl-must-not-import-nonfoundation-impl` | Pre-transition foundation implementation packages importing pre-transition contracts, drivers, or conformance kit |
+| `pretransition-contract-impl-must-not-import-driver-impl` | Pre-transition contract implementation packages importing pre-transition drivers |
+| `pretransition-driver-impl-must-not-import-peer-driver-impl` | Pre-transition driver implementation packages importing peer pre-transition drivers |
+
+Remove these rules when the source has been migrated into `sdk`, `provider-*`, `cli`,
+`mcp`, and `testkit`.
 
 ## Guard 2 — TypeScript Project References
 
-`tsconfig.json` is a solution file that references `tsconfig.infra.json`. Design
-owners add per-package `tsconfig.json` files with `"composite": true` and reference
-them from the root solution file or a per-layer solution file.
+`tsconfig.json` is a solution file that references `tsconfig.infra.json` and the
+currently buildable package projects. During the transition, those references include
+the pre-transition implementation packages so `tsc -b` continues to typecheck all
+working source. As target package directories are created, add their composite
+`tsconfig.json` files and remove the old references as their source moves.
 
 Project references enforce at compile time that a package can only import another
 package that is explicitly declared as a reference. A missing reference causes `tsc -b`
 to report a `TS6305` or `TS6307` error. This is independent of dependency-cruiser and
 catches violations before the test runner runs.
 
-**Pattern for new packages:**
+**Pattern for target packages:**
 
 ```jsonc
-// packages/my-package/tsconfig.json
+// packages/provider-local/tsconfig.json
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
