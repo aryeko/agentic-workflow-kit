@@ -2,7 +2,7 @@
 
 This repository is the kit-vnext v1.0.0 rebuild. Read `AGENTS.md` first; it is
 the contributor and agent contract. The authoritative system design lives under
-`docs/design/`, and foundation gate details live under `docs/foundation/`.
+`docs/design/`, and engineering policy and gate details live under `docs/engineering/`.
 
 ## Prerequisites
 
@@ -58,9 +58,9 @@ before handing the change off.
 
 - `docs/design/` is the source of truth for architecture, requirements,
   decisions, glossary, and domain designs.
-- `docs/foundation/` records foundation tooling and gate facts for the tracked
+- `docs/engineering/` records engineering policy and gate facts for the tracked
   tree.
-- `docs/history/` holds postmortems and research context. It is not normative
+- `docs/research/history/` holds postmortems and research context. It is not normative
   design.
 - `docs/implementation/` holds implementation waves and item charters.
 - `packages/` is the pnpm workspace slot for design-owned package
