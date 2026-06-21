@@ -3,11 +3,6 @@
 //
 // The frozen package target is SDK-centered:
 //   sdk, cli, mcp, provider-*, testkit
-//
-// Existing foundation-*, contracts-*, drivers-*, and conformance-kit packages are
-// pre-transition implementation packages. They remain in the build graph until
-// their source is folded into the target packages, but they are not the current
-// package model.
 // =============================================================================
 
 const packagePath = (packageName) => `^packages/${packageName}(?:/|$)`;
@@ -30,13 +25,6 @@ const TARGET = {
 };
 
 const TARGET_PROVIDER_NAMES = ['codex', 'local', 'github', 'markdown'];
-
-const PRE_TRANSITION = {
-  foundation: packageGroupPath('foundation-'),
-  contracts: packageGroupPath('contracts-'),
-  drivers: packageGroupPath('drivers-'),
-  conformanceKit: packagePath('conformance-kit'),
-};
 
 const targetProviderPeerRules = TARGET_PROVIDER_NAMES.map((providerName) => ({
   name: `provider-${providerName}-must-not-import-peer-provider`,
@@ -122,15 +110,10 @@ module.exports = {
       comment: 'Production source must not import testkit, conformance helpers, fixtures, or test helpers.',
       from: {
         path: '^(packages|tooling)/',
-        pathNot: [
-          '\\.(test|spec)\\.[cm]?[tj]sx?$',
-          '(^|/)(__fixtures__|__tests__|test-helpers)(/|$)',
-          TARGET.testkit,
-          PRE_TRANSITION.conformanceKit,
-        ],
+        pathNot: ['\\.(test|spec)\\.[cm]?[tj]sx?$', '(^|/)(__fixtures__|__tests__|test-helpers)(/|$)', TARGET.testkit],
       },
       to: {
-        path: `(?:${TARGET.testkit}|${PRE_TRANSITION.conformanceKit}|(^|/)(__fixtures__|__tests__|test-helpers)(/|$))`,
+        path: `(?:${TARGET.testkit}|(^|/)(__fixtures__|__tests__|test-helpers)(/|$))`,
       },
     },
     {
@@ -186,39 +169,13 @@ module.exports = {
     {
       name: 'sqlite-store-adapter-only',
       severity: 'error',
-      comment:
-        'Native-backed stores belong in a store adapter package, never in sdk; foundation-fnd-02 is the pre-transition storage implementation.',
-      from: { pathNot: [packageGroupPath('store-'), packagePath('foundation-fnd-02')] },
+      comment: 'Native-backed stores belong in a store adapter package, never in sdk.',
+      from: { pathNot: [packageGroupPath('store-')] },
       to: {
         path: [
           '^node:sqlite$',
           ...npmPackagePath('(?:sqlite|sqlite3|better-sqlite3|libsql|@sqlite\\.org/sqlite-wasm|@libsql/client)'),
         ],
-      },
-    },
-    {
-      name: 'pretransition-foundation-impl-must-not-import-nonfoundation-impl',
-      severity: 'error',
-      comment: 'Pre-transition foundation implementation packages may depend only on pre-transition foundation peers.',
-      from: { path: PRE_TRANSITION.foundation },
-      to: {
-        path: `(?:${PRE_TRANSITION.contracts}|${PRE_TRANSITION.drivers}|${PRE_TRANSITION.conformanceKit})`,
-      },
-    },
-    {
-      name: 'pretransition-contract-impl-must-not-import-driver-impl',
-      severity: 'error',
-      comment: 'Pre-transition contract implementation packages must not import pre-transition drivers.',
-      from: { path: PRE_TRANSITION.contracts },
-      to: { path: PRE_TRANSITION.drivers },
-    },
-    {
-      name: 'pretransition-driver-impl-must-not-import-peer-driver-impl',
-      severity: 'error',
-      comment: 'Pre-transition driver implementation packages must not import peer driver implementations.',
-      from: { path: PRE_TRANSITION.drivers },
-      to: {
-        path: '^packages/drivers-(?!mocks(?:/|$))[^/]+(?:/|$)',
       },
     },
   ],

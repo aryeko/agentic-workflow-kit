@@ -29,8 +29,7 @@ Two graph-hygiene rules are always active:
 | `no-circular` | Any import cycle of any length |
 | `no-orphans` | Modules with no imports and no importers (excludes `*.test.*`, `*.d.ts`, `tooling/`, `tests/`, `*.config.*`, `*.cjs`) |
 
-These catch graph hygiene problems across both target packages and pre-transition
-implementation packages.
+These catch graph hygiene problems across target packages as soon as they are added.
 
 ### Target package rules
 
@@ -49,44 +48,17 @@ The active package-boundary rules are named for the frozen package target:
 | `mcp-runtime-mcp-only` | MCP server runtime outside `mcp` |
 | `cli-parser-cli-only` | CLI parser or terminal rendering libraries outside `cli` |
 | `no-runtime-di-container` | Runtime package imports of dependency injection containers |
-| `sqlite-store-adapter-only` | SQLite/native store libraries outside store adapters; `foundation-fnd-02` is temporarily allowed as the pre-transition storage implementation |
+| `sqlite-store-adapter-only` | SQLite/native store libraries outside store adapters |
 
 These rules are safe before the target package directories exist: dependency-cruiser
 matches no source files for absent packages and begins enforcing each rule as soon as a
 matching package lands.
 
-### Pre-transition implementation packages
-
-The worktree currently includes older implementation packages:
-
-```txt
-foundation-fnd-*
-contracts-execution-host
-drivers-mocks
-conformance-kit
-```
-
-They are buildable source packages, not the current package model. The
-`.dependency-cruiser.cjs` file encodes explicit `pretransition-*` rules so these
-packages keep passing without pretending that the old package decomposition is still
-canonical:
-
-| Rule | What It Forbids |
-|---|---|
-| `pretransition-foundation-impl-must-not-import-nonfoundation-impl` | Pre-transition foundation implementation packages importing pre-transition contracts, drivers, or conformance kit |
-| `pretransition-contract-impl-must-not-import-driver-impl` | Pre-transition contract implementation packages importing pre-transition drivers |
-| `pretransition-driver-impl-must-not-import-peer-driver-impl` | Pre-transition driver implementation packages importing peer pre-transition drivers |
-
-Remove these rules when the source has been migrated into `sdk`, `provider-*`, `cli`,
-`mcp`, and `testkit`.
-
 ## Guard 2 — TypeScript Project References
 
-`tsconfig.json` is a solution file that references `tsconfig.infra.json` and the
-currently buildable package projects. During the transition, those references include
-the pre-transition implementation packages so `tsc -b` continues to typecheck all
-working source. As target package directories are created, add their composite
-`tsconfig.json` files and remove the old references as their source moves.
+`tsconfig.json` is a solution file that references `tsconfig.infra.json`. As target
+package directories are created, add their composite `tsconfig.json` files to the root
+solution file so `tsc -b` typechecks all working source.
 
 Project references enforce at compile time that a package can only import another
 package that is explicitly declared as a reference. A missing reference causes `tsc -b`

@@ -20,8 +20,8 @@ pass. It runs eight steps in sequence, fail-fast, cheapest first. Nothing merges
 | 4 | `typecheck` | `tsc -b` | TypeScript project references — full compilation of all composite projects |
 | 5 | `test:unit` | `vitest run --project unit` | Hermetic unit tests |
 | 6 | `test:int` | `vitest run --project integration` | Integration tests (real filesystem, no network) |
-| 7 | `test:conf` | `vitest run --project conformance-mock` | Conformance suites against mock drivers (hermetic) |
-| 8 | `coverage:foundation` | Vitest coverage reporter | Coverage floor enforcement for the current implemented foundation packages |
+| 7 | `test:conf` | `vitest run --project conformance-mock --passWithNoTests` | Conformance suites against mock drivers (hermetic); passes empty until provider mocks land |
+| 8 | `coverage:baseline` | Vitest coverage reporter | Baseline coverage instrumentation until implementation packages land |
 
 **Ordering rationale.** Steps are arranged cheapest-first so that the most common
 mistakes (formatting, lint) are caught in under a second, before the type-checker or
@@ -45,7 +45,7 @@ flowchart TD
     B4 --> B5["5 test:unit"]
     B5 --> B6["6 test:int"]
     B6 --> B7["7 test:conf"]
-    B7 --> B8["8 coverage:foundation"]
+    B7 --> B8["8 coverage:baseline"]
     B8 --> B9["pack:dry-run (CI only)"]
 
     A --> C{smoke trigger?}

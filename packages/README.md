@@ -2,6 +2,10 @@
 
 This directory is the pnpm workspace slot for kit-vnext implementation packages.
 
+It is intentionally empty until the implementation plan adds the SDK-centered package target. Earlier
+pre-transition implementation packages were removed; recover them from git history if needed for
+reference.
+
 The current design-owned package target is SDK-centered and contains exactly eight
 delivery packages:
 
@@ -27,23 +31,12 @@ The authoritative package map and dependency matrix live in:
 Do not treat design domains as npm package boundaries. Domains organize the design
 corpus; packages define runtime and dependency boundaries.
 
-## Transition status
+## Removed pre-transition packages
 
-This repository still contains pre-transition implementation packages such as
-`foundation-fnd-*`, `contracts-execution-host`, `drivers-mocks`, and
-`conformance-kit`. They are retained so the existing source, tests, and TypeScript
-project references keep working while the source is migrated into the SDK-centered
-package target.
-
-Those package names are not current package-model truth. New product code should not
-add more packages in that style. A future package migration should fold the existing
-source into:
-
-- `sdk` for deterministic runtime, provider interfaces, storage ports, and in-memory
-  defaults.
-- `provider-*` for concrete drivers.
-- `cli` and `mcp` for executable wiring.
-- `testkit` for provider mocks, conformance helpers, and fixtures.
+Do not add new `foundation-fnd-*`, `contracts-*`, `drivers-*`, or `conformance-kit`
+packages. Those names were from the pre-restructure implementation wave and are not the current
+package-model truth. If old source or tests are needed for comparison, use git history rather than
+keeping stale packages in the active workspace.
 
 ## Role of this directory
 
