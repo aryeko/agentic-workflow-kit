@@ -68,6 +68,35 @@ core → real drivers**.
 
 ---
 
+## Quality guardrails (every deliverable, every wave)
+
+The cheapest failure mode here is a confident, well-formatted proposal that quietly over-reaches or
+faithfully implements a flawed input. These guardrails exist to prevent that, and each one must leave
+visible evidence in the deliverable (see *Deliverable format* — the two required log sections).
+
+- **Smallest change that satisfies the need.** Do not restructure, rename, or enrich an existing typed
+  shape unless a *cited consumer requirement* forces it. Anything beyond the minimum is an **optional
+  upgrade**, listed separately with its justification, for the architect to take or leave — never
+  folded silently into the required change. *Why: a closure task that restructures schemas nobody asked
+  to change multiplies review and blast radius.*
+- **Inputs are fallible — verify, don't obey.** Treat the task spec and the corpus prose as possibly
+  wrong. Before freezing a field path or type, confirm it against the actual corpus. If the spec
+  contradicts the corpus, or two corpus files disagree, **surface the contradiction and recommend — do
+  not silently pick a side, and never edit the corpus to match a suspect spec.** *Why: implementing a
+  flawed input faithfully bakes the flaw into the frozen contract.*
+- **Escalate open choices; don't decide them.** Where a genuine choice exists (a name, generic vs
+  concrete, a placement, a unit), record it as an explicit architect ruling with a recommended option
+  and the alternatives — do not adopt one unilaterally. *Why: a silent pick becomes a hidden,
+  unreviewed decision two waves deep.*
+- **Never narrow without saying so.** Do not drop or restrict an existing option (an enum value, a
+  mode, a capability) as a side effect of a change. Any removal is a *proposed* removal, called out
+  with rationale. *Why: silent regressions are the hardest defects to catch in review.*
+- **Hunt drift before you freeze.** Before freezing a type or field, check where consumers already
+  reference or re-spell it, and report any divergence — a silently diverging duplicate is the exact
+  defect this package exists to eliminate.
+
+---
+
 ## How to run (sequential, with a review gate per wave)
 
 1. **Wave 1** — give a fresh session `prompts/run-wave-1.md`. It orchestrates tasks T1–T4, writes
@@ -117,6 +146,15 @@ Each task writes to `outputs/wave-<N>/<TASK-ID>/`:
   - **Corpus impact** — exact list of `docs/**` files + sections the proposal would amend later (so
     the architect can apply it). Paths only; do not edit them.
   - **Acceptance criteria** — each AC restated with where/how it is met (or why it is blocked).
+  - **Minimal-change justification** — required. For every change to an *existing* typed shape or
+    field, name the cited consumer requirement that forces it. Anything not forced goes under an
+    explicit **Optional upgrades** heading the architect can take or leave. (This is where the
+    "smallest change" guardrail leaves its evidence.) "No existing shapes changed" is a valid entry.
+  - **Contradiction & open-choice log** — required. List (a) every spec-vs-corpus or corpus-vs-corpus
+    conflict you found, with your recommendation — *not* a silent resolution; (b) every genuinely open
+    choice (name, generic vs concrete, placement, unit) flagged as an architect ruling with a
+    recommended option; (c) any existing option you propose to narrow or remove, with rationale.
+    "None found" is a valid entry if true — but you must have looked.
   - **Open issues / assumptions / risk.**
 - **`draft/`** — optional. Standalone draft files (e.g. a proposed typed-contract file, a proposed doc
   section). These are drafts living in the output folder, never applied to the corpus.

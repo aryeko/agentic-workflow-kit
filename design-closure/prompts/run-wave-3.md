@@ -23,9 +23,15 @@ binding constraint, and its output folder under `design-closure/outputs/wave-3/T
 
 Execution is yours to decide. Orchestrate — don't do the task work in the main thread.
 
+**Apply the README Quality guardrails** — smallest change that satisfies the need, verify inputs
+against the corpus, escalate open choices as architect rulings, never narrow an existing option
+silently. The `proposal.md` must contain the two required log sections (**Minimal-change
+justification** and **Contradiction & open-choice log**).
+
 ## Close out
-1. Check `outputs/wave-3/T9/proposal.md` against all five acceptance criteria and its consistency with
-   Wave-1 T3; confirm no file under `docs/` was modified.
+1. Check `outputs/wave-3/T9/proposal.md` against all five acceptance criteria, that it carries both
+   required log sections, and its consistency with Wave-1 T3; confirm no file under `docs/` was
+   modified.
 2. Write `design-closure/outputs/wave-3/WAVE-3-SUMMARY.md`: what the reorg proposes, the exact `docs/**`
    files+sections to amend, any blockers, and a final "design-closure complete?" verdict — whether all
    waves' proposals together leave the design clear enough to start writing implementation

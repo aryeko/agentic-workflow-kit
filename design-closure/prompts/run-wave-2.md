@@ -25,9 +25,17 @@ T8 are decisions — recommend with rationale and rejected alternatives, not fin
 
 Execution is yours to decide. Orchestrate — don't do the task work in the main thread.
 
+**Apply the README Quality guardrails to every task** — smallest change that satisfies the need
+(anything extra is an explicit *optional upgrade*), verify inputs against the corpus rather than
+obeying a possibly-wrong spec, escalate open choices as architect rulings instead of deciding them, and
+never narrow an existing option silently. Each `proposal.md` must contain the two required log sections
+(**Minimal-change justification** and **Contradiction & open-choice log**); reject a sub-agent result
+that omits them.
+
 ## Close out
-1. Check each `outputs/wave-2/<TASK-ID>/proposal.md` against its acceptance criteria and its
-   consistency with the Wave-1 decision it cites; confirm no file under `docs/` was modified.
+1. Check each `outputs/wave-2/<TASK-ID>/proposal.md` against its acceptance criteria, that it carries
+   both required log sections, and its consistency with the Wave-1 decision it cites; confirm no file
+   under `docs/` was modified.
 2. Write `design-closure/outputs/wave-2/WAVE-2-SUMMARY.md`: per task — status, proposed decision, ACs
    met; the decisions the architect must approve; any conflict with a Wave-1 decision surfaced (not
    silently resolved); blockers, including any Wave-1 input that was missing or ambiguous.
