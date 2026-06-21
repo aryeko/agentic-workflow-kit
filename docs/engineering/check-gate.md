@@ -16,12 +16,12 @@ pass. It runs eight steps in sequence, fail-fast, cheapest first. Nothing merges
 |---|---|---|---|
 | 1 | `format:check` | `biome format --check .` | Formatting — catches whitespace and style before anything compiles |
 | 2 | `lint` | `biome lint .` | Lint rules — catches obvious errors early |
-| 3 | `deps` | `depcruise --config .dependency-cruiser.cjs packages tooling tests` | Dependency-graph rules — no cycles, no orphans, and (once activated) layer violations |
+| 3 | `deps` | `depcruise --config .dependency-cruiser.cjs packages tooling tests` | Dependency-graph rules — no cycles, no orphans, and package-boundary violations |
 | 4 | `typecheck` | `tsc -b` | TypeScript project references — full compilation of all composite projects |
 | 5 | `test:unit` | `vitest run --project unit` | Hermetic unit tests |
 | 6 | `test:int` | `vitest run --project integration` | Integration tests (real filesystem, no network) |
-| 7 | `test:conf` | `vitest run --project conformance-mock` | Conformance suites against mock drivers (hermetic) |
-| 8 | `coverage` | Vitest coverage reporter | Coverage floor enforcement |
+| 7 | `test:conf` | `vitest run --project conformance-mock --passWithNoTests` | Conformance suites against mock drivers (hermetic); passes empty until provider mocks land |
+| 8 | `coverage:baseline` | Vitest coverage reporter | Baseline coverage instrumentation until implementation packages land |
 
 **Ordering rationale.** Steps are arranged cheapest-first so that the most common
 mistakes (formatting, lint) are caught in under a second, before the type-checker or
@@ -45,7 +45,7 @@ flowchart TD
     B4 --> B5["5 test:unit"]
     B5 --> B6["6 test:int"]
     B6 --> B7["7 test:conf"]
-    B7 --> B8["8 coverage"]
+    B7 --> B8["8 coverage:baseline"]
     B8 --> B9["pack:dry-run (CI only)"]
 
     A --> C{smoke trigger?}

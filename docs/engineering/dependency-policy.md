@@ -36,7 +36,7 @@ All package dependencies must follow:
 
 | Package | May import | Must not import |
 |---|---|---|
-| `sdk` | Pure runtime libraries only (zod + small pure utilities) | `provider-*`, `cli`, `mcp`, `testkit`, octokit, execa, native containment helper, concrete Codex client, MCP server runtime, CLI parser |
+| `sdk` | Pure runtime libraries only (zod + small pure utilities) | `provider-*`, `cli`, `mcp`, `testkit`, octokit, execa, native containment helper, child_process, concrete Codex client, MCP server runtime, CLI parser |
 | `provider-*` | `sdk` | `cli`, `mcp`, `testkit` (in production source), peer providers |
 | `cli` | `sdk`, `provider-*` | — |
 | `mcp` | `sdk`, `provider-*` | — |
@@ -52,6 +52,7 @@ The `sdk` package must not import:
 - `octokit` / `@octokit/*`
 - `execa`
 - The native containment helper
+- `node:child_process` / `child_process`
 - Any concrete Codex protocol client
 - The MCP server runtime
 - Any CLI parser
@@ -85,9 +86,9 @@ the ports, collaborators, and configuration it needs as typed arguments. This ke
 control plane replayable, testable, and free of hidden ambient state.
 
 No dependency injection container is allowed in `sdk`, `provider-*`, `cli`, `mcp`, or
-`testkit`. If a container is ever justified, it belongs only in a composition-root
-layer that assembles the runtime graph and must not leak into business logic, contract
-types, or package internals.
+`testkit`. Runtime wiring happens explicitly through factories and executable startup
+code; a container must not leak into business logic, contract types, or package
+internals.
 
 ## Determinism
 

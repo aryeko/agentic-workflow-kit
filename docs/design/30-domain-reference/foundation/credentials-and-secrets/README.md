@@ -49,8 +49,9 @@ consuming-driver policy input.
 - The worker provably never receives Forge credentials; every credential use is audited.
 - Secrets are redacted in all telemetry and artifacts.
 
-### Open questions
-- Secret-manager integrations; per-driver credential shapes.
+### Planning answer
+- Environment variables are the only v1 secret-material source. Other secret-manager integrations are
+  deferred adapters. Per-driver credential shapes are defined by the first concrete provider stories.
 
 ## 1. Purpose & boundaries
 
@@ -199,7 +200,12 @@ Focused tests: property-test `mayInject` so no policy or grant injects Forge cre
 
 ## 10. Open questions
 
-Open questions: which secret-manager integrations are v1-supported beyond environment variables; what exact credential shapes the first Forge, registry, Agent, and Execution Host drivers need; and whether worker egress to public Forge hosts is allowed when no Forge credential is present. Retention is no longer open: this design uses the concrete retention rules in Section 4.
+Resolved for v1 planning: environment variables are the only supported secret-material source. First
+concrete provider stories must define exact `CredentialRef` shapes for Forge, registry, Agent, and
+Execution Host credentials before those drivers are implementation-ready. Worker egress to public
+Forge hosts is default-deny unless a story explicitly grants read-only egress and the Execution Host
+emits a matching, fresh egress-policy attestation. Retention is no longer open: this design uses the
+concrete retention rules in Section 4.
 
 ## 11. Definition of done
 
