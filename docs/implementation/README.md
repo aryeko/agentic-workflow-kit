@@ -36,6 +36,8 @@ The implementation plan is being **re-derived from scratch** against the now-fro
 - [`domains/`](domains/README.md) - domain implementation charters, grouped by design layer.
 - [`epics/`](epics/README.md) - epic charter bundles, story DAG placeholders, and future story
   contracts.
+- [`coverage.md`](coverage.md) - the global coverage rollup that proves every domain signal is
+  accounted for across the epic set.
 
 The remaining derived planning artifacts — epic charters, per-story contracts, package rollout, and
 the readiness matrix — are intentionally authored from the frozen design using the authoring guide
@@ -88,6 +90,6 @@ standard is in [`work-item-authoring-guide.md`](work-item-authoring-guide.md).
 
 **↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [work item authoring guide](./work-item-authoring-guide.md)
 
-**Children:** [work item authoring guide](./work-item-authoring-guide.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md)
+**Children:** [work item authoring guide](./work-item-authoring-guide.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
 
 <!-- /DOCS-NAV -->

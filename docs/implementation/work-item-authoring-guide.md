@@ -76,6 +76,44 @@ being checkable. The same instinct applies at every layer, and it sharpens as yo
 The rest of this guide gives each layer its purpose, its shape or template, its readiness check, and
 the lesson it encodes.
 
+## Coverage validation
+
+The domain charters are the coverage oracle. The epic set is "good" only if it covers everything the
+domain charters own; an epic-N story DAG is "good" only if it covers everything that epic claims. This
+section defines how that check is made checkable instead of asserted.
+
+**The unit of coverage is the `Story Group Signal`, not the domain.** Domains deliberately span epics -
+`fnd-02` storage feeds several epics - so "is the domain covered?" is always trivially yes and proves
+nothing. Each signal is the line item that must be accounted for exactly once.
+
+Coverage is verified in two directions:
+
+- **Completeness (top-down): no gaps.** Every Story Group Signal of every domain has a disposition -
+  either `covered` by exactly one epic (and, once the story DAG is frozen, exactly one story) or an
+  explicit `deferred` entry naming why and until when. A signal with neither is a gap, surfaced loudly.
+- **Traceability (bottom-up): no invention.** Every epic output and every story AC traces up to a
+  domain signal, which traces to design. An item with no source signal is scope creep and is dropped or
+  pushed back to design. This is the *subset-of-source* rule used as a checklist.
+
+Disposition vocabulary, exactly-once ownership:
+
+- `covered` - claimed by one epic; at story granularity, owned by one story id.
+- `deferred(<why>, <until>)` - intentionally out of v1 scope; counts as accounted-for, not as a gap.
+- `split(<parts>)` - rare; one signal genuinely divided across stories, with each part named so it is
+  still exactly-once at the part level.
+
+Two artifacts carry this:
+
+- **Per-epic coverage tables** live in each epic charter's `Per-domain expectations`. For every included
+  domain, they list the signals that epic claims and the owning story (or deferral). This keeps the
+  check next to the work and lets each epic self-verify.
+- **The coverage rollup** [`coverage.md`](coverage.md) is the thin global view: it confirms every
+  domain's signals are accounted for across the whole epic set, with no signal unclaimed and none
+  double-owned. It is updated as each epic is characterized.
+
+Gate 2 uses the per-epic table to verify an epic's slice; the rollup verifies the epic set as a whole;
+Gate 3 verifies an epic's claimed signals each reach exactly one story.
+
 ---
 
 ## Layer 1 - Domain charter
@@ -181,10 +219,16 @@ depends-on-epics: [<...>]
 
 ## Per-domain expectations
 
+For each included domain, list the `Story Group Signals` this epic claims and their disposition. Every
+claimed signal maps to exactly one story (filled `TBD` until the story DAG is frozen) or a `deferred`
+entry. Signals this epic does not claim are owned by another epic and tracked in `coverage.md`.
+
 ### `<domain-id>` - <name>
 
-- Responsibility:
-- Expected story files:
+| Story Group Signal (from charter) | Owning story | Disposition |
+|---|---|---|
+| <signal text> | <story id / TBD> | covered / deferred(<why>, <until>) |
+
 - Evidence expectation:
 
 ## Epic readiness
@@ -202,6 +246,9 @@ An epic charter is planning-ready only when all five hold:
 
 - [ ] **Domains map down.** Every included domain has an authored domain charter, and its role here is
   consistent with that charter's `What` and `Downstream Epics`.
+- [ ] **Coverage table present and traceable.** `Per-domain expectations` lists, for each included
+  domain, the `Story Group Signals` this epic claims; every claimed signal traces to that charter, and
+  no signal this epic claims is owned by another epic in `coverage.md` (exactly-once).
 - [ ] **Outputs are concrete.** Each output names a contract surface, package, module, test lane, or
   evidence artifact - not an adjective like "robust" or "complete".
 - [ ] **Readiness names the unblock.** `Epic readiness` states the conditions that make the next epic
@@ -472,6 +519,9 @@ For every story:
 
 - [ ] AC list exists; every AC is falsifiable and traces to the design.
 - [ ] Spec-surface manifest exists and matches the design.
+- [ ] Coverage closed: every `Story Group Signal` this story's epic claims for the story's domain maps
+  to exactly one story (this one or a named sibling) or a `deferred` entry; no claimed signal is left
+  unowned in the epic's coverage table.
 - [ ] Failure/degraded outcome table exists; every named state has a proving AC.
 - [ ] Coverage number and enforcement command are stated.
 - [ ] Required tests are catalogued, not presented as examples.
@@ -511,14 +561,16 @@ Design approval, prose, migrated code, fixtures, schema snapshots, or worker sel
 A **domain charter** is ready when: `Does Not Own` attributes every excluded concern to an owner id;
 every signal traces to `source-design`; it carries no AC or HOW; edges match the DAGs.
 
-An **epic charter** is ready when: every included domain maps to a charter; outputs are concrete
-surfaces, not adjectives; `Epic readiness` names the next-epic unblock; edges match the epic DAG; no
-story-level detail leaks up.
+An **epic charter** is ready when: every included domain maps to a charter; its `Per-domain
+expectations` coverage table claims real charter signals exactly-once; outputs are concrete surfaces,
+not adjectives; `Epic readiness` names the next-epic unblock; edges match the epic DAG; no story-level
+detail leaks up.
 
 A **story contract** is ready when it has: a falsifiable `AC-n` list; a spec-surface manifest; a
-failure/degraded outcome table; a coverage number and enforcement command; a required-test catalogue;
-zero unresolved option branches; exact cross-story shapes; sweep commands where needed; evidence-pack
-expectations; and an owned boundary with STOP conditions.
+failure/degraded outcome table; closed coverage of its epic's claimed signals for the domain; a
+coverage number and enforcement command; a required-test catalogue; zero unresolved option branches;
+exact cross-story shapes; sweep commands where needed; evidence-pack expectations; and an owned
+boundary with STOP conditions.
 
 The five story rules in one line: R1 enumerate ACs and manifest; R2 name failure outcomes; R3 quantify
 and enforce quality; R4 story is a subset of design; R5 no unresolved branches.
