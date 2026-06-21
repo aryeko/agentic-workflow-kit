@@ -14,12 +14,12 @@ mechanics, PR mechanics, commit policy, or session orchestration.
 
 ## Why this standard exists
 
-The initial Frontier 0/1 implementation charters created avoidable ambiguity. Their charters were coherent
+The initial Epic 0/1 implementation charters created avoidable ambiguity. Their charters were coherent
 enough for design review, but not precise enough for implementation review: DONE conditions were
 sometimes prose, failure behavior was sometimes adjectival, and some branches left design choices to
 the implementer.
 
-Frontier 2 worked because the item contracts gave one shared rubric:
+Epic 2 worked because the item contracts gave one shared rubric:
 
 - a spec-surface manifest;
 - enumerated acceptance criteria;
@@ -27,7 +27,7 @@ Frontier 2 worked because the item contracts gave one shared rubric:
 - required evidence and test catalogues;
 - explicit boundaries and STOP conditions.
 
-That is the standard here. The frontier charter frames the frontier; the story contract is the dispatch
+That is the standard here. The epic charter frames the epic; the story contract is the dispatch
 surface.
 
 ## One principle
@@ -55,7 +55,7 @@ implementation detail; it is spec surface.
 
 ## The five hard rules
 
-Each rule fixes a failure mode from the early frontier work. A story that violates any of them is not
+Each rule fixes a failure mode from the early epic work. A story that violates any of them is not
 ready to use.
 
 ### R1 - Enumerate acceptance criteria and list the spec surface
@@ -151,7 +151,7 @@ Copy this block for each implementation story. The story owns DONE, not HOW.
 ---
 title: "<id> - <name> implementation story"
 id: "<id>"
-frontier: <n>
+epic: <n>
 status: "story: draft"
 design:
   - "<path to normative design README>"
@@ -255,41 +255,41 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 - STOP when:
 ```
 
-## Frontier charter template
+## Epic charter template
 
-Copy this block for each frontier. Keep it to the frontier frame; per-story detail belongs in
+Copy this block for each epic. Keep it to the epic frame; per-story detail belongs in
 story contracts.
 
 ```markdown
 ---
-title: "Frontier <n> - <frontier name>"
-frontier: <n>
-status: "frontier: draft"
-depends-on-frontiers: [<...>]
+title: "Epic <n> - <epic name>"
+epic: <n>
+status: "epic: draft"
+depends-on-epics: [<...>]
 ---
 
-# Frontier <n> - <frontier name>
+# Epic <n> - <epic name>
 
 ## Purpose
 
-<What this frontier makes possible.>
+<What this epic makes possible.>
 
 ## Included domains
 
-| Domain | Role in this frontier | Primary spec surface |
+| Domain | Role in this epic | Primary spec surface |
 |---|---|---|
 
-## Why this frontier exists
+## Why this epic exists
 
-<Why these domains become eligible together and what later frontier they unblock.>
+<Why these domains become eligible together and what later epic they unblock.>
 
 ## Frozen inputs
 
-- <Prior frontier outputs and design sources consumed by this frontier.>
+- <Prior epic outputs and design sources consumed by this epic.>
 
 ## Outputs
 
-- <Contract surfaces, packages, modules, tests, or evidence this frontier must leave behind.>
+- <Contract surfaces, packages, modules, tests, or evidence this epic must leave behind.>
 
 ## Scope boundaries
 
@@ -305,13 +305,13 @@ depends-on-frontiers: [<...>]
 - Expected story files:
 - Evidence expectation:
 
-## Frontier readiness
+## Epic readiness
 
-- <Conditions that make the next frontier safe to author or dispatch.>
+- <Conditions that make the next epic safe to author or dispatch.>
 
 ## Deferred work
 
-- <Work intentionally left to later frontiers, named by owning domain or frontier.>
+- <Work intentionally left to later epics, named by owning domain or epic.>
 ```
 
 ## Contract readiness gates
@@ -360,7 +360,7 @@ Design approval, prose, migrated code, fixtures, schema snapshots, or worker sel
 
 ## Worked fragment: prose vs enumerated
 
-From the Frontier 1 redaction lesson.
+From the Epic 1 redaction lesson.
 
 Wrong:
 
@@ -414,6 +414,6 @@ enforce quality; R4 story is a subset of design; R5 no unresolved branches.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation contract](./README.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation contract](./README.md) · **Next →:** [domain dependency DAG](./domain-dag.md)
 
 <!-- /DOCS-NAV -->
