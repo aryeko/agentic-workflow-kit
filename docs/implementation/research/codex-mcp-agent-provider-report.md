@@ -552,7 +552,7 @@ Expected default: negative until the joint prov-01/prov-04 probe passes.
 | MCP cancellation is best-effort notification and may be ignored | MCP cancellation spec. |
 | Tool `structuredContent` is valid MCP tool result shape | MCP tools spec; official Agents SDK guide. |
 | Existing repo evidence is schema/tool-list only for MCP mode | `docs/design/.../evidence/2026-06-18-evidence-index.md`; `capabilities-and-conformance.md`. |
-| New-server-as-control-channel failed before | `_old_docs/history/autopilot-durability/postmortems/2026-06-18-autopilot-unified-issues.md`; R1 old research. |
+| New-server-as-control-channel failed before | `docs/research/history/autopilot-durability/postmortems/2026-06-18-autopilot-unified-issues.md`; R1 old research. |
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

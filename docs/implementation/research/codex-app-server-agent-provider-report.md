@@ -58,7 +58,7 @@ Evidence gathered on 2026-06-21 from the requested worktree
 | Official SDK docs | <https://developers.openai.com/codex/sdk>. The Python SDK controls local Codex app-server over JSON-RPC; SDK builds pin a Codex CLI runtime. |
 | Local schema evidence | `docs/design/30-domain-reference/providers/agent-execution/evidence/2026-06-18-codex-0.141.0-app-server-schema/`. |
 | Design inputs | `docs/implementation/agent-provider-requirements.md` and `docs/design/30-domain-reference/providers/agent-execution/`. |
-| Prior historical research | `_old_docs/history/autopilot-durability-codex-research/research-reports/R1-codex-runtime-control.md`, `R3-approval-permission-relay.md`, and `R7-recovery-resume-relaunch.md`. These are context, not current proof. |
+| Prior historical research | `docs/research/history/autopilot-durability-codex-research/research-reports/R1-codex-runtime-control.md`, `R3-approval-permission-relay.md`, and `R7-recovery-resume-relaunch.md`. These are context, not current proof. |
 
 Official docs facts:
 
@@ -620,9 +620,9 @@ human Desktop/App/TUI session and do not let them mutate the main checkout.
   `docs/design/30-domain-reference/providers/agent-execution/capabilities-and-conformance.md`
   `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md`
 - Historical context:
-  `_old_docs/history/autopilot-durability-codex-research/research-reports/R1-codex-runtime-control.md`
-  `_old_docs/history/autopilot-durability-codex-research/research-reports/R3-approval-permission-relay.md`
-  `_old_docs/history/autopilot-durability-codex-research/research-reports/R7-recovery-resume-relaunch.md`
+  `docs/research/history/autopilot-durability-codex-research/research-reports/R1-codex-runtime-control.md`
+  `docs/research/history/autopilot-durability-codex-research/research-reports/R3-approval-permission-relay.md`
+  `docs/research/history/autopilot-durability-codex-research/research-reports/R7-recovery-resume-relaunch.md`
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

@@ -1,5 +1,0 @@
-cwd=/Users/aryekogan/repos/workflow-kit/docs/kit-vnext/domains/prov-04-execution-host/evidence/probe-workspace
-argv0=host-probe argv1=arg1
-stdout=ok
-stderr=ok
-exit=7
