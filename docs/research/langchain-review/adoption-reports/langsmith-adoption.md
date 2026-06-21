@@ -86,7 +86,7 @@ Later optional stories:
   credential boundaries, or worker/runner isolation.
 - Real provider production readiness still requires fresh live attestations. Recorded/mock evidence can
   prove core and conformance behavior but not live production capability
-  ([readiness matrix](../../../../docs/implementation/readiness-matrix.md#update-rule)).
+  (readiness matrix).
 
 ## Decision timing
 after core-first stories
@@ -104,8 +104,8 @@ gates, and core-07 analyzer have executable story evidence.
 - [Capability attestation](../../../../docs/design/10-architecture/capability-attestation.md)
 - [SDK provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md)
 - [Storage port types](../../../../docs/design/20-sdk-and-packaging/storage-port-types.md)
-- [Domain DAG](../../../../docs/implementation/domain-dag.md)
-- [Readiness matrix](../../../../docs/implementation/readiness-matrix.md)
+- Domain DAG
+- Readiness matrix
 - [core-01 Run Lifecycle & Event State](../../../../docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md)
 - [core-02 Capability & Safety](../../../../docs/design/30-domain-reference/core/capability-and-safety/README.md)
 - [core-05 Completion, Verification & Merge](../../../../docs/design/30-domain-reference/core/completion-and-merge/README.md)

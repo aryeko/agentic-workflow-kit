@@ -29,7 +29,7 @@ The applied closure also moved the provider interfaces and `CapabilityAttestatio
 contracts and made real live drivers production-readiness work, not core readiness
 ([apply report](../../apply/APPLY-REPORT.md),
 [provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md),
-[readiness matrix](../../../../docs/implementation/readiness-matrix.md)). That strongly favors
+readiness matrix). That strongly favors
 learning from LangChain.js later, behind the Agent seam, rather than adopting it now.
 
 ## Where it maps to kit-vnext
@@ -123,8 +123,8 @@ When core-first stories land, run a bounded `provider-langchain` spike against t
 - [Capability attestation](../../../../docs/design/10-architecture/capability-attestation.md)
 - [SDK provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md)
 - [Storage port types](../../../../docs/design/20-sdk-and-packaging/storage-port-types.md)
-- [Domain DAG](../../../../docs/implementation/domain-dag.md)
-- [Readiness matrix](../../../../docs/implementation/readiness-matrix.md)
+- Domain DAG
+- Readiness matrix
 - [Agent Execution](../../../../docs/design/30-domain-reference/providers/agent-execution/README.md)
 - [Execution Host](../../../../docs/design/30-domain-reference/providers/execution-host/README.md)
 - [Forge / Collaboration](../../../../docs/design/30-domain-reference/providers/forge-collaboration/README.md)

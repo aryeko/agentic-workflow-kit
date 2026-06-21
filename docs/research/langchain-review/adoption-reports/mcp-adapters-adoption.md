@@ -22,7 +22,7 @@ contracts, keeps concrete driver risk in provider packages, builds core first ag
 and pushes real-driver readiness to production stories
 ([apply report](../../apply/APPLY-REPORT.md);
 [provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md);
-[domain DAG](../../../../docs/implementation/domain-dag.md)).
+domain DAG).
 
 ## Where it maps to kit-vnext
 
@@ -118,8 +118,8 @@ commands exist and the team is ready to evaluate real provider-driver production
 - [Capability attestation](../../../../docs/design/10-architecture/capability-attestation.md)
 - [SDK provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md)
 - [Storage port types](../../../../docs/design/20-sdk-and-packaging/storage-port-types.md)
-- [Domain DAG](../../../../docs/implementation/domain-dag.md)
-- [Readiness matrix](../../../../docs/implementation/readiness-matrix.md)
+- Domain DAG
+- Readiness matrix
 - [Agent Execution](../../../../docs/design/30-domain-reference/providers/agent-execution/README.md)
 - [Execution Host](../../../../docs/design/30-domain-reference/providers/execution-host/README.md)
 - [Forge / Collaboration](../../../../docs/design/30-domain-reference/providers/forge-collaboration/README.md)

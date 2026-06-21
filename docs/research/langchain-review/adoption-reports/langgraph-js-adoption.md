@@ -25,7 +25,7 @@ The closure also made SDK-owned provider ports and testkit mocks the build subst
 drivers and live attestations later production-readiness work
 ([apply report](../../apply/APPLY-REPORT.md),
 [provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md),
-[domain DAG](../../../../docs/implementation/domain-dag.md)).
+domain DAG).
 
 LangGraph.js should therefore influence tests, operator guidance, and maybe future provider-driver
 experiments, not the architecture.
@@ -82,7 +82,7 @@ None.
 
 The applied closure already has the right boundary: SDK-owned ports, testkit mocks, core-first
 readiness, live/provider attestations later, and real drivers as production-readiness work
-([apply report](../../apply/APPLY-REPORT.md), [readiness matrix](../../../../docs/implementation/readiness-matrix.md)).
+([apply report](../../apply/APPLY-REPORT.md), readiness matrix).
 LangGraph.js does not justify changing the event-log authority, provider seams, worker/runner split,
 or capability attestation model.
 
@@ -137,8 +137,8 @@ checkpoint-like stale state. Do not add LangGraph.js to kit-vnext dependencies o
   [capability-attestation.md](../../../../docs/design/10-architecture/capability-attestation.md),
   [provider-ports.md](../../../../docs/design/20-sdk-and-packaging/provider-ports.md),
   [storage-port-types.md](../../../../docs/design/20-sdk-and-packaging/storage-port-types.md),
-  [domain-dag.md](../../../../docs/implementation/domain-dag.md),
-  [readiness-matrix.md](../../../../docs/implementation/readiness-matrix.md)
+  domain-dag.md,
+  readiness-matrix.md
 - Domain docs: [core-01](../../../../docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md),
   [core-02](../../../../docs/design/30-domain-reference/core/capability-and-safety/README.md),
   [core-03](../../../../docs/design/30-domain-reference/core/approval-and-escalation/README.md),

@@ -276,8 +276,8 @@ without owning orchestration, state, approval, verification, Forge credentials, 
   [Completion and Merge](../../../../docs/design/30-domain-reference/core/completion-and-merge/README.md),
   [Recovery and Reconciliation](../../../../docs/design/30-domain-reference/core/recovery-and-reconciliation/README.md),
   [Observability and Analysis](../../../../docs/design/30-domain-reference/core/observability-and-analysis/README.md),
-  [domain DAG](../../../../docs/implementation/domain-dag.md),
-  [readiness matrix](../../../../docs/implementation/readiness-matrix.md).
+  domain DAG,
+  readiness matrix.
 - Current Open SWE primary sources:
   [repository README](https://github.com/langchain-ai/open-swe),
   [langgraph.json](https://raw.githubusercontent.com/langchain-ai/open-swe/main/langgraph.json),

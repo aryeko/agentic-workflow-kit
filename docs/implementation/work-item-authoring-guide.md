@@ -414,6 +414,6 @@ enforce quality; R4 story is a subset of design; R5 no unresolved branches.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [package rollout](./package-rollout.md) · **Next →:** [implementation readiness matrix](./readiness-matrix.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation contract](./README.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
 
 <!-- /DOCS-NAV -->

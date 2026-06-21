@@ -34,7 +34,7 @@ before real provider production readiness, and live runtime attestations are pro
 than SDK/core build prerequisites
 ([apply report](../../apply/APPLY-REPORT.md),
 [provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md),
-[readiness matrix](../../../../docs/implementation/readiness-matrix.md)).
+readiness matrix).
 
 ## Where it maps to kit-vnext
 
@@ -46,7 +46,7 @@ than SDK/core build prerequisites
 - `seam-agent-contract-mock` / `packages/testkit`: useful source of adversarial mock scenarios:
   dropped approvals, missing exit codes, lost linkage, ambiguous terminal states, and permission
   bypasses through custom tools/MCP
-  ([domain DAG](../../../../docs/implementation/domain-dag.md),
+  (domain DAG,
   [prov-01 contract](../../../../docs/design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md)).
 - `core-03` Approval & Escalation: Deep Agents interrupts map to approval requests, but kit-vnext
   must own classification, decision, scoped grant mapping, park/resume, and audit events
@@ -93,7 +93,7 @@ Do not change kit-vnext architecture for Deep Agents. The current closure alread
 extension point: SDK-owned provider ports, testkit mocks first, real provider drivers later, and
 fresh production attestations before live powers
 ([apply report](../../apply/APPLY-REPORT.md),
-[domain DAG](../../../../docs/implementation/domain-dag.md)).
+domain DAG).
 
 If a Deep Agents driver is later pursued, only provider-driver design addenda should be needed:
 driver mapping, capability probes, evidence fixtures, failure tokens, and conformance cases under the
@@ -154,8 +154,8 @@ be honestly attested.
 - [Capability attestation](../../../../docs/design/10-architecture/capability-attestation.md)
 - [SDK provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md)
 - [Storage port types](../../../../docs/design/20-sdk-and-packaging/storage-port-types.md)
-- [Domain DAG](../../../../docs/implementation/domain-dag.md)
-- [Readiness matrix](../../../../docs/implementation/readiness-matrix.md)
+- Domain DAG
+- Readiness matrix
 - [Agent Execution domain](../../../../docs/design/30-domain-reference/providers/agent-execution/README.md)
 - [Execution Host domain](../../../../docs/design/30-domain-reference/providers/execution-host/README.md)
 - [Capability & Safety domain](../../../../docs/design/30-domain-reference/core/capability-and-safety/README.md)

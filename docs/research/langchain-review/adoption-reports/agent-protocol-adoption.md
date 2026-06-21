@@ -19,7 +19,7 @@ It should not drive kit-vnext architecture now. After design closure, kit-vnext 
 the SDK-owned provider ports, testkit mocks, recorded capability attestations, append-only event log,
 worker/runner split, and later real-driver production readiness
 ([apply report](../../apply/APPLY-REPORT.md#sdk-and-package-boundary),
-[readiness matrix](../../../../docs/implementation/readiness-matrix.md#domain-readiness)).
+readiness matrix).
 Agent Protocol is agent-serving centric, not code-delivery centric, and does not define Forge
 credentials, PR evidence, review-thread handling, verification gates, branch/worktree safety, or
 worker/runner isolation
@@ -78,7 +78,7 @@ None now.
 
 The applied design already has the right extension point: SDK-owned provider ports plus testkit mocks
 first, real provider drivers later
-([domain DAG](../../../../docs/implementation/domain-dag.md#frontier-table)). If Agent Protocol is
+(domain DAG). If Agent Protocol is
 used later, it should be documented as a concrete or experimental `AgentProvider` mapping under
 `prov-01`, not as a new core abstraction.
 
@@ -120,7 +120,7 @@ after core-first stories
 Revisit once `packages/sdk` has the provider-port interfaces, `packages/testkit` has the mock Agent
 provider/conformance surface, and the core run/capability/supervision stories can prove behavior
 without real processes or network
-([readiness matrix](../../../../docs/implementation/readiness-matrix.md#update-rule)).
+(readiness matrix).
 
 ## Recommended next action
 
@@ -138,8 +138,8 @@ capabilities can be freshly, positively attested.
 - [Capability attestation](../../../../docs/design/10-architecture/capability-attestation.md)
 - [SDK provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md)
 - [Storage port types](../../../../docs/design/20-sdk-and-packaging/storage-port-types.md)
-- [Domain DAG](../../../../docs/implementation/domain-dag.md)
-- [Readiness matrix](../../../../docs/implementation/readiness-matrix.md)
+- Domain DAG
+- Readiness matrix
 - [prov-01 Agent Execution](../../../../docs/design/30-domain-reference/providers/agent-execution/README.md)
 - [core-01 Run Lifecycle & Event State](../../../../docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md)
 - [core-02 Capability & Safety](../../../../docs/design/30-domain-reference/core/capability-and-safety/README.md)

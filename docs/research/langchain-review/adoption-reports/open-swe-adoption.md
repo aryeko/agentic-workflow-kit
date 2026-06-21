@@ -82,8 +82,8 @@ None now.
 The applied design closure already has the right homes: SDK-owned provider ports, storage port types,
 capability attestations, mock/conformance surfaces, and real-driver production-readiness stories
 ([provider ports](../../../../docs/design/20-sdk-and-packaging/provider-ports.md),
-[domain DAG](../../../../docs/implementation/domain-dag.md),
-[readiness matrix](../../../../docs/implementation/readiness-matrix.md)).
+domain DAG,
+readiness matrix).
 
 Potential future design notes may be useful after core-first stories: external trigger envelope
 details for Slack/Linear/GitHub, reviewer-finding artifact conventions, and GitHub App credential
@@ -150,8 +150,8 @@ patterns into contract tests.
 - SDK and implementation posture:
   [provider-ports.md](../../../../docs/design/20-sdk-and-packaging/provider-ports.md),
   [storage-port-types.md](../../../../docs/design/20-sdk-and-packaging/storage-port-types.md),
-  [domain-dag.md](../../../../docs/implementation/domain-dag.md),
-  [readiness-matrix.md](../../../../docs/implementation/readiness-matrix.md).
+  domain-dag.md,
+  readiness-matrix.md.
 - Domain references:
   [prov-01](../../../../docs/design/30-domain-reference/providers/agent-execution/README.md),
   [prov-04](../../../../docs/design/30-domain-reference/providers/execution-host/README.md),

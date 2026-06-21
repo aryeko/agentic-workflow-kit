@@ -200,8 +200,8 @@ capability gates, approvals, recovery, completion, and merge.
 - [Architecture observability and analysis](../../../../docs/design/10-architecture/observability-and-analysis.md)
 - [core-01 Run Lifecycle & Event State](../../../../docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md)
 - [Storage port types](../../../../docs/design/20-sdk-and-packaging/storage-port-types.md)
-- [Domain DAG](../../../../docs/implementation/domain-dag.md)
-- [Readiness matrix](../../../../docs/implementation/readiness-matrix.md)
+- Domain DAG
+- Readiness matrix
 - [LangSmith Observability concepts](https://docs.langchain.com/langsmith/observability-concepts)
 - [LangSmith Trace with API](https://docs.langchain.com/langsmith/trace-with-api)
 - [LangSmith Trace with OpenTelemetry](https://docs.langchain.com/langsmith/trace-with-opentelemetry)

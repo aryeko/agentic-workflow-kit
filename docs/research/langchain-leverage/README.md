@@ -58,8 +58,8 @@ The fit target was kit-vnext's applied design closure:
 - [First-pass LangChain ecosystem review](../langchain-review/README.md)
 - [Applied design closure report](../apply/APPLY-REPORT.md)
 - [SDK provider ports](../../../docs/design/20-sdk-and-packaging/provider-ports.md)
-- [Domain DAG](../../../docs/implementation/domain-dag.md)
-- [Readiness matrix](../../../docs/implementation/readiness-matrix.md)
+- Domain DAG
+- Readiness matrix
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
