@@ -23,16 +23,16 @@ The design corpus is the source of truth. Read the file that owns your task's su
 
 | Need | Read |
 |------|------|
-| System shape, seams, layering | `docs/design/architecture.md` |
-| What must be true (FR/NFR ids) | `docs/design/requirements.md` |
-| A decision and its rationale (AD-* ids) | `docs/design/decisions.md` |
-| Vocabulary | `docs/design/glossary.md` |
-| How designs are written and scoped | `docs/design/conventions.md` |
-| The 16 domains: index, layers, dependencies, build order | `docs/design/domains/README.md` |
-| A specific domain's mandate and design | `docs/design/domains/<layer>/<id>/README.md` |
-| Verify gate, test lanes, tooling, CI | `docs/foundation/` |
+| System shape, seams, layering | `docs/design/10-architecture/architecture.md` |
+| What must be true (FR/NFR ids) | `docs/design/00-orientation/requirements.md` |
+| A decision and its rationale (AD-* ids) | `docs/design/40-decisions/accepted-decisions.md` |
+| Vocabulary | `docs/design/00-orientation/glossary.md` |
+| How designs are written and scoped | `docs/design/00-orientation/conventions.md` |
+| The 16 domains: index, layers, dependencies, build order | `docs/design/30-domain-reference/README.md` |
+| A specific domain's mandate and design | `docs/design/30-domain-reference/<layer>/<id>/README.md` |
+| Verify gate, test lanes, tooling, CI | `docs/engineering/` |
 | Rebuild status and steps | `docs/roadmap.md` |
-| Incident postmortems and research (context, not spec) | `docs/history/` |
+| Incident postmortems and research (context, not spec) | `docs/research/history/` |
 
 ---
 
@@ -42,12 +42,12 @@ Pull only what the task touches — do not load the whole corpus.
 
 - **Implement or change a domain** → its `README.md` (Mandate first, then design)
   and any flat sibling aspect files; confirm its layer and dependencies in
-  `docs/design/domains/README.md`.
-- **Cross-domain, seam, or layering question** → `docs/design/architecture.md`.
-- **"Why is it this way?"** → `docs/design/decisions.md` (AD-* records).
+  `docs/design/30-domain-reference/README.md`.
+- **Cross-domain, seam, or layering question** → `docs/design/10-architecture/architecture.md`.
+- **"Why is it this way?"** → `docs/design/40-decisions/accepted-decisions.md` (AD-* records).
 - **Author a new domain design** → copy `docs/design/_templates/domain-design-template.md`
-  and follow `docs/design/conventions.md`.
-- **Tooling, gate, or CI work** → `docs/foundation/`.
+  and follow `docs/design/00-orientation/conventions.md`.
+- **Tooling, gate, or CI work** → `docs/engineering/`.
 - If a task seems to need something outside `docs/design/`, stop and raise it — the design
   is meant to be self-contained (provider `evidence/` appendices are the only exception).
 
@@ -79,7 +79,7 @@ these.
 8. **v1.0.0 autonomy scope** — manual and assisted modes only; auto / LLM-adjudicated
    approval is deferred (AD-14).
 
-See `docs/design/architecture.md` and `docs/design/decisions.md` for the detail.
+See `docs/design/10-architecture/architecture.md` and `docs/design/40-decisions/accepted-decisions.md` for the detail.
 
 ---
 
@@ -109,7 +109,7 @@ pnpm check     # before every commit and PR
 `pnpm check` runs fail-fast: `format:check` → `lint` → `deps` → `typecheck` →
 `test:unit` → `test:int` → `test:conf`. CI additionally runs `pnpm pack:dry-run` and a
 gated `smoke` job (the only lane allowed real processes and network; excluded from the
-local loop). Full detail: `docs/foundation/check-gate.md`. Show the gate output as
+local loop). Full detail: `docs/engineering/check-gate.md`. Show the gate output as
 evidence; do not assert success.
 
 ---

@@ -1,0 +1,101 @@
+---
+title: kit-vnext — launch coordination
+status: high-level design
+last-reviewed: "2026-06-19"
+---
+
+# Launch coordination
+
+Starting a run safely requires two layers of coordination: a repo-wide lease that prevents
+duplicate launches across concurrent processes, and a Work Source claim that asserts ownership of
+a specific task. The ordering between them is normative and must not be reversed.
+
+## Normative launch sequence
+
+The `story-launch` lease is keyed by task (`...:<taskId>`), so it can only be acquired once the
+target task is known. That gives two start paths, differing only in when the `taskId` becomes known;
+in both, the task-keyed lease is acquired **before the Work Source claim** and before any worker
+launch (the core-06 duplicate-launch rule).
+
+**Known-task start** — the caller names the task up front:
+
+1. Acquire `story-launch:<workSourceId>:<trackId>:<taskId>`.
+2. Claim the task with the expected content digest.
+3. Persist the `TaskSnapshot`.
+4. Append `TaskSnapshotRecorded` + `RunLifecycleTransitioned(task-snapshotted)` (barrier).
+
+**Next-eligible start** — the Work Source selects the task, so `taskId` is unknown until after
+`nextEligible`:
+
+1. Optionally acquire a track-level selection/admission lease.
+2. Call `nextEligible` → `TaskView` (the `selectedTaskId` is now known).
+3. Acquire `story-launch:<workSourceId>:<trackId>:<selectedTaskId>`.
+4. Re-read / revalidate the expected content digest.
+5. Claim the selected task.
+6. Persist the `TaskSnapshot`.
+7. Append `TaskSnapshotRecorded` + `RunLifecycleTransitioned(task-snapshotted)` (barrier).
+
+```mermaid
+sequenceDiagram
+  participant SDK as Control plane (SDK)
+  participant Lease as Lease store (fnd-02)
+  participant WS as Work Source
+  participant Log as Run event log (core-01)
+
+  Note over SDK,WS: next-eligible start (taskId not known up front)
+  SDK->>WS: nextEligible(trackIds, targetProject)
+  WS-->>SDK: TaskView (selectedTaskId)
+  SDK->>Lease: acquire story-launch:<workSourceId>:<trackId>:<selectedTaskId>
+  SDK->>WS: claim task with expected digest
+  WS-->>SDK: ClaimResult + TaskSnapshot ref
+  SDK->>Log: append TaskSnapshotRecorded + RunLifecycleTransitioned(task-snapshotted) (barrier)
+  alt failure before append completes
+    SDK->>WS: release claim when supported
+    SDK->>Log: record recovery / blocked fact when writer exists
+  end
+```
+
+## Leases and their roles
+
+**`story-launch` lease** is a repo-wide, fnd-02-backed lease keyed by
+`story-launch:<workSourceId>:<trackId>:<taskId>`. It prevents two concurrent processes from
+starting a run for the same task simultaneously. The epoch fencing and expiry of the lease are
+the safety mechanism; holder text is diagnostic only.
+
+**Work Source claim** is the task-level ownership mechanism. The Control plane supplies the
+expected content digest when claiming, so a concurrent writer cannot silently modify the task
+between `nextEligible` and `claim`. `ClaimResult` carries a `TaskSnapshot` reference — a durable
+point-in-time copy of the task spec and metadata bound to the claim.
+
+## TaskSnapshot durability requirement
+
+The `TaskSnapshot` must be durably appended to the run log as `TaskSnapshotRecorded` before the
+run treats the task as snapshotted. If the append fails, the claim must be released (when the
+Work Source supports release) and the failure must be recorded. The lifecycle transition to
+`task-snapshotted` may only follow a committed `TaskSnapshotRecorded` event.
+
+## Recovery rules
+
+- Stale launch state is cleared only through supported controls: fnd-02 lease acquisition (for
+  expired leases) plus appended recovery events. Process absence alone never clears a lease or a
+  claim.
+- Claims are never cleared after unverified termination.
+- Duplicate launch detection during recovery uses both lease evidence and run log events together,
+  not either alone.
+
+## Authoritative references
+
+- Run lifecycle states and the `task-snapshotted` transition:
+  [Run Lifecycle & Event State](../30-domain-reference/core/run-lifecycle-and-state/README.md) (core-01)
+- Lease primitive and durability guarantees:
+  [Storage & Artifacts](../30-domain-reference/foundation/storage-and-artifacts/README.md) (fnd-02)
+- Duplicate launch prevention and reconciliation:
+  [Recovery, Reconciliation & Coordination](../30-domain-reference/core/recovery-and-reconciliation/README.md) (core-06)
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [architecture overview](./README.md) · **← Prev:** [observability and analysis](./observability-and-analysis.md) · **Next →:** [protected policy gate](./protected-policy-gate.md)
+
+<!-- /DOCS-NAV -->

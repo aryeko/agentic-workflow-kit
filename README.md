@@ -72,8 +72,8 @@ network access.
 | `AGENTS.md` | Contributor and agent contract |
 | `CLAUDE.md` | Claude Code operating layer on top of `AGENTS.md` |
 | `docs/design/` | Source of truth for architecture, requirements, decisions, glossary, and domains |
-| `docs/foundation/` | Foundation tooling and gate notes for the current tracked tree |
-| `docs/history/` | Incident postmortems and research context |
+| `docs/engineering/` | Engineering policy: verify gate, test lanes, tooling, and CI |
+| `docs/research/history/` | Incident postmortems and research context |
 | `docs/implementation/` | Implementation waves and item charters |
 | `docs/roadmap.md` | Durable rebuild roadmap |
 | `packages/` | pnpm workspace slot for design-owned package implementation |

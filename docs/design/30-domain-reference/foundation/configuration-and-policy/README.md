@@ -1,0 +1,252 @@
+---
+title: "Configuration & Policy — design"
+id: "fnd-01"
+layer: "foundation"
+status: approved
+owner: "domain designer"
+last-reviewed: "2026-06-18"
+depends-on: []
+---
+
+# Configuration & Policy — design
+
+## Mandate
+
+**Purpose.** The config schema, the deterministic precedence + provenance resolution, and the policy
+blocks the control plane consumes. Depended on by everything; depends on nothing above.
+
+### Responsibilities (in scope)
+- The config schema: `provisioning`, `approval`, `escalationPolicy`, `capabilities`,
+  `credentialRefs`, `egress` (and run/profile fields).
+- **Deterministic precedence**: operator per-run override > profile > defaults — with **per-field
+  provenance** recorded (which layer set each field). Operator overrides always win.
+- Safe defaults (capabilities off; approval `assisted`; narrow dependency-install grant).
+- The policy shapes consumed by core-02 (capabilities), core-03 (approval/escalation), core-05
+  (merge), and fnd-04 (credential-reference and egress-policy source data).
+- **Adoption diagnostics**: detect legacy/incompatible config + artifacts and **refuse to run** (fail
+  closed) with adoption guidance — never silently mishandle them (FR-13, AD-1).
+
+### Out of scope
+- Applying policy (the consuming core domains); resolving or injecting credentials/secrets (fnd-04).
+
+### Requirements owned
+Policy side of FR-4 and FR-7; **FR-13 (adoption diagnostics)**; NFR-SAFE, NFR-DET, NFR-SOLID.
+
+### Dependencies (Dependency Rule)
+- Depends on: nothing above Foundation.
+- Depended on by: core domains and providers.
+
+### Required reading
+Standard set + [decisions.md](../../../40-decisions/accepted-decisions.md) (AD-4, AD-5, AD-8).
+
+### Deliverable
+`README.md` defining: the schema; the precedence algorithm + provenance event; default values;
+the capability default-off model; the escalation/approval/merge policy shapes.
+
+### Definition of done (domain-specific)
+- Precedence is deterministic and tested (operator override provably wins); provenance is recorded.
+- Defaults are safe; no schema field silently enables autonomy.
+
+### Open questions
+- Whether the narrow dependency-install auto-grant is default-on or explicit opt-in.
+
+## 1. Purpose & boundaries
+
+Configuration & Policy defines the vNext config schema, deterministic policy resolution, per-field
+provenance, safe defaults, and adoption diagnostics. It is the foundation source that the Control
+plane, provider contracts, drivers, and Credentials & Secrets read before deciding what powers are
+available.
+
+Out of scope: applying approval, escalation, capability, verification, or merge decisions. Those are
+owned by consuming core domains. Credential resolution, injection, redaction, and egress attestation
+are owned by Credentials & Secrets and Execution Host.
+
+Reconciliation note (2026-06-19): credential references and egress source policy are configuration
+facts resolved here with provenance. fnd-04 consumes those resolved facts to issue credential and
+egress contracts; fnd-01 does not resolve secret material or enforce egress.
+
+## 2. Required reading
+
+- [README.md](../../../00-orientation/design-home-original.md)
+- [architecture.md](../../../10-architecture/architecture.md)
+- [conventions.md](../../../00-orientation/conventions.md)
+- [glossary.md](../../../00-orientation/glossary.md)
+- [README.md#mandate](README.md#mandate)
+- [decisions.md](../../../40-decisions/accepted-decisions.md)
+
+No sibling contract was read or required. This foundation design depends on nothing above Foundation
+and introduces no forbidden dependency.
+
+## 3. Context diagram
+
+```mermaid
+flowchart TB
+  CFG["Configuration & Policy"]
+  CORE["Control plane"]
+  SEAMS["Provider contracts"]
+  DRIVERS["Drivers"]
+  OP["Operator & Entry Surface"]
+  FND["Foundation"]
+
+  FND --> CFG
+  OP --> CFG
+  CORE --> CFG
+  SEAMS --> CFG
+  DRIVERS --> CFG
+```
+
+## 4. Design
+
+The low-level detail is split because the schema, resolution algorithm, interfaces, events, and tests
+are cohesive but too large for a single focused file:
+
+- [Schema & resolution](schema-and-resolution.md) defines the config marker, policy blocks,
+  safe defaults, deterministic precedence, per-field provenance, capability default-off model, and
+  adoption diagnostics.
+- [Interfaces, events & verification](interfaces-events-and-verification.md) defines the
+  typed interface, emitted events, fail-closed states, and test strategy.
+
+Core design decisions:
+
+- The only accepted config marker is `schema: "kit-vnext.config.v1"`.
+- Resolution has exactly three layers: operator per-run override, selected profile, then immutable
+  built-in defaults.
+- Operator overrides always win; unknown fields are rejected instead of ignored.
+- Defaults are complete, supervised, and safe: capabilities off, approval assisted, no credential
+  references, default-deny egress, runner merge off, and a 15-minute approval decision window.
+- Capability config expresses desired powers only; actual availability still requires fresh positive
+  Capability attestation.
+- Adoption diagnostics are marker-first and fail closed. Non-vNext or unknown artifacts refuse to
+  run with guidance; no migration or silent interpretation occurs.
+
+## 5. Contracts & interfaces
+
+Configuration & Policy exposes a deterministic API:
+
+```ts
+interface ConfigurationPolicy {
+  diagnoseAdoption(
+    sources: AdoptionSource,
+    context: AdoptionContext,
+  ): Result<AdoptionReport, AdoptionDiagnosticFailure>;
+  resolveRunPolicy(
+    source: ConfigSource,
+    input: RunConfigInput,
+    context: ResolutionContext,
+  ): Result<ResolvedPolicyResult, PolicyResolutionFailure>;
+}
+```
+
+It consumes no core, provider, or driver interface. `AdoptionContext` supplies a foundation event
+writer only for pre-run `ConfigLoaded` plus the injected `occurredAt` timestamp used for deterministic
+event payloads. Resolution supplies `runId`, the same injected `occurredAt`, and an optional
+`correlationId`, but no writer. Successful and failed adoption/resolution paths return structural
+append intents for the owning core domain to append through core-01's single leased `RunWriter` before
+binding or blocking the Run. Those intents include the structural core-01 envelope fields (`domain`,
+`type`, `occurredAt`, durability, payload, and optional `correlationId`) while fnd-01 owns only the
+payload semantics. Full types are in
+[Interfaces, events & verification](interfaces-events-and-verification.md).
+
+## 6. Events & data
+
+Owned event payloads:
+
+- `ConfigLoaded`
+- `ConfigFieldResolved`
+- `ConfigResolved`
+- `AdoptionDiagnosticEmitted`
+- `PolicyResolutionFailed`
+
+The key invariant is one `ConfigFieldResolved` intent per resolved leaf field, returned in canonical
+lexicographic field order before `ConfigResolved`. Core-01 appends those event-ready intents in one
+atomic RunWriter transaction. Projections may read the latest resolved policy and provenance map; they
+do not author policy.
+Adoption preflight returns one `AdoptionDiagnosticEmitted` append intent per blocking config or
+artifact diagnostic, plus a `PolicyResolutionFailed` append intent for the fail-closed state.
+
+## 7. Behavior diagram
+
+```mermaid
+sequenceDiagram
+  actor Operator
+  participant CFG as Configuration & Policy
+  participant EL as Event log
+  participant CP as Control plane
+
+  Operator->>CFG: config source + profile + per-run overrides + runId
+  CFG->>CFG: diagnose marker and schema
+  alt incompatible or unknown
+    CFG-->>CP: block + AdoptionDiagnosticEmitted/PolicyResolutionFailed intents
+    CP->>EL: append intents through core-01 RunWriter
+    CP-->>Operator: launch blocked
+  else valid vNext config
+    CFG->>CFG: resolve built-in defaults, profile, overrides
+    loop canonical leaf field order
+      CFG->>CFG: prepare ConfigFieldResolved
+    end
+    CFG-->>CP: ResolvedPolicy + event-ready ConfigFieldResolved/ConfigResolved
+    CP->>EL: append payloads through core-01 RunWriter
+    CP-->>Operator: policy bound after append
+  end
+```
+
+## 8. Failure & degraded modes
+
+Fail-closed states:
+
+- `adoption-incompatible`: config has a non-vNext marker.
+- `adoption-unknown-artifact`: config or artifact has no recognized vNext marker.
+- `adoption-diagnostic-unrecorded`: returned diagnostic/failure intents were not appended by the
+  owning core writer.
+- `config-loaded-unrecorded`: pre-run `ConfigLoaded` could not be committed by the foundation writer.
+- `config-invalid`: schema validation failed.
+- `profile-unknown`: requested profile does not exist.
+- `override-invalid`: operator override has an unknown or invalid field.
+- `unsupported-deferred-capability`: config attempts to set `orchestrator-decide` in v1.
+- `provenance-write-failed`: resolved policy was computed but not activated because the returned
+  provenance payloads were not appended through core-01.
+
+Capability gates treat any missing resolved policy, failed diagnostic, or missing provenance event as
+all autonomous capabilities absent. The degraded state is supervised and blocked before launch.
+
+## 9. Testing strategy
+
+Satisfies policy-side FR-4 and FR-7, FR-13, NFR-SAFE, NFR-DET, NFR-SOLID, and NFR-TEST.
+
+Tests are pure and use in-memory sinks: schema fixtures, safe-default snapshots, precedence property
+tests, provenance order/hash tests over returned structural append intents, adoption config/artifact
+diagnostic tests, deferred-capability rejection tests, and capability default-off tests. Core-01
+integration covers RunWriter append failure. No real providers, credentials, processes, or Forge
+operations are used, satisfying NFR-TEST.
+
+## 10. Open questions
+
+- The charter asks whether narrow dependency-install auto-grant is default-on or explicit opt-in.
+  This design chooses default-on but tightly bounded; chief architect should confirm.
+
+Resolved in design closure: approval/escalation handoff fields are frozen as
+`ResolvedPolicy.policy.approval`, `ResolvedPolicy.policy.approval.decisionWindowMs`,
+`ResolvedPolicy.policy.escalationPolicy`, and `ResolvedPolicy.policy.capabilities[...]`.
+Completion consumes `ResolvedPolicy.policy.merge`, not a `mergePolicy` layer key.
+
+## 11. Definition of done
+
+- [x] All sections complete; guidance notes removed.
+- [x] Files are focused; large design detail is split into cohesive subfiles.
+- [x] Complies with the Dependency Rule; dependencies listed and justified.
+- [x] Uses glossary vocabulary.
+- [x] States the FR/NFR ids satisfied; shows how NFR-TEST is met.
+- [x] Failure/degraded modes defined (fail-closed).
+- [x] Provider-domain validation is not applicable to this foundation domain.
+- [x] Diagrams present and consistent with architecture.md naming.
+- [x] Open questions captured, not silently resolved.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [foundation domain reference](../README.md) · **Next →:** [Configuration & Policy — schema and resolution](./schema-and-resolution.md)
+
+**Children:** [Configuration & Policy — schema and resolution](./schema-and-resolution.md) · [Configuration & Policy — interfaces, events, and verification](./interfaces-events-and-verification.md)
+
+<!-- /DOCS-NAV -->
