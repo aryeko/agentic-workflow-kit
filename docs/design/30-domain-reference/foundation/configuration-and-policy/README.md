@@ -48,8 +48,7 @@ the capability default-off model; the escalation/approval/merge policy shapes.
 - Defaults are safe; no schema field silently enables autonomy.
 
 ### Open questions
-- Exact field names (coordinate with core-03 / prov-01). Whether the narrow dependency-install
-  auto-grant is default-on or explicit opt-in.
+- Whether the narrow dependency-install auto-grant is default-on or explicit opt-in.
 
 ## 1. Purpose & boundaries
 
@@ -114,7 +113,7 @@ Core design decisions:
   built-in defaults.
 - Operator overrides always win; unknown fields are rejected instead of ignored.
 - Defaults are complete, supervised, and safe: capabilities off, approval assisted, no credential
-  references, default-deny egress, runner merge off.
+  references, default-deny egress, runner merge off, and a 15-minute approval decision window.
 - Capability config expresses desired powers only; actual availability still requires fresh positive
   Capability attestation.
 - Adoption diagnostics are marker-first and fail closed. Non-vNext or unknown artifacts refuse to
@@ -222,9 +221,13 @@ operations are used, satisfying NFR-TEST.
 
 ## 10. Open questions
 
-- Exact field names for approval/escalation handoff should be reconciled with core-03 and prov-01.
 - The charter asks whether narrow dependency-install auto-grant is default-on or explicit opt-in.
   This design chooses default-on but tightly bounded; chief architect should confirm.
+
+Resolved in design closure: approval/escalation handoff fields are frozen as
+`ResolvedPolicy.policy.approval`, `ResolvedPolicy.policy.approval.decisionWindowMs`,
+`ResolvedPolicy.policy.escalationPolicy`, and `ResolvedPolicy.policy.capabilities[...]`.
+Completion consumes `ResolvedPolicy.policy.merge`, not a `mergePolicy` layer key.
 
 ## 11. Definition of done
 

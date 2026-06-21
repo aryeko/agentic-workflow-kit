@@ -9,8 +9,8 @@ depends-on:
   - "core-01-run-lifecycle-and-state"
   - "core-02-capability-and-safety"
   - "core-03-approval-and-escalation"
-  - "prov-02-forge-collaboration"
-  - "prov-04-execution-host"
+  - "seam-forge-contract-mock"
+  - "seam-execution-host-contract-mock"
   - "fnd-01-configuration-and-policy"
   - "fnd-03-workspace-and-repository"
 ---
@@ -143,6 +143,9 @@ and blocker PR rules are in [Evidence model and predicates](evidence-model-and-p
   integrity violations record `failed`.
 - Blocker-evidence PRs require a safe exact head and runner push/PR policy; they publish blocker
   states and never imply Task completion, queue, or merge.
+- Required evidence classes come from `ResolvedPolicy.policy.merge.requiredEvidence`. CI required
+  checks are derived from Forge branch-protection and ruleset evidence for the exact candidate head;
+  configured policy selects the evidence class, not individual check names.
 
 ## 5. Contracts & interfaces
 
@@ -177,7 +180,8 @@ Emitted with `domain = "core-05"`:
 - `MergeDecisionRecorded` (`barrier`): merge state, exact `headSha`, gates, Forge refs, and capability
   gate ref.
 - `ForgeOperationIntentRecorded` (`barrier`): `push-branch`, `upsert-pr`,
-  `publish-blocker-evidence`, or `update-branch`, with `expectedHeadSha`.
+  `publish-blocker-evidence`, or `update-branch`, with `expectedHeadSha`. Blocker PR operations carry
+  `purpose = "blocker-evidence-pr"` and are never `enqueue` or `merge` intents.
 - `MergeIntentRecorded` (`barrier`): `enqueue` or `merge`, with `expectedHeadSha`, policy ref, gate
   event id, and merge decision event id.
 - `PostMergeOutcomeRecorded` (`barrier`): Forge merge result classification, exact head evidence,
@@ -243,8 +247,9 @@ intents, named fail-closed states, pure replay/cursor decisions, and mocks only.
 
 ## 10. Open questions
 
-- Trusted-check source configuration remains open in Forge; until resolved, required checks come from
-  Forge protection/ruleset evidence plus existing merge-policy `requiredEvidence`.
+- Trusted-check source configuration is resolved by `ResolvedPolicy.policy.merge.requiredEvidence`
+  plus Forge branch-protection and ruleset evidence. The prov-02 ruleset DTO carries normalized
+  required-check names; exact GitHub ruleset membership remains provider-owned evidence.
 - Protected-policy-change approval is owned by core-03: a committed `ApprovalDecisionRecorded` for
   `ApprovalSubject = "protected-policy-change"` is required. If absent, protected policy changes fail
   closed as `protected-policy-change-unapproved`.

@@ -33,8 +33,8 @@ and testkit conformance assets.
 |---|---|
 | Frontier 0 | Establishes the first `sdk` internal modules for config/policy and storage ports/defaults. |
 | Frontier 1 | Extends `sdk` with workspace, credential, event-log, writer, projection, and artifact contracts. |
-| Frontier 2 | Adds SDK provider interfaces for Work Source, Forge, and Execution Host; adds `testkit` mock/conformance surfaces; starts provider package skeletons only when a real driver story is ready. |
-| Frontier 3 | Adds Agent provider interface and Codex provider skeleton as needed; fills SDK capability gates and analysis modules. |
+| Frontier 2 | Adds SDK provider ports for Work Source, Forge, and Execution Host; adds `testkit` mocks/conformance for those ports. Real `provider-markdown`, `provider-github`, and `provider-local` driver packages start only in separate real-driver stories and do not block core. |
+| Frontier 3 | Adds the SDK Agent provider port and `testkit` Agent mocks/conformance; fills SDK capability gates and analysis modules. The `provider-codex` driver package starts only as a separate real-driver story and does not block core gates. |
 | Frontier 4 | Extends SDK run-control modules for approval and liveness. |
 | Frontier 5 | Extends SDK completion, merge-readiness, recovery, and reconciliation modules. |
 | Frontier 6 | Adds `cli` and `mcp` entry surfaces only after the core control plane has complete SDK contracts to call. |
@@ -53,6 +53,10 @@ this plan. Migration is a separate evidence question:
 
 No current package is marked implementation-ready until the corresponding story contract has evidence
 that satisfies [`readiness-matrix.md`](readiness-matrix.md).
+
+Readiness-matrix evidence for SDK/core package implementation is not blocked by live runtime
+attestation. Real-driver migration remains blocked until the relevant provider package has current
+runtime / production attestation evidence for the capabilities it claims.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

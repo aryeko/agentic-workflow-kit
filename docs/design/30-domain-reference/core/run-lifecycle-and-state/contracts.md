@@ -108,6 +108,11 @@ interface RunWriter { append(batch: AppendIntent[]): Result<RunAppendReceipt, Ru
 effective fnd-02 batch durability after the writer applies the strongest requested durability across
 the batch.
 
+`RunDurabilityClass` is the canonical run-log subset of fnd-02 `DurabilityClass`: core-01 never
+authors `buffered` run events. `RunDegradedHealth` is a projection mapping over fnd-02
+`StorageHealth`: `log-tail-repaired -> tail-repaired`, `log-interior-corrupt -> interior-corrupt`,
+and `network-fs-degraded | read-only | unusable -> event-log-unavailable`.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

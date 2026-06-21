@@ -11,7 +11,7 @@ including the complete direct dependency record. The design corpus remains the s
 each individual edge.
 
 The domain graph is split into two DAGs so the planning view stays readable in normal Markdown
-previews. The first DAG shows how foundation domains and provider contracts become available; the
+previews. The first DAG shows how foundation domains and provider seam contracts become available; the
 second DAG shows how the core uses those established contracts to control runs, decide completion,
 recover, and expose operator entry points.
 
@@ -24,6 +24,11 @@ table below is the complete audit surface for the combined graph.
 > This DAG covers the dependency build-up from independent foundation domains through provider-facing
 > contracts and first core gates. It answers: "what foundation and external-system contracts must
 > exist before run-control logic can be planned?"
+
+Provider seam contract + mock nodes are implementation-planning nodes, not new design domains. They
+represent the SDK provider port plus testkit mock/conformance surface that core can build and test
+against. Provider domain ids (`prov-01` through `prov-04`) remain homes for real driver mapping,
+live/provider evidence, provider-specific conformance, and production readiness.
 
 ```mermaid
 %%{init: {
@@ -61,18 +66,18 @@ sdk"]
   core01["F1 · core-01
 Run Lifecycle
 sdk"]
-  prov03["F2 · prov-03
-Work Source
-sdk md testkit"]
-  prov02["F2 · prov-02
-Forge / Collaboration
-sdk gh testkit"]
-  prov04["F2 · prov-04
-Execution Host
-sdk local testkit"]
-  prov01["F3 · prov-01
-Agent Execution
-sdk codex testkit"]
+  seamWS["F2 · seam-work-source-contract-mock
+Work Source port + mock
+sdk testkit"]
+  seamForge["F2 · seam-forge-contract-mock
+Forge port + mock
+sdk testkit"]
+  seamHost["F2 · seam-execution-host-contract-mock
+Execution Host port + mock
+sdk testkit"]
+  seamAgent["F3 · seam-agent-contract-mock
+Agent port + mock
+sdk testkit"]
   core02["F3 · core-02
 Capability and Safety
 sdk"]
@@ -85,16 +90,16 @@ sdk"]
   fnd01 --> fnd04
   fnd01 --> core01
   fnd02 --> core01
-  fnd02 --> prov03
-  fnd04 --> prov02
-  fnd03 --> prov04
-  fnd04 --> prov04
-  prov04 --> prov01
+  fnd02 --> seamWS
+  fnd04 --> seamForge
+  fnd03 --> seamHost
+  fnd04 --> seamHost
+  seamHost --> seamAgent
   core01 --> core02
-  prov01 --> core02
-  prov02 --> core02
-  prov03 --> core02
-  prov04 --> core02
+  seamAgent --> core02
+  seamForge --> core02
+  seamWS --> core02
+  seamHost --> core02
   core01 --> core07
 
   classDef foundation fill:#eff6ff,stroke:#93c5fd,stroke-width:1.4px,color:#172554;
@@ -102,7 +107,7 @@ sdk"]
   classDef core fill:#fefce8,stroke:#fde68a,stroke-width:1.4px,color:#422006;
 
   class fnd01,fnd02,fnd03,fnd04 foundation;
-  class prov01,prov02,prov03,prov04 provider;
+  class seamAgent,seamForge,seamWS,seamHost provider;
   class core01,core02,core07 core;
 ```
 
@@ -110,7 +115,8 @@ sdk"]
 
 > This DAG starts from the established core gates and analysis surface, then shows the control-plane
 > spine that handles approval, supervision, completion, recovery, and operator entry points. It
-> differs from the foundation/provider view by consuming provider contracts rather than defining them.
+> differs from the foundation/provider view by consuming seam contract+mock nodes rather than defining
+> them.
 
 `core-02` and `core-07` are repeated as context from F3.
 
@@ -198,29 +204,40 @@ labels.
 | `fnd-03`  | Workspace & Repository                  |        1 | `sdk`                                 |
 | `fnd-04`  | Credentials & Secrets                   |        1 | `sdk`                                 |
 | `core-01` | Run Lifecycle & Event State             |        1 | `sdk`                                 |
-| `prov-03` | Work Source                             |        2 | `sdk`, `provider-markdown`, `testkit` |
-| `prov-02` | Forge / Collaboration                   |        2 | `sdk`, `provider-github`, `testkit`   |
-| `prov-04` | Execution Host                          |        2 | `sdk`, `provider-local`, `testkit`    |
-| `prov-01` | Agent Execution                         |        3 | `sdk`, `provider-codex`, `testkit`    |
+| `seam-work-source-contract-mock` | Work Source seam contract + mock | 2 | `sdk`, `testkit` |
+| `seam-forge-contract-mock` | Forge seam contract + mock | 2 | `sdk`, `testkit` |
+| `seam-execution-host-contract-mock` | Execution Host seam contract + mock | 2 | `sdk`, `testkit` |
+| `seam-agent-contract-mock` | Agent seam contract + mock | 3 | `sdk`, `testkit` |
 | `core-02` | Capability & Safety                     |        3 | `sdk`                                 |
 | `core-07` | Observability & Analysis                |        3 | `sdk`                                 |
 | `core-03` | Approval & Escalation                   |        4 | `sdk`                                 |
 | `core-04` | Supervision & Liveness                  |        4 | `sdk`                                 |
 | `core-05` | Completion, Verification & Merge        |        5 | `sdk`                                 |
 | `core-06` | Recovery, Reconciliation & Coordination |        5 | `sdk`                                 |
+| `prov-03` | Work Source real driver                 | production readiness | `provider-markdown` |
+| `prov-02` | Forge / Collaboration real driver       | production readiness | `provider-github`   |
+| `prov-04` | Execution Host real driver              | production readiness | `provider-local`    |
+| `prov-01` | Agent Execution real driver             | production readiness | `provider-codex`    |
 | `edge-01` | Operator & Entry Surface                |        6 | `cli`, `mcp`                          |
 
 ## Frontier table
+
+Published build order: foundation -> seam ports & mocks (in `sdk`/`testkit`) -> core spine -> core
+gates -> real drivers (parallel) -> edge.
 
 | Frontier | Label                     | Domains                         |
 | -------: | ------------------------- | ------------------------------- |
 |        0 | Independent foundation    | `fnd-01`, `fnd-02`              |
 |        1 | Foundation dependents     | `fnd-03`, `fnd-04`, `core-01`   |
-|        2 | Provider contracts        | `prov-03`, `prov-02`, `prov-04` |
-|        3 | Agent contract and core gates | `prov-01`, `core-02`, `core-07` |
+|        2 | Provider seam ports and mocks | `seam-work-source-contract-mock`, `seam-forge-contract-mock`, `seam-execution-host-contract-mock` |
+|        3 | Agent seam contract and core gates | `seam-agent-contract-mock`, `core-02`, `core-07` |
 |        4 | Run control               | `core-03`, `core-04`            |
 |        5 | Completion and recovery   | `core-05`, `core-06`            |
 |        6 | Operator surface          | `edge-01`                       |
+
+Real driver stories for `prov-03`, `prov-02`, `prov-04`, and `prov-01` proceed in parallel once
+their contract+mock surfaces exist. They are production-readiness work and do not block SDK/core
+build/test readiness.
 
 ## First Package Appearance
 
@@ -228,32 +245,36 @@ labels.
 | ------------------- | ----------- | -------------: | --------------------------- |
 | `sdk`               | `sdk`       |              0 | `fnd-01` / `fnd-02`         |
 | `testkit`           | `testkit`   |              2 | first provider contract domains |
-| `provider-markdown` | `md`        |              2 | `prov-03`                   |
-| `provider-github`   | `gh`        |              2 | `prov-02`                   |
-| `provider-local`    | `local`     |              2 | `prov-04`                   |
-| `provider-codex`    | `codex`     |              3 | `prov-01`                   |
+| `provider-markdown` | `md`        | production readiness | `prov-03` real-driver story |
+| `provider-github`   | `gh`        | production readiness | `prov-02` real-driver story |
+| `provider-local`    | `local`     | production readiness | `prov-04` real-driver story |
+| `provider-codex`    | `codex`     | production readiness | `prov-01` real-driver story |
 | `cli`               | `cli`       |              6 | `edge-01`                   |
 | `mcp`               | `mcp`       |              6 | `edge-01`                   |
 
 ## Direct Dependencies
 
-| Domain id | Direct dependencies                                                                              |
+| Domain or planning node | Direct dependencies                                                                              |
 | --------- | ------------------------------------------------------------------------------------------------ |
 | `fnd-01`  | none                                                                                             |
 | `fnd-02`  | none                                                                                             |
 | `fnd-03`  | `fnd-01`, `fnd-02`                                                                               |
 | `fnd-04`  | `fnd-01`                                                                                         |
 | `core-01` | `fnd-01`, `fnd-02`                                                                               |
-| `prov-03` | `fnd-02`                                                                                         |
-| `prov-02` | `fnd-04`                                                                                         |
-| `prov-04` | `fnd-03`, `fnd-04`                                                                               |
-| `prov-01` | `prov-04`, `fnd-04`                                                                              |
-| `core-02` | `core-01`, `fnd-01`, `prov-01`, `prov-02`, `prov-03`, `prov-04`                                  |
+| `seam-work-source-contract-mock` | `fnd-02`                                                                                         |
+| `seam-forge-contract-mock` | `fnd-04`                                                                                         |
+| `seam-execution-host-contract-mock` | `fnd-03`, `fnd-04`                                                                               |
+| `seam-agent-contract-mock` | `seam-execution-host-contract-mock`, `fnd-04`                                                     |
+| `prov-03` | `seam-work-source-contract-mock`                                                                 |
+| `prov-02` | `seam-forge-contract-mock`, `fnd-04`                                                             |
+| `prov-04` | `seam-execution-host-contract-mock`, `fnd-03`, `fnd-04`                                          |
+| `prov-01` | `seam-agent-contract-mock`, `seam-execution-host-contract-mock`, `fnd-04`                         |
+| `core-02` | `core-01`, `fnd-01`, `seam-agent-contract-mock`, `seam-forge-contract-mock`, `seam-work-source-contract-mock`, `seam-execution-host-contract-mock` |
 | `core-07` | `core-01`, `fnd-02`                                                                              |
-| `core-03` | `core-01`, `core-02`, `fnd-01`, `prov-01`                                                        |
-| `core-04` | `core-01`, `prov-01`, `prov-04`                                                                  |
-| `core-05` | `core-01`, `core-02`, `core-03`, `fnd-01`, `fnd-03`, `prov-02`, `prov-04`                        |
-| `core-06` | `core-01`, `core-02`, `core-04`, `core-05`, `fnd-02`, `prov-01`, `prov-02`, `prov-03`, `prov-04` |
+| `core-03` | `core-01`, `core-02`, `fnd-01`, `seam-agent-contract-mock`                                      |
+| `core-04` | `core-01`, `seam-agent-contract-mock`, `seam-execution-host-contract-mock`                      |
+| `core-05` | `core-01`, `core-02`, `core-03`, `fnd-01`, `fnd-03`, `seam-forge-contract-mock`, `seam-execution-host-contract-mock` |
+| `core-06` | `core-01`, `core-02`, `core-04`, `core-05`, `fnd-02`, `seam-agent-contract-mock`, `seam-forge-contract-mock`, `seam-work-source-contract-mock`, `seam-execution-host-contract-mock` |
 | `edge-01` | `core-01`, `core-02`, `core-03`, `core-04`, `core-05`, `core-06`, `core-07`                      |
 
 ## Maintenance rule
@@ -265,6 +286,6 @@ projection; the table is the audit surface.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation contract](./README.md) · **Next →:** [Agent provider functional requirements](./agent-provider-requirements.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation contract](./README.md) · **Next →:** [Agent provider motivation and needs](./agent-provider-motivation.md)
 
 <!-- /DOCS-NAV -->

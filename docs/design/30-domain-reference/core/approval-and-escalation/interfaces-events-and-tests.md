@@ -79,7 +79,8 @@ answerable. The Agent contract remains responsible for provider-specific transpo
 Emitted events use `domain = "core-03"` and the core-01 `RunEventEnvelope`.
 
 - `ApprovalRequested` (`barrier`): normalized request, recorded before decision.
-- `ApprovalPendingPersisted` (`barrier`): durable pending state and live answer deadline.
+- `ApprovalPendingPersisted` (`barrier`): durable pending state and live answer deadline. Final
+  expiry is computed from request `expiresAt` or `policy.approval.decisionWindowMs`.
 - `ApprovalRiskClassified` (`durable`): deterministic risk result and triggered rule ids.
 - `ApprovalDecisionRecorded` (`barrier`): policy, system, or Operator decision. For
   `ApprovalSubject = "protected-policy-change"`, this is the recorded Operator approval event that
@@ -113,9 +114,11 @@ Required tests:
   `orchestrator-decide`;
 - scoped-grant minimization tests for `per-command`, `per-command-prefix`, `per-host`, and `session`,
   plus denial-disposition mapping tests that prove `Decision.grant` is an Agent `ScopedGrant`
-  accepted by `ApprovalAnswer.grant`;
+  accepted by `ApprovalAnswer.grant`, and invalid mappings fail closed as
+  `approval-grant-mapping-invalid`;
 - park/resume tests for process death, human latency, live-only channels, persisted channels, expired
-  requests, and pre-loaded grants;
+  requests, request `expiresAt` precedence over `approval.decisionWindowMs`, live-window park before
+  final expiry, and pre-loaded grants;
 - fail-closed tests for missing resolved policy/provenance, missing capability, missing Agent relay,
   ambiguous ownership/session linkage, unwritable Event log, stale/negative attestations,
   gate-record append failure, invalid grant mapping, and expired pending request;

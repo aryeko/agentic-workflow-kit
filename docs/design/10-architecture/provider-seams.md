@@ -62,7 +62,8 @@ modes as the real driver.
 ## Authoritative references
 
 - Provider interface definitions and the SDK boundary rule:
-  [provider-interface-model.md](../20-sdk-and-packaging/provider-interface-model.md)
+  [provider-interface-model.md](../20-sdk-and-packaging/provider-interface-model.md) and
+  [provider-ports.md](../20-sdk-and-packaging/provider-ports.md)
 - Agent contract and Codex driver:
   [providers/agent-execution/README.md](../30-domain-reference/providers/agent-execution/README.md)
 - Forge contract and GitHub driver:

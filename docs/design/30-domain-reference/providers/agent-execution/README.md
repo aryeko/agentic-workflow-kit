@@ -136,7 +136,7 @@ event instead of fabricating one. Runner-owned verify continues to use Execution
 
 ## 5. Contracts & interfaces
 
-The public interface is:
+The public interface is the SDK-owned `AgentProvider`:
 
 - `probeCapabilities(scope): CapabilityAttestation[]`
 - `startWorker(request): AgentSession | AgentFailure` (the host worker is carried in
@@ -153,6 +153,8 @@ Capabilities are `canRelayApproval`, `canPersistApprovalAnswerChannel`, `canResu
 `emitsStructuredToolExit`, `emitsGuardianReview`, and `preservesHostProcessParentage`. Capability
 gates require fresh positive attestations with driver version, platform, freshness key, scope, and
 evidence refs. Stale, absent, negative, or schema-only evidence disables the dependent power.
+The v1 method surface, normalized events, failure tokens, `ScopedGrant`, and `ScopedGrantKind` are
+frozen; concrete Codex mapping remains behind this provider port.
 
 ## 6. Events & data
 

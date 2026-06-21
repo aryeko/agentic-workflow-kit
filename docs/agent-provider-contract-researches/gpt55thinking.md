@@ -658,3 +658,11 @@ Final recommendation: implement this first against a **strict mock conformance d
 [5]: https://docs.anthropic.com/en/docs/claude-code/hooks?utm_source=chatgpt.com "Hooks reference - Claude Code Docs"
 [6]: https://geminicli.com/docs/reference/commands/ "CLI commands | Gemini CLI"
 [7]: https://ai-sdk.dev/cookbook/next/human-in-the-loop "Next.js: Human-in-the-Loop with Next.js"
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Design Proposal: Provider-Neutral Agent Driver Contract (v2)](./gemini35flash.md) · **Next →:** [roadmap](../roadmap.md)
+
+<!-- /DOCS-NAV -->

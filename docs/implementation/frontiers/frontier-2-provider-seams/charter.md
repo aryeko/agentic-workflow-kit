@@ -13,9 +13,10 @@ included-domains:
 
 ## Purpose
 
-Frontier 2 implements the first provider seams and their mock/real driver contracts: Work Source, Forge,
-and Execution Host. The frontier defines what each seam must deliver as host-neutral contracts,
-capability attestations, driver conformance, evidence, degraded outcomes, and boundaries.
+Frontier 2 implements the first provider seam contract + mock surfaces: Work Source, Forge, and
+Execution Host. Each seam produces an SDK-owned port, neutral DTOs, testkit mocks, conformance
+fixtures, degraded outcomes, and event-ready evidence payloads. Real drivers are separate
+production-readiness stories that implement the same port but do not block core build/test work.
 
 This charter does not define execution workflow. Provider seams expose facts and perform scoped
 actions; control-plane domains decide what those facts mean.
@@ -54,14 +55,18 @@ evidence, explicit boundaries, and STOP conditions.
 
 ## Outputs
 
-- Work Source contract, Markdown driver, and mock driver for tracks, tasks, eligibility, claim/release,
-  status writes, TaskSnapshot artifacts, dependencies, and capability attestations.
-- Forge contract, GitHub driver, and mock driver for branch push, PR upsert/comment, evidence
-  collection, update-branch, enqueue, merge, exact-head refusal, redacted provider output, and
-  capability attestations.
-- Execution Host contract, Local driver target, and mock host for workspace attachment, worker spawn,
-  observation, termination/prove-empty, runner-owned command capture, credential injection handling,
-  redacted output artifacts, and egress-confinement attestations.
+- Work Source contract + mock story: SDK `WorkSourceProvider` port, neutral `TaskSnapshot` and
+  status-authority DTOs, mock driver, conformance fixtures, degraded tokens, and event-ready payloads.
+- Work Source real-driver story: Markdown driver mapping, filesystem/track evidence, write
+  conflict/race probes, and production capability attestations.
+- Forge contract + mock story: SDK `ForgeProvider` port, exact-head DTOs, mock driver, conformance
+  fixtures, degraded tokens, and event-ready payloads.
+- Forge real-driver story: GitHub driver mapping, provider evidence refresh, protection/ruleset/merge
+  queue probes, redaction, and production capability attestations.
+- Execution Host contract + mock story: SDK `ExecutionHostProvider` port, workspace/worker/command
+  capture DTOs, mock host, conformance fixtures, degraded tokens, and event-ready payloads.
+- Execution Host real-driver story: Local driver process handling, termination/prove-empty,
+  redaction, egress negative probes, and production capability attestations.
 - Provider conformance suites and evidence fixtures proving real and mock drivers satisfy the same
   contract surfaces and degraded-mode tokens.
 - Event-ready payloads and artifact refs for callers to append through core-01; provider domains do
@@ -189,17 +194,24 @@ Frontier 2 is implementation-ready when each story has:
 - Explicit boundaries and STOP conditions.
 - No execution workflow, review-loop mechanics, PR handling, or session-process rules.
 
-The frontier is complete only when the three provider seams expose stable SDK contracts, real/mock driver
-conformance surfaces, and event-ready evidence that later core domains can consume without redefining
-task authority, Forge authority, host execution, capability attestations, or degraded behavior.
+The frontier is implementation-ready for core when the three provider seams expose stable SDK
+contracts, testkit mock/conformance surfaces, and event-ready evidence that later core domains can
+consume without redefining task authority, Forge authority, host execution, capability attestations,
+or degraded behavior. Real-driver stories remain tracked as production-readiness work and do not
+block SDK/core build or mock-driven core tests.
 
 ## Expected story files to author next
 
+Core-blocking contract+mock stories:
+
 - `docs/implementation/frontiers/frontier-2-provider-seams/stories/prov-03-work-source-contract-and-mock.md`
-- `docs/implementation/frontiers/frontier-2-provider-seams/stories/prov-03-markdown-driver-conformance.md`
 - `docs/implementation/frontiers/frontier-2-provider-seams/stories/prov-02-forge-contract-and-mock.md`
-- `docs/implementation/frontiers/frontier-2-provider-seams/stories/prov-02-github-driver-evidence-and-conformance.md`
 - `docs/implementation/frontiers/frontier-2-provider-seams/stories/prov-04-execution-host-contract-and-mock.md`
+
+Production-readiness real-driver stories:
+
+- `docs/implementation/frontiers/frontier-2-provider-seams/stories/prov-03-markdown-driver-conformance.md`
+- `docs/implementation/frontiers/frontier-2-provider-seams/stories/prov-02-github-driver-evidence-and-conformance.md`
 - `docs/implementation/frontiers/frontier-2-provider-seams/stories/prov-04-local-driver-command-termination-and-egress.md`
 
 ## Deferred work

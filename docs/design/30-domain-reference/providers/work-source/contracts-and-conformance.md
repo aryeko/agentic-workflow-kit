@@ -6,9 +6,10 @@ last-reviewed: 2026-06-19
 
 # Contracts and conformance
 
-This file holds the typed contract details and conformance targets for
-`design/30-domain-reference/providers/work-source/README.md`. It is split out because the type
-catalog and driver conformance matrix are cohesive detail. It transcribes the contract that lives in
+This file holds typed contract details and conformance targets for
+`design/30-domain-reference/providers/work-source/README.md`. The SDK-owned canonical port name is
+`WorkSourceProvider`. It is split out because the type catalog and driver conformance matrix are
+cohesive detail. It transcribes the contract that lives in
 the README (§4 task model, §5 interface + types, §8 failure tokens, §9 testing) into a single typed
 form and defines the three types the README references but does not yet declare: `TrackView`,
 `StatusWriteResult`, and `WorkSourceError`.
@@ -72,7 +73,7 @@ type AuditCitation = {
 };
 
 // Reconciliation shape for a verified status write. writeStatus accepts evidenceRef?: ArtifactRef
-// and note? as inputs (see WorkSource.writeStatus); this result reports the verified post-write
+// and note? as inputs (see WorkSourceProvider.writeStatus); this result reports the verified post-write
 // facts and carries the audit citation written as task metadata (AD-17).
 type StatusWriteResult = {
   written: boolean;
@@ -97,7 +98,7 @@ type WorkSourceError =
   | { kind: "status-authority-conflict"; task: TaskKey; expectedRecordDigest?: string;
       observedRecordDigest: string };
 
-interface WorkSource {
+interface WorkSourceProvider {
   probeCapabilities(scope: WorkSourceProbeScope): CapabilityAttestation[];
   listTracks(): TrackView[] | WorkSourceError;
   listTasks(trackId: string): TaskView[] | WorkSourceError;

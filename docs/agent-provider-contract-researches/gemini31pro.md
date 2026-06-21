@@ -193,3 +193,11 @@ The following are omitted as they belong to adjacent domains:
 4. **A failure to normalize must be an expressible event.** \* _Satisfied by:_ `NormalizedEvent` discriminated union including `{ type: 'normalization-failure', rawEvidenceRef, reason }`.
 5. **Non-support and degradation must be inspectable outcomes.** \* _Satisfied by:_ Every operational method returning `Promise<OperationOutcome<T>>`, which includes `{ status: 'unsupported' }` and `emulation: 'native' | 'emulated'`.
 6. **Bounded retrieval and reconnect must be modeled.** \* _Satisfied by:_ `DriverSession.observe(request: ObservationRequest)` taking a `sinceToken` and returning a `nextToken`.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Tooling and CI](../engineering/tooling-and-ci.md) · **Next →:** [Design Proposal: Provider-Neutral Agent Driver Contract (v2)](./gemini35flash.md)
+
+<!-- /DOCS-NAV -->

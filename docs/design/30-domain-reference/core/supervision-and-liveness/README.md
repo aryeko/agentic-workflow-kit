@@ -7,8 +7,8 @@ owner: "domain designer"
 last-reviewed: "2026-06-19"
 depends-on:
   - "core-01-run-lifecycle-and-state"
-  - "prov-01-agent-execution"
-  - "prov-04-execution-host"
+  - "seam-agent-contract-mock"
+  - "seam-execution-host-contract-mock"
 ---
 
 # Supervision & Liveness - design
@@ -121,7 +121,8 @@ decisions are:
   `approval-overdue`, `stale`, `supervision-lost`, `termination-requested`, and `terminated`.
 - Missing Agent progress guarantees, a missing cursor, ambiguous session linkage, unavailable
   termination capability, and unproven termination fail closed to named reasons.
-- Termination is a handoff to `ExecutionHost.terminateWorker`; this domain does not signal, kill,
+- Termination is a handoff to `ExecutionHostProvider.terminateWorker`; this domain does not signal,
+  kill,
   reap, or prove-empty directly.
 - `SupervisorStopped` is the single allowed terminal-summary fact. It is a non-lifecycle event
   justified by core-01's ratified post-terminal append rule (reuse the terminal epoch until lease
@@ -138,7 +139,7 @@ Core-04 consumes:
 
 ```ts
 interface SupervisionInputs { runLog: RunEventLog; agentEvents: AsyncIterable<AgentEvent>;
-  host: ExecutionHost; clock: Clock; timers: SupervisionTimerPolicy; }
+  host: ExecutionHostProvider; clock: Clock; timers: SupervisionTimerPolicy; }
 interface SupervisionTimerPolicy { startupMs: number; idleMs: number; noProgressMs: number;
   perToolMs: number; approvalSlaMs: number; maxRuntimeMs: number; }
 interface SupervisionWaitRequest { runId: string; cursor: RunEventCursor; timeoutMs: number;

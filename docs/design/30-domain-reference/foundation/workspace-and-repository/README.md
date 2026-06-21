@@ -131,6 +131,9 @@ tracking ref. The worker may edit and create local commits on the task branch. F
 (`sha`, `parentShas`, `subject`, `authoredAt`), diff (`fromSha`, `toSha`, `changedPaths`, optional
 `statRef`, optional `patchRef`), and working tree state (`clean`, `stagedPaths`, `unstagedPaths`,
 `untrackedPaths`).
+`headSha`, `changedPaths`, and `clean` are top-level fields because Completion & Merge consumes
+those names directly for candidate-head selection, changed-file classification, and dirty-worktree
+fail-closed behavior.
 
 Evidence is read-only inspection. It must not include remote refs, remote URLs, credential material,
 CI state, review state, merge state, or worker prose. If branch, merge base, status, or diff cannot
@@ -171,7 +174,8 @@ Artifacts. Outputs are lease handles, setup evaluation, branch metadata, and loc
 ## 6. Events & data
 Contributed events: `WorktreeLeaseCreated`, `LocalBranchCreated`, `RepoSetupEvaluated`,
 `RepoSetupConfirmed`, `LocalGitEvidenceRecorded`, `WorktreeLeaseFinalized`,
-`WorktreeCleanupRetryScheduled`, `WorktreeCleanupCompleted`, and `WorktreeCleanupBlocked`.
+`WorktreeCleanupRetryScheduled`, `WorktreeCleanupCompleted`, and `WorktreeCleanupBlocked`. Typed
+payloads live in [Workspace & Repository event payloads](events.md).
 
 Consumed data: repository policy, branch policy, setup declaration, cleanup policy, artifact refs,
 and durable lease records. Contributed projections: active worktree leases by Run, latest local git
@@ -231,10 +235,13 @@ stale fence, cleanup tombstone, diff/stat artifact persistence, and boundary tes
 API has no remote, credential, push, PR, check, merge, process, or CI fields. Cleanup tests cover
 blocked retry records, stale-path tombstoning, dirty-path escalation, and finally settled cleanup.
 ## 10. Open questions
-- Should concurrent worktrees per `repoId` be limited by policy or only by path-level leases?
 - For a missing or moved leased worktree, is the only allowed repair a tombstone, or may a new lease
   be recreated from `baseSha`?
-- Which exact Foundation event names will core-01 standardize?
+
+Resolved in design closure: fnd-03 is path-lease-only. It allocates unique
+`<worktreeRoot>/<repoId>/<runId>/` paths and uses fnd-02 lease fencing; any run concurrency cap is
+expressed by fnd-01 `RunPolicy.maxConcurrentRuns`, not a hard fnd-03 one-worktree-per-repo rule. The
+event names above are fnd-03-owned and valid once typed in this domain.
 ## 11. Definition of done
 - [x] All sections complete; guidance notes removed.
 - [x] Files are focused; no split needed.
@@ -250,6 +257,8 @@ blocked retry records, stale-path tombstoning, dirty-path escalation, and finall
 
 ---
 
-**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [Storage & Artifacts](../storage-and-artifacts/README.md) · **Next →:** [Credentials & Secrets](../credentials-and-secrets/README.md)
+**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [Storage & Artifacts](../storage-and-artifacts/README.md) · **Next →:** [Workspace & Repository event payloads](./events.md)
+
+**Children:** [Workspace & Repository event payloads](./events.md)
 
 <!-- /DOCS-NAV -->

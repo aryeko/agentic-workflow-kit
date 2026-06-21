@@ -1,14 +1,15 @@
 ---
 title: "Agent Execution - contract types"
-status: draft
+status: approved
 last-reviewed: "2026-06-18"
 ---
 
 # Contract types
 
-This file holds the typed Agent contract for
-`design/30-domain-reference/providers/agent-execution/README.md`. Capability and conformance detail lives
-in [capabilities-and-conformance.md](capabilities-and-conformance.md).
+This file holds provider-specific Agent contract detail for
+`design/30-domain-reference/providers/agent-execution/README.md`. The SDK-owned canonical port name
+is `AgentProvider`; capability and conformance detail lives in
+[capabilities-and-conformance.md](capabilities-and-conformance.md).
 
 ## Contract types
 
@@ -212,7 +213,7 @@ interface AgentReleaseResult {
   at: string;
 }
 
-interface AgentDriver {
+interface AgentProvider {
   probeCapabilities(scope: AgentProbeScope): CapabilityAttestation[];
   startWorker(request: AgentStartRequest): AgentSession | AgentFailure;
   observe(session: AgentSession): AsyncIterable<AgentEvent>;
@@ -225,6 +226,10 @@ interface AgentDriver {
 `WorkerHandle` is consumed from the Execution Host contract. Worker-safe injection and redaction
 inputs are consumed through the host launch and `AgentOutputSink`; this contract does not resolve or
 issue credentials.
+
+The v1 Agent provider surface is frozen: methods, events, capabilities, failure tokens,
+`ScopedGrant`, and `ScopedGrantKind` remain the contract core-03 and core-04 consume. Concrete Codex
+mapping is provider-driver work behind this SDK-owned `AgentProvider` port.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

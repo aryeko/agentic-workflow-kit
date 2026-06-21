@@ -12,6 +12,12 @@ last-reviewed: "2026-06-19"
 pending request remains authoritative until an outcome records answer, denial, expiry, block, or
 failure.
 
+The final decision deadline is `request.expiresAt ?? request.requestedAt +
+policy.approval.decisionWindowMs`. An explicit request `expiresAt` wins over the policy default.
+The built-in default for `approval.decisionWindowMs` is `900000` milliseconds. A live answer-channel
+deadline can move the request to `parked` before the final decision deadline; it does not by itself
+produce `expired`.
+
 States:
 
 - `pending`: request and answer channel are durably recorded before any decision.
@@ -22,7 +28,7 @@ States:
 - `resumed`: owned session is resumed with the selected grant pre-loaded and a fresh `SessionLinked`
   or current non-ambiguous session linkage.
 - `answered` / `denied`: Agent accepted the answer or denial.
-- `expired`: `expiresAt` or policy decision window elapsed before a valid decision.
+- `expired`: `decisionDeadline` elapsed before a valid decision.
 - `blocked`: required resolved policy/provenance, capability, Agent relay, ownership, session
   linkage, Event log durability, or grant mapping is unavailable.
 - `failed`: an answer was attempted but the Agent reports a non-retryable failure.
@@ -105,8 +111,8 @@ type ApprovalFailureState =
   fail closed to `blocked` if no human path is available.
 - `approval-grant-mapping-invalid`: a policy-level grant cannot be mapped to the approved Agent
   `ScopedGrant` shape without widening scope; fail closed to `blocked`.
-- `approval-expired`: parked request exceeded `expiresAt` or decision window; fail closed to
-  `expired` and deny.
+- `approval-expired`: pending or parked request reached `decisionDeadline`; fail closed to `expired`
+  and deny.
 - `approval-event-log-unavailable`: replay/projection or append is unavailable; fail closed to
   `blocked`.
 - `approval-outcome-ambiguous`: Agent answer result is missing or contradictory; fail closed to

@@ -164,3 +164,11 @@ Required Modeled Need	Exact Type / Code Unit Satisfying the Need	Rationale / Ver
 5. Inspectable Non-Support	Methods wrap execution statuses inside value-typed OperationResult tagged unions rather than throwing exceptions.	Converts "No" into an inspectable runtime data value, removing the need for fragile catch-and-retry blocks in core logic.
 6. Bounded Retrieval	OrderingToken unique brand passed through ObserveOptions to resume streams seamlessly.	Models disconnected stream boundaries safely without assuming an infinite, uninterrupted socket connection.
 ```
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Provider-Neutral Agent Driver Contract (v2)](./gemini31pro.md) · **Next →:** [1. Provider variability research](./gpt55thinking.md)
+
+<!-- /DOCS-NAV -->

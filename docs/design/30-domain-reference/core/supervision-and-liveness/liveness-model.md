@@ -89,8 +89,8 @@ or Host terminal event was observed, or the Execution Host returned termination 
 
 On `startup`, `idle`, `no-progress`, `per-tool`, or `max-runtime` expiry for an owned worker,
 Supervision & Liveness appends `SupervisorTerminationRequested` and calls
-`ExecutionHost.terminateWorker(handle, policy)`. It never signals, kills, reaps, or proves-empty
-directly.
+`ExecutionHostProvider.terminateWorker(handle, policy)`. It never signals, kills, reaps, or
+proves-empty directly.
 
 If the Host returns `TerminationResult.proof.containmentEmpty = true`, the projection records
 `terminated` and supervision stops. If `canKill` is missing/stale/negative or the Host returns

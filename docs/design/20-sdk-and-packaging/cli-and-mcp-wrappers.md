@@ -59,6 +59,6 @@ there is a concrete need for external consumers to reuse it.
 
 ---
 
-**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [provider interface model](./provider-interface-model.md) · **Next →:** [concrete providers](./concrete-providers.md)
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [Storage port types](./storage-port-types.md) · **Next →:** [concrete providers](./concrete-providers.md)
 
 <!-- /DOCS-NAV -->

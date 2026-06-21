@@ -25,13 +25,14 @@ execution workflow.
 
 | Domain | Role in this frontier | Spec basis |
 |---|---|---|
-| `prov-01` Agent Execution | Worker/provider seam, capability attestations, Codex and mock driver obligations. | `docs/design/30-domain-reference/providers/agent-execution/` |
+| `prov-01` Agent Execution | Agent contract + mock/conformance surface for core gates; Codex real-driver mapping is production-readiness work. | `docs/design/30-domain-reference/providers/agent-execution/` |
 | `core-02` Capability & Safety | Pure capability gate evaluation over recorded evidence and attestations. | `docs/design/30-domain-reference/core/capability-and-safety/` |
 | `core-07` Observability & Analysis | Telemetry topic view, analysis records, honest metrics, and terminal/blocked analysis invariant. | `docs/design/30-domain-reference/core/observability-and-analysis/` |
 
-Package target: `docs/design/20-sdk-and-packaging/package-target.md`. The implementation should land
-runtime contracts in `packages/sdk`, concrete Agent provider work in `packages/provider-codex`, and
-test fixtures/conformance helpers in `packages/testkit` unless later package design says otherwise.
+Package target: `docs/design/20-sdk-and-packaging/package-target.md`. Runtime contracts land in
+`packages/sdk`; provider mocks, adversarial fixtures, and conformance helpers land in
+`packages/testkit`; concrete Codex driver work lands in `packages/provider-codex` only as real-driver
+production-readiness work. Core gate and analysis packages must not import `provider-codex`.
 
 ## Why this frontier exists
 
@@ -65,14 +66,12 @@ provider evidence as live behavior, or couple core implementation to Codex drive
 
 Frontier 3 is ready only when it produces implementation artifacts equivalent to:
 
-- Agent contract types, event payloads, failure tokens, and output-sink integration.
-- Agent capability attestation model for `canRelayApproval`, `canPersistApprovalAnswerChannel`,
-  `canResumeOwned`, `emitsStructuredToolExit`, `emitsGuardianReview`, and
-  `preservesHostProcessParentage`.
-- Mock Agent driver scenarios and adversarial fixtures for positive, degraded, contradictory, and
-  claim-without-evidence paths.
-- Codex provider mapping that records what is schema-proven, what is live-proven, and what remains
-  unavailable for the pinned version.
+- Agent contract + mock story: SDK `AgentProvider` port, neutral events/DTOs, output sink contract,
+  failure tokens, testkit mock Agent, adversarial fixtures, and conformance cases.
+- Core gate stories: `core-02` capability registry and `CapabilityGateRecord` replay logic over
+  recorded attestations; `core-07` analysis contracts and replayable analysis facts.
+- Agent real-driver story: Codex mapping, schema/live evidence classification, provider-specific
+  redaction, and production capability probes for the pinned driver/version/surface.
 - Capability registry and `CapabilityGateRecord` evaluation as pure replay logic.
 - Observability telemetry classifications, analysis result/failure payloads, honest metric wrappers,
   and redacted report artifact refs.
@@ -162,6 +161,8 @@ Stories in this frontier must require evidence that is falsifiable and replayabl
 Frontier 3 is implementation-ready for the next frontier when:
 
 - Agent contract and mock fixtures can drive core tests with zero real processes and zero network;
+- positive runtime attestations for Codex are treated as production-readiness evidence for live Agent
+  powers, not as prerequisites for core build/test readiness;
 - capability gate records are append-required before any caller may treat a gate as allowed;
 - core gates reject self-report-only and schema-only behavioral evidence;
 - analysis records or analysis-failed records are modeled for terminal, blocked, supervision-lost,
@@ -173,13 +174,18 @@ Frontier 3 is implementation-ready for the next frontier when:
 
 ## Expected story files to author next
 
+Core-blocking contract+mock stories:
+
 - `docs/implementation/frontiers/frontier-3-agent-and-core-gates/stories/prov-01-agent-contract.md`
 - `docs/implementation/frontiers/frontier-3-agent-and-core-gates/stories/prov-01-agent-mock-conformance.md`
-- `docs/implementation/frontiers/frontier-3-agent-and-core-gates/stories/prov-01-codex-evidence-classification.md`
 - `docs/implementation/frontiers/frontier-3-agent-and-core-gates/stories/core-02-capability-registry.md`
 - `docs/implementation/frontiers/frontier-3-agent-and-core-gates/stories/core-02-gate-records.md`
 - `docs/implementation/frontiers/frontier-3-agent-and-core-gates/stories/core-07-analysis-contract.md`
 - `docs/implementation/frontiers/frontier-3-agent-and-core-gates/stories/core-07-terminal-analysis-invariant.md`
+
+Production-readiness real-driver story:
+
+- `docs/implementation/frontiers/frontier-3-agent-and-core-gates/stories/prov-01-codex-evidence-classification.md`
 
 ## Deferred work
 

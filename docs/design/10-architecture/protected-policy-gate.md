@@ -39,8 +39,10 @@ The implementation must define protected path sets covering at minimum:
 ## Snapshot record
 
 At launch, the Control plane appends a `ProtectedPolicySnapshotRecorded` event at barrier
-durability. It contains the policy digest, the base commit SHA, the verifier command, and the
-digests of the protected path set. All subsequent changed-file checks reference this record.
+durability. It contains the policy digest, the base commit SHA, the verifier command digest, and the
+digests of the protected path set. The verifier digest is the prov-04 canonical `commandDigest`
+precomputed from the runner-owned verify `HostCommandRequest`; later captured verify evidence must
+match it. All subsequent changed-file checks reference this record.
 
 ## Approval binding
 

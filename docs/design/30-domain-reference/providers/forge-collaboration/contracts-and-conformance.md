@@ -6,9 +6,10 @@ last-reviewed: 2026-06-19
 
 # Contracts and conformance
 
-This file holds the typed contract details and conformance targets for
-`design/30-domain-reference/providers/forge-collaboration/README.md`. It is split out because the
-type catalog and driver conformance matrix are cohesive detail. It transcribes the contract that
+This file holds typed contract details and conformance targets for
+`design/30-domain-reference/providers/forge-collaboration/README.md`. The SDK-owned canonical port
+name is `ForgeProvider`. It is split out because the type catalog and driver conformance matrix are
+cohesive detail. It transcribes the contract that
 already exists in the README (§4 design, §5 contracts, §8 failure modes, §9 testing) into a single
 typed surface and defines the types the README states only in prose. It adds no operation,
 capability, failure token, or requirement beyond the README.
@@ -171,6 +172,9 @@ interface ForgeBranchProtectionRule {
 }
 interface ForgeRuleset {
   id: string; name: string; enforcement: string; target?: string; // GraphQL RuleEnforcement / RepositoryRulesetTarget
+  // Normalized from applicable ruleset status/check requirements so core-05 can derive required CI
+  // checks without understanding provider-specific ruleset ASTs.
+  requiredStatusChecks: string[];
 }
 // Merge-queue DTO. Anchored to the MergeQueueEntry probe.
 interface ForgeMergeQueueFacts {
@@ -196,7 +200,7 @@ interface ForgeEvidenceSnapshot {
   collectedAt: string;
 }
 
-interface ForgeContract {
+interface ForgeProvider {
   probeCapabilities(scope: ForgeScope): CapabilityAttestation[];
   pushBranch(req: PushBranchRequest): ForgeActionResult;
   upsertPullRequest(req: PullRequestUpsertRequest): ForgeActionResult;

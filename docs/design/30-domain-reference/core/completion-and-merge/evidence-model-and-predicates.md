@@ -57,9 +57,9 @@ evidence can produce `claim-evidence-mismatch` for that merge-readiness claim.
 Verification is fresh for `headSha` only when the runner-owned `verify` command result is bracketed by
 pre- and post-command local git evidence for the same head, the command capture is complete, exit code
 is `0`, and the post-command worktree is clean. The verify command identity is prov-04
-`CommandResult.commandDigest`; prov-04 exposes no raw argv, so core-05 relies on the digest unless
-prov-04 later adds redacted argv. A command failure is a verification failure; incomplete capture or
-host failure is `verification-uncertain`.
+`CommandResult.commandDigest`, precomputed at launch as
+`ProtectedPolicySnapshotRecorded.verifierCommandDigest`. A command failure is a verification failure;
+incomplete capture or host failure is `verification-uncertain`.
 
 Forge evidence is fresh only when `ForgeEvidenceCollected.expectedHeadSha`, PR head, branch head, and
 all action-observed heads equal `headSha`. If Forge reports a different or unknown head, the evidence
@@ -68,7 +68,7 @@ is not usable for merge.
 ## Protected policy and changed files
 
 Core-05 records or consumes a launch-time `ProtectedPolicySnapshotRecorded` event whose digest binds:
-the resolved merge policy ref, verifier command digest, protected CI-definition path set, package
+the resolved merge policy ref, `verifierCommandDigest`, protected CI-definition path set, package
 script path set, config path set, and the base `baseSha` from Workspace & Repository. It is a policy
 snapshot, not a file reader; Workspace local git evidence later supplies changed paths.
 
@@ -143,8 +143,11 @@ unverified.
    changes.
 5. Required verification evidence is fresh for `headSha`.
 6. Forge PR evidence is fresh for `headSha`; branch/head/base freshness is not ambiguous.
-7. Every required check from Forge protection/ruleset evidence is present and successful. Missing
-   required checks are `merge-required-check-missing`, not ignored.
+7. When `policy.merge.requiredEvidence` includes `ci`, every required check from Forge
+   protection/ruleset evidence is present and successful. Required check names are the applicable
+   branch-protection `requiredStatusCheckContexts` plus applicable
+   `ForgeRuleset.requiredStatusChecks`. Missing required checks are
+   `merge-required-check-missing`, not ignored.
 8. Required review state is approved and required review threads are resolved when policy requires
    `review` or `threads-resolved`.
 9. Protection/ruleset evidence is fresh, inspectable, and covered by fresh positive Forge
@@ -179,9 +182,23 @@ worker claim, or the existence of a merge intent.
 If completion or merge is blocked after a safe exact head is known, core-05 may emit a Forge intent to
 push/open/update a blocker-evidence PR and publish a runner-authored blocker comment when
 `runnerMayPush` and `runnerMayOpenPr` are true. The PR/comment cites recorded failure states and
-evidence refs; it does not mark the Task complete and cannot enqueue or merge. No blocker-evidence PR
-intent is emitted for `event-log-unwritable`, `head-ambiguous`, or
-`changed-files-outside-allowlist`.
+evidence refs; it does not mark the Task complete and cannot enqueue or merge.
+
+`ForgeOperationIntentRecorded` is a blocker PR operation only when it is `push-branch`, `upsert-pr`,
+or `publish-blocker-evidence`, carries `purpose = "blocker-evidence-pr"`, cites a committed
+non-ready completion or merge decision, and uses `expectedHeadSha` equal to the latest clean,
+unambiguous `LocalGitEvidenceRecorded.headSha`.
+
+Eligible completion states are `completion-pending-evidence`, `claim-evidence-mismatch`,
+`verification-failed`, `verification-uncertain`, and `protected-policy-change-unapproved`. Eligible
+merge states are `merge-policy-disabled`, `merge-required-check-missing`,
+`merge-required-check-failed`, `merge-review-not-approved`, `merge-unresolved-review-threads`,
+`merge-protection-snapshot-stale`, `merge-branch-not-fresh`, and `merge-capability-denied`.
+
+No blocker-evidence PR intent is emitted for `event-log-unwritable`, `merge-intent-unwritable`,
+`head-ambiguous`, `merge-head-ambiguous`, missing local git evidence, dirty worktree evidence,
+`changed-files-outside-allowlist`, `changed-file-policy-absent`, Forge-unavailable write paths, or
+any `MergeIntentRecorded` operation.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

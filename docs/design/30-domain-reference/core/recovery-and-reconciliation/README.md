@@ -11,10 +11,10 @@ depends-on:
   - "core-04-supervision-and-liveness"
   - "core-05-completion-and-merge"
   - "fnd-02-storage-and-artifacts"
-  - "prov-01-agent-execution"
-  - "prov-02-forge-collaboration"
-  - "prov-03-work-source"
-  - "prov-04-execution-host"
+  - "seam-agent-contract-mock"
+  - "seam-forge-contract-mock"
+  - "seam-work-source-contract-mock"
+  - "seam-execution-host-contract-mock"
 ---
 
 # Recovery, Reconciliation & Coordination - design

@@ -9,7 +9,7 @@ depends-on:
   - "core-01-run-lifecycle-and-state"
   - "core-02-capability-and-safety"
   - "fnd-01-configuration-and-policy"
-  - "prov-01-agent-execution"
+  - "seam-agent-contract-mock"
 ---
 
 # Approval & Escalation - design
@@ -58,7 +58,7 @@ ladder; the scoped-grant taxonomy; the park/resume events and invariants.
 - High risk always escalates to a human regardless of mode.
 
 ### Open questions
-- Decision-window default; circuit breaker for repeated identical denials.
+- Circuit breaker for repeated identical denials.
 
 ## 1. Purpose & boundaries
 
@@ -143,6 +143,10 @@ Core decisions:
   any decision.
 - Classification and adjudication are pure functions of recorded evidence, resolved policy, mode,
   and caller-supplied time values.
+- Final approval expiry is computed as
+  `decisionDeadline = request.expiresAt ?? request.requestedAt + policy.approval.decisionWindowMs`.
+  The built-in fnd-01 default is `900000` milliseconds; a live answer-channel deadline may park a
+  request earlier, but it does not expire the durable pending request before `decisionDeadline`.
 - High risk always escalates to a human regardless of mode.
 - V1 supports `manual` and `assisted` only. `auto` and LLM adjudication are deferred by AD-14; later
   LLM judgment can enter only as a recorded input event.
@@ -161,7 +165,9 @@ Core-03 exposes host-neutral `ApprovalRequest`, `Decision`, `Outcome`, failure s
 grant planning, Agent grant mapping, and pure classification/decision functions. It consumes core-01
 `RunWriter`, replay, projections, lifecycle, and session linkage; core-02 `CapabilityGateRecord`;
 fnd-01 resolved approval and escalation policy; and the Agent contract's neutral approval
-request/answer channel and `ScopedGrant`.
+request/answer channel and `ScopedGrant`. The canonical Agent seam dependency is the SDK
+`AgentProvider` contract plus testkit mock/conformance surface; concrete Codex mapping is
+production-readiness work outside core-03's build/test prerequisite.
 
 The typed contract is in [Interfaces, events, and tests](interfaces-events-and-tests.md).
 

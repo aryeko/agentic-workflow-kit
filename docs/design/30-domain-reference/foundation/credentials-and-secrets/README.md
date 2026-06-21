@@ -216,7 +216,7 @@ Open questions: which secret-manager integrations are v1-supported beyond enviro
 
 ---
 
-**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [Workspace & Repository](../workspace-and-repository/README.md) · **Next →:** [Credentials & Secrets -- contracts and events](./contracts-and-events.md)
+**↑ Up:** [foundation domain reference](../README.md) · **← Prev:** [Workspace & Repository event payloads](../workspace-and-repository/events.md) · **Next →:** [Credentials & Secrets -- contracts and events](./contracts-and-events.md)
 
 **Children:** [Credentials & Secrets -- contracts and events](./contracts-and-events.md)
 

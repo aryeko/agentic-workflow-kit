@@ -177,3 +177,11 @@ When authoring the requirements or the contract, every obligation should trace b
 distinction here. If a requirement has no need behind it, it is probably a provider detail that leaked
 in — drop it or bring the need up to this layer first. If a need here has no requirement covering it,
 the requirements are incomplete.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [domain dependency DAG](./domain-dag.md) · **Next →:** [Agent provider functional requirements](./agent-provider-requirements.md)
+
+<!-- /DOCS-NAV -->

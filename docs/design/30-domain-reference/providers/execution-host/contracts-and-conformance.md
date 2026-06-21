@@ -6,9 +6,10 @@ last-reviewed: 2026-06-18
 
 # Contracts and conformance
 
-This file holds the typed contract details and conformance targets for
-`design/30-domain-reference/providers/execution-host/README.md`. It is split out because the type catalog
-and driver conformance matrix are cohesive detail.
+This file holds typed contract details and conformance targets for
+`design/30-domain-reference/providers/execution-host/README.md`. The SDK-owned canonical port name is
+`ExecutionHostProvider`. This file is split out because the type catalog and driver conformance
+matrix are cohesive detail.
 
 ## Contract types
 
@@ -88,7 +89,7 @@ interface CapabilityAttestation {
   details?: { containmentStrength?: ContainmentStrength; negativeProbeResults?: NegativeProbe[] };
 }
 
-interface ExecutionHost {
+interface ExecutionHostProvider {
   probeCapabilities(scope: HostProbeScope): CapabilityAttestation[];
   attachWorkspace(workspace: WorkspaceAttachment): HostWorkspaceHandle | HostFailure;
   spawnWorker(request: SpawnWorkerRequest): WorkerHandle | HostFailure;
@@ -107,6 +108,14 @@ attestation-binding fields through `scopeDigest`, `attestationEventIds`, and `ex
 `spawnWorker` and `runCommand` must reject requests whose `injection.party` differs from `party`,
 whose `egressPolicy.audience` differs from `party`, whose `operationId` differs from the request, or
 whose attestations do not match the egress policy.
+
+`commandDigest` is a stable SHA-256 digest over canonical JSON with sorted keys and UTF-8 strings for
+the runner-owned command identity `{ kind, argv, cwd, timeoutSeconds, injection.scopeDigest }`. It is
+precomputable from `HostCommandRequest` before launch and excludes ambient environment, raw secret
+values, stdout/stderr, and exit data. Core-05 stores the planned verify digest as
+`ProtectedPolicySnapshotRecorded.verifierCommandDigest`; later `CommandResult.commandDigest` must
+match it for verification evidence to be fresh. If the driver cannot compute or return the digest,
+the command result is incomplete and fails closed as `runner-command-capture-incomplete`.
 
 The fnd-04 public types used here are `InjectionBinding`, `EgressPolicy`, `RedactionSet`,
 `CredentialParty`, `CredentialUsePlanned`, and `NegativeProbe`, defined in

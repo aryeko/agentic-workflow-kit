@@ -101,7 +101,9 @@ reference id. `ForgeBranchRef` binds branch name, local head SHA from Workspace 
 head SHA, and push result. `PullRequestRef` carries provider PR id, number/url, base/head refs,
 author identity, and head SHA. `ForgeEvidenceSnapshot` carries PR state, base/head SHAs, status/check
 rollup, reviews, unresolved threads, protection/ruleset facts, queue facts, provider scope, and
-evidence refs. `ForgeActionResult` is accepted, refused, or degraded with observed head SHA,
+evidence refs. Ruleset facts include normalized `requiredStatusChecks` so core-05 can combine them
+with branch-protection `requiredStatusCheckContexts` when `policy.merge.requiredEvidence` includes
+`ci`. `ForgeActionResult` is accepted, refused, or degraded with observed head SHA,
 redaction fingerprint ids, and credential audit event ids.
 
 GitHub mapping validated by evidence: PR reads expose PR state, base/head OIDs, status check rollup,
@@ -136,7 +138,7 @@ type ForgeCapability =
   | "supportsThreadResolution"
   | "canInspectProtection";
 
-interface ForgeContract {
+interface ForgeProvider {
   probeCapabilities(scope: ForgeScope): CapabilityAttestation[];
   pushBranch(req: PushBranchRequest): ForgeActionResult;
   upsertPullRequest(req: PullRequestUpsertRequest): ForgeActionResult;
@@ -150,7 +152,8 @@ interface EvidenceRequest { repo: ForgeRepoRef; pullRequest: PullRequestRef; exp
 interface ExpectedHeadActionRequest extends EvidenceRequest { method?: "merge" | "squash" | "rebase"; comment?: string }
 ```
 
-Capability attestations use the shared `CapabilityAttestation` shape. Exact-head support is not
+`ForgeProvider` is the canonical SDK-owned provider port name. Capability attestations use the
+shared `CapabilityAttestation` shape. Exact-head support is not
 optional; a driver that cannot bind reads and actions to the PR head does not implement Forge.
 Consumes from fnd-04: `CredentialRef`, `CredentialScope`, injection/redaction results, and credential
 audit event ids. Exposes to Control plane: contract methods and event-ready action/evidence payloads.
@@ -229,7 +232,9 @@ contract fields.
 ## 10. Open questions
 
 - GHES coverage and version gates remain open.
-- Trusted-check source configuration remains open.
+- Trusted-check source configuration is resolved by core-05 from Forge branch-protection and ruleset
+  evidence plus `ResolvedPolicy.policy.merge.requiredEvidence`; exact ruleset membership remains
+  provider evidence.
 - Auto-resolving review threads defaults to no; enabling it needs explicit policy.
 - GitHub write-side smoke probes require a disposable writable remote; the schema appendix validates
   contract shape but not side-effect execution.

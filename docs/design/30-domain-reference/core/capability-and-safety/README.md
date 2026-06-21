@@ -8,10 +8,10 @@ last-reviewed: "2026-06-19"
 depends-on:
   - "core-01-run-lifecycle-and-state"
   - "fnd-01-configuration-and-policy"
-  - "prov-01-agent-execution"
-  - "prov-02-forge-collaboration"
-  - "prov-03-work-source"
-  - "prov-04-execution-host"
+  - "seam-agent-contract-mock"
+  - "seam-forge-contract-mock"
+  - "seam-work-source-contract-mock"
+  - "seam-execution-host-contract-mock"
 ---
 
 # Capability & Safety - design

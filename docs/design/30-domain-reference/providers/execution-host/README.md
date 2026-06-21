@@ -118,6 +118,10 @@ reap, and prove-empty; `runCommand` executes runner-owned setup/verify and captu
 argv/cwd/exit/signal/output/artifact digests; `releaseWorkspace` destroys remaining injected
 material. Worktree cleanup remains owned by `fnd-03`.
 
+The runner-owned verify `commandDigest` is precomputable before launch from the planned command
+identity and later must match captured command evidence. The canonical digest contract lives in
+[contracts and conformance](contracts-and-conformance.md).
+
 Egress attestation handoff: `fnd-04` issues an `EgressPolicy`; the Execution Host driver probes that
 policy, including configured negative probes, and emits a matching `CapabilityAttestation`. If a
 disallowed host is not proven blocked, or the attestation scope/version/platform/freshness key does
@@ -130,7 +134,7 @@ decide which autonomous powers are available from that attestation.
 ## 5. Contracts & interfaces
 
 Typed details live in [contracts-and-conformance.md](contracts-and-conformance.md) to keep
-this entry point focused. The public contract exposes:
+this entry point focused. The public contract is the SDK-owned `ExecutionHostProvider` and exposes:
 
 - `probeCapabilities(scope): CapabilityAttestation[]`
 - `attachWorkspace(workspace): HostWorkspaceHandle | HostFailure`
@@ -216,7 +220,8 @@ lost/partial observations, and adversarial mocks that omit, delay, or lie about 
 liveness, egress, or termination.
 
 Focused checks: cwd containment, worker-vs-runner injection separation, redaction before persistence,
-command/output digest stability, timeouts, prove-empty, negative egress probe matching, capability
+precomputed command-digest stability, command/output digest stability, timeouts, prove-empty,
+negative egress probe matching, capability
 freshness mismatch, Local/mock field parity, and dependency lint. The evidence appendix records
 schema/mock snapshots plus live/local command-capture and process-group termination probes; it also
 records that real `egress-confinement` remains absent until an implemented Local driver proves

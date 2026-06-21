@@ -111,14 +111,16 @@ Core-01 owns these event roles:
 - `TaskSnapshotRecorded`: records task snapshot digest and source identity, `barrier`; does not author
   lifecycle state.
 - `RunLifecycleTransitioned`: the only event that records legal lifecycle transitions, including
-  `created`, `configured`, and `task-snapshotted`.
+  `created`, `configured`, and `task-snapshotted`; durability is payload-sensitive per the accepted
+  minimum durability table.
 - `SessionLinked`: records append-only session ownership facts, `barrier`; does not author lifecycle
   state unless referenced by a later `RunLifecycleTransitioned`.
 - `SessionLinkSuperseded`: records linkage correction or handoff, `barrier`.
 - `RunLogTailRepaired`: records fnd-02 tail repair health, `barrier`.
 - `RunAppendRejected`: records semantic pre-storage rejections by the currently fenced writer when
-  durable recording is still available. Stale-writer, corrupt-log, and unavailable-log failures are
-  returned to the caller but are not self-recorded by the rejected writer.
+  durable recording is still available; minimum durability is `durable`. Stale-writer, corrupt-log,
+  and unavailable-log failures are returned to the caller but are not self-recorded by the rejected
+  writer.
 
 Sibling domains contribute records through core-01's single leased `RunWriter`: they either return
 `AppendIntent`s to the owning core flow or use the active writer when their approved contract exposes
@@ -160,7 +162,8 @@ Required suites:
 - lost-ack and partial-write replay tests for committed, absent, tail-repaired, and interior-corrupt
   cases;
 - session linkage monotonicity and supersession tests;
-- durability-class rejection tests for every barrier-required event;
+- durability-class rejection tests for every event in the accepted minimum durability table whose
+  required durability is `barrier`;
 - projection purity tests that forbid direct projection writes or live-state reads.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

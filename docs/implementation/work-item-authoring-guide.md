@@ -242,7 +242,10 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
 - Coverage command and number for the stated scope.
 - Sweep-grep results for any cross-corpus or cross-package change.
-- Conformance, smoke, or runtime-attestation evidence when a provider/capability is involved.
+- Conformance evidence for every provider port/mocking surface involved; runtime / production
+  attestation evidence only when the story claims a real driver capability or live production power.
+  Core stories may use recorded/mock attestations to prove gate predicates, but must not require real
+  processes or network.
 - Provider `evidence/` appendix when the story depends on provider schema or live behavior.
 
 ## Boundaries and STOP conditions
@@ -340,7 +343,11 @@ An implementation claim can be evaluated only when the evidence pack contains:
 - gate output or a named unrelated gate blocker;
 - coverage command and result for the stated scope;
 - sweep-grep output for cross-corpus or cross-package changes;
-- conformance, smoke, or attestation evidence for providers and capabilities.
+- conformance evidence for provider ports and mocks, plus runtime / production attestation evidence
+  only for real driver capabilities or live production powers.
+
+Mock-driven core evidence proves SDK/core readiness; real runtime probes prove production readiness
+for concrete drivers.
 
 No manifest item may be missing. No requirement may be invented beyond design. Any spec ambiguity
 must be surfaced as a design gap, not guessed in implementation.

@@ -24,6 +24,10 @@ flowchart LR
 `CapabilityAttestation` is an SDK-owned type. Providers emit attestation payloads; the SDK
 appends them to the run log and evaluates them when a gate is consulted. The testkit validates
 that provider implementations emit correctly shaped attestations, but it does not own the type.
+Recorded or mock attestations use the same SDK payload shape and gate path for core tests and
+provider conformance fixtures. They do not make a real driver production-ready; live provider
+powers require fresh positive probe evidence from the concrete provider and platform scope that will
+be used.
 
 ## Attestation shape
 
@@ -66,6 +70,11 @@ the following are true:
 
 Self-report from a worker or driver (prose, a claim in a tool call, an unprobed flag) is never
 sufficient and is always rejected as the sole support for a gate allow.
+
+A recorded or mock attestation may satisfy mock-driven core/conformance tests when its source is a
+testkit provider or recorded fixture and its scope matches the test. Production live powers require
+fresh positive live/provider probe evidence; recorded or mock evidence never upgrades a real driver
+to production-ready.
 
 ## Capability examples by provider
 

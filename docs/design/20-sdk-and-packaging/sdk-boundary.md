@@ -18,11 +18,14 @@ The SDK owns:
 - The core runtime API exposed to callers (`createWorkflowKit` factory and its return type)
 - Run and event types; the event log append/replay model
 - The four provider interfaces: `AgentProvider`, `ExecutionHostProvider`, `ForgeProvider`,
-  `WorkSourceProvider`
-- `CapabilityAttestation` type and the capability gate evaluation logic (core-02)
+  `WorkSourceProvider` (canonical type catalog:
+  [provider-ports.md](provider-ports.md))
+- `CapabilityAttestation` type and the capability gate evaluation logic (core-02). The canonical
+  payload shape is in [provider-ports.md](provider-ports.md).
 - Evidence refs, config/policy DTOs, approval and gate models
 - Recovery classification and the replay/projection engine (core-06)
 - Storage **port interfaces**: `EventLogStorePort`, `ArtifactStorePort`, `LeaseStorePort`
+  (canonical type catalog: [storage-port-types.md](storage-port-types.md))
 - **In-memory default implementations** of those storage ports (suitable for tests and simple
   single-process use)
 
@@ -30,7 +33,9 @@ The storage port interfaces and their in-memory defaults belong in the SDK becau
 depends on them directly. See the deep spec at
 [docs/design/30-domain-reference/foundation/storage-and-artifacts/README.md](../30-domain-reference/foundation/storage-and-artifacts/README.md)
 for the full contract (append durability classes, lease fencing, artifact write-once guarantees, and
-network-filesystem degradation behavior).
+network-filesystem degradation behavior). The `*StorePort` names are SDK injection names for the same
+contract surface typed as `EventLogStore`, `ArtifactStore`, and `LeaseStore` in
+[storage-port-types.md](storage-port-types.md).
 
 ### Where concrete stores live
 

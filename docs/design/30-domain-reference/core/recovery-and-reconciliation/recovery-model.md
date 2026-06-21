@@ -32,6 +32,7 @@ interface RecoveryEvidenceSnapshot {
   state: RunStateProjection;
   launch: RunLaunchProjection;
   liveness?: LivenessProjection;
+  // LeaseSnapshot and StorageHealth are the fnd-02 storage port types.
   leases: { runWriter?: LeaseSnapshot; storyLaunch?: LeaseSnapshot; leaseHealth: StorageHealth };
   evidenceRefs: EvidenceEventRef[];
   providerGaps: string[];

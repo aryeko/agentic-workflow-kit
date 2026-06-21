@@ -196,7 +196,9 @@ all autonomous capabilities absent. The safe degraded state is supervised, block
 
 ## Testing strategy
 
-- Schema tests validate good configs, reject unknown fields, and snapshot safe defaults.
+- Schema tests validate good configs, reject unknown fields, and snapshot safe defaults, including
+  `approval.decisionWindowMs = 900000` and default-off
+  `capabilities["escalation-auto-grant"].desired = false`.
 - Property tests generate built-in defaults/profile/operator patches and prove operator override wins
   for every field, independent of object insertion order.
 - Provenance tests assert one returned event-ready payload per leaf field, canonical ordering, correct

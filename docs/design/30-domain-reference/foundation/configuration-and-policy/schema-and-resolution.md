@@ -73,6 +73,7 @@ type ApprovalPolicy = {
   mode: "manual" | "assisted";
   parkOnHumanLatency: boolean;
   requireRecordedDecision: boolean;
+  decisionWindowMs: number;
 };
 
 type EscalationPolicy = {
@@ -135,6 +136,7 @@ type CapabilityPolicy = {
   "auto-merge": CapabilitySetting;
   "auto-recover": CapabilitySetting;
   "unattended-run": CapabilitySetting;
+  "escalation-auto-grant": CapabilitySetting;
 };
 type CapabilitySetting = {
   desired: boolean;
@@ -155,7 +157,8 @@ type MergePolicy = {
 The built-in defaults are complete and intentionally supervised:
 
 - `run.mode = "assisted"`, `maxConcurrentRuns = 1`, `requireCleanWorkspace = true`.
-- `approval.mode = "assisted"`, decisions must be recorded, and pending approvals park.
+- `approval.mode = "assisted"`, decisions must be recorded, pending approvals park, and
+  `approval.decisionWindowMs = 900000`.
 - `capabilities.*.desired = false`; every capability also requires fresh positive attestation.
 - `provisioning.containmentRequired = true`; `ownershipClass = "owned"`.
 - `provisioning.dependencyInstall.defaultGrant = "narrow"` with immutable built-in package-manager

@@ -18,8 +18,7 @@ type ApprovalSubject =
   | "command" | "file-change" | "permission" | "network" | "input"
   | "protected-policy-change" | "other";
 type PolicyGrantScope = "per-command" | "per-command-prefix" | "per-host" | "session";
-// Import ScopedGrant and ScopedGrantKind from prov-01 Agent Execution
-// contracts-and-conformance.md.
+// Import ScopedGrant and ScopedGrantKind from the SDK AgentProvider port.
 // ScopedGrant.scope is "request" | "turn" | "session".
 
 interface ApprovalRequest {
@@ -176,8 +175,16 @@ Agent contract. The mapping is deterministic:
 | `deny` disposition, interrupt | `deny-interrupt` | `request` | denial reason in `content` |
 | `deny` disposition, park | `deny-park` | `request` | denial reason in `content` |
 
-If a policy-level scope cannot map to an Agent `ScopedGrant` without widening the scope, the decision
-is `blocked` with `approval-grant-mapping-invalid`. The `grantEventId` field is populated from the
+Mappings are valid only when the original `ApprovalRequest` carries the required evidence. A command
+grant requires an exact recorded command; a command-prefix grant requires a prefix from the matched
+resolved `grantRules`; a host grant requires an exact allowlisted host; a session grant requires
+non-ambiguous current `sessionId` evidence and human approval in v1; a file-change session grant
+requires bounded file paths.
+
+If a policy-level scope cannot map to an Agent `ScopedGrant` without widening the scope, or if a
+request would require currently unmapped Agent grant kinds such as `filesystem-permission`,
+`file-change-once`, `mcp-elicitation-content`, or `tool-user-input-content`, the decision is
+`blocked` with `approval-grant-mapping-invalid`. The `grantEventId` field is populated from the
 committed `ApprovalDecisionRecorded` event id before calling Agent `answerApproval`, so the
 `ApprovalAnswer` implementation path is `Decision.grant -> ApprovalAnswer.grant` with no shape
 conversion at the Agent boundary.

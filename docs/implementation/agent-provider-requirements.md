@@ -184,6 +184,6 @@ also owned, probed, and included in the capability claim.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [domain dependency DAG](./domain-dag.md) · **Next →:** [package rollout](./package-rollout.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Agent provider motivation and needs](./agent-provider-motivation.md) · **Next →:** [package rollout](./package-rollout.md)
 
 <!-- /DOCS-NAV -->

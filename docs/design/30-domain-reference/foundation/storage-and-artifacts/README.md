@@ -48,7 +48,7 @@ export); network-filesystem degrade behavior.
 - Artifacts are immutable + digested; sensitive content is redactable; network-FS degrades safely.
 
 ### Open questions
-- Durability class per event; SQLite as a later backend; retention defaults.
+- SQLite as a later backend; retention defaults.
 
 ## 1. Purpose & boundaries
 Storage & Artifacts provides the durable primitives used by the Control plane and Drivers: event-log
@@ -250,8 +250,9 @@ verification, redaction tombstones, scratch refs, retention eligibility, export 
 open-time plus mid-operation network filesystem degradation.
 
 ## 10. Open questions
-- Exact event-to-durability mapping is owned with core-01 event semantics. FND-02 defines classes and
-  rejects unsafe uses, but does not classify every event type.
+- Exact event-to-durability mapping is owned with core-01 event semantics in
+  [the run-log durability table](../../core/run-lifecycle-and-state/event-log-writer-and-corruption.md#durability-classes).
+  FND-02 defines physical classes and rejects unsafe uses, but does not classify every event type.
 - SQLite or another backend may be added later if it satisfies this contract; filesystem is first.
 - Retention defaults are policy-owned outside this domain. Until policy supplies defaults, writes
   should name retention explicitly.

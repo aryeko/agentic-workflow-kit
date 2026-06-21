@@ -169,8 +169,10 @@ Consumed events: any valid `RunEventEnvelope` appended through core-01's single 
 Sibling domains may contribute records by returning `AppendIntent`s for the owning flow or by using
 the active leased writer when their approved contract exposes one. Core-01 consumes only envelope,
 lifecycle, linkage, and durability metadata needed for projections and state-machine safety;
-payload-specific meaning stays with the emitting domain. Well-formed unknown future payloads do not
-fail replay or projection and are preserved in `summary.unknownEvents`.
+payload-specific meaning stays with the emitting domain. Event names and payload schemas are valid
+once the emitting domain lists and types them; core-01 does not maintain a central sibling-event
+registry. Well-formed unknown future payloads do not fail replay or projection and are preserved in
+`summary.unknownEvents`.
 
 Projected data: `state`, `summary`, `metrics`, and `launch`. Reducers are pure functions and cannot
 call append APIs, mutate artifacts, write projection files, or inspect live external state. Projection

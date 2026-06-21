@@ -32,6 +32,9 @@ flowchart TB
 | `ForgeProvider` | Forge | Remote collaboration: push, PR creation/update, CI checks, reviews, merge |
 | `WorkSourceProvider` | Work Source | Task authority: eligible tasks, claim/release, status writes, track grouping |
 
+Canonical method signatures and neutral DTOs live in [provider-ports.md](provider-ports.md).
+Provider deep specs keep driver mapping, evidence, conformance, and degraded-mode obligations.
+
 Each interface is host-neutral and stable. Driver-specific SDK response types and protocol objects
 belong inside the provider package, not in the interface itself. A provider package may only import
 `sdk`; it must not import `cli`, `mcp`, `testkit`, or another provider package.
@@ -42,7 +45,8 @@ Every provider emits `CapabilityAttestation` events that record probed guarantee
 type is SDK-owned. Providers emit it; the SDK's Capability & Safety domain (core-02) evaluates it;
 testkit only validates against the SDK type — it does not redefine it.
 
-The fields of `CapabilityAttestation` are:
+The canonical generic `CapabilityAttestation<Capability extends string = string>` payload lives in
+[provider-ports.md](provider-ports.md). Its fields are:
 
 ```
 capability, probeMethod, result (positive | negative), evidenceRef,
@@ -60,6 +64,6 @@ Provider-side attestation contracts are in the respective provider deep specs un
 
 ---
 
-**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [SDK boundary](./sdk-boundary.md) · **Next →:** [CLI and MCP wrappers](./cli-and-mcp-wrappers.md)
+**↑ Up:** [SDK & packaging overview](./README.md) · **← Prev:** [SDK boundary](./sdk-boundary.md) · **Next →:** [SDK provider ports and capability attestation](./provider-ports.md)
 
 <!-- /DOCS-NAV -->

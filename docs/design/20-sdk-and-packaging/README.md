@@ -33,10 +33,12 @@ folders for domain separation without forcing separate publish artifacts for eac
 1. [Package target](package-target.md) — what each package is and why the set is sized this way
 2. [SDK boundary](sdk-boundary.md) — what the SDK owns and must never own, including storage ports
 3. [Provider interface model](provider-interface-model.md) — the four SDK-owned seam contracts
-4. [CLI and MCP wrappers](cli-and-mcp-wrappers.md) — executable adapters and shared wiring
-5. [Concrete providers](concrete-providers.md) — driver packages that implement the seam contracts
-6. [Testkit and conformance](testkit-and-conformance.md) — test-only package and conformance fixtures
-7. [Dependency rules](dependency-rules.md) — the complete allowed/forbidden dependency matrix
+4. [Provider ports](provider-ports.md) — canonical provider interfaces and shared attestation payload
+5. [Storage port types](storage-port-types.md) — canonical fnd-02 storage port contracts
+6. [CLI and MCP wrappers](cli-and-mcp-wrappers.md) — executable adapters and shared wiring
+7. [Concrete providers](concrete-providers.md) — driver packages that implement the seam contracts
+8. [Testkit and conformance](testkit-and-conformance.md) — test-only package and conformance fixtures
+9. [Dependency rules](dependency-rules.md) — the complete allowed/forbidden dependency matrix
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
@@ -44,6 +46,6 @@ folders for domain separation without forcing separate publish artifacts for eac
 
 **↑ Up:** [design corpus overview](../README.md) · **← Prev:** [high-level architecture](../10-architecture/architecture.md) · **Next →:** [package target](./package-target.md)
 
-**Children:** [package target](./package-target.md) · [SDK boundary](./sdk-boundary.md) · [provider interface model](./provider-interface-model.md) · [CLI and MCP wrappers](./cli-and-mcp-wrappers.md) · [concrete providers](./concrete-providers.md) · [testkit and conformance](./testkit-and-conformance.md) · [dependency rules](./dependency-rules.md)
+**Children:** [package target](./package-target.md) · [SDK boundary](./sdk-boundary.md) · [provider interface model](./provider-interface-model.md) · [SDK provider ports and capability attestation](./provider-ports.md) · [Storage port types](./storage-port-types.md) · [CLI and MCP wrappers](./cli-and-mcp-wrappers.md) · [concrete providers](./concrete-providers.md) · [testkit and conformance](./testkit-and-conformance.md) · [dependency rules](./dependency-rules.md)
 
 <!-- /DOCS-NAV -->

@@ -39,7 +39,7 @@ flowchart LR
   SDK --> Host["Execution Host provider"]
   SDK --> Forge["Forge provider"]
   SDK --> Work["Work Source provider"]
-  Agent --> AgentDriver["Codex driver"]
+  Agent --> CodexDriver["Codex driver"]
   Host --> HostDriver["Local host driver"]
   Forge --> ForgeDriver["GitHub driver"]
   Work --> WorkDriver["Markdown driver"]

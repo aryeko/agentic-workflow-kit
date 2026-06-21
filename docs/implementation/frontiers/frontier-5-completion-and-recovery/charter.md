@@ -41,6 +41,11 @@ recovery consumes liveness and completion/merge outcome records.
 
 Frozen inputs for Frontier 5:
 
+Completion and recovery decision logic is tested against recorded/mock Forge, Work Source, Execution
+Host, and Agent seam evidence. Real provider evidence and capability attestations are
+production-readiness gates for live push, checks, merge, status writes, termination, and recovery
+actions; they are not SDK/core build prerequisites.
+
 - approved `core-01` event log, lifecycle, cursor, projection, and legal transition contracts;
 - approved `core-02` `auto-merge` and `auto-recover` capability gates;
 - approved `core-03` protected-policy approval records;

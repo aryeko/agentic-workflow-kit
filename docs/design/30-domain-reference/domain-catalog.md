@@ -21,11 +21,11 @@ dependency semantics are catalog-owned here.
 |---|---|---|---|---|
 | [edge-01](edge/operator-surface/README.md) | Operator & Entry Surface | Edge | Human-first surface (MCP + CLI), triggers, outbound attention, "why did/didn't X" | Control plane |
 | [core-01](core/run-lifecycle-and-state/README.md) | Run Lifecycle & Event State | Core | Event log + projections + writer model + run state machine + task snapshot | fnd-01 (config); fnd-02 (storage) |
-| [core-02](core/capability-and-safety/README.md) | Capability & Safety | Core | Capability registry + gates over **attestations** ("earn autonomy"), modes | fnd-01; core-01; attestations |
-| [core-03](core/approval-and-escalation/README.md) | Approval & Escalation | Core | Risk classify, mode ladder, policy, park/resume; judgment as recorded input | core-01, core-02; fnd-01; Agent |
-| [core-04](core/supervision-and-liveness/README.md) | Supervision & Liveness | Core | Real-progress staleness, timers, wait primitive | core-01; Agent, Execution Host |
-| [core-05](core/completion-and-merge/README.md) | Completion, Verification & Merge | Core | Evidence eval + fail-closed predicate + merge policy + policy snapshots | core-01/02/03; fnd-01; Forge, Execution Host, Workspace |
-| [core-06](core/recovery-and-reconciliation/README.md) | Recovery, Reconciliation & Coordination | Core | Evidence-classified recovery, action-safety, repo-level leases | core-01/02; core-04/05; all seams |
+| [core-02](core/capability-and-safety/README.md) | Capability & Safety | Core | Capability registry + gates over **attestations** ("earn autonomy"), modes | fnd-01; core-01; SDK provider ports + recorded/mock attestations |
+| [core-03](core/approval-and-escalation/README.md) | Approval & Escalation | Core | Risk classify, mode ladder, policy, park/resume; judgment as recorded input | core-01, core-02; fnd-01; Agent seam contract + mock |
+| [core-04](core/supervision-and-liveness/README.md) | Supervision & Liveness | Core | Real-progress staleness, timers, wait primitive | core-01; Agent and Execution Host seam contracts + mocks |
+| [core-05](core/completion-and-merge/README.md) | Completion, Verification & Merge | Core | Evidence eval + fail-closed predicate + merge policy + policy snapshots | core-01/02/03; fnd-01; Workspace; Forge and Execution Host seam contracts + mocks |
+| [core-06](core/recovery-and-reconciliation/README.md) | Recovery, Reconciliation & Coordination | Core | Evidence-classified recovery, action-safety, repo-level leases | core-01/02; core-04/05; all seam contracts + mocks |
 | [core-07](core/observability-and-analysis/README.md) | Observability & Analysis | Core | Structured telemetry + auto-firing analyzer + metric honesty | core-01; fnd-02 (sibling event types are consumed data, not deps) |
 | [prov-01](providers/agent-execution/README.md) | Agent Execution | Providers | Agent contract + attestation + Codex driver + mock | prov-04 (host); fnd-04 (worker-safe creds/redaction) |
 | [prov-02](providers/forge-collaboration/README.md) | Forge / Collaboration | Providers | Forge contract + GitHub driver + mock (push/PR/checks/merge; remote credentials) | fnd-04 (creds) |
@@ -40,12 +40,15 @@ dependency semantics are catalog-owned here.
 
 Foundation and seams first (they unblock the rest and make the core testable), then core, then edge:
 
-1. **Foundation:** `fnd-01` (config), `fnd-02` (storage), `fnd-03` (workspace), `fnd-04` (credentials).
-2. **Seams + mocks:** `prov-04` (execution host), `prov-03` (work source), `prov-01` (agent),
-   `prov-02` (forge). Land the mock drivers early.
-3. **Core spine:** `core-01` → `core-02` → `core-03`; then `core-04` and `core-05`;
-   then `core-06` and `core-07` as their consumed evidence becomes available.
-4. **Edge:** `edge-01`.
+1. **Foundation:** `fnd-01`, `fnd-02`, `fnd-03`, `fnd-04`.
+2. **Seam ports & mocks:** SDK provider ports and neutral DTOs, plus testkit mocks/conformance for
+   Work Source, Forge, Execution Host, then Agent. This is the core dependency surface.
+3. **Core spine:** `core-01` and the replay/event surfaces the remaining core uses.
+4. **Core gates and control:** `core-02`, `core-07`, then `core-03`, `core-04`, `core-05`, and
+   `core-06` against SDK ports and testkit mocks.
+5. **Real drivers:** Markdown, GitHub, Local, and Codex provider driver stories in parallel where
+   their contract+mock stories exist and production evidence is available.
+6. **Edge:** `edge-01`.
 
 Reconciliation note (2026-06-19): catalog dependencies intentionally mirror domain frontmatter/body
 for the affected domains. `core-05` is ordered after `core-03` because it consumes

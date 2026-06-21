@@ -44,6 +44,10 @@ not gather provider evidence directly.
 
 Frozen inputs for Frontier 4:
 
+Approval and liveness implementation consumes Agent and Execution Host contract+mock surfaces for
+core tests. Live relay, resume, durable answer channels, structured tool exits, termination, and
+host-control powers remain gated by runtime capability attestations before production use.
+
 - Frontier 3 Agent event, capability attestation, `CapabilityGateRecord`, and analysis contracts;
 - approved `core-01` event-log, lifecycle, session-linkage, cursor, writer, and projection contracts;
 - approved `fnd-01` resolved approval/escalation policy inputs;

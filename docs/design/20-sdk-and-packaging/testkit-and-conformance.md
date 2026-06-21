@@ -39,8 +39,8 @@ Testkit depends only on `sdk`. It must not import `cli`, `mcp`, or any provider 
 The following belong to the SDK and must not be redefined in testkit:
 
 - Production provider interfaces (`AgentProvider`, `ExecutionHostProvider`, `ForgeProvider`,
-  `WorkSourceProvider`)
-- `CapabilityAttestation` type definition
+  `WorkSourceProvider`) from [provider-ports.md](provider-ports.md)
+- `CapabilityAttestation` type definition from [provider-ports.md](provider-ports.md)
 - Core DTOs and event types
 - Runtime wiring or the `createWorkflowKit` factory
 

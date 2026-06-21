@@ -183,7 +183,7 @@ type TaskView = { key: TaskKey; title: string; status: TaskStatus; target: { pro
   sourceRecordDigest: string };
 type TaskSnapshot = { task: TaskView; sourcePath: string; sourceRevision: string;
   sourceBytesDigest: string; inlineSpecDigest?: string; rawExcerptDigest: string; createdAt: string };
-interface WorkSource {
+interface WorkSourceProvider {
   probeCapabilities(scope: WorkSourceProbeScope): CapabilityAttestation[];
   listTracks(): TrackView[] | WorkSourceError;
   listTasks(trackId: string): TaskView[] | WorkSourceError;
@@ -197,7 +197,8 @@ interface WorkSource {
 }
 type ClaimResult = { task: TaskView; snapshotRef: ArtifactRef; snapshotDigest: string };
 ```
-Capabilities are attested by `probeCapabilities`, not declarations: `supportsTracks` enumerates
+`WorkSourceProvider` is the canonical SDK-owned provider port name. Capabilities are attested by
+`probeCapabilities`, not declarations: `supportsTracks` enumerates
 Tracks and detects malformed Track files; `supportsClaim` acquires a Track lease, performs
 digest-checked claim, and rejects stale writes; `supportsStatusWrite` writes and verifies status
 under the same precondition model; `supportsDependencies` parses simple TaskKey dependencies and

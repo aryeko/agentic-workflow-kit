@@ -1,6 +1,6 @@
 ---
 title: "Agent Execution - capabilities and conformance"
-status: draft
+status: approved
 last-reviewed: "2026-06-18"
 ---
 

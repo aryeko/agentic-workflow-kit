@@ -1,6 +1,6 @@
 ---
 title: "Agent Execution - mock driver"
-status: draft
+status: approved
 last-reviewed: "2026-06-18"
 ---
 

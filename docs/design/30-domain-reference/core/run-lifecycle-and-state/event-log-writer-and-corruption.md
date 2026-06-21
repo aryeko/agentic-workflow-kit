@@ -105,6 +105,28 @@ coordination, lifecycle, evidence, or recovery impact.
 | `durable` | Normal authored facts, including progress, evidence pointers, and non-terminal lifecycle changes that do not gate irreversible action. |
 | `barrier` | Run creation, resolved policy binding, task snapshot, session linkage, approval parked/resumed facts, lifecycle terminal events, corruption records, and any fact that gates an irreversible action. |
 
+Minimum event durability:
+
+| Run-log event type or class | Minimum durability | Rule |
+|---|---:|---|
+| `RunCreated` | `barrier` | Establishes the Run's first factual metadata and is committed with the initial lifecycle transition. |
+| `RunPolicyBound` | `barrier` | Binds resolved policy before policy-dependent work proceeds. |
+| `TaskSnapshotRecorded` | `barrier` | Binds immutable work input before workspace or worker launch. |
+| `RunLifecycleTransitioned` where `from = null` and `to = "created"` | `barrier` | Creates lifecycle authority and references `RunCreated`. |
+| `RunLifecycleTransitioned` where `to = "configured"` | `barrier` | References `RunPolicyBound`. |
+| `RunLifecycleTransitioned` where `to = "task-snapshotted"` | `barrier` | References `TaskSnapshotRecorded`. |
+| `RunLifecycleTransitioned` to `completed`, `blocked`, `failed`, or `canceled` | `barrier` | Terminal lifecycle closure is irreversible for the lifecycle projection. |
+| `RunLifecycleTransitioned` for non-terminal transitions that do not gate irreversible action | `durable` | Replay-authoritative state change without an additional ordering barrier. |
+| `RunLifecycleTransitioned` for any transition that gates irreversible action | `barrier` | The transition is the record-before-act ordering point. |
+| `SessionLinked` | `barrier` | Ownership coordination state used by liveness, approvals, and recovery. |
+| `SessionLinkSuperseded` | `barrier` | Determines current session while preserving prior linkage facts. |
+| `RunLogTailRepaired` | `barrier` | Declares the repaired committed sequence before later appends. |
+| `RunAppendRejected` | `durable` | Semantic pre-storage rejection while durable recording is still available; terminal consequences use a separate barrier transition. |
+| Sibling-domain normal authored facts, progress records, and evidence pointers | `durable` | Replay-authoritative but not by itself an irreversible-action gate. |
+| Sibling-domain owner-declared barrier facts | `barrier` | Required when the owning domain says the fact gates execution, approval, merge, recovery, or terminal evidence. |
+| Any sibling-domain fact that gates an irreversible action but lacks an explicit owner mapping | `barrier` | Fail closed to the record-before-act ordering point. |
+| Well-formed unknown future payloads with no declared gating, coordination, lifecycle, recovery, or evidence impact | `durable` | Preserved in replay without projection authority. |
+
 If policy or a caller requests weaker durability than the mapping allows, append fails with
 `durability-insufficient`. If a caller attempts to append a canonical Run event with fnd-02
 `buffered`, the writer rejects it before storage append.
