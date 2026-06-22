@@ -87,7 +87,8 @@ flowchart TB
 |---|---|---|
 | `PackageTargetPathset` | `epic0-s1-package-graph` | `epic0-s2-dependency-guardrails`, `epic0-s4-export-templates` |
 | `WorkspacePackageManifest` | `epic0-s1-package-graph` | `epic0-s3-typescript-solution`, `epic0-s4-export-templates` |
-| `CompositePackageProject` | `epic0-s3-typescript-solution` | `epic0-s4-export-templates`, `epic0-s5-check-gate` |
+| `CompositePackageProject` | `epic0-s3-typescript-solution` | `epic0-s4-export-templates` |
+| `TypecheckProjectGraph` | `epic0-s3-typescript-solution` | `epic0-s5-check-gate` |
 | `DependencyRuleCheck` | `epic0-s2-dependency-guardrails` | `epic0-s5-check-gate` |
 | `PackageTemplateContract` | `epic0-s4-export-templates` | `epic0-s5-check-gate` |
 

@@ -1,6 +1,6 @@
 ---
 title: kit-vnext - epic dependency DAG
-status: draft
+status: frozen
 last-reviewed: "2026-06-22"
 ---
 

@@ -2,7 +2,7 @@
 title: "core-02 - Capability & Safety domain charter"
 id: "core-02"
 layer: "core"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/core/capability-and-safety/README.md"
 last-reviewed: "2026-06-22"
 ---

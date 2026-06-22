@@ -2,7 +2,7 @@
 title: "edge-01 - Operator & Entry Surface domain charter"
 id: "edge-01"
 layer: "edge"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/edge/operator-surface/README.md"
 last-reviewed: "2026-06-22"
 ---

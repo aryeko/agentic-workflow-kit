@@ -2,7 +2,7 @@
 title: "core-06 - Recovery, Reconciliation & Coordination domain charter"
 id: "core-06"
 layer: "core"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/core/recovery-and-reconciliation/README.md"
 last-reviewed: "2026-06-22"
 ---

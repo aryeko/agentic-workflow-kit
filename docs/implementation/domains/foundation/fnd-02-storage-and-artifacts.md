@@ -2,7 +2,7 @@
 title: "fnd-02 - Storage & Artifacts domain charter"
 id: "fnd-02"
 layer: "foundation"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/foundation/storage-and-artifacts/README.md"
 last-reviewed: "2026-06-22"
 ---

@@ -2,7 +2,7 @@
 title: "fnd-03 - Workspace & Repository domain charter"
 id: "fnd-03"
 layer: "foundation"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/foundation/workspace-and-repository/README.md"
 last-reviewed: "2026-06-22"
 ---

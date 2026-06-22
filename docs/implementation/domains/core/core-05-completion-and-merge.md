@@ -2,7 +2,7 @@
 title: "core-05 - Completion, Verification & Merge domain charter"
 id: "core-05"
 layer: "core"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/core/completion-and-merge/README.md"
 last-reviewed: "2026-06-22"
 ---

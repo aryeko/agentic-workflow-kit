@@ -2,7 +2,7 @@
 title: "prov-02 - Forge / Collaboration domain charter"
 id: "prov-02"
 layer: "providers"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/providers/forge-collaboration/README.md"
 last-reviewed: "2026-06-22"
 ---

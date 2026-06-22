@@ -2,7 +2,7 @@
 title: "core-03 - Approval & Escalation domain charter"
 id: "core-03"
 layer: "core"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/core/approval-and-escalation/README.md"
 last-reviewed: "2026-06-22"
 ---

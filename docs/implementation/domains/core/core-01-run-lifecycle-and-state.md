@@ -2,7 +2,7 @@
 title: "core-01 - Run Lifecycle & Event State domain charter"
 id: "core-01"
 layer: "core"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md"
 last-reviewed: "2026-06-22"
 ---

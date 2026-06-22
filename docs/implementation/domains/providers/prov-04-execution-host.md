@@ -2,7 +2,7 @@
 title: "prov-04 - Execution Host domain charter"
 id: "prov-04"
 layer: "providers"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/providers/execution-host/README.md"
 last-reviewed: "2026-06-22"
 ---

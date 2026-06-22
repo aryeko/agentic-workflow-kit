@@ -7,29 +7,31 @@ last-reviewed: "2026-06-19"
 # Check Gate
 
 `pnpm check` is the required local and CI gate that every implementation story must
-pass. It runs eight steps in sequence, fail-fast, cheapest first. Nothing merges to
+pass. It runs nine steps in sequence, fail-fast, cheapest first. Nothing merges to
 `v-next` without a green gate.
 
 ## Step Composition
 
 | # | Script | Tool | What It Checks |
 |---|---|---|---|
-| 1 | `format:check` | `biome format --check .` | Formatting — catches whitespace and style before anything compiles |
-| 2 | `lint` | `biome lint .` | Lint rules — catches obvious errors early |
-| 3 | `deps` | `depcruise --config .dependency-cruiser.cjs packages tooling tests` | Dependency-graph rules — no cycles, no orphans, and package-boundary violations |
-| 4 | `typecheck` | `tsc -b` | TypeScript project references — full compilation of all composite projects |
-| 5 | `test:unit` | `vitest run --project unit` | Hermetic unit tests |
-| 6 | `test:int` | `vitest run --project integration` | Integration tests (real filesystem, no network) |
-| 7 | `test:conf` | `vitest run --project conformance-mock --passWithNoTests` | Conformance suites against mock drivers (hermetic); passes empty until provider mocks land |
-| 8 | `coverage:baseline` | Vitest coverage reporter | Baseline coverage instrumentation until implementation packages land |
+| 1 | `docs:nav:check` | `node tooling/docs-nav/generate-nav.mjs --check` | Docs navigation freshness — fails if generated nav blocks are stale, before anything compiles |
+| 2 | `format:check` | `biome format --check .` | Formatting — catches whitespace and style before anything compiles |
+| 3 | `lint` | `biome lint .` | Lint rules — catches obvious errors early |
+| 4 | `deps` | `depcruise --config .dependency-cruiser.cjs packages tooling tests` | Dependency-graph rules — no cycles, no orphans, and package-boundary violations |
+| 5 | `typecheck` | `tsc -b` | TypeScript project references — full compilation of all composite projects |
+| 6 | `test:unit` | `vitest run --project unit` | Hermetic unit tests |
+| 7 | `test:int` | `vitest run --project integration` | Integration tests (real filesystem, no network) |
+| 8 | `test:conf` | `vitest run --project conformance-mock --passWithNoTests` | Conformance suites against mock drivers (hermetic); passes empty until provider mocks land |
+| 9 | `coverage:baseline` | Vitest coverage reporter | Baseline coverage instrumentation until implementation packages land |
 
 **Ordering rationale.** Steps are arranged cheapest-first so that the most common
-mistakes (formatting, lint) are caught in under a second, before the type-checker or
-test runner is invoked. A failure in step 1 saves the full cost of steps 2–8.
+mistakes (stale docs nav, formatting, lint) are caught in under a second, before the
+type-checker or test runner is invoked. A failure in step 1 saves the full cost of
+steps 2–9.
 
 ## Local Inner Loop
 
-Run `pnpm check` locally before pushing. All eight steps run. The gate completes in
+Run `pnpm check` locally before pushing. All nine steps run. The gate completes in
 seconds when packages are small and hermetic lanes have no real I/O. Smoke tests and
 pack dry-run are intentionally excluded from `pnpm check` so the local loop stays fast.
 
@@ -38,14 +40,15 @@ pack dry-run are intentionally excluded from `pnpm check` so the local loop stay
 ```mermaid
 flowchart TD
     A[push / PR] --> B[check job]
-    B --> B1["1 format:check"]
-    B1 --> B2["2 lint"]
-    B2 --> B3["3 deps"]
-    B3 --> B4["4 typecheck"]
-    B4 --> B5["5 test:unit"]
-    B5 --> B6["6 test:int"]
-    B6 --> B7["7 test:conf"]
-    B7 --> B8["8 coverage:baseline"]
+    B --> B0["1 docs:nav:check"]
+    B0 --> B1["2 format:check"]
+    B1 --> B2["3 lint"]
+    B2 --> B3["4 deps"]
+    B3 --> B4["5 typecheck"]
+    B4 --> B5["6 test:unit"]
+    B5 --> B6["7 test:int"]
+    B6 --> B7["8 test:conf"]
+    B7 --> B8["9 coverage:baseline"]
     B8 --> B9["pack:dry-run (CI only)"]
 
     A --> C{smoke trigger?}
@@ -53,7 +56,7 @@ flowchart TD
     D --> D1["vitest run --project smoke-real"]
 ```
 
-The `check` job (all eight steps plus `pack:dry-run`) is a required branch-protection
+The `check` job (all nine steps plus `pack:dry-run`) is a required branch-protection
 check. `pack:dry-run` runs only in CI because it exercises packaging metadata that is
 meaningless before `pnpm install` with a lockfile.
 

@@ -2,7 +2,7 @@
 title: "core-04 - Supervision & Liveness domain charter"
 id: "core-04"
 layer: "core"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/core/supervision-and-liveness/README.md"
 last-reviewed: "2026-06-22"
 ---

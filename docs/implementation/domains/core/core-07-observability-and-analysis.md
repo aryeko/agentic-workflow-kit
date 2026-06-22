@@ -2,7 +2,7 @@
 title: "core-07 - Observability & Analysis domain charter"
 id: "core-07"
 layer: "core"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/core/observability-and-analysis/README.md"
 last-reviewed: "2026-06-22"
 ---

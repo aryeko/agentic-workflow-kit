@@ -2,7 +2,7 @@
 title: "fnd-04 - Credentials & Secrets domain charter"
 id: "fnd-04"
 layer: "foundation"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/foundation/credentials-and-secrets/README.md"
 last-reviewed: "2026-06-22"
 ---

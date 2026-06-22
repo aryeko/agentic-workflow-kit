@@ -2,7 +2,7 @@
 title: "prov-03 - Work Source domain charter"
 id: "prov-03"
 layer: "providers"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/providers/work-source/README.md"
 last-reviewed: "2026-06-22"
 ---

@@ -2,7 +2,7 @@
 title: "prov-01 - Agent Execution domain charter"
 id: "prov-01"
 layer: "providers"
-status: "domain-charter: draft"
+status: "domain-charter: frozen"
 source-design: "docs/design/30-domain-reference/providers/agent-execution/README.md"
 last-reviewed: "2026-06-22"
 ---
