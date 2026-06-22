@@ -1,0 +1,19 @@
+{
+  "name": "provider-local",
+  "version": "0.0.0",
+  "description": "Local execution host provider driver skeleton for kit-vnext.",
+  "private": true,
+  "type": "module",
+  "files": [
+    "README.md",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "sdk": "workspace:*"
+  }
+}

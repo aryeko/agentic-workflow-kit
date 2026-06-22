@@ -27,6 +27,74 @@ importers:
         specifier: ^4.1.9
         version: 4.1.9(@types/node@25.9.3)(@vitest/coverage-istanbul@4.1.9)(@vitest/coverage-v8@4.1.9)(vite@8.0.16(@types/node@25.9.3))
 
+  packages/cli:
+    dependencies:
+      provider-codex:
+        specifier: workspace:*
+        version: link:../provider-codex
+      provider-github:
+        specifier: workspace:*
+        version: link:../provider-github
+      provider-local:
+        specifier: workspace:*
+        version: link:../provider-local
+      provider-markdown:
+        specifier: workspace:*
+        version: link:../provider-markdown
+      sdk:
+        specifier: workspace:*
+        version: link:../sdk
+
+  packages/mcp:
+    dependencies:
+      provider-codex:
+        specifier: workspace:*
+        version: link:../provider-codex
+      provider-github:
+        specifier: workspace:*
+        version: link:../provider-github
+      provider-local:
+        specifier: workspace:*
+        version: link:../provider-local
+      provider-markdown:
+        specifier: workspace:*
+        version: link:../provider-markdown
+      sdk:
+        specifier: workspace:*
+        version: link:../sdk
+
+  packages/provider-codex:
+    dependencies:
+      sdk:
+        specifier: workspace:*
+        version: link:../sdk
+
+  packages/provider-github:
+    dependencies:
+      sdk:
+        specifier: workspace:*
+        version: link:../sdk
+
+  packages/provider-local:
+    dependencies:
+      sdk:
+        specifier: workspace:*
+        version: link:../sdk
+
+  packages/provider-markdown:
+    dependencies:
+      sdk:
+        specifier: workspace:*
+        version: link:../sdk
+
+  packages/sdk: {}
+
+  packages/testkit:
+    dependencies:
+      sdk:
+        specifier: workspace:*
+        version: link:../sdk
+
 packages:
 
   '@babel/code-frame@7.29.7':

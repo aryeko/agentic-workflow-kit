@@ -1,4 +1,14 @@
 {
   "files": [],
-  "references": [{ "path": "./tsconfig.infra.json" }]
+  "references": [
+    { "path": "./tsconfig.infra.json" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/mcp" },
+    { "path": "./packages/provider-codex" },
+    { "path": "./packages/provider-github" },
+    { "path": "./packages/provider-local" },
+    { "path": "./packages/provider-markdown" },
+    { "path": "./packages/sdk" },
+    { "path": "./packages/testkit" }
+  ]
 }

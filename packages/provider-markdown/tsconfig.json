@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "rootDir": "."
+  },
+  "include": ["package.json", "src/**/*.ts", "src/**/*.tsx"],
+  "references": [{ "path": "../sdk" }]
+}
