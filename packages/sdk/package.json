@@ -4,8 +4,15 @@
   "description": "Core runtime library skeleton for kit-vnext.",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
   "files": [
     "README.md",
+    "dist",
     "src"
   ],
   "scripts": {

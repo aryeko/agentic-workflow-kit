@@ -6,6 +6,7 @@ export * from './foundation/storage/evidence-bundles/index.js';
 export * from './foundation/storage/filesystem/index.js';
 export * from './foundation/storage/leases/index.js';
 export * from './foundation/workspace-repository/index.js';
+export * from './providers/attestation/index.js';
 export {
   AUTHORITATIVE_STORAGE_OPERATIONS,
   getStorageCapabilityMatrix,
