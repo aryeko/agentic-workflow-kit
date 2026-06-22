@@ -109,9 +109,11 @@ Author the DAG to dispatch cleanly into a plan-first orchestrator (e.g. the `orc
 - **Phase boundaries are readiness gates.** A later phase may consume an earlier phase's shape only once it
   is exported and importable through its intended public path. State this exported-and-importable
   phase-boundary condition so a consumer is never dispatched against a private-only seam.
-- **Suggested tier (optional).** A node may carry a suggested tier — `light` / `standard` / `elevated` — to
-  hint implementer / reviewer effort. A node that needs more than the top tier is mis-sized: decompose it,
-  do not escalate effort. The orchestrator treats this tier as the **floor**.
+- **Suggested tier.** A node may carry a suggested tier — `light` / `standard` / `elevated` — to hint
+  implementer / reviewer effort; the orchestrator treats it as the **floor**. **It is required, not
+  optional, for any node that carries a public-exposure AC** — a public producer must never silently run on
+  the cheap tier. A node that needs more than the top tier is mis-sized: decompose it, do not escalate
+  effort.
 
 ## Gate 3 — ready to freeze
 
@@ -129,7 +131,8 @@ must not be authored.
 - [ ] **Defensible sizing.** No node bundles unrelated signals; no node is too thin to carry a falsifiable
       AC.
 - [ ] **Dispatch-ready.** Each node names one owned pathset and sits in a topological band (its delivery
-      wave); every edge is a commit-gate a delivery orchestrator can enforce.
+      wave); every edge is a commit-gate a delivery orchestrator can enforce; **every node carrying a
+      public-exposure AC names a suggested tier** (the orchestrator's floor).
 - [ ] **Seams are importable.** Every cross-story shape records the public import path its consumers use, and
       the producer node carries the public-exposure AC that exposes it there; phase boundaries state the
       exported-and-importable condition a later wave depends on.

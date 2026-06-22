@@ -53,14 +53,16 @@ Tick every box; an empty box means not ready.
       that row** — not the happy path, not a different condition.
 - [ ] Every negative AC has a failing fixture; no green tool exit cited for a rejection.
 - [ ] Coverage number + enforcement command + instrumented lane stated, and the command measures the
-      claimed helper scope.
+      claimed helper scope; **substrate/config stories instead prove each validated artifact by a shape
+      assertion and each validation-failure mode by a negative fixture — no coverage lane required.**
 - [ ] Required tests catalogued, not exampled.
 - [ ] Frozen commands validated against the pinned tool version and stated as a behavior contract, not
       a flag string.
 - [ ] Zero unresolved option branches — including choices the design itself leaves open.
 - [ ] Cross-story contracts name exact shapes; catalog/invariant tokens cited verbatim.
 - [ ] Public exposure: each public SDK shape names its import path (export + barrel + `exports`) and a
-      public-import test; or the story states it exposes none.
+      public-import test; or the story states it exposes none — **substrate/config stories that expose no
+      SDK surface satisfy this by construction.**
 - [ ] Constructable: no AC or manifest shape requires a combination no value can satisfy; a fixture
       constructs each public shape.
 - [ ] Safety invariants fail-closed **by construction** — the unsafe state is unrepresentable or

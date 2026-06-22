@@ -65,8 +65,8 @@ precondition holds — a tightening is pending) · `OPEN` (no cover yet).
 | LSN-16 | Epic 1 | Validator stories missed per-input-shape negative cases. | Gate 4 "negative-case matrix" — [authoring-standard/50-story-contract.md](authoring-standard/50-story-contract.md) | covered |
 | LSN-17 | Phase 1 | Parallel workers collided on shared files (stash races, lost edits). | Orchestrator "owns shared-file non-collision" — [operating-model/orchestrator.md](operating-model/orchestrator.md) | covered |
 | LSN-18 | Phase 1 | Reviewing stashed trees produced false "file absent" findings. | Orchestrator "review isolated drafts, never stashed trees" — [operating-model/orchestrator.md](operating-model/orchestrator.md) | covered |
-| LSN-19 | Epic 1 | A public-producer story ran on the cheap model tier. | DAG "suggested tier is the floor" ([authoring-standard/40-story-dag.md](authoring-standard/40-story-dag.md)) + orchestrator honors tier ([operating-model/orchestrator.md](operating-model/orchestrator.md)) | covered |
-| LSN-20 | Epic 1 | Greedy dispatch starved reviewer/readdress slots → close/resume churn. | Orchestrator capacity planning — [operating-model/orchestrator.md](operating-model/orchestrator.md) | covered (role); skill change deferred |
+| LSN-19 | Epic 1 | A public-producer story ran on the cheap model tier. | Gate 3 requires a suggested tier on every public-exposure node + orchestrator honors it as the floor ([authoring-standard/40-story-dag.md](authoring-standard/40-story-dag.md), [operating-model/orchestrator.md](operating-model/orchestrator.md)) | covered |
+| LSN-20 | Epic 1 | Greedy dispatch starved reviewer/readdress slots → close/resume churn. | Orchestrator capacity planning — [operating-model/orchestrator.md](operating-model/orchestrator.md) | conditional — role requirement only; the `orchestrated-delivery` skill change that reserves slots is deferred |
 
 ## Open items
 
@@ -74,5 +74,6 @@ precondition holds — a tightening is pending) · `OPEN` (no cover yet).
   must include the call signature and name the single authoritative design source; (b) the domain charter
   must tag safety-critical invariants and the fail-closed test keys off that tag. Track LSN-12's structural
   fix as the deferred **B-heavy** credential/egress contract amendment.
-- **LSN-20**: the capacity rule is recorded as a role responsibility; the `orchestrated-delivery` skill
-  change that implements it is out of this worktree's scope.
+- **LSN-20** is `conditional`: the capacity rule is recorded as a role responsibility, but the
+  `orchestrated-delivery` skill change that reserves reviewer/re-address slots is deferred (the
+  precondition) and out of this worktree's scope.

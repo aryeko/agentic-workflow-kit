@@ -27,6 +27,9 @@ defects left, before any code is written. Output the binding `ready` flag.
   dispatchable** by the [orchestrator](orchestrator.md).
 - Grade against the source: every finding quotes the design line or AC it contradicts, and
   classifies story-defect vs design-defect.
+- **Re-derive, don't trust the self-claim:** for sweep and coverage boxes, independently reconstruct the
+  true forbidden-token set (the real public surface) and the claimed helper scope from the design — a
+  passing self-stated set or an aggregate coverage number is not evidence.
 - **Does NOT** review or anticipate implementation code — that is Bucket 2, owned by the
   [reviewer](reviewer.md) post-implementation.
 
