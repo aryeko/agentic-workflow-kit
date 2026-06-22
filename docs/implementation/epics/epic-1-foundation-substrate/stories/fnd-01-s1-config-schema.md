@@ -119,11 +119,11 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: configuration schema/defaults modules at 90% minimum, aiming for 95%.
-- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated schema/defaults helper scope.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes; this story's stated schema/defaults helper scope is exercised in the unit lane.
 - Required tests, catalogued by AC and failure row: schema fixtures for AC-1/AC-2, safe-default
   snapshots for AC-3/AC-4, deferred-capability tests for AC-5, API boundary tests for AC-6.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/configuration-policy/schema/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane schema/defaults scope.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the stated schema/defaults scope.
 - Determinism constraints: default snapshots are stable and sorted by canonical field path.
 - Dependency boundaries: SDK schema code imports only pure runtime libraries allowed by
   `dependency-policy.md`.

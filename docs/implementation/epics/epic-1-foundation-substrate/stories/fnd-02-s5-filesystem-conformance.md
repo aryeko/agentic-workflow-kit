@@ -120,12 +120,12 @@ responsibility crosses this story's assigned signal.
 
 - Coverage scope and threshold: filesystem storage and conformance fixture modules at 90% minimum,
   aiming for 95%.
-- Coverage command and instrumented lane(s): integration and conformance helper scope must be measured with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.int.test.ts` and `pnpm exec vitest run --project conformance-mock --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.conformance.test.ts`.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes for the aggregate gate; use `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.int.test.ts` and `pnpm exec vitest run --project conformance-mock --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.conformance.test.ts` when a focused per-lane report is needed for this story's stated helper scope.
 - Required tests, catalogued by AC and failure row: probe matrix, degraded-open, mid-operation fault,
   fake/local conformance, fixture catalog, and lane guard tests.
 - Exact commands: `pnpm test:int -- packages/sdk/tests/foundation/storage/conformance/*.int.test.ts`;
   `pnpm test:conf -- packages/sdk/tests/foundation/storage/conformance/*.conformance.test.ts`;
-  `pnpm check`; coverage with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.int.test.ts` and `pnpm exec vitest run --project conformance-mock --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.conformance.test.ts` for conformance scope.
+  `pnpm check`; coverage with `pnpm coverage:baseline`; focused conformance coverage with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.int.test.ts` and `pnpm exec vitest run --project conformance-mock --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.conformance.test.ts` when needed.
 - Determinism constraints: fake filesystem faults are seeded and reproducible; temp filesystem tests
   use isolated temp directories.
 - Dependency boundaries: filesystem storage remains SDK-compatible and does not import providers,

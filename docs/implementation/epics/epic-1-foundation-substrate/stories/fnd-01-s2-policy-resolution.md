@@ -130,12 +130,12 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: policy resolution/provenance modules at 90% minimum, aiming for 95%.
-- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated policy resolution/provenance helper scope.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes; this story's stated policy resolution/provenance helper scope is exercised in the unit lane.
 - Required tests, catalogued by AC and failure row: property and table tests for AC-1 through AC-3,
   provenance order/hash tests for AC-4/AC-5, failure tests for AC-6, append-failure handoff fixture
   for AC-7.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/configuration-policy/resolution/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane policy resolution/provenance scope.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the stated policy resolution/provenance scope.
 - Determinism constraints: injected `occurredAt`; no ambient time, randomness, or object insertion
   order dependency.
 - Dependency boundaries: SDK policy resolution imports no core writer, provider, CLI, MCP, or testkit

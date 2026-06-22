@@ -113,11 +113,11 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 
 - Coverage scope and threshold: repository identity, branch naming, and boundary modules at 90%
   minimum, aiming for 95%.
-- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated repository identity, branch naming, and boundary helper scope.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes; this story's stated repository identity, branch naming, and boundary helper scope is exercised in the unit lane.
 - Required tests, catalogued by AC and failure row: API shape, boundary, branch naming, local-ref,
   conflict, and sweep tests.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/workspace-repository/boundary/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane repository identity, branch naming, and boundary scope.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the stated repository identity, branch naming, and boundary scope.
 - Determinism constraints: branch naming uses injected collision suffix input; no ambient randomness.
 - Dependency boundaries: workspace-repository imports only Foundation policy/storage shapes, not
   Forge, Execution Host, process, credentials, or CI.

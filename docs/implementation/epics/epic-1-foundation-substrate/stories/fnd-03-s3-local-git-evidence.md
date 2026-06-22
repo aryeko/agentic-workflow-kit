@@ -122,11 +122,11 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: local evidence modules at 90% minimum, aiming for 95%.
-- Coverage command and instrumented lane(s): integration helper scope must be measured with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/workspace-repository/evidence/*.int.test.ts`; unit-only `pnpm coverage:baseline` is not sufficient for this story.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes for the aggregate gate; use `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/workspace-repository/evidence/*.int.test.ts` when a focused per-lane report is needed for this story's stated helper scope.
 - Required tests, catalogued by AC and failure row: evidence shape, commit summary, diff artifact,
   clean/dirty status, unavailable evidence, and boundary sweep tests.
 - Exact commands: `pnpm test:int -- packages/sdk/tests/foundation/workspace-repository/evidence/*.int.test.ts`;
-  `pnpm check`; coverage with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/workspace-repository/evidence/*.int.test.ts` for integration helper scope.
+  `pnpm check`; coverage with `pnpm coverage:baseline`; focused integration coverage with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/workspace-repository/evidence/*.int.test.ts` when needed.
 - Determinism constraints: fixtures use local temp repositories with fixed author dates and commit
   subjects.
 - Dependency boundaries: no remote git, Forge, process execution beyond local git fixture helper,

@@ -124,11 +124,11 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: credential refs/scopes modules at 90% minimum, aiming for 95%.
-- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated credential refs/scopes helper scope.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes; this story's stated credential refs/scopes helper scope is exercised in the unit lane.
 - Required tests, catalogued by AC and failure row: validation, type exhaustiveness, scope shape,
   unresolved refs, scope denial property, and worker-no-Forge property tests.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/credentials-secrets/refs/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane credential refs/scopes scope.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the stated credential refs/scopes scope.
 - Determinism constraints: policy and scope digests are stable over canonical JSON input.
 - Dependency boundaries: no secret-manager SDK, provider package, Forge client, process, network, CLI,
   MCP, or testkit production import.

@@ -115,11 +115,11 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: redaction modules at 90% minimum, aiming for 95%.
-- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated redaction helper scope.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes; this story's stated redaction helper scope is exercised in the unit lane.
 - Required tests, catalogued by AC and failure row: schema, generated corpus, recursive property,
   redacted result, unavailable hook, and artifact quarantine tests.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/credentials-secrets/redaction/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane redaction scope.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the stated redaction scope.
 - Determinism constraints: generated corpus uses recorded seeds and canonical output ordering.
 - Dependency boundaries: redaction code imports no provider SDK, process runner, Forge client, network,
   or concrete artifact backend.

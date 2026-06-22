@@ -124,12 +124,12 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: adoption diagnostics modules at 90% minimum, aiming for 95%.
-- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated adoption diagnostics helper scope.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes; this story's stated adoption diagnostics helper scope is exercised in the unit lane.
 - Required tests, catalogued by AC and failure row: positive marker fixtures for AC-1, marker
   failure tests for AC-2/AC-3, configured-location fixtures for AC-4, append-intent tests for AC-5,
   writer failure tests for AC-6/AC-7.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/configuration-policy/adoption/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane adoption diagnostics scope.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the stated adoption diagnostics scope.
 - Determinism constraints: injected `occurredAt`; diagnostic ordering follows supplied source order
   with stable per-source artifact order.
 - Dependency boundaries: no provider, core writer, process, network, or migration dependency.
