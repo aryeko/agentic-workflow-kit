@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { stableCanonicalStringify } from '../../../../src/foundation/configuration-policy/index.js';
 import {
   createCredentialScope,
+  stableCanonicalStringify,
   validateCredentialScopeUse,
   type CredentialRef,
-} from '../../../../src/foundation/credentials-secrets/scopes/index.js';
+} from '../../../../src/index.js';
 
 const hashText = (value: string): string => `digest:${value}`;
 

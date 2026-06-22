@@ -1,3 +1,4 @@
+import { diagnoseAdoption } from '../adoption/index.js';
 import { builtInPolicyLayerDefaults } from '../defaults/index.js';
 import {
   type ConfigurationPolicyAppendIntent,
@@ -224,6 +225,8 @@ const failureResult = (
 export const createConfigurationPolicy = ({
   hashText,
 }: CreateConfigurationPolicyDependencies): ConfigurationPolicy => ({
+  diagnoseAdoption,
+
   resolveRunPolicy(source, input, context) {
     const parsedConfig = parseConfigSource(source);
     if (!parsedConfig.ok) {

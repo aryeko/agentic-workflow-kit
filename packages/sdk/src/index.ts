@@ -1,6 +1,9 @@
 export * from './foundation/configuration-policy/index.js';
+export * from './foundation/credentials-secrets/index.js';
 export * from './foundation/storage/artifacts/index.js';
+export * from './foundation/storage/event-log/index.js';
 export * from './foundation/storage/evidence-bundles/index.js';
+export * from './foundation/storage/leases/index.js';
 export * from './foundation/workspace-repository/index.js';
 export {
   AUTHORITATIVE_STORAGE_OPERATIONS,

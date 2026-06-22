@@ -9,6 +9,7 @@ export type EventLogLeaseBinding = {
   readonly name: string;
   readonly epoch: number;
   readonly token: string;
+  readonly isCurrent?: () => boolean;
 };
 
 export type ByteRange = {

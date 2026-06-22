@@ -1,16 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  resolvedPolicySchemaMarker,
-  stableCanonicalStringify,
-  type CredentialRefSource,
-  type ResolvedPolicy,
-} from '../../../../src/foundation/configuration-policy/index.js';
-import {
   type CredentialKind,
   type CredentialParty,
+  resolvedPolicySchemaMarker,
+  stableCanonicalStringify,
   validateCredentialRefsFromResolvedPolicy,
-} from '../../../../src/foundation/credentials-secrets/refs/index.js';
+  type CredentialRefSource,
+  type ResolvedPolicy,
+} from '../../../../src/index.js';
 
 const hashText = (value: string): string => `digest:${value}`;
 

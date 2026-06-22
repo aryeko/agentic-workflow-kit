@@ -4,7 +4,8 @@ import {
   DURABILITY_CLASSES,
   createInMemoryEventLogStore,
   type EventLogLeaseBinding,
-} from '../../../../src/foundation/storage/event-log/index.js';
+  type EventLogStore,
+} from '../../../../src/index.js';
 
 const textEncoder = new TextEncoder();
 
@@ -22,8 +23,14 @@ const eventLogLeaseBinding = (overrides: Partial<EventLogLeaseBinding> = {}): Ev
 
 describe('fnd-02-s2 event-log contract surface', () => {
   it('defines the durability catalog as buffered, durable, and barrier', () => {
+    const store: EventLogStore = createInMemoryEventLogStore({ digestBytes });
+
     expect(DURABILITY_CLASSES).toEqual(['buffered', 'durable', 'barrier']);
     expect(Object.isFrozen(DURABILITY_CLASSES)).toBe(true);
+    expect(store.replay('run-log')).toEqual({
+      records: [],
+      health: 'ok',
+    });
   });
 
   it('mints log handles bound to the supplied lease capability', () => {
@@ -77,6 +84,35 @@ describe('fnd-02-s2 event-log contract surface', () => {
       message: 'Append handle must include a lease name and token before bytes can be appended.',
     });
 
+    expect(store.replay('run-log')).toEqual({
+      records: [],
+      health: 'ok',
+    });
+  });
+
+  it('rejects appends after the live lease probe reports the binding is stale', () => {
+    let leaseIsCurrent = true;
+    const store = createInMemoryEventLogStore({ digestBytes });
+    const handle = store.openForAppend(
+      'run-log',
+      eventLogLeaseBinding({
+        isCurrent: () => leaseIsCurrent,
+      }),
+    );
+
+    leaseIsCurrent = false;
+
+    expect(
+      store.append(handle, {
+        expectedSequence: 1,
+        durability: 'durable',
+        payloads: [encodeBytes('after-release')],
+      }),
+    ).toEqual({
+      code: 'stale-writer-fenced',
+      health: 'ok',
+      message: 'Append handle is no longer backed by a current lease for log run-log.',
+    });
     expect(store.replay('run-log')).toEqual({
       records: [],
       health: 'ok',
@@ -197,6 +233,47 @@ describe('fnd-02-s2 event-log contract surface', () => {
         expect.objectContaining({ sequence: 1, payload: encodeBytes('prep') }),
         expect.objectContaining({ sequence: 2, payload: encodeBytes('gate') }),
       ],
+    });
+  });
+
+  it('drops stale buffered records and resets the append position on writer handoff', () => {
+    const store = createInMemoryEventLogStore({
+      digestBytes,
+      recordFrameOverheadBytes: 2,
+      commitTrailerBytes: 2,
+    });
+    const writerA = store.openForAppend('run-log', eventLogLeaseBinding({ epoch: 7, token: 'writer-a' }));
+
+    expect(
+      store.append(writerA, {
+        expectedSequence: 1,
+        durability: 'buffered',
+        payloads: [encodeBytes('stale-buffer')],
+      }),
+    ).toEqual({
+      acknowledged: true,
+      durability: 'buffered',
+      expectedSequence: 1,
+    });
+
+    const writerB = store.openForAppend('run-log', eventLogLeaseBinding({ epoch: 8, token: 'writer-b' }));
+    const receipt = store.append(writerB, {
+      expectedSequence: 1,
+      durability: 'barrier',
+      payloads: [encodeBytes('fresh')],
+    });
+
+    expect(receipt).toMatchObject({
+      firstSequence: 1,
+      lastSequence: 1,
+      writerEpoch: 8,
+      leaseName: 'run-writer:alpha',
+      durability: 'barrier',
+      byteRange: { start: 0, end: 9 },
+    });
+    expect(store.replay('run-log')).toEqual({
+      health: 'ok',
+      records: [expect.objectContaining({ sequence: 1, writerEpoch: 8, payload: encodeBytes('fresh') })],
     });
   });
 

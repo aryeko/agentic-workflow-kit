@@ -68,8 +68,8 @@ export type ExportManifest = {
 };
 
 export interface ArtifactStore {
-  put(input: ArtifactInput): ArtifactRef | StorageError;
-  putScratch(input: ArtifactInput): ScratchArtifactRef | StorageError;
+  put(input: ArtifactInput): Promise<ArtifactRef | StorageError>;
+  putScratch(input: ArtifactInput): Promise<ScratchArtifactRef | StorageError>;
   resolve(id: string): ArtifactRef | StorageError;
   get(ref: ArtifactRef, mode: 'redacted' | 'raw'): ArtifactStream | StorageError;
   redact(ref: ArtifactRef, hookId: string): ArtifactRef | StorageError;

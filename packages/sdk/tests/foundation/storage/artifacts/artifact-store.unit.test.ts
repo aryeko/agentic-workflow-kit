@@ -46,11 +46,11 @@ const createStore = (options?: Partial<Parameters<typeof createInMemoryArtifactS
     ...options,
   });
 
-const putArtifact = (
+const putArtifact = async (
   store: ReturnType<typeof createStore>,
   overrides?: Partial<Parameters<typeof store.put>[0]>,
-): ArtifactRef | ReturnType<typeof store.put> => {
-  const published = store.put({
+): Promise<ArtifactRef | Awaited<ReturnType<typeof store.put>>> => {
+  const published = await store.put({
     content: encoder.encode('artifact body'),
     mediaType: 'text/plain',
     retentionClass: 'run-evidence',
@@ -65,19 +65,28 @@ const putArtifact = (
 
 describe('fnd-02-s4 artifact evidence store', () => {
   it('exposes artifact and evidence-bundle contracts from the root SDK barrel', () => {
-    const rootExports: Partial<{
-      readonly store: RootArtifactStore;
-      readonly exportManifest: RootExportManifest;
-      readonly bundleManifest: RootEvidenceBundleManifest;
-    }> = {};
+    const store: RootArtifactStore = createStore();
+    const manifest: RootExportManifest = {
+      createdAt: FIXED_CREATED_AT,
+      redactionMode: 'redacted',
+      logHealth: 'ok',
+      artifacts: [],
+      logRanges: [],
+    };
+    const bundleManifest: RootEvidenceBundleManifest = createEvidenceBundleManifest(manifest);
 
-    expect(rootExports).toEqual({});
+    expect(store.resolve('artifact:sha256:missing')).toEqual({
+      code: 'artifact-quarantined',
+      health: 'ok',
+      message: 'Artifact artifact:sha256:missing could not be resolved.',
+    });
+    expect(bundleManifest.exportManifest).toBe(manifest);
   });
 
-  it('publishes immutable content-addressed artifacts with stable ids, digest metadata, and metadata evidence records', () => {
+  it('publishes immutable content-addressed artifacts with stable ids, digest metadata, and metadata evidence records', async () => {
     const store = createStore();
 
-    const published = putArtifact(store);
+    const published = await putArtifact(store);
     expect(published).not.toHaveProperty('code');
     if ('code' in published) {
       throw new Error(published.message);
@@ -111,10 +120,35 @@ describe('fnd-02-s4 artifact evidence store', () => {
     expect(isArtifactRefRetentionEligible(published)).toBe(true);
   });
 
+  it('accepts ReadableStream artifact input through the declared API', async () => {
+    const store = createStore();
+    const streamContent = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('streamed '));
+        controller.enqueue(encoder.encode('artifact'));
+        controller.close();
+      },
+    });
+
+    const published = await putArtifact(store, {
+      content: streamContent,
+    });
+
+    expect(published).not.toHaveProperty('code');
+    if ('code' in published) {
+      throw new Error(published.message);
+    }
+    expect(published).toMatchObject({
+      digest: sha256Hex(encoder.encode('streamed artifact')),
+      size: encoder.encode('streamed artifact').byteLength,
+      redactionState: 'raw',
+    });
+  });
+
   it('returns artifact-quarantined when size, classification, or digest verification fails and does not rewrite existing ids', async () => {
     const oversizedStore = createStore({ sizeLimitBytes: 4 });
 
-    expect(putArtifact(oversizedStore)).toEqual({
+    expect(await putArtifact(oversizedStore)).toEqual({
       code: 'artifact-quarantined',
       health: 'ok',
       message: 'Artifact size exceeded the configured limit.',
@@ -124,14 +158,14 @@ describe('fnd-02-s4 artifact evidence store', () => {
       classificationPolicy: (classification) => classification === 'public',
     });
 
-    expect(putArtifact(classifiedStore)).toEqual({
+    expect(await putArtifact(classifiedStore)).toEqual({
       code: 'artifact-quarantined',
       health: 'ok',
       message: 'Artifact classification failed validation.',
     });
 
     const store = createStore();
-    const published = putArtifact(store);
+    const published = await putArtifact(store);
     if ('code' in published) {
       throw new Error(published.message);
     }
@@ -146,7 +180,7 @@ describe('fnd-02-s4 artifact evidence store', () => {
     });
 
     store.debugCorruptArtifactBytes(published.id, encoder.encode('artifact body'));
-    const duplicatePut = putArtifact(store);
+    const duplicatePut = await putArtifact(store);
     if ('code' in duplicatePut) {
       throw new Error(duplicatePut.message);
     }
@@ -160,9 +194,9 @@ describe('fnd-02-s4 artifact evidence store', () => {
     expect(decoder.decode(await collectArtifactStreamBytes(stream))).toBe('artifact body');
   });
 
-  it('allows scratch refs only in degraded mode and bars them from resolve, evidence, export, and retention policy', () => {
+  it('allows scratch refs only in degraded mode and bars them from resolve, evidence, export, and retention policy', async () => {
     const healthyStore = createStore();
-    expect(
+    await expect(
       healthyStore.putScratch({
         content: encoder.encode('scratch artifact'),
         mediaType: 'text/plain',
@@ -170,14 +204,14 @@ describe('fnd-02-s4 artifact evidence store', () => {
         classification: 'internal',
         producer: 'fnd-02-s4-test',
       }),
-    ).toEqual({
+    ).resolves.toEqual({
       code: 'network-fs-degraded',
       health: 'ok',
       message: 'Scratch artifacts are available only while storage health is network-fs-degraded.',
     });
 
     const degradedStore = createStore({ health: () => 'network-fs-degraded' });
-    const scratch = degradedStore.putScratch({
+    const scratch = await degradedStore.putScratch({
       content: encoder.encode('scratch artifact'),
       mediaType: 'text/plain',
       retentionClass: 'run-evidence',
@@ -214,7 +248,7 @@ describe('fnd-02-s4 artifact evidence store', () => {
 
   it('creates a redacted replacement and tombstone, denies normal reads of the original, and preserves raw access', async () => {
     const store = createStore();
-    const published = putArtifact(store);
+    const published = await putArtifact(store);
     if ('code' in published) {
       throw new Error(published.message);
     }
@@ -253,6 +287,11 @@ describe('fnd-02-s4 artifact evidence store', () => {
       health: 'ok',
       message: `Artifact ${published.id} is tombstoned and unavailable for redacted reads.`,
     });
+    expect(await putArtifact(store)).toEqual({
+      code: 'artifact-quarantined',
+      health: 'ok',
+      message: `Artifact ${published.id} is tombstoned and cannot be republished as raw evidence.`,
+    });
 
     const rawRead = store.get(published, 'raw');
     expect(rawRead).not.toHaveProperty('code');
@@ -262,9 +301,9 @@ describe('fnd-02-s4 artifact evidence store', () => {
     expect(decoder.decode(await collectArtifactStreamBytes(rawRead))).toBe('artifact body');
   });
 
-  it('exports redacted replacements for tombstoned originals by default and fails closed when replacement evidence is unavailable', () => {
+  it('exports redacted replacements for tombstoned originals by default and fails closed when replacement evidence is unavailable', async () => {
     const store = createStore();
-    const published = putArtifact(store);
+    const published = await putArtifact(store);
     if ('code' in published) {
       throw new Error(published.message);
     }
@@ -313,10 +352,10 @@ describe('fnd-02-s4 artifact evidence store', () => {
     });
   });
 
-  it('builds a stable redacted-by-default export manifest and a bundle manifest with sorted refs, digests, sizes, log ranges, and log health', () => {
+  it('builds a stable redacted-by-default export manifest and a bundle manifest with sorted refs, digests, sizes, log ranges, and log health', async () => {
     const store = createStore({ health: () => 'log-tail-repaired' });
-    const alpha = putArtifact(store, { content: encoder.encode('alpha') });
-    const beta = putArtifact(store, { content: encoder.encode('beta') });
+    const alpha = await putArtifact(store, { content: encoder.encode('alpha') });
+    const beta = await putArtifact(store, { content: encoder.encode('beta') });
     if ('code' in alpha || 'code' in beta) {
       throw new Error('Expected authoritative artifacts.');
     }
@@ -379,9 +418,9 @@ describe('fnd-02-s4 artifact evidence store', () => {
     });
   });
 
-  it('fails closed with export-incomplete-forbidden when a selected artifact or log range cannot be verified', () => {
+  it('fails closed with export-incomplete-forbidden when a selected artifact or log range cannot be verified', async () => {
     const artifactStore = createStore();
-    const published = putArtifact(artifactStore);
+    const published = await putArtifact(artifactStore);
     if ('code' in published) {
       throw new Error(published.message);
     }
@@ -396,7 +435,7 @@ describe('fnd-02-s4 artifact evidence store', () => {
     const rangeStore = createStore({
       resolveLogRange: () => undefined,
     });
-    const rangeArtifact = putArtifact(rangeStore);
+    const rangeArtifact = await putArtifact(rangeStore);
     if ('code' in rangeArtifact) {
       throw new Error(rangeArtifact.message);
     }

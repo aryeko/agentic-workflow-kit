@@ -1,4 +1,4 @@
-export { configurationPolicy } from './adoption/index.js';
+export { adoptionConfigurationPolicy, diagnoseAdoption } from './adoption/index.js';
 export type {
   AdoptionAppendIntent,
   AdoptionConfigurationPolicy,
@@ -29,8 +29,6 @@ export type {
   ResolvedPolicy,
   ResolvedPolicyResult,
   ResolutionContext,
+  ConfigurationPolicy,
 } from './resolution/index.js';
 export * from './schema/index.js';
-
-export type ConfigurationPolicy = import('./resolution/index.js').ConfigurationPolicy &
-  import('./adoption/index.js').AdoptionConfigurationPolicy;

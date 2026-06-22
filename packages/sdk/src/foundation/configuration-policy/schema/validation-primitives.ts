@@ -99,8 +99,10 @@ export const validatePartialSet = (
   issues: string[],
 ): boolean => validateFullSet(value, allowedKeys, path, issues);
 
-export const findDeferredCapabilityPath = (value: unknown, path = '$'): string | null => {
-  if (value === deferredCapabilityName) {
+const DEFERRED_CAPABILITY_VALUE_KEYS = new Set(['mode']);
+
+export const findDeferredCapabilityPath = (value: unknown, path = '$', fieldName?: string): string | null => {
+  if (value === deferredCapabilityName && fieldName !== undefined && DEFERRED_CAPABILITY_VALUE_KEYS.has(fieldName)) {
     return path;
   }
 
@@ -120,11 +122,7 @@ export const findDeferredCapabilityPath = (value: unknown, path = '$'): string |
   }
 
   for (const [key, entry] of Object.entries(value)) {
-    if (key === deferredCapabilityName) {
-      return `${path}.${key}`;
-    }
-
-    const match = findDeferredCapabilityPath(entry, `${path}.${key}`);
+    const match = findDeferredCapabilityPath(entry, `${path}.${key}`, key);
     if (match) {
       return match;
     }

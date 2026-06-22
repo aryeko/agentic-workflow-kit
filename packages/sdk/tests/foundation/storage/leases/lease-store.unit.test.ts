@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  createLeaseStore,
-  type LeaseCapability,
-  type LeaseSnapshot,
-  type LeaseStore,
-} from '../../../../src/foundation/storage/leases/index.js';
+import { createLeaseStore, type LeaseCapability, type LeaseSnapshot, type LeaseStore } from '../../../../src/index.js';
 
 const at = (value: string): Date => new globalThis.Date(Date.parse(value));
 

@@ -1,3 +1,4 @@
+import type { AdoptionConfigurationPolicy } from '../adoption/index.js';
 import type { ConfigurationPolicyAppendIntent, PolicyResolutionFailureReason } from '../events/index.js';
 import type { FieldProvenance } from '../provenance/index.js';
 import type { PolicyLayer, PolicyLayerPatch, Result, RunConfigInput } from '../schema/index.js';
@@ -37,7 +38,7 @@ export type PolicyResolutionFailure = {
   readonly issues?: readonly string[];
 };
 
-export interface ConfigurationPolicy {
+export interface ConfigurationPolicy extends AdoptionConfigurationPolicy {
   resolveRunPolicy(
     source: ConfigSource,
     input: RunConfigInput,

@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  configurationPolicy,
+  createConfigurationPolicy,
   configurationSchemaMarker,
   type AdoptionContext,
+  type AdoptionConfigurationPolicy,
   type AdoptionDiagnostic,
   type AdoptionDiagnosticFailure,
   type AdoptionReport,
   type ArtifactSource,
   type ConfigLoaded,
-  type AdoptionConfigurationPolicy,
   type DurableEventWriter,
-} from '../../../../src/foundation/configuration-policy/adoption/index.js';
+} from '../../../../src/foundation/configuration-policy/index.js';
 import type { ConfigurationPolicy as RootConfigurationPolicy } from '../../../../src/index.js';
 
 type RootPolicyMethods = Pick<RootConfigurationPolicy, 'diagnoseAdoption' | 'resolveRunPolicy'>;
@@ -69,6 +69,11 @@ const makeContext = (writer: DurableEventWriter): AdoptionContext => ({
   occurredAt: '2026-06-22T12:00:00.000Z',
 });
 
+const createPolicy = (): RootConfigurationPolicy =>
+  createConfigurationPolicy({
+    hashText: (value) => `hash:${value.length}`,
+  });
+
 const expectReport = (result: { ok: true; value: AdoptionReport }): AdoptionReport => {
   expect(result.ok).toBe(true);
   return result.value;
@@ -81,21 +86,21 @@ const expectFailure = (result: { ok: false; error: AdoptionDiagnosticFailure }):
 
 describe('fnd-01-s3 adoption diagnostics', () => {
   it('exposes adoption diagnostics through the integrated root policy contract', () => {
-    const adoptionPolicy: AdoptionConfigurationPolicy = configurationPolicy;
-    const rootPolicy: Partial<RootPolicyMethods> = {
-      diagnoseAdoption: adoptionPolicy.diagnoseAdoption,
-    };
+    const rootPolicy: RootPolicyMethods = createPolicy();
+    const adoptionPolicy: AdoptionConfigurationPolicy = rootPolicy;
 
-    expect(rootPolicy.diagnoseAdoption).toBe(configurationPolicy.diagnoseAdoption);
+    expect(adoptionPolicy.diagnoseAdoption).toBe(rootPolicy.diagnoseAdoption);
+    expect(rootPolicy.resolveRunPolicy).toEqual(expect.any(Function));
   });
 
   it('accepts valid vNext config and recognized artifact markers', () => {
+    const policy = createPolicy();
     const writer = makeWriter({
       ok: true,
       value: { transactionId: 'txn-1' },
     });
 
-    const result = configurationPolicy.diagnoseAdoption(
+    const result = policy.diagnoseAdoption(
       {
         config: validConfigSource,
         artifacts: recognizedArtifacts,
@@ -121,12 +126,13 @@ describe('fnd-01-s3 adoption diagnostics', () => {
   });
 
   it('returns adoption-incompatible for a known legacy config marker and emits blocking intents', () => {
+    const policy = createPolicy();
     const writer = makeWriter({
       ok: true,
       value: { transactionId: 'txn-2' },
     });
 
-    const result = configurationPolicy.diagnoseAdoption(
+    const result = policy.diagnoseAdoption(
       {
         config: {
           path: 'packages/sdk/config.json',
@@ -184,12 +190,13 @@ describe('fnd-01-s3 adoption diagnostics', () => {
   });
 
   it('returns adoption-unknown-artifact for missing or unrecognized markers', () => {
+    const policy = createPolicy();
     const writer = makeWriter({
       ok: true,
       value: { transactionId: 'txn-3' },
     });
 
-    const result = configurationPolicy.diagnoseAdoption(
+    const result = policy.diagnoseAdoption(
       {
         config: validConfigSource,
         artifacts: [
@@ -232,12 +239,13 @@ describe('fnd-01-s3 adoption diagnostics', () => {
   });
 
   it('returns adoption-unknown-artifact for config with missing or unrecognized markers', () => {
+    const policy = createPolicy();
     const writer = makeWriter({
       ok: true,
       value: { transactionId: 'txn-unknown-config' },
     });
 
-    const missingMarkerResult = configurationPolicy.diagnoseAdoption(
+    const missingMarkerResult = policy.diagnoseAdoption(
       {
         config: {
           path: 'packages/sdk/missing-marker.json',
@@ -252,7 +260,7 @@ describe('fnd-01-s3 adoption diagnostics', () => {
       },
       makeContext(writer),
     );
-    const unknownMarkerResult = configurationPolicy.diagnoseAdoption(
+    const unknownMarkerResult = policy.diagnoseAdoption(
       {
         config: {
           path: 'packages/sdk/future-config.json',
@@ -291,12 +299,13 @@ describe('fnd-01-s3 adoption diagnostics', () => {
   });
 
   it('diagnoses legacy artifacts when supplied in configured locations', () => {
+    const policy = createPolicy();
     const writer = makeWriter({
       ok: true,
       value: { transactionId: 'txn-4' },
     });
 
-    const result = configurationPolicy.diagnoseAdoption(
+    const result = policy.diagnoseAdoption(
       {
         config: validConfigSource,
         artifacts: [
@@ -324,12 +333,13 @@ describe('fnd-01-s3 adoption diagnostics', () => {
   });
 
   it('returns config-loaded-unrecorded when the pre-run load cannot be committed', () => {
+    const policy = createPolicy();
     const writer = makeWriter({
       ok: false,
       error: 'append-failed',
     });
 
-    const result = configurationPolicy.diagnoseAdoption(
+    const result = policy.diagnoseAdoption(
       {
         config: validConfigSource,
         artifacts: [],
@@ -344,5 +354,47 @@ describe('fnd-01-s3 adoption diagnostics', () => {
       blockingState: 'config-loaded-unrecorded',
     });
     expect(writer.appendConfigLoaded).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns adoption-diagnostic-unrecorded when blocking diagnostic intents cannot be committed', () => {
+    const policy = createPolicy();
+    const writer = makeWriter({
+      ok: true,
+      value: { transactionId: 'txn-5' },
+    });
+    const confirmAppendIntents = vi.fn(() => false);
+
+    const result = policy.diagnoseAdoption(
+      {
+        config: validConfigSource,
+        artifacts: [
+          {
+            path: 'state/mystery.json',
+            class: 'unknown',
+            contentHash: 'hash-mystery',
+          },
+        ],
+      },
+      {
+        ...makeContext(writer),
+        confirmAppendIntents,
+      },
+    );
+
+    const error = expectFailure(result);
+
+    expect(error).toEqual({
+      reason: 'adoption-diagnostic-write-failed',
+      blockingState: 'adoption-diagnostic-unrecorded',
+    });
+    expect(writer.appendConfigLoaded).toHaveBeenCalledTimes(1);
+    expect(confirmAppendIntents).toHaveBeenCalledWith([
+      expect.objectContaining({
+        type: 'AdoptionDiagnosticEmitted',
+      }),
+      expect.objectContaining({
+        type: 'PolicyResolutionFailed',
+      }),
+    ]);
   });
 });

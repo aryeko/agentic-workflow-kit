@@ -62,16 +62,18 @@ describe('fnd-01-s1-config-schema internal validator coverage', () => {
   });
 
   it('covers deferred capability search paths', () => {
-    expect(findDeferredCapabilityPath([1, 'orchestrator-decide'])).toBe('$[1]');
-    expect(findDeferredCapabilityPath([1, { nested: 'orchestrator-decide' }])).toBe('$[1].nested');
-    expect(findDeferredCapabilityPath({ nested: { deeper: 'orchestrator-decide' } })).toBe('$.nested.deeper');
-    expect(findDeferredCapabilityPath({ 'orchestrator-decide': 1 })).toBe('$.orchestrator-decide');
+    expect(findDeferredCapabilityPath([1, 'orchestrator-decide'])).toBeNull();
+    expect(findDeferredCapabilityPath([1, { nested: 'orchestrator-decide' }])).toBeNull();
+    expect(findDeferredCapabilityPath({ nested: { deeper: 'orchestrator-decide' } })).toBeNull();
+    expect(findDeferredCapabilityPath({ 'orchestrator-decide': 1 })).toBeNull();
+    expect(findDeferredCapabilityPath({ approval: { mode: 'orchestrator-decide' } })).toBe('$.approval.mode');
     expect(findDeferredCapabilityPath({ nope: 1 })).toBeNull();
 
     expect(rejectDeferredCapability({ approval: { mode: 'orchestrator-decide' } }, [])).toEqual({
       token: 'unsupported-deferred-capability',
       issues: ['deferred capability is not supported at $.approval.mode'],
     });
+    expect(rejectDeferredCapability({ egress: { rules: [{ purpose: 'orchestrator-decide' }] } }, [])).toBeNull();
     expect(rejectDeferredCapability({ approval: { mode: 'assisted' } }, [])).toBeNull();
   });
 

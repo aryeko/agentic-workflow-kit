@@ -23,6 +23,7 @@ type WriterBinding = {
   readonly leaseName: string;
   readonly epoch: number;
   readonly token: string;
+  readonly isCurrent?: () => boolean;
 };
 
 type LogState = {
@@ -156,6 +157,42 @@ const writerMatches = (binding: WriterBinding | undefined, handle: LogHandle): b
   binding.epoch === handle.epoch &&
   binding.token === handle.token;
 
+const writerIsCurrent = (binding: WriterBinding): boolean => binding.isCurrent?.() ?? true;
+
+const writerBindingFor = (lease: EventLogLeaseBinding): WriterBinding => ({
+  leaseName: lease.name,
+  epoch: lease.epoch,
+  token: lease.token,
+  isCurrent: lease.isCurrent,
+});
+
+const writerBindingMatchesLease = (binding: WriterBinding | undefined, lease: EventLogLeaseBinding): boolean =>
+  binding !== undefined &&
+  binding.leaseName === lease.name &&
+  binding.epoch === lease.epoch &&
+  binding.token === lease.token;
+
+const committedTailPosition = (
+  logState: LogState,
+): {
+  readonly nextSequence: number;
+  readonly nextByteOffset: number;
+} => {
+  const lastCommitted = logState.committed[logState.committed.length - 1];
+
+  if (lastCommitted === undefined) {
+    return {
+      nextSequence: 1,
+      nextByteOffset: 0,
+    };
+  }
+
+  return {
+    nextSequence: lastCommitted.sequence + 1,
+    nextByteOffset: lastCommitted.byteRange.end,
+  };
+};
+
 const collectReceiptPayloadDigest = (records: readonly StoredRecord[], digestBytes: DigestBytes): string =>
   digestBytes(joinBytes(records.map((record) => cloneBytes(record.payload))));
 
@@ -272,14 +309,24 @@ export const createInMemoryEventLogStore = (options: InMemoryEventLogStoreOption
         token: lease.token,
       };
 
-      state = updateLogState(state, logId, (logState) => ({
-        ...logState,
-        currentWriter: {
-          leaseName: lease.name,
-          epoch: lease.epoch,
-          token: lease.token,
-        },
-      }));
+      state = updateLogState(state, logId, (logState) => {
+        if (writerBindingMatchesLease(logState.currentWriter, lease)) {
+          return {
+            ...logState,
+            currentWriter: writerBindingFor(lease),
+          };
+        }
+
+        const tail = committedTailPosition(logState);
+
+        return {
+          ...logState,
+          buffered: [],
+          nextSequence: tail.nextSequence,
+          nextByteOffset: tail.nextByteOffset,
+          currentWriter: writerBindingFor(lease),
+        };
+      });
 
       return handle;
     },
@@ -341,6 +388,14 @@ export const createInMemoryEventLogStore = (options: InMemoryEventLogStoreOption
           'stale-writer-fenced',
           replayHealth,
           `Append handle no longer matches the current lease binding for log ${handle.logId}.`,
+        );
+      }
+
+      if (!writerIsCurrent(binding)) {
+        return createStorageError(
+          'stale-writer-fenced',
+          replayHealth,
+          `Append handle is no longer backed by a current lease for log ${handle.logId}.`,
         );
       }
 

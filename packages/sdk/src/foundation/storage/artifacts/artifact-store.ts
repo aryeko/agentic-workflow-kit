@@ -72,12 +72,34 @@ const createByteStream = (bytes: Uint8Array): ReadableStream<Uint8Array> =>
     },
   });
 
-const collectInputBytes = (content: ArtifactInput['content']): Uint8Array | undefined => {
+const collectInputBytes = async (content: ArtifactInput['content']): Promise<Uint8Array> => {
   if (content instanceof Uint8Array) {
     return cloneBytes(content);
   }
 
-  return undefined;
+  const reader = content.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) {
+      break;
+    }
+
+    size += chunk.value.byteLength;
+    chunks.push(cloneBytes(chunk.value));
+  }
+
+  const output = new Uint8Array(size);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return output;
 };
 
 const compareOptionalDates = (left?: Date, right?: Date): boolean => {
@@ -138,13 +160,6 @@ export const createInMemoryArtifactStore = (options: CreateInMemoryArtifactStore
   const tombstones: ArtifactTombstoneRecord[] = [];
 
   const currentHealth = (): StorageHealth => options.health();
-
-  const rejectUnsupportedStream = (): StorageError =>
-    createStorageError(
-      'artifact-quarantined',
-      currentHealth(),
-      'Artifact content streams are unsupported by the in-memory default store.',
-    );
 
   const verifyIntegrity = (artifact: StoredArtifact): StorageError | true => {
     if (artifact.bytes === undefined) {
@@ -253,6 +268,14 @@ export const createInMemoryArtifactStore = (options: CreateInMemoryArtifactStore
         return integrity;
       }
 
+      if (existing.metadata.redactionState === 'tombstoned' && redactionState === 'raw') {
+        return createStorageError(
+          'artifact-quarantined',
+          currentHealth(),
+          `Artifact ${id} is tombstoned and cannot be republished as raw evidence.`,
+        );
+      }
+
       return createArtifactRef(existing.metadata);
     }
 
@@ -325,21 +348,18 @@ export const createInMemoryArtifactStore = (options: CreateInMemoryArtifactStore
   };
 
   return {
-    put(input) {
+    async put(input) {
       const operation = requireAuthoritativeStorageOperation(currentHealth(), 'evidence-ref');
       if (!operation.ok) {
         return operation.error;
       }
 
-      const bytes = collectInputBytes(input.content);
-      if (bytes === undefined) {
-        return rejectUnsupportedStream();
-      }
+      const bytes = await collectInputBytes(input.content);
 
       return putAuthoritativeArtifact(input, bytes, 'raw');
     },
 
-    putScratch(input) {
+    async putScratch(input) {
       const health = currentHealth();
       if (health !== 'network-fs-degraded') {
         return createStorageError(
@@ -349,10 +369,7 @@ export const createInMemoryArtifactStore = (options: CreateInMemoryArtifactStore
         );
       }
 
-      const bytes = collectInputBytes(input.content);
-      if (bytes === undefined) {
-        return rejectUnsupportedStream();
-      }
+      const bytes = await collectInputBytes(input.content);
 
       return putScratchArtifact(input, bytes);
     },

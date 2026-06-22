@@ -70,10 +70,15 @@ export type AdoptionReport = {
   readonly appendIntents: readonly AdoptionAppendIntent[];
 };
 
-export type AdoptionDiagnosticFailure = {
-  readonly reason: 'config-loaded-write-failed';
-  readonly blockingState: 'config-loaded-unrecorded';
-};
+export type AdoptionDiagnosticFailure =
+  | {
+      readonly reason: 'config-loaded-write-failed';
+      readonly blockingState: 'config-loaded-unrecorded';
+    }
+  | {
+      readonly reason: 'adoption-diagnostic-write-failed';
+      readonly blockingState: 'adoption-diagnostic-unrecorded';
+    };
 
 export type ConfigLoaded = {
   readonly configRef: string;
@@ -89,6 +94,7 @@ export type DurableEventWriter = {
 export type AdoptionContext = {
   readonly eventWriter: DurableEventWriter;
   readonly occurredAt: string;
+  readonly confirmAppendIntents?: (appendIntents: readonly AdoptionAppendIntent[]) => boolean;
 };
 
 export interface AdoptionConfigurationPolicy {
@@ -251,16 +257,37 @@ const buildReport = (diagnostics: readonly AdoptionDiagnostic[], occurredAt: str
   };
 };
 
-const diagnoseAdoption = (
+const reportOrFailure = (
+  report: AdoptionReport,
+  context: AdoptionContext,
+): Result<AdoptionReport, AdoptionDiagnosticFailure> => {
+  if (
+    !report.mayLaunch &&
+    context.confirmAppendIntents !== undefined &&
+    !context.confirmAppendIntents(report.appendIntents)
+  ) {
+    return {
+      ok: false,
+      error: {
+        reason: 'adoption-diagnostic-write-failed',
+        blockingState: 'adoption-diagnostic-unrecorded',
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    value: report,
+  };
+};
+
+export const diagnoseAdoption = (
   sources: AdoptionSource,
   context: AdoptionContext,
 ): Result<AdoptionReport, AdoptionDiagnosticFailure> => {
   const configDiagnostic = classifyConfig(sources.config);
   if (configDiagnostic !== null) {
-    return {
-      ok: true,
-      value: buildReport([configDiagnostic], context.occurredAt),
-    };
+    return reportOrFailure(buildReport([configDiagnostic], context.occurredAt), context);
   }
 
   const loadResult = context.eventWriter.appendConfigLoaded({
@@ -285,14 +312,13 @@ const diagnoseAdoption = (
     return diagnostic === null ? [] : [diagnostic];
   });
 
-  return {
-    ok: true,
-    value: buildReport(diagnostics, context.occurredAt),
-  };
+  return reportOrFailure(buildReport(diagnostics, context.occurredAt), context);
 };
 
-export const configurationPolicy: AdoptionConfigurationPolicy = {
+export const adoptionConfigurationPolicy: AdoptionConfigurationPolicy = {
   diagnoseAdoption,
 };
+
+export const configurationPolicy = adoptionConfigurationPolicy;
 
 export { configurationSchemaMarker };

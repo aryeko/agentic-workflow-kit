@@ -147,7 +147,7 @@ describe('fnd-01-s1-config-schema run and kit envelopes', () => {
           deferred: 'orchestrator-decide' as unknown as never,
         },
       }),
-      'unsupported-deferred-capability',
+      'config-invalid',
     );
   });
 

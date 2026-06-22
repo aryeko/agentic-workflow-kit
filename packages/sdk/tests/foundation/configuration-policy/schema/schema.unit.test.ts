@@ -95,7 +95,7 @@ describe('fnd-01-s1-config-schema schema validation', () => {
     }
   });
 
-  it('rejects orchestrator-decide anywhere in config or run input', () => {
+  it('rejects orchestrator-decide when used as a deferred policy mode', () => {
     const configResult = validateKitConfig({
       schema: configurationSchemaMarker,
       project: { id: 'workflow-kit', rootPolicy: 'single-repo' },
@@ -128,6 +128,39 @@ describe('fnd-01-s1-config-schema schema validation', () => {
         expect(result.error.token).toBe('unsupported-deferred-capability');
       }
     }
+  });
+
+  it('accepts orchestrator-decide as ordinary policy metadata text', () => {
+    const result = validatePolicyLayerPatch({
+      egress: {
+        rules: [
+          {
+            credentialRefIds: [],
+            protocols: ['https'],
+            hosts: ['example.test'],
+            phase: 'planning',
+            purpose: 'document orchestrator-decide migration notes',
+          },
+        ],
+      },
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        egress: {
+          rules: [
+            {
+              credentialRefIds: [],
+              protocols: ['https'],
+              hosts: ['example.test'],
+              phase: 'planning',
+              purpose: 'document orchestrator-decide migration notes',
+            },
+          ],
+        },
+      },
+    });
   });
 
   it('validates the complete built-in policy layer without mutation', () => {
