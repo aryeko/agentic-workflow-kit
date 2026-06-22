@@ -68,3 +68,11 @@ here** (partition) and tracked in `coverage.md` — do not add `deferred` rows f
 
 - <Work intentionally left to later epics, named by owning domain or epic.>
 ```
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](../README.md) · **← Prev:** [Domain charter template](./domain-charter.md) · **Next →:** [Story contract template](./story-contract.md)
+
+<!-- /DOCS-NAV -->

@@ -77,3 +77,11 @@ precondition holds — a tightening is pending) · `OPEN` (no cover yet).
 - **LSN-20** is `conditional`: the capacity rule is recorded as a role responsibility, but the
   `orchestrated-delivery` skill change that reserves reviewer/re-address slots is deferred (the
   precondition) and out of this worktree's scope.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Implementation planning — authoring standard](./README.md) · **← Prev:** [Role — reviewer](./operating-model/reviewer.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
+
+<!-- /DOCS-NAV -->

@@ -45,9 +45,9 @@ When they disagree, the DAG wins and the charter is corrected.
 
 A domain charter is planning-ready only when its four-item readiness check passes (boundary crisp;
 signals trace to design; altitude holds; edges defer to the DAGs). That check is the canonical Gate 1
-in [`../work-item-authoring-guide.md`](../work-item-authoring-guide.md#readiness-check-gate-1), which
-defines all three planning layers — domain charter, epic charter, story contract — and the lesson each
-layer encodes. Author and grade charters against Gate 1 there; do not duplicate it here.
+in the [authoring standard](../../implementation-authoring/authoring-standard/20-domain-charter.md#gate-1--planning-ready),
+which defines every planning layer and the lesson each encodes. Author and grade charters against Gate 1
+there; do not duplicate it here.
 
 ## Layers
 

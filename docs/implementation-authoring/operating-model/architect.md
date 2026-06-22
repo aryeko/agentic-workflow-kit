@@ -79,3 +79,11 @@ verdict that sets `ready`.
 - [Authoring standard](../authoring-standard/README.md) — what each planning artifact must contain.
 - [Characterization review](characterization-review.md) — the gate the architect owns.
 - [Orchestrator](orchestrator.md) — consumes the epic plan and `ready` stories.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Operating model — delivery system spec](./README.md) · **← Prev:** [Operating model — delivery system spec](./README.md) · **Next →:** [Role — characterization review](./characterization-review.md)
+
+<!-- /DOCS-NAV -->

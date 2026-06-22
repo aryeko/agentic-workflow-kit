@@ -92,3 +92,11 @@ evidence. Design approval, prose, migrated code, fixtures, or worker self-report
 **Independent pass.** Run the [shared close-out](README.md#verifying-a-layer): rebuild coverage from the
 source artifacts (not the rollup), and have a *different* reader run this gate — quoting the design line
 each finding contradicts and labelling story-defect vs design-defect.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](./README.md) · **← Prev:** [Story DAG — Layer 3](./40-story-dag.md) · **Next →:** [Principles — the universal bar](./10-principles.md)
+
+<!-- /DOCS-NAV -->

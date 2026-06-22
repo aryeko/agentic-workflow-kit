@@ -71,3 +71,11 @@ spec is escalated rather than papered over.
 - [Orchestrator](orchestrator.md) — routes BLOCKING findings and re-dispatches review.
 - [Reviewer](reviewer.md) — verifies the proof and returns the verdict.
 - [Authoring standard](../authoring-standard/README.md) — the evidence clause the proof satisfies.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Operating model — delivery system spec](./README.md) · **← Prev:** [Role — orchestrator](./orchestrator.md) · **Next →:** [Role — reviewer](./reviewer.md)
+
+<!-- /DOCS-NAV -->

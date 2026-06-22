@@ -77,3 +77,11 @@ passing run of this gate, and Bucket-1 escapes to code review trend to zero acro
   [`50-story-contract.md`](../authoring-standard/50-story-contract.md) Gates 4–6.
 - [Architect](architect.md) — owns the verdict and sets `ready`.
 - [Orchestrator](orchestrator.md) — hard-refuses any story not `ready`.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Operating model — delivery system spec](./README.md) · **← Prev:** [Role — architect](./architect.md) · **Next →:** [Role — orchestrator](./orchestrator.md)
+
+<!-- /DOCS-NAV -->

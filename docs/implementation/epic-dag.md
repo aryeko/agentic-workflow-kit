@@ -140,7 +140,7 @@ The earlier low-level DAG slices are still useful, but they belong under epics a
 ## Story contract inputs
 
 The next artifact should create one epic charter per milestone, then split each charter into
-dispatch-ready story contracts using [`work-item-authoring-guide.md`](work-item-authoring-guide.md).
+dispatch-ready story contracts using the [authoring standard](../implementation-authoring/authoring-standard/README.md).
 Those contracts should:
 
 1. Keep the epic charter high level: purpose, included domains, milestone dependencies, outputs, and

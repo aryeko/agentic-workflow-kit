@@ -64,3 +64,11 @@ each epic self-verifies. The **coverage rollup** is the global view that reconci
 charters with no signal unclaimed and none double-owned. It lives at
 [`../../implementation/coverage.md`](../../implementation/coverage.md) — the instance folder, *outside*
 this corpus. It pairs with this rule but stays there.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](./README.md) · **← Prev:** [Principles — the universal bar](./10-principles.md) · **Next →:** [Domain charter template](./_templates/domain-charter.md)
+
+<!-- /DOCS-NAV -->

@@ -54,3 +54,13 @@ Recurring defect classes, each mapped to the gate or role that covers it: [lesso
 - [operating-model/](operating-model/README.md) — Pillar 2: the delivery-engine + role-agent spec.
 - [lessons-ledger.md](lessons-ledger.md) — retro lessons → covering gate or role; the "lessons land
   before the next wave" gate.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation coverage rollup](../implementation/coverage.md) · **Next →:** [Authoring standard — Pillar 1](./authoring-standard/README.md)
+
+**Children:** [Authoring standard — Pillar 1](./authoring-standard/README.md) · [Operating model — delivery system spec](./operating-model/README.md) · [implementation lessons ledger](./lessons-ledger.md)
+
+<!-- /DOCS-NAV -->

@@ -90,3 +90,13 @@ gap to close before the next epic is authored.
 - [50-story-contract.md](50-story-contract.md) — Layer 4, Gates 4–6.
 - [60-coverage.md](60-coverage.md) — the exactly-once coverage rule.
 - [_templates/](_templates/) — copy-to-author starting points.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Implementation planning — authoring standard](../README.md) · **← Prev:** [Implementation planning — authoring standard](../README.md) · **Next →:** [Domain charter — Layer 1](./20-domain-charter.md)
+
+**Children:** [Domain charter — Layer 1](./20-domain-charter.md) · [Epic charter — Layer 2](./30-epic-charter.md) · [Story DAG — Layer 3](./40-story-dag.md) · [Story contract — Layer 4](./50-story-contract.md) · [Principles — the universal bar](./10-principles.md) · [Coverage — exactly-once ownership](./60-coverage.md) · [Domain charter template](./_templates/domain-charter.md) · [Epic charter template](./_templates/epic-charter.md) · [Story contract template](./_templates/story-contract.md) · [Story DAG template](./_templates/story-dag.md)
+
+<!-- /DOCS-NAV -->

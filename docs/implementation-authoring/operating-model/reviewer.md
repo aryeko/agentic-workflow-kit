@@ -67,3 +67,11 @@ structured APPROVE / BLOCKING that drives the loop to APPROVE.
 - [Orchestrator](orchestrator.md) — gates on this verdict; routes BLOCKING; re-dispatches review.
 - [Architect](architect.md) — receives escalated characterization defects.
 - [Authoring standard](../authoring-standard/README.md) — the evidence clause the reviewer re-runs.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Operating model — delivery system spec](./README.md) · **← Prev:** [Role — implementer](./implementer.md) · **Next →:** [implementation lessons ledger](../lessons-ledger.md)
+
+<!-- /DOCS-NAV -->

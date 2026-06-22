@@ -51,3 +51,11 @@ This boundary is load-bearing: every story under the domain inherits it.>
 
 - <likely story group this domain will shape, without acceptance criteria or implementation HOW.>
 ```
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](../README.md) · **← Prev:** [Coverage — exactly-once ownership](../60-coverage.md) · **Next →:** [Epic charter template](./epic-charter.md)
+
+<!-- /DOCS-NAV -->

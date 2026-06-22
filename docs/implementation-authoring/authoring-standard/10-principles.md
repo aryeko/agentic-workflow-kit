@@ -51,3 +51,11 @@ prefix as it advances (e.g. `domain-charter: draft → ready → frozen`).
 | `frozen` | locked; children may be authored against it. Changing a frozen artifact requires re-verifying every child that cited it. |
 
 **Governing rule:** author layer N only against a **frozen** layer N−1.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](./README.md) · **← Prev:** [Story contract — Layer 4](./50-story-contract.md) · **Next →:** [Coverage — exactly-once ownership](./60-coverage.md)
+
+<!-- /DOCS-NAV -->

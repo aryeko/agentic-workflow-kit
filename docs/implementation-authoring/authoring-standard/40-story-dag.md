@@ -136,3 +136,11 @@ must not be authored.
 - [ ] **Seams are importable.** Every cross-story shape records the public import path its consumers use, and
       the producer node carries the public-exposure AC that exposes it there; phase boundaries state the
       exported-and-importable condition a later wave depends on.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](./README.md) · **← Prev:** [Epic charter — Layer 2](./30-epic-charter.md) · **Next →:** [Story contract — Layer 4](./50-story-contract.md)
+
+<!-- /DOCS-NAV -->

@@ -44,3 +44,11 @@ must not be authored.
       algorithms, file layout, or session mechanics.
 - [ ] **Edges defer to the DAGs.** `Inputs And Dependencies` and `Downstream Epics` are consistent with
       the domain and epic DAGs and do not restate edge rationale the DAGs own.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](./README.md) · **← Prev:** [Authoring standard — Pillar 1](./README.md) · **Next →:** [Epic charter — Layer 2](./30-epic-charter.md)
+
+<!-- /DOCS-NAV -->

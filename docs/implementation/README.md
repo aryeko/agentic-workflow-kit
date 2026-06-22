@@ -9,11 +9,12 @@ last-reviewed: "2026-06-21"
 This directory defines the implementation contract for building kit-vnext from the approved design
 corpus: what must be built, in what dependency order, and what evidence proves each item.
 
-It defines the implementation "what" and, in [`delivery-roles.md`](delivery-roles.md), the delivery
-operating model — who authors, reviews, proves, and verifies that "what". It does not define the
-runtime "how": operational prompts, isolation and commit mechanics, and PR batching live in the
-`orchestrated-delivery` skill. (Co-locating the operating model here is a deliberate, temporary choice
-to keep the implementation docs together; the scope boundary may be revisited in a later restructure.)
+It defines the implementation **"what"** — the plan artifacts (charters, DAGs, story contracts). The
+**method** for authoring them and the **delivery operating model** (who authors, reviews, proves, and
+verifies the "what") live in the sibling
+[`../implementation-authoring/`](../implementation-authoring/README.md) corpus; the runtime "how"
+(operational prompts, isolation and commit mechanics, PR batching) lives in the `orchestrated-delivery`
+skill.
 
 ## Relationship to other docs
 
@@ -22,6 +23,7 @@ to keep the implementation docs together; the scope boundary may be revisited in
 | [`../design/`](../design/) | Normative product, architecture, package, domain, and decision contracts. |
 | [`../engineering/`](../engineering/) | Verification policy, check gate, dependency enforcement, and test lanes. |
 | `./` | Implementation slicing, story contracts, and readiness evidence. |
+| [`../implementation-authoring/`](../implementation-authoring/README.md) | How to author these plan artifacts (the standard + gates) and the delivery operating-model spec. |
 
 When this directory conflicts with `../design/`, the design corpus wins. A story contract must be a
 checkable subset of the design. If an implementation story needs a requirement that is missing from
@@ -30,15 +32,11 @@ design, the design must be amended before the story is dispatch-ready.
 ## Status — re-derivation in progress
 
 The implementation plan is being **re-derived from scratch** against the now-frozen, layered
-[`../design/`](../design/) corpus. The durable methodology and derived artifacts are kept here:
+[`../design/`](../design/) corpus. The **authoring method** — how to write falsifiable story contracts,
+the delivery roles, and the lessons ledger — now lives in the sibling
+[`../implementation-authoring/`](../implementation-authoring/README.md) corpus. The derived planning
+artifacts kept here are:
 
-- [`work-item-authoring-guide.md`](work-item-authoring-guide.md) - how to write falsifiable story
-  contracts (the standard every epic charter and story must meet).
-- [`delivery-roles.md`](delivery-roles.md) - the delivery operating model: the actors (architect,
-  orchestrator, implementer/reviewer sub-agents), the two review loops, and the planning-artifact
-  responsibilities that pair with the authoring guide.
-- [`lessons-ledger.md`](lessons-ledger.md) - recurring defect classes from each delivery, each mapped to
-  the gate or role that covers it; the "lessons land before the next wave" verification.
 - [`domain-dag.md`](domain-dag.md) - the domain-level dependency picture used to derive the epic DAG.
 - [`epic-dag.md`](epic-dag.md) - the milestone-level epic DAG used to derive charters and stories.
 - [`domains/`](domains/README.md) - domain implementation charters, grouped by design layer.
@@ -90,14 +88,14 @@ without private interpretation:
 
 Story contracts constrain DONE, not HOW. They should not dictate internal file layout, algorithms, or
 session mechanics unless the design corpus itself makes that part of the normative surface. The full
-standard is in [`work-item-authoring-guide.md`](work-item-authoring-guide.md).
+standard is in the [authoring standard](../implementation-authoring/authoring-standard/README.md).
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [delivery roles and responsibilities](./delivery-roles.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [domain dependency DAG](./domain-dag.md)
 
-**Children:** [delivery roles and responsibilities](./delivery-roles.md) · [work item authoring guide](./work-item-authoring-guide.md) · [implementation lessons ledger](./lessons-ledger.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
+**Children:** [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
 
 <!-- /DOCS-NAV -->

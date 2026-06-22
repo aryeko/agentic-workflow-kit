@@ -81,3 +81,11 @@ APPROVE before any commit.
 - [Characterization review](characterization-review.md) — owns the binding `ready` flag.
 - [Implementer](implementer.md) · [Reviewer](reviewer.md) — the dispatched workers in the loop.
 - `orchestrated-delivery` skill — the runtime "how" this spec must be implemented by.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Operating model — delivery system spec](./README.md) · **← Prev:** [Role — characterization review](./characterization-review.md) · **Next →:** [Role — implementer](./implementer.md)
+
+<!-- /DOCS-NAV -->

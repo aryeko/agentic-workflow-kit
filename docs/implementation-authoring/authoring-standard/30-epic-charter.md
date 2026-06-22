@@ -49,3 +49,11 @@ must not be authored.
       no edge rationale the DAG owns is re-argued.
 - [ ] **No story detail leaks up.** No acceptance criteria, DTO field lists, event payloads, test
       catalogues, or file layouts appear; those are story surface.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](./README.md) · **← Prev:** [Domain charter — Layer 1](./20-domain-charter.md) · **Next →:** [Story DAG — Layer 3](./40-story-dag.md)
+
+<!-- /DOCS-NAV -->

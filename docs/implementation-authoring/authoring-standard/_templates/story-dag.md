@@ -64,3 +64,11 @@ flowchart TB
 |---|---|---|
 | 1 | `<story-id>`, ... | <delivery wave note> |
 ````
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](../README.md) · **← Prev:** [Story contract template](./story-contract.md) · **Next →:** [Operating model — delivery system spec](../../operating-model/README.md)
+
+<!-- /DOCS-NAV -->

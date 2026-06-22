@@ -115,3 +115,13 @@ Bucket-2 findings are caught by review rather than shipped — tracked by the
 - **Grounding:** Epic 1 retro (PRs #127 / #128). The worst churn (a producer/consumer seam break) and the
   top finding (a fail-open credential contract) were both Bucket 1 that escaped to code review for lack of
   this gate; the genuine bugs (a lease race, a throw-path leak) were Bucket 2, correctly caught by review.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Implementation planning — authoring standard](../README.md) · **← Prev:** [Story DAG template](../authoring-standard/_templates/story-dag.md) · **Next →:** [Role — architect](./architect.md)
+
+**Children:** [Role — architect](./architect.md) · [Role — characterization review](./characterization-review.md) · [Role — orchestrator](./orchestrator.md) · [Role — implementer](./implementer.md) · [Role — reviewer](./reviewer.md)
+
+<!-- /DOCS-NAV -->

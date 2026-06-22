@@ -159,3 +159,11 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 - Forbidden dependencies:
 - STOP when:
 ```
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Authoring standard — Pillar 1](../README.md) · **← Prev:** [Epic charter template](./epic-charter.md) · **Next →:** [Story DAG template](./story-dag.md)
+
+<!-- /DOCS-NAV -->
