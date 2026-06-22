@@ -85,6 +85,7 @@ export type PlanInjectionDependencies = SharedCredentialOperationDependencies & 
 export type ResolveCredentialInput = {
   readonly ref: CredentialRef;
   readonly scope: CredentialScope;
+  readonly egressConfinementRequired: boolean;
   readonly requiredAuditEvent?: CredentialUsePlanned;
   readonly redactionSet?: RedactionSet;
   readonly egressPolicy?: EgressPolicy;

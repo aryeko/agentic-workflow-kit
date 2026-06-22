@@ -11,6 +11,7 @@ import {
   isExpired,
   leaseFilePath,
   leaseGuardPath,
+  parseJson,
   parseLeaseRecord,
   serializeJson,
   writeTempThenRename,
@@ -20,6 +21,10 @@ import {
 } from './filesystem-common.js';
 
 type GuardAuthoritativeLease = () => true | StorageError;
+type SerializedLeaseGuardRecord = {
+  readonly name: string;
+  readonly guardExpiresAt: string;
+};
 
 export type CreateFilesystemLeaseStoreOptions = {
   readonly backend: OpenFilesystemStorageOptions['backend'];
@@ -72,26 +77,90 @@ export const createFilesystemLeaseStore = ({
     );
   };
 
-  const withLeaseGuard = (name: string, operation: () => LeaseRecord): LeaseRecord | StorageError => {
-    const guardPath = leaseGuardPath(name);
-    const guardExpiresAt = new Date(now().getTime() + 60_000).toISOString();
+  const createGuardedUpdateError = (): StorageError =>
+    createStorageError(
+      'lease-unavailable',
+      controller.getHealth(),
+      'Lease acquire could not prove the guarded update.',
+    );
 
+  const parseLeaseGuardRecord = (
+    name: string,
+    bytes: Uint8Array | undefined,
+  ):
+    | {
+        readonly name: string;
+        readonly guardExpiresAt: Date;
+      }
+    | undefined => {
+    const parsed = parseJson<SerializedLeaseGuardRecord>(bytes);
+    if (parsed === undefined || parsed.name !== name) {
+      return undefined;
+    }
+
+    return {
+      name: parsed.name,
+      guardExpiresAt: new Date(parsed.guardExpiresAt),
+    };
+  };
+
+  const tryAcquireLeaseGuard = (name: string, guardPath: string): true | StorageError => {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        backend.writeExclusive(
+          guardPath,
+          serializeJson({
+            name,
+            guardExpiresAt: new Date(now().getTime() + 60_000).toISOString(),
+          } satisfies SerializedLeaseGuardRecord),
+        );
+        backend.fsyncFile(guardPath);
+        backend.fsyncDirectory(LEASES_DIRECTORY);
+        return true;
+      } catch {
+        const guardRecord = parseLeaseGuardRecord(name, backend.readFile(guardPath));
+        if (guardRecord === undefined) {
+          return createGuardedUpdateError();
+        }
+        if (guardRecord.guardExpiresAt.getTime() > now().getTime()) {
+          return createGuardedUpdateError();
+        }
+
+        try {
+          backend.remove(guardPath);
+          backend.fsyncDirectory(LEASES_DIRECTORY);
+        } catch {
+          controller.degrade(`${QUARANTINE_DIRECTORY}/leases/${encodePathComponent(name)}.guard.json`);
+          return createGuardedUpdateError();
+        }
+      }
+    }
+
+    return createGuardedUpdateError();
+  };
+
+  const withLeaseGuard = (
+    name: string,
+    operation: (currentRecord: LeaseRecord | undefined, currentNow: Date) => LeaseRecord | StorageError,
+  ): LeaseRecord | StorageError => {
+    const guardPath = leaseGuardPath(name);
     try {
-      backend.writeExclusive(guardPath, serializeJson({ name, guardExpiresAt }));
-      backend.fsyncFile(guardPath);
-      backend.fsyncDirectory(LEASES_DIRECTORY);
-      const record = operation();
-      persistLeaseRecord(record);
+      const guardAcquired = tryAcquireLeaseGuard(name, guardPath);
+      if (guardAcquired !== true) {
+        return guardAcquired;
+      }
+
+      const result = operation(readLeaseRecord(name), now());
+      if (!('code' in result)) {
+        persistLeaseRecord(result);
+      }
+
       backend.remove(guardPath);
       backend.fsyncDirectory(LEASES_DIRECTORY);
-      return record;
+      return result;
     } catch {
       controller.degrade(`${QUARANTINE_DIRECTORY}/leases/${encodePathComponent(name)}.guard.json`);
-      return createStorageError(
-        'lease-unavailable',
-        controller.getHealth(),
-        'Lease acquire could not prove the guarded update.',
-      );
+      return createGuardedUpdateError();
     }
   };
 
@@ -113,13 +182,23 @@ export const createFilesystemLeaseStore = ({
       }
 
       const token = createToken();
-      const nextRecordOrError = withLeaseGuard(name, () => ({
-        name,
-        epoch: (currentRecord?.epoch ?? 0) + 1,
-        holder,
-        tokenDigest: digestToken(token),
-        expiresAt: new Date(currentNow.getTime() + ttlMs),
-      }));
+      const nextRecordOrError = withLeaseGuard(name, (guardedRecord, guardedNow) => {
+        if (guardedRecord !== undefined && !isExpired(guardedRecord, guardedNow)) {
+          return createStorageError(
+            'stale-writer-fenced',
+            currentHealth(),
+            'Lease acquire was fenced because a live lease already exists.',
+          );
+        }
+
+        return {
+          name,
+          epoch: (guardedRecord?.epoch ?? 0) + 1,
+          holder,
+          tokenDigest: digestToken(token),
+          expiresAt: new Date(guardedNow.getTime() + ttlMs),
+        };
+      });
 
       if ('code' in nextRecordOrError) {
         return nextRecordOrError;
@@ -149,10 +228,25 @@ export const createFilesystemLeaseStore = ({
         );
       }
 
-      const renewedOrError = withLeaseGuard(name, () => ({
-        ...existing,
-        expiresAt: new Date(currentNow.getTime() + ttlMs),
-      }));
+      const renewedOrError = withLeaseGuard(name, (guardedRecord, guardedNow) => {
+        if (
+          guardedRecord === undefined ||
+          isExpired(guardedRecord, guardedNow) ||
+          guardedRecord.epoch !== epoch ||
+          guardedRecord.tokenDigest !== digestToken(token)
+        ) {
+          return createStorageError(
+            'stale-writer-fenced',
+            currentHealth(),
+            'Lease renew was fenced because the supplied epoch or token is stale.',
+          );
+        }
+
+        return {
+          ...guardedRecord,
+          expiresAt: new Date(guardedNow.getTime() + ttlMs),
+        };
+      });
       if ('code' in renewedOrError) {
         return renewedOrError;
       }
@@ -180,10 +274,25 @@ export const createFilesystemLeaseStore = ({
         );
       }
 
-      const releasedOrError = withLeaseGuard(name, () => ({
-        ...existing,
-        expiresAt: new Date(0),
-      }));
+      const releasedOrError = withLeaseGuard(name, (guardedRecord, guardedNow) => {
+        if (
+          guardedRecord === undefined ||
+          isExpired(guardedRecord, guardedNow) ||
+          guardedRecord.epoch !== epoch ||
+          guardedRecord.tokenDigest !== digestToken(token)
+        ) {
+          return createStorageError(
+            'stale-writer-fenced',
+            currentHealth(),
+            'Lease release was fenced because the supplied epoch or token is stale.',
+          );
+        }
+
+        return {
+          ...guardedRecord,
+          expiresAt: new Date(0),
+        };
+      });
       if ('code' in releasedOrError) {
         return releasedOrError;
       }

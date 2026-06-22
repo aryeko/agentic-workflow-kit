@@ -19,9 +19,39 @@ type RedactionState = {
   readonly fingerprintIds: ReadonlySet<string>;
 };
 
+type RedactionTraversalSuccess = {
+  readonly ok: true;
+  readonly value: RedactedInput | Error;
+  readonly state: RedactionState;
+};
+
+type RedactionTraversalFailure = {
+  readonly ok: false;
+};
+
+type RedactionTraversalContext = {
+  readonly depth: number;
+  readonly visited: WeakSet<object>;
+};
+
 const SUPPORTED_TEXT_ARTIFACT_MEDIA_TYPES = ['text/plain', 'application/json'] as const;
+const MAX_REDACTION_DEPTH = 64;
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const createEmptyState = (): RedactionState => ({
+  replacementCount: 0,
+  fingerprintIds: new Set<string>(),
+});
+
+const isUsableRedactionSet = (redactionSet: RedactionSet | undefined): redactionSet is RedactionSet => {
+  if (redactionSet === undefined) {
+    return false;
+  }
+
+  const compiled = getCompiledRedactionSet(redactionSet);
+  return compiled !== undefined && compiled.patterns.length > 0;
+};
 
 const denyRedactionUnavailable = <T extends RedactedInput>(
   input: RedactInput<T>,
@@ -73,10 +103,7 @@ const redactString = (
   if (compiled === undefined) {
     return {
       value,
-      state: {
-        replacementCount: 0,
-        fingerprintIds: new Set<string>(),
-      },
+      state: createEmptyState(),
     };
   }
 
@@ -117,10 +144,7 @@ const redactError = (
     value.stack === undefined
       ? {
           value: undefined,
-          state: {
-            replacementCount: 0,
-            fingerprintIds: new Set<string>(),
-          },
+          state: createEmptyState(),
         }
       : redactString(value.stack, redactionSet);
 
@@ -150,81 +174,138 @@ const redactError = (
 const redactUnknown = (
   value: RedactedInput | Error,
   redactionSet: RedactionSet,
-): {
-  readonly value: RedactedInput | Error;
-  readonly state: RedactionState;
-} => {
+  context: RedactionTraversalContext,
+): RedactionTraversalSuccess | RedactionTraversalFailure => {
   if (typeof value === 'string') {
-    return redactString(value, redactionSet);
+    const redacted = redactString(value, redactionSet);
+    return {
+      ok: true,
+      ...redacted,
+    };
   }
 
   if (typeof value === 'number' || typeof value === 'boolean' || value === null) {
     return {
+      ok: true,
       value,
-      state: {
-        replacementCount: 0,
-        fingerprintIds: new Set<string>(),
-      },
+      state: createEmptyState(),
     };
   }
 
   if (value instanceof Error) {
-    return redactError(value, redactionSet);
+    const redacted = redactError(value, redactionSet);
+    return {
+      ok: true,
+      ...redacted,
+    };
+  }
+
+  if (typeof value !== 'object' || context.depth >= MAX_REDACTION_DEPTH) {
+    return {
+      ok: false,
+    };
   }
 
   if (Array.isArray(value)) {
+    if (context.visited.has(value)) {
+      return {
+        ok: false,
+      };
+    }
+
+    context.visited.add(value);
     let replacementCount = 0;
     let fingerprintIds = new Set<string>();
-    const arrayValue = value.map((item) => {
-      const redacted = redactUnknown(item, redactionSet);
-      replacementCount += redacted.state.replacementCount;
-      fingerprintIds = new Set<string>([...fingerprintIds, ...redacted.state.fingerprintIds]);
-      return redacted.value as RedactedInput;
-    });
+    const arrayValue: RedactedInput[] = [];
+
+    try {
+      for (const item of value) {
+        const redacted = redactUnknown(item, redactionSet, {
+          ...context,
+          depth: context.depth + 1,
+        });
+        if (!redacted.ok) {
+          return redacted;
+        }
+
+        replacementCount += redacted.state.replacementCount;
+        fingerprintIds = new Set<string>([...fingerprintIds, ...redacted.state.fingerprintIds]);
+        arrayValue.push(redacted.value as RedactedInput);
+      }
+
+      return {
+        ok: true,
+        value: arrayValue,
+        state: {
+          replacementCount,
+          fingerprintIds,
+        },
+      };
+    } finally {
+      context.visited.delete(value);
+    }
+  }
+
+  if (context.visited.has(value)) {
+    return {
+      ok: false,
+    };
+  }
+
+  context.visited.add(value);
+  let replacementCount = 0;
+  let fingerprintIds = new Set<string>();
+  const nextEntries: [string, RedactedInput][] = [];
+
+  try {
+    for (const [key, nestedValue] of Object.entries(value)) {
+      const redactedKey = redactString(key, redactionSet);
+      const redactedValue = redactUnknown(nestedValue as RedactedInput, redactionSet, {
+        ...context,
+        depth: context.depth + 1,
+      });
+      if (!redactedValue.ok) {
+        return redactedValue;
+      }
+
+      replacementCount += redactedKey.state.replacementCount + redactedValue.state.replacementCount;
+      fingerprintIds = new Set<string>([
+        ...fingerprintIds,
+        ...redactedKey.state.fingerprintIds,
+        ...redactedValue.state.fingerprintIds,
+      ]);
+      nextEntries.push([redactedKey.value, redactedValue.value as RedactedInput]);
+    }
 
     return {
-      value: arrayValue,
+      ok: true,
+      value: Object.fromEntries(nextEntries),
       state: {
         replacementCount,
         fingerprintIds,
       },
     };
+  } finally {
+    context.visited.delete(value);
   }
-
-  let replacementCount = 0;
-  let fingerprintIds = new Set<string>();
-  const nextEntries: [string, RedactedInput][] = [];
-
-  for (const [key, nestedValue] of Object.entries(value)) {
-    const redactedKey = redactString(key, redactionSet);
-    const redactedValue = redactUnknown(nestedValue, redactionSet);
-    replacementCount += redactedKey.state.replacementCount + redactedValue.state.replacementCount;
-    fingerprintIds = new Set<string>([
-      ...fingerprintIds,
-      ...redactedKey.state.fingerprintIds,
-      ...redactedValue.state.fingerprintIds,
-    ]);
-    nextEntries.push([redactedKey.value, redactedValue.value as RedactedInput]);
-  }
-
-  return {
-    value: Object.fromEntries(nextEntries),
-    state: {
-      replacementCount,
-      fingerprintIds,
-    },
-  };
 };
 
 export const redact = <T extends RedactedInput>(
   input: RedactInput<T>,
   dependencies: RedactionDependencies,
 ): RedactResult<T> => {
-  if (input.redactionSet === undefined || getCompiledRedactionSet(input.redactionSet) === undefined) {
+  if (!isUsableRedactionSet(input.redactionSet)) {
     return denyRedactionUnavailable(input, dependencies);
   }
 
-  const redacted = redactUnknown(input.value, input.redactionSet);
+  const redacted = redactUnknown(input.value, input.redactionSet, {
+    depth: 0,
+    visited: new WeakSet<object>(),
+  });
+  if (!redacted.ok) {
+    return denyRedactionUnavailable(input, dependencies);
+  }
+
   const redactionFingerprintIds = input.redactionSet.fingerprintIds.filter((fingerprintId) =>
     redacted.state.fingerprintIds.has(fingerprintId),
   );

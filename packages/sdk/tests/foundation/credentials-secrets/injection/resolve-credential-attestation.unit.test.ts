@@ -36,6 +36,7 @@ describe('fnd-04-s2 resolve credential attestation requirements', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: true,
         requiredAuditEvent: planned.requiredAuditEvent,
         redactionSet: planned.redactionSet,
         egressPolicy: planned.egressPolicy,
@@ -65,6 +66,7 @@ describe('fnd-04-s2 resolve credential attestation requirements', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: true,
         requiredAuditEvent: planned.requiredAuditEvent,
         redactionSet: planned.redactionSet,
         egressPolicy: planned.egressPolicy,
@@ -110,6 +112,128 @@ describe('fnd-04-s2 resolve credential attestation requirements', () => {
         evidenceRefs: ['evidence://attestation-1'],
       }),
     });
+  });
+
+  it('fails closed as egress-policy-unattested when confinement is required but the egress policy is omitted', () => {
+    const planned = planInjection(
+      {
+        refs: [ref],
+        scope,
+        bindingTemplates: [
+          {
+            credentialRefId: 'registry-read',
+            mode: 'env',
+            nameOrPath: 'NPM_TOKEN',
+          },
+        ],
+        egressSource,
+      },
+      planDependencies,
+    );
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) {
+      return;
+    }
+
+    const resolveSecretMaterial = vi.fn(() => ({
+      material: 'super-secret-value',
+      materialHandle: 'memory://registry-read',
+      fingerprintId: 'fp-registry-read',
+    }));
+    const denied = resolveCredential(
+      {
+        ref,
+        scope,
+        egressConfinementRequired: true,
+        requiredAuditEvent: planned.requiredAuditEvent,
+        redactionSet: planned.redactionSet,
+        injectionModes: planned.bindings.map((binding) => binding.mode),
+        attestations: [createPositiveAttestation({ ok: true, value: planned.egressPolicy })],
+        attestationIds: ['attestation-1'],
+      },
+      {
+        hashText,
+        now: '2026-06-22T10:01:00.000Z',
+        issuedAt: '2026-06-22T10:00:00.000Z',
+        host: 'registry.npmjs.org',
+        command: 'pnpm install --frozen-lockfile',
+        at: '2026-06-22T10:01:05.000Z',
+        prevEventHash: planned.requiredAuditEvent.eventHash,
+        auditSinkAvailable: true,
+        resolveSecretMaterial,
+      },
+    );
+
+    expect(denied).toMatchObject({
+      ok: false,
+      reason: 'egress-policy-unattested',
+      auditEvent: {
+        type: 'CredentialUseDenied',
+        reason: 'egress-policy-unattested',
+      },
+    });
+    expect(resolveSecretMaterial).not.toHaveBeenCalled();
+  });
+
+  it('fails closed as egress-policy-unattested when confinement is required but the policy has zero required attesters', () => {
+    const planned = planInjection(
+      {
+        refs: [ref],
+        scope,
+        bindingTemplates: [
+          {
+            credentialRefId: 'registry-read',
+            mode: 'env',
+            nameOrPath: 'NPM_TOKEN',
+          },
+        ],
+        egressSource,
+      },
+      planDependencies,
+    );
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) {
+      return;
+    }
+
+    const resolveSecretMaterial = vi.fn(() => ({
+      material: 'super-secret-value',
+      materialHandle: 'memory://registry-read',
+      fingerprintId: 'fp-registry-read',
+    }));
+    const denied = resolveCredential(
+      {
+        ref,
+        scope,
+        egressConfinementRequired: true,
+        requiredAuditEvent: planned.requiredAuditEvent,
+        redactionSet: planned.redactionSet,
+        egressPolicy: {
+          ...planned.egressPolicy,
+          requiredAttesters: [],
+        },
+        injectionModes: planned.bindings.map((binding) => binding.mode),
+        attestations: [createPositiveAttestation({ ok: true, value: planned.egressPolicy })],
+        attestationIds: ['attestation-1'],
+      },
+      {
+        hashText,
+        now: '2026-06-22T10:01:00.000Z',
+        issuedAt: '2026-06-22T10:00:00.000Z',
+        host: 'registry.npmjs.org',
+        command: 'pnpm install --frozen-lockfile',
+        at: '2026-06-22T10:01:05.000Z',
+        prevEventHash: planned.requiredAuditEvent.eventHash,
+        auditSinkAvailable: true,
+        resolveSecretMaterial,
+      },
+    );
+
+    expect(denied).toMatchObject({
+      ok: false,
+      reason: 'egress-policy-unattested',
+    });
+    expect(resolveSecretMaterial).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -171,6 +295,7 @@ describe('fnd-04-s2 resolve credential attestation requirements', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: true,
         requiredAuditEvent: planned.requiredAuditEvent,
         redactionSet: planned.redactionSet,
         egressPolicy: planned.egressPolicy,
@@ -226,6 +351,7 @@ describe('fnd-04-s2 resolve credential attestation requirements', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: true,
         requiredAuditEvent: planned.requiredAuditEvent,
         redactionSet: planned.redactionSet,
         egressPolicy: planned.egressPolicy,

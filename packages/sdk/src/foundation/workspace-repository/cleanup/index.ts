@@ -113,6 +113,12 @@ export type CleanupObservedState = {
   readonly dirtyPaths: readonly RelativePath[];
 };
 
+export type CurrentWorktreeStatus = {
+  readonly stagedPaths: readonly RelativePath[];
+  readonly unstagedPaths: readonly RelativePath[];
+  readonly untrackedPaths: readonly RelativePath[];
+};
+
 export type CleanupBlockedError = {
   readonly token: 'cleanup-blocked' | 'stale-lease-fence' | 'dirty-worktree' | 'worktree-path-conflict';
   readonly lease: CleanupLease;
@@ -161,6 +167,11 @@ export type CleanupGitDependencies = {
     readonly worktreePath: AbsolutePath;
     readonly branchName: string;
   }) => GitSha | undefined;
+  readonly getCurrentWorktreeStatus?: (input: {
+    readonly repository: RepositoryIdentity;
+    readonly worktreePath: AbsolutePath;
+    readonly branchName: string;
+  }) => CurrentWorktreeStatus | undefined;
   readonly isWorktreePathOwnedByLease?: (input: {
     readonly repository: RepositoryIdentity;
     readonly worktreePath: AbsolutePath;
@@ -361,18 +372,28 @@ export const cleanupLeaseRecord = (input: {
   }
 
   const evidence = input.record.finalizedEvidence;
-  const dirtyPaths = uniqueSortedPaths([
-    ...(evidence?.stagedPaths ?? []),
-    ...(evidence?.unstagedPaths ?? []),
-    ...(evidence?.untrackedPaths ?? []),
-  ]);
-
   const pathExists = defaultPathExists(input.record.lease.worktreePath);
   const registrationPresentBeforePrune =
     input.runtime.isWorktreeRegistrationPresent?.({
       repository: input.repository,
       worktreePath: input.record.lease.worktreePath,
     }) ?? false;
+  const currentWorktreeStatus = pathExists
+    ? input.runtime.getCurrentWorktreeStatus?.({
+        repository: input.repository,
+        worktreePath: input.record.lease.worktreePath,
+        branchName: input.record.lease.branchName,
+      })
+    : undefined;
+  const dirtyPaths = uniqueSortedPaths(
+    currentWorktreeStatus === undefined
+      ? [...(evidence?.stagedPaths ?? []), ...(evidence?.unstagedPaths ?? []), ...(evidence?.untrackedPaths ?? [])]
+      : [
+          ...currentWorktreeStatus.stagedPaths,
+          ...currentWorktreeStatus.unstagedPaths,
+          ...currentWorktreeStatus.untrackedPaths,
+        ],
+  );
 
   if (dirtyPaths.length > 0) {
     const observed = buildObservedState({

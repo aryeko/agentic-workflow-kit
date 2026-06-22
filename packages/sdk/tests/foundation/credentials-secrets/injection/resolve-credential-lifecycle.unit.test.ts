@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { issueEgressPolicy, planInjection, resolveCredential } from '../../../../src/index.js';
+import { buildAuditSeed } from '../../../../src/foundation/credentials-secrets/injection/operation-audit.js';
 import {
   createPositiveAttestation,
   egressSource,
@@ -35,6 +36,7 @@ describe('fnd-04-s2 resolve credential lifecycle', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: true,
         redactionSet: {
           id: 'redaction-set-1',
           credentialRefIds: ['registry-read'],
@@ -65,6 +67,24 @@ describe('fnd-04-s2 resolve credential lifecycle', () => {
       reason: 'audit-write-unavailable',
       auditEvent: {
         reason: 'audit-write-unavailable',
+        credentialRefDigest: buildAuditSeed(
+          {
+            refs: [ref],
+            scope,
+            at: '2026-06-22T10:01:05.000Z',
+            prevEventHash: 'digest:previous',
+          },
+          hashText,
+        ).credentialRefDigest,
+        scopeDigest: buildAuditSeed(
+          {
+            refs: [ref],
+            scope,
+            at: '2026-06-22T10:01:05.000Z',
+            prevEventHash: 'digest:previous',
+          },
+          hashText,
+        ).scopeDigest,
       },
     });
     expect(resolveSecretMaterial).not.toHaveBeenCalled();
@@ -100,6 +120,7 @@ describe('fnd-04-s2 resolve credential lifecycle', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: true,
         requiredAuditEvent: planned.requiredAuditEvent,
         egressPolicy: planned.egressPolicy,
         injectionModes: ['env'],
@@ -153,6 +174,7 @@ describe('fnd-04-s2 resolve credential lifecycle', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: true,
         requiredAuditEvent: planned.requiredAuditEvent,
         redactionSet: planned.redactionSet,
         egressPolicy: planned.egressPolicy,
@@ -187,6 +209,7 @@ describe('fnd-04-s2 resolve credential lifecycle', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: false,
         requiredAuditEvent: {
           type: 'CredentialUsePlanned',
           runId: 'run-123',
@@ -258,6 +281,7 @@ describe('fnd-04-s2 resolve credential lifecycle', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: false,
         requiredAuditEvent: {
           type: 'CredentialUsePlanned',
           runId: 'run-123',

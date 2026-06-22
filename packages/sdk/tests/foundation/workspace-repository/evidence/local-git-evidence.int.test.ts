@@ -1,5 +1,6 @@
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -165,6 +166,43 @@ const expectRecordSuccess = (
   return result.value;
 };
 
+const readModuleSource = (relativePathFromTest: string): string =>
+  readFileSync(fileURLToPath(new URL(relativePathFromTest, import.meta.url)), 'utf8');
+
+const collectPublicSurfaceTokens = (source: string): readonly string[] => {
+  const exportedNames = [...source.matchAll(/export\s+(?:const|type|interface|function)\s+([A-Za-z0-9_]+)/g)].map(
+    (match) => match[1],
+  );
+  const readonlyFieldNames = [...source.matchAll(/readonly\s+([A-Za-z0-9_]+)\??:/g)].map((match) => match[1]);
+  const exportedStringLiteralMembers = [...source.matchAll(/export\s+type\s+[A-Za-z0-9_]+\s*=\s*([\s\S]*?);/g)].flatMap(
+    ([, declaration]) => [...declaration.matchAll(/'([^']+)'/g)].map((match) => match[1]),
+  );
+
+  return [...new Set([...exportedNames, ...readonlyFieldNames, ...exportedStringLiteralMembers])].map((token) =>
+    token.toLowerCase(),
+  );
+};
+
+const tokenRepresentsForbiddenBoundaryTerm = (token: string, term: string): boolean => {
+  const lowered = token.toLowerCase();
+
+  if (term === 'ci' || term === 'pr') {
+    return (
+      lowered === term ||
+      lowered.startsWith(`${term}_`) ||
+      lowered.endsWith(`_${term}`) ||
+      lowered.startsWith(`${term}-`) ||
+      lowered.endsWith(`-${term}`)
+    );
+  }
+
+  if (term === 'merge') {
+    return lowered.includes(term) && !lowered.startsWith('mergebase') && !lowered.includes('merge-base');
+  }
+
+  return lowered.includes(term);
+};
+
 describe('fnd-03-s3 local git evidence recorder', () => {
   it('records the local git evidence shape, commit summaries, diff refs, and clean working tree from a local fixture', () => {
     const compileOnlyAssertions: readonly [LocalGitEvidenceKeysExact, LocalGitEvidenceRecordedPayloadKeysExact] = [
@@ -312,6 +350,28 @@ describe('fnd-03-s3 local git evidence recorder', () => {
       workerProse: expect.anything(),
     });
     expect(Object.keys(recorded.localCommits[0] ?? {}).sort()).toEqual(['authoredAt', 'parentShas', 'sha', 'subject']);
+  });
+
+  it('keeps the public workspace-repository surface free of remote, credential, ci, pr, review, and forbidden merge concepts across worktree, evidence, setup, and cleanup modules', () => {
+    const worktreeSource = readModuleSource('../../../../src/foundation/workspace-repository/worktree/index.ts');
+    const evidenceSource = readModuleSource('../../../../src/foundation/workspace-repository/evidence/index.ts');
+    const setupSource = readModuleSource('../../../../src/foundation/workspace-repository/setup/index.ts');
+    const cleanupSource = readModuleSource('../../../../src/foundation/workspace-repository/cleanup/index.ts');
+    const publicSurfaceTokens = [
+      ...collectPublicSurfaceTokens(worktreeSource),
+      ...collectPublicSurfaceTokens(evidenceSource),
+      ...collectPublicSurfaceTokens(setupSource),
+      ...collectPublicSurfaceTokens(cleanupSource),
+    ];
+
+    expect(publicSurfaceTokens).toContain('mergebasesha');
+    expect(publicSurfaceTokens).toContain('merge-base-unavailable');
+
+    for (const forbiddenTerm of ['remote', 'credential', 'ci', 'pr', 'review', 'merge']) {
+      expect(publicSurfaceTokens.some((token) => tokenRepresentsForbiddenBoundaryTerm(token, forbiddenTerm))).toBe(
+        false,
+      );
+    }
   });
 
   it('returns stale-lease-fence through WorkspaceRepository before invoking evidence recording', () => {

@@ -104,10 +104,82 @@ const resolveRequiredAttesters = (
     ];
   });
 
+const denyPolicyIssuance = (
+  ref: CredentialRef,
+  scope: IssueEgressPolicyInput['scope'],
+  reason: 'credential-scope-denied' | 'worker-forge-credential-denied',
+  dependencies: IssueEgressPolicyDependencies,
+) =>
+  createCredentialDenied(
+    reason,
+    createCredentialUseDenied(
+      {
+        audit: {
+          runId: scope.runId,
+          taskId: scope.taskId,
+          operationId: scope.operationId,
+          credentialRefIds: [ref.id],
+          party: scope.party,
+          phase: scope.phase,
+          policyDigest: ref.policyDigest,
+          credentialRefDigest: createCredentialRefDigest([ref], dependencies.hashText),
+          scopeDigest: createScopeDigest(scope, dependencies.hashText),
+          ...(scope.grantEventId === undefined ? {} : { grantEventId: scope.grantEventId }),
+          attestationEventIds: [],
+          evidenceRefs: [],
+          prevEventHash: dependencies.prevEventHash,
+          at: dependencies.at,
+        },
+        reason,
+      },
+      dependencies,
+    ),
+  );
+
+const validatePublicEgressPolicyInput = (
+  input: IssueEgressPolicyInput,
+  dependencies: IssueEgressPolicyDependencies,
+): IssueEgressPolicyResult | undefined => {
+  for (const ref of input.refs) {
+    if (ref.kind !== 'forge') {
+      continue;
+    }
+
+    if (input.scope.party === 'worker') {
+      return denyPolicyIssuance(ref, input.scope, 'worker-forge-credential-denied', dependencies);
+    }
+
+    if (!ref.allowedParties.includes(input.scope.party)) {
+      return denyPolicyIssuance(ref, input.scope, 'credential-scope-denied', dependencies);
+    }
+
+    if (!ref.allowedPhases.includes(input.scope.phase)) {
+      return denyPolicyIssuance(ref, input.scope, 'credential-scope-denied', dependencies);
+    }
+
+    const selectedRules = input.egressSource.rules.filter(
+      (rule) => rule.phase === input.scope.phase && rule.credentialRefIds.includes(ref.id),
+    );
+    if (
+      selectedRules.length === 0 ||
+      selectedRules.some((rule) => rule.hosts.some((host) => !ref.allowedHosts.includes(host)))
+    ) {
+      return denyPolicyIssuance(ref, input.scope, 'credential-scope-denied', dependencies);
+    }
+  }
+
+  return undefined;
+};
+
 export const issueEgressPolicy = (
   input: IssueEgressPolicyInput,
   dependencies: IssueEgressPolicyDependencies,
 ): IssueEgressPolicyResult => {
+  const validation = validatePublicEgressPolicyInput(input, dependencies);
+  if (validation !== undefined) {
+    return validation;
+  }
+
   const scopeDigest = createScopeDigest(input.scope, dependencies.hashText);
   const rules = selectRules(input);
   const negativeProbes = selectNegativeProbes(input);

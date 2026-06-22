@@ -375,4 +375,66 @@ describe('fnd-03-s4 blocked cleanup paths', () => {
     expect(deleteFailureHarness.registrationPresent()).toBe(false);
     expect(deleteFailureHarness.tombstoneWrites).toEqual([]);
   });
+
+  it('blocks cleanup when the worktree becomes dirty after finalization but before removal', () => {
+    const cleanEvidence = createLocalGitEvidence(
+      join(createTempRoot(), 'worktrees', 'workflow-kit', 'cleanup-run') as AbsolutePath,
+    );
+    const harness = createHarness({
+      branchHeadSha: cleanEvidence.headSha,
+      currentHeadSha: cleanEvidence.headSha,
+      localGitEvidence: cleanEvidence,
+      currentWorktreeStatus: {
+        stagedPaths: ['packages/sdk/tests/foundation/workspace-repository/cleanup/cleanup-blocked-paths.int.test.ts'],
+        unstagedPaths: ['README.md'],
+        untrackedPaths: ['scratch/new-dirty.txt'],
+      },
+    });
+    const created = expectCreateLeaseSuccess(
+      harness.workspaceRepository.createLease({
+        runId: 'cleanup-run',
+        taskId: 'fnd-03-s4',
+        repoId: harness.repository.repoId,
+      }),
+    );
+    const recorded = expectRecordEvidenceSuccess(
+      harness.workspaceRepository.recordLocalGitEvidence({
+        leaseId: created.lease.leaseId,
+        epoch: created.lease.epoch,
+        fenceToken: created.lease.fenceToken,
+      }),
+    );
+    expectFinalizeSuccess(
+      harness.workspaceRepository.finalizeLease({
+        leaseId: created.lease.leaseId,
+        evidenceId: recorded.evidence.evidenceId,
+        epoch: created.lease.epoch,
+        fenceToken: created.lease.fenceToken,
+      }),
+    );
+
+    expect(
+      harness.workspaceRepository.cleanupLease({
+        leaseId: created.lease.leaseId,
+        epoch: created.lease.epoch,
+        fenceToken: created.lease.fenceToken,
+        deleteLocalBranch: false,
+      }),
+    ).toEqual({
+      ok: false,
+      error: expect.objectContaining({
+        token: 'dirty-worktree',
+        reason: 'dirty-worktree',
+        observed: expect.objectContaining({
+          dirtyPaths: [
+            'packages/sdk/tests/foundation/workspace-repository/cleanup/cleanup-blocked-paths.int.test.ts',
+            'README.md',
+            'scratch/new-dirty.txt',
+          ],
+        }),
+      }),
+    });
+    expect(harness.removedPaths).toEqual([]);
+    expect(harness.tombstoneWrites).toEqual([]);
+  });
 });

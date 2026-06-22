@@ -2,7 +2,7 @@ import { validateCredentialScopeUse } from '../scopes/index.js';
 import { denyUnattestedEgressPolicy } from '../egress/index.js';
 import { denyAuditWriteUnavailable } from '../failures/index.js';
 import { createCredentialDenied } from '../failures/index.js';
-import { createStartedAuditEvent, denyCredential } from './operation-audit.js';
+import { buildAuditSeed, createStartedAuditEvent, denyCredential } from './operation-audit.js';
 import type {
   ResolveCredentialDependencies,
   ResolveCredentialInput,
@@ -55,6 +55,9 @@ const matchesEgressAttestation = (
   });
 };
 
+const requiresAttestedEgressPolicy = (input: ResolveCredentialInput): boolean =>
+  input.egressConfinementRequired || (input.egressPolicy?.requiredAttesters.length ?? 0) > 0;
+
 export const resolveCredential = (
   input: ResolveCredentialInput,
   dependencies: ResolveCredentialDependencies,
@@ -82,22 +85,15 @@ export const resolveCredential = (
   if (!dependencies.auditSinkAvailable || input.requiredAuditEvent === undefined) {
     return denyAuditWriteUnavailable(
       {
-        audit: {
-          runId: input.scope.runId,
-          taskId: input.scope.taskId,
-          operationId: input.scope.operationId,
-          credentialRefIds: [input.ref.id],
-          party: input.scope.party,
-          phase: input.scope.phase,
-          policyDigest: input.ref.policyDigest,
-          credentialRefDigest: input.requiredAuditEvent?.credentialRefDigest ?? dependencies.hashText(input.ref.id),
-          scopeDigest: input.requiredAuditEvent?.scopeDigest ?? dependencies.hashText(input.scope.operationId),
-          ...(input.scope.grantEventId === undefined ? {} : { grantEventId: input.scope.grantEventId }),
-          attestationEventIds: [],
-          evidenceRefs: [],
-          prevEventHash: dependencies.prevEventHash,
-          at: dependencies.at,
-        },
+        audit: buildAuditSeed(
+          {
+            refs: [input.ref],
+            scope: input.scope,
+            at: dependencies.at,
+            prevEventHash: dependencies.prevEventHash,
+          },
+          dependencies.hashText,
+        ),
       },
       dependencies,
     );
@@ -120,8 +116,24 @@ export const resolveCredential = (
     });
   }
 
+  if (
+    requiresAttestedEgressPolicy(input) &&
+    (input.egressPolicy === undefined || input.egressPolicy.requiredAttesters.length === 0)
+  ) {
+    return denyUnattestedEgressPolicy(
+      {
+        refs: [input.ref],
+        scope: input.scope,
+        egressPolicyDigest: input.egressPolicy?.egressPolicyDigest ?? input.ref.policyDigest,
+        at: dependencies.at,
+        prevEventHash: dependencies.prevEventHash,
+      },
+      dependencies,
+    );
+  }
+
   const matchedAttestations = matchesEgressAttestation(input, dependencies);
-  if (input.egressPolicy !== undefined && input.egressPolicy.requiredAttesters.length > 0) {
+  if (requiresAttestedEgressPolicy(input) && input.egressPolicy !== undefined) {
     const requiredIds = input.egressPolicy.requiredAttesters.map((requiredAttester) => requiredAttester.driverId);
     const matchedIds = matchedAttestations.map((attestation) => attestation.driverId);
     if (requiredIds.some((driverId) => !matchedIds.includes(driverId))) {

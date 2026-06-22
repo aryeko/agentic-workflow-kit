@@ -367,7 +367,7 @@ export const runFilesystemConformanceSuite = (
             redactionState: 'redacted',
           },
           {
-            id: replacement.id,
+            id: artifact.id,
             digest: replacement.digest,
             size: replacement.size,
             redactionState: 'redacted',

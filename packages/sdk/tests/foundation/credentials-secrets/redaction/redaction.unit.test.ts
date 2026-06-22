@@ -395,6 +395,89 @@ describe('fnd-04-s3 redaction', () => {
     });
   });
 
+  it('fails closed with redaction-unavailable when recursive object or array inputs are circular', () => {
+    const redactionSet = createFixtureRedactionSet();
+    const circularObject: Record<string, unknown> = {
+      token: secret,
+    };
+    circularObject.self = circularObject;
+
+    const circularArray: unknown[] = [secret];
+    circularArray.push(circularArray);
+
+    const objectResult = redact(
+      {
+        value: circularObject as unknown as Parameters<typeof redact>[0]['value'],
+        redactionSet,
+        audit: {
+          ...createAuditSeed(),
+          operationId: 'operation-circular-object',
+        },
+        sink: 'circular-object',
+      },
+      { hashText },
+    );
+    const arrayResult = redact(
+      {
+        value: circularArray as unknown as Parameters<typeof redact>[0]['value'],
+        redactionSet,
+        audit: {
+          ...createAuditSeed(),
+          operationId: 'operation-circular-array',
+        },
+        sink: 'circular-array',
+      },
+      { hashText },
+    );
+
+    expect(objectResult).toMatchObject({
+      ok: false,
+      reason: 'redaction-unavailable',
+      auditEvent: {
+        type: 'CredentialUseDenied',
+        reason: 'redaction-unavailable',
+      },
+    });
+    expect(arrayResult).toMatchObject({
+      ok: false,
+      reason: 'redaction-unavailable',
+      auditEvent: {
+        type: 'CredentialUseDenied',
+        reason: 'redaction-unavailable',
+      },
+    });
+  });
+
+  it('fails closed with redaction-unavailable when the compiled RedactionSet is empty', () => {
+    const emptyRedactionSet = createRedactionSet({
+      id: 'redaction-set-empty',
+      expiresAt: '2026-06-22T12:05:00.000Z',
+      secrets: [],
+    });
+
+    const result = redact(
+      {
+        value: 'visible output',
+        redactionSet: emptyRedactionSet,
+        audit: {
+          ...createAuditSeed(),
+          operationId: 'operation-empty-redaction-set',
+        },
+        sink: 'stdout',
+      },
+      { hashText },
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'redaction-unavailable',
+      auditEvent: {
+        type: 'CredentialUseDenied',
+        reason: 'redaction-unavailable',
+      },
+    });
+  });
+
   it('quarantines binary or unredactable artifacts as artifact-redaction-failed', () => {
     const redactionSet = createFixtureRedactionSet();
     const binaryResult = redactArtifact(

@@ -67,6 +67,11 @@ afterEach(() => {
 
 type HarnessOptions = {
   readonly localGitEvidence: LocalGitEvidence;
+  readonly currentWorktreeStatus?: {
+    readonly stagedPaths: readonly string[];
+    readonly unstagedPaths: readonly string[];
+    readonly untrackedPaths: readonly string[];
+  };
   readonly pathOwnedByLease?: boolean;
   readonly registrationPresent?: boolean;
   readonly branchHeadSha?: GitSha;
@@ -121,6 +126,9 @@ export const createHarness = (options?: Partial<HarnessOptions>) => {
     gitDir: join(repoRoot, '.git') as AbsolutePath,
     defaultBaseRef: 'refs/heads/v-next' as LocalRef,
   };
+  const localGitEvidence =
+    options?.localGitEvidence ??
+    createLocalGitEvidence(join(worktreeRoot, 'workflow-kit', 'cleanup-run') as AbsolutePath);
 
   let registrationPresent = options?.registrationPresent ?? true;
   const removedPaths: string[] = [];
@@ -173,6 +181,12 @@ export const createHarness = (options?: Partial<HarnessOptions>) => {
         getHeadShaCallCount += 1;
         return options?.currentHeadSha;
       },
+      getCurrentWorktreeStatus: () =>
+        options?.currentWorktreeStatus ?? {
+          stagedPaths: localGitEvidence.stagedPaths,
+          unstagedPaths: localGitEvidence.unstagedPaths,
+          untrackedPaths: localGitEvidence.untrackedPaths,
+        },
       isWorktreePathOwnedByLease: () => options?.pathOwnedByLease ?? true,
       isWorktreeRegistrationPresent: () => registrationPresent,
       pruneWorktreeRegistration: () => {
@@ -204,9 +218,7 @@ export const createHarness = (options?: Partial<HarnessOptions>) => {
     localGitEvidenceRecorder: {
       record: () => ({
         ok: true,
-        value:
-          options?.localGitEvidence ??
-          createLocalGitEvidence(join(worktreeRoot, 'workflow-kit', 'cleanup-run') as AbsolutePath),
+        value: localGitEvidence,
       }),
     },
     cleanupDependencies: {

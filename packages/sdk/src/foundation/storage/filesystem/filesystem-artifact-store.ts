@@ -43,6 +43,10 @@ import {
 type GuardAuthoritativeArtifact = (operation: 'evidence-ref' | 'export') => true | StorageError;
 
 type ResolvedLogRange = ExportManifestLogRange | StorageError | undefined;
+type ExportArtifactSelection = {
+  readonly manifestId: string;
+  readonly artifact: ArtifactRef;
+};
 
 export type CreateFilesystemArtifactStoreOptions = {
   readonly backend: OpenFilesystemStorageOptions['backend'];
@@ -213,7 +217,10 @@ export const createFilesystemArtifactStore = ({
     return createArtifactRef(metadata);
   };
 
-  const resolveExportArtifact = (entry: ArtifactEntry, mode: 'redacted' | 'raw'): ArtifactRef | StorageError => {
+  const resolveExportArtifact = (
+    entry: ArtifactEntry,
+    mode: 'redacted' | 'raw',
+  ): ExportArtifactSelection | StorageError => {
     if (mode === 'raw' || entry.metadata.redactionState !== 'tombstoned') {
       const integrity = verifyIntegrity(entry);
       if (integrity !== true) {
@@ -224,7 +231,10 @@ export const createFilesystemArtifactStore = ({
         );
       }
 
-      return createArtifactRef(entry.metadata);
+      return {
+        manifestId: entry.metadata.id,
+        artifact: createArtifactRef(entry.metadata),
+      };
     }
 
     if (entry.replacementId === undefined) {
@@ -251,7 +261,10 @@ export const createFilesystemArtifactStore = ({
       );
     }
 
-    return createArtifactRef(replacement.metadata);
+    return {
+      manifestId: entry.metadata.id,
+      artifact: createArtifactRef(replacement.metadata),
+    };
   };
 
   const updateRedactionMetadata = (entry: ArtifactEntry, replacementId: string): ArtifactEntry => ({
@@ -315,6 +328,11 @@ export const createFilesystemArtifactStore = ({
       }
 
       const bytes = await collectInputBytes(input.content);
+      const validation = validateContent(bytes, input.classification);
+      if (validation !== true) {
+        return validation;
+      }
+
       const digest = digestBytes(bytes);
       const id = `scratch:sha256:${digest}`;
       const existing = scratchEntries.get(id);
@@ -470,7 +488,7 @@ export const createFilesystemArtifactStore = ({
       }
 
       const redactionMode = selection.mode ?? 'redacted';
-      const artifacts: ArtifactRef[] = [];
+      const artifacts: ExportArtifactSelection[] = [];
 
       for (const artifactId of selection.artifactIds) {
         const entry = artifactEntries.get(artifactId);
@@ -506,12 +524,17 @@ export const createFilesystemArtifactStore = ({
         createdAt: now(),
         redactionMode,
         logHealth: currentHealth(),
-        artifacts: artifacts.sort(sortArtifacts).map((artifact) => ({
-          id: artifact.id,
-          digest: artifact.digest,
-          size: artifact.size,
-          redactionState: artifact.redactionState,
-        })),
+        artifacts: artifacts
+          .sort(
+            (left, right) =>
+              left.manifestId.localeCompare(right.manifestId) || sortArtifacts(left.artifact, right.artifact),
+          )
+          .map(({ manifestId, artifact }) => ({
+            id: manifestId,
+            digest: artifact.digest,
+            size: artifact.size,
+            redactionState: artifact.redactionState,
+          })),
         logRanges: logRanges.sort(sortLogRanges),
       } satisfies ExportManifest;
     },

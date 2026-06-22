@@ -10,6 +10,22 @@ import {
   createPositiveAttestation,
 } from './resolve-credential.test-helpers.js';
 
+const forgeRef = {
+  id: 'forge-primary',
+  kind: 'forge' as const,
+  purpose: 'push to remote',
+  secret: {
+    id: 'secret-ref:digest:{"key":"GITHUB_TOKEN","source":"env"}',
+    source: 'env' as const,
+    key: 'GITHUB_TOKEN',
+  },
+  allowedParties: ['runner'] as const,
+  allowedPhases: ['push'] as const,
+  allowedHosts: ['github.com'] as const,
+  ttlSeconds: 120,
+  policyDigest: 'digest:forge-policy',
+};
+
 describe('fnd-04-s2 issue egress policy', () => {
   it('issues a default-deny EgressPolicy with rules, negative probes, required attesters, freshness key, expiry, and digest', () => {
     const policy = issueEgressPolicy(
@@ -91,6 +107,151 @@ describe('fnd-04-s2 issue egress policy', () => {
     expect(policy.value.freshnessKey).toContain('"credentialRefIds":["registry-read"]');
   });
 
+  it('denies worker Forge scopes when issuing a public egress policy', () => {
+    const policy = issueEgressPolicy(
+      {
+        refs: [forgeRef],
+        scope: {
+          ...scope,
+          phase: 'push',
+          commandPrefix: 'git push ',
+        },
+        egressSource: {
+          defaultAction: 'deny',
+          rules: [
+            {
+              credentialRefIds: ['forge-primary'],
+              protocols: ['https'],
+              hosts: ['github.com'],
+              phase: 'push',
+              purpose: 'push to remote',
+            },
+          ],
+          negativeProbes: [],
+          requiredAttesters: [
+            {
+              point: 'execution-host',
+              capability: 'egress-confinement',
+              driverId: 'local-host',
+            },
+          ],
+        },
+        requiredAttesters,
+      },
+      {
+        hashText,
+        at: '2026-06-22T10:00:30.000Z',
+        prevEventHash: 'digest:previous',
+      },
+    );
+
+    expect(policy).toMatchObject({
+      ok: false,
+      reason: 'worker-forge-credential-denied',
+      auditEvent: {
+        type: 'CredentialUseDenied',
+        reason: 'worker-forge-credential-denied',
+      },
+    });
+  });
+
+  it.each([
+    [
+      'the runner scope phase is outside the Forge ref policy',
+      {
+        scope: {
+          ...scope,
+          party: 'runner' as const,
+          phase: 'review-metadata',
+          commandPrefix: 'gh pr view ',
+        },
+        egressSource: {
+          defaultAction: 'deny' as const,
+          rules: [
+            {
+              credentialRefIds: ['forge-primary'],
+              protocols: ['https'] as const,
+              hosts: ['github.com'],
+              phase: 'review-metadata',
+              purpose: 'read review metadata',
+            },
+          ],
+          negativeProbes: [],
+          requiredAttesters: [
+            {
+              point: 'execution-host' as const,
+              capability: 'egress-confinement' as const,
+              driverId: 'local-host',
+            },
+          ],
+        },
+        expectedReason: 'phase-not-allowed',
+      },
+    ],
+    [
+      'the runner Forge egress rule targets a host outside the configured allowlist',
+      {
+        scope: {
+          ...scope,
+          party: 'runner' as const,
+          phase: 'push',
+          commandPrefix: 'git push ',
+        },
+        egressSource: {
+          defaultAction: 'deny' as const,
+          rules: [
+            {
+              credentialRefIds: ['forge-primary'],
+              protocols: ['https'] as const,
+              hosts: ['gitlab.com'],
+              phase: 'push',
+              purpose: 'push to remote',
+            },
+          ],
+          negativeProbes: [],
+          requiredAttesters: [
+            {
+              point: 'execution-host' as const,
+              capability: 'egress-confinement' as const,
+              driverId: 'local-host',
+            },
+          ],
+        },
+        expectedReason: 'host-not-allowed',
+      },
+    ],
+  ])('denies runner Forge issuance when %s', (_label, fixture) => {
+    const policy = issueEgressPolicy(
+      {
+        refs: [forgeRef],
+        scope: fixture.scope,
+        egressSource: fixture.egressSource,
+        requiredAttesters,
+      },
+      {
+        hashText,
+        at: '2026-06-22T10:00:30.000Z',
+        prevEventHash: 'digest:previous',
+      },
+    );
+
+    expect(policy).toMatchObject({
+      ok: false,
+      reason: 'credential-scope-denied',
+      auditEvent: {
+        type: 'CredentialUseDenied',
+        reason: 'credential-scope-denied',
+      },
+    });
+    if (policy.ok) {
+      return;
+    }
+
+    expect(policy.auditEvent.scopeDigest).toBeDefined();
+    expect(policy.auditEvent.reason).toBe('credential-scope-denied');
+    expect(fixture.expectedReason).toBeTruthy();
+  });
+
   it('retains required attesters without runtime metadata and denies release even when other attestation evidence matches', () => {
     const policy = issueEgressPolicy(
       {
@@ -138,6 +299,7 @@ describe('fnd-04-s2 issue egress policy', () => {
       {
         ref,
         scope,
+        egressConfinementRequired: true,
         requiredAuditEvent: {
           type: 'CredentialUsePlanned',
           runId: 'run-123',

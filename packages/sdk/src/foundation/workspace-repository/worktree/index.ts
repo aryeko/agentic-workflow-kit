@@ -39,6 +39,7 @@ import {
   createCleanupLeaseHandler,
   createFinalizeLeaseHandler,
 } from '../cleanup/worktree-settlement.js';
+import { cleanupFailedLeaseCreation } from './failed-lease-cleanup.js';
 
 import {
   createLocalBranchCreatedIntent,
@@ -54,20 +55,7 @@ import {
   type LocalGitEvidenceRecordedPayload,
   type WorkspaceRepositoryAppendIntent,
 } from './intents.js';
-
-export const WORKTREE_LEASE_STATES = [
-  'planned',
-  'leased',
-  'branch-created',
-  'setup-required',
-  'ready',
-  'finalized',
-  'cleanup-pending',
-  'cleanup-blocked',
-  'cleaned',
-] as const;
-
-export type WorktreeLeaseState = (typeof WORKTREE_LEASE_STATES)[number];
+import type { WorktreeLeaseState } from './states.js';
 
 export type WorktreeLease = {
   readonly leaseId: string;
@@ -491,7 +479,13 @@ export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDepen
           baseSha: baseRefResult.value.sha,
         });
       } catch {
-        dependencies.leaseStore.release(acquiredLease.name, acquiredLease.epoch, acquiredLease.token);
+        cleanupFailedLeaseCreation({
+          repository: dependencies.repository,
+          worktreePath,
+          acquiredLease,
+          leaseStore: dependencies.leaseStore,
+          git: dependencies.git,
+        });
         return {
           ok: false,
           error: {
@@ -501,13 +495,30 @@ export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDepen
         };
       }
 
-      dependencies.git.createLocalBranch({
-        repository: dependencies.repository,
-        worktreePath,
-        branchName: branchPlan.value.branchName,
-        targetSha: branchPlan.value.targetSha,
-        trackUpstream: false,
-      });
+      try {
+        dependencies.git.createLocalBranch({
+          repository: dependencies.repository,
+          worktreePath,
+          branchName: branchPlan.value.branchName,
+          targetSha: branchPlan.value.targetSha,
+          trackUpstream: false,
+        });
+      } catch {
+        cleanupFailedLeaseCreation({
+          repository: dependencies.repository,
+          worktreePath,
+          acquiredLease,
+          leaseStore: dependencies.leaseStore,
+          git: dependencies.git,
+        });
+        return {
+          ok: false,
+          error: {
+            token: 'worktree-path-conflict',
+            worktreePath,
+          },
+        };
+      }
 
       const lease: WorktreeLease = {
         leaseId: acquiredLease.name,
@@ -767,6 +778,9 @@ export type {
   WorktreeLeaseFinalizedIntent,
   WorktreeLeaseFinalizedPayload,
 } from './intents.js';
+
+export { WORKTREE_LEASE_STATES } from './states.js';
+export type { WorktreeLeaseState } from './states.js';
 
 export type {
   BranchDisposition,
