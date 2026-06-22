@@ -214,8 +214,8 @@ port, the "required behavior" is the contracted token on `AgentFailure.reason` (
 |---|---|---|---|
 | `agent-capability-unattested` | An operation requires an `AgentCapability` (e.g. approval relay or resume) with no fresh positive attestation. | Return `AgentFailure` with this reason; the worker must not proceed on the unattested capability. | AC-7 |
 | `agent-linkage-lost` | The session's provider linkage to the agent is lost. | Return `AgentFailure` with this reason; do not report a live session. | AC-7 |
-| `approval-relay-unattested` | An approval relay is attempted without a fresh `canRelayApproval` attestation. | Return `AgentFailure` with this reason; do not relay the approval. | AC-7 |
-| `approval-answer-channel-lost` | The `ApprovalAnswerChannel` for an approval can no longer be reached. | Return `AgentFailure` with this reason; do not report the answer delivered. | AC-7 |
+| `approval-relay-unattested` | An approval relay is attempted without a fresh `canRelayApproval` attestation. | Surface `AgentFailure` with this reason on the `AgentEvent` `"degraded"` arm and set `ApprovalAnswerResult.delivered: false`; do not relay the approval. `answerApproval` returns `ApprovalAnswerResult` (not an `AgentFailure`). | AC-7 |
+| `approval-answer-channel-lost` | The `ApprovalAnswerChannel` for an approval can no longer be reached. | Surface `AgentFailure` with this reason on the `AgentEvent` `"degraded"` arm and set `ApprovalAnswerResult.persisted: false`; do not report the answer delivered/persisted. `answerApproval` returns `ApprovalAnswerResult` (not an `AgentFailure`). | AC-7 |
 | `agent-resume-unattested` | `resumeOwned` is attempted without a fresh `canResumeOwned` attestation. | Return `AgentFailure` with this reason; do not resume the session. | AC-7 |
 | `structured-tool-exit-missing` | A tool observation lacks the structured tool exit (`emitsStructuredToolExit` not honored). | Return `AgentFailure` with this reason; do not treat the tool as cleanly exited. | AC-7 |
 | `tool-output-ref-missing` | A `ToolObserved` has no resolvable `outputRef`. | Return `AgentFailure` with this reason; do not report captured output. | AC-7 |

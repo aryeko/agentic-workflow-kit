@@ -208,7 +208,7 @@ Each row's cited AC asserts this row's trigger and required behavior (not the ha
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
-| `forge-head-mismatch` | Observed head differs from `expectedHeadSha` on `updateBranch`/`enqueue`/`merge`/`collectEvidence`. | Refuse fail-closed carrying `observedHeadSha`; never mutate; no `accepted` representable. | AC-5 |
+| `forge-head-mismatch` | Observed head differs from `expectedHeadSha`. | Write actions (`updateBranch`/`enqueue`/`merge`) refuse fail-closed via `ForgeActionResult` `refused` carrying `observedHeadSha`, never mutate, no `accepted` representable; the `collectEvidence` read surfaces it via `ForgeDegraded` carrying `observedHeadSha` (its return type is `ForgeEvidenceSnapshot \| ForgeDegraded`), never an authoritative snapshot — not a `refused` action result. | AC-5, AC-6 |
 | `forge-credential-unavailable` | Credential for the requested `ForgeCredentialPhase` is unavailable. | Surface as `refused`/`degraded` token; do not proceed. | AC-8 |
 | `forge-auth-denied` | Credential present but authorization denied. | Surface as `refused`/`degraded` token; do not proceed. | AC-8 |
 | `forge-state-unknown` | Forge state cannot be read for the pinned head. | Surface as `ForgeDegraded`; not presentable as authoritative. | AC-6, AC-8 |

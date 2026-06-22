@@ -160,12 +160,17 @@ names the exact test id or command and the result it produces.
   observation arm, asserting a `TerminationResult` without `proof` fails compilation and that a
   `HostFailure` is not assignable to `terminateWorker`'s return type.
 - **AC-7** Workspace release must confirm credential destruction and command runs must capture evidence:
-  `HostReleaseResult` carries `credentialMaterialDestroyed: boolean`, `CommandResult` carries
-  `commandDigest` and `outputDigest`, and the failure reasons `"credential-destroy-unconfirmed"` and
-  `"runner-command-capture-incomplete"` are the contracted outcomes for the unconfirmed/incomplete
-  cases - evidence: `host-release-capture.unit.test.ts` constructs both DTOs plus
-  `credential-destroy-unconfirmed.fixture.ts` and `runner-command-capture-incomplete.fixture.ts`
-  `HostFailure` values, asserting a `CommandResult` missing `outputDigest` fails compilation.
+  `HostReleaseResult` carries `released: boolean` and `credentialMaterialDestroyed: boolean` — an
+  unconfirmed destruction is a `HostReleaseResult` with `released: false, credentialMaterialDestroyed:
+  false`, and `"credential-destroy-unconfirmed"` is surfaced as a `HostFailure` on the `HostObservation`
+  `"host-failure"` arm, never as a `releaseWorkspace` return value (its type is `HostReleaseResult`
+  only); `CommandResult` carries `commandDigest` and `outputDigest`, and `runCommand` returns a
+  `HostFailure` with reason `"runner-command-capture-incomplete"` when capture is incomplete (its return
+  type is `CommandResult | HostFailure`) - evidence: `host-release-capture.unit.test.ts` constructs an
+  unconfirmed `HostReleaseResult`, a `credential-destroy-unconfirmed.fixture.ts` `HostFailure` on the
+  observation arm, and a `runner-command-capture-incomplete.fixture.ts` `HostFailure` from `runCommand`,
+  asserting a `CommandResult` missing `outputDigest` fails compilation and that a `HostFailure` is not
+  assignable to `releaseWorkspace`'s return type.
 - **AC-8** Each of the 10 `HostFailureReason` tokens is constructible as a `HostFailure.reason` (or the
   `HostObservation` `"host-failure"` arm) via a named negative fixture asserting that token's trigger,
   including `workspace-cwd-outside-mount` for a `cwd` escaping the mount root - evidence:
@@ -214,7 +219,7 @@ type-only port, the "required behavior" is the contracted token on `HostFailure.
 | `host-observation-incomplete` | `observeWorker` cannot deliver a complete observation stream. | Emit the `"host-failure"` `HostObservation` arm with this reason. | AC-8 |
 | `termination-unproven` | `terminateWorker` cannot produce a complete `TerminationProof`. | `terminateWorker` still returns a `TerminationResult` (proof incomplete, e.g. `containmentEmpty: false`); surface this reason as a `HostFailure` on the `HostObservation` `"host-failure"` arm — not as a `terminateWorker` return value. | AC-6, AC-8 |
 | `runner-command-capture-incomplete` | `runCommand` cannot capture `commandDigest`/`outputDigest`/refs. | Return `HostFailure` with this reason rather than an uncaptured `CommandResult`. | AC-7, AC-8 |
-| `credential-destroy-unconfirmed` | `releaseWorkspace` cannot confirm `credentialMaterialDestroyed`. | Return this reason rather than `released: true` with unconfirmed destruction. | AC-7, AC-8 |
+| `credential-destroy-unconfirmed` | `releaseWorkspace` cannot confirm `credentialMaterialDestroyed`. | `releaseWorkspace` returns a `HostReleaseResult` with `released: false` and `credentialMaterialDestroyed: false`; surface this reason as a `HostFailure` on the `HostObservation` `"host-failure"` arm — not as a `releaseWorkspace` return value. | AC-7, AC-8 |
 
 ## Quality bar
 
