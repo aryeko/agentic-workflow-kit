@@ -24,19 +24,25 @@ When this directory conflicts with `../design/`, the design corpus wins. A story
 checkable subset of the design. If an implementation story needs a requirement that is missing from
 design, the design must be amended before the story is dispatch-ready.
 
-## Status — clean slate, pending re-derivation
+## Status — re-derivation in progress
 
 The implementation plan is being **re-derived from scratch** against the now-frozen, layered
-[`../design/`](../design/) corpus. Only the durable methodology is kept here today:
+[`../design/`](../design/) corpus. The durable methodology and derived artifacts are kept here:
 
 - [`work-item-authoring-guide.md`](work-item-authoring-guide.md) - how to write falsifiable story
-  contracts (the standard every frontier charter and story must meet).
+  contracts (the standard every epic charter and story must meet).
+- [`domain-dag.md`](domain-dag.md) - the domain-level dependency picture used to derive the epic DAG.
+- [`epic-dag.md`](epic-dag.md) - the milestone-level epic DAG used to derive charters and stories.
+- [`domains/`](domains/README.md) - domain implementation charters, grouped by design layer.
+- [`epics/`](epics/README.md) - epic charter bundles, story DAG placeholders, and future story
+  contracts.
+- [`coverage.md`](coverage.md) - the global coverage rollup that proves every domain signal is
+  accounted for across the epic set.
 
-The derived planning artifacts — the domain dependency DAG, frontier charters, per-story contracts,
-package rollout, and the readiness matrix — are intentionally **not present**. They are outputs of the
-re-derivation, not inputs to it, and will be authored here from the frozen design using the authoring
-guide (DAG → frontier charters → story contracts → readiness matrix). The prior, pre-restructure
-versions remain recoverable from git history.
+The remaining derived planning artifacts — epic charters, per-story contracts, package rollout, and
+the readiness matrix — are intentionally authored from the frozen design using the authoring guide
+(domain DAG -> epic DAG -> story contracts -> readiness matrix). The prior, pre-restructure versions
+remain recoverable from git history.
 
 Agent provider needs/requirements and the Codex provider research that informed the frozen design live
 as dormant provenance under [`../research/codex-agent-provider/`](../research/codex-agent-provider/);
@@ -84,6 +90,6 @@ standard is in [`work-item-authoring-guide.md`](work-item-authoring-guide.md).
 
 **↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [work item authoring guide](./work-item-authoring-guide.md)
 
-**Children:** [work item authoring guide](./work-item-authoring-guide.md)
+**Children:** [work item authoring guide](./work-item-authoring-guide.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
 
 <!-- /DOCS-NAV -->
