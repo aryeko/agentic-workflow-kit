@@ -1,0 +1,198 @@
+import { describe, expect, it } from 'vitest';
+
+import { issueEgressPolicy, resolveCredential } from '../../../../src/index.js';
+import {
+  egressSource,
+  hashText,
+  ref,
+  requiredAttesters,
+  scope,
+  createPositiveAttestation,
+} from './resolve-credential.test-helpers.js';
+
+describe('fnd-04-s2 issue egress policy', () => {
+  it('issues a default-deny EgressPolicy with rules, negative probes, required attesters, freshness key, expiry, and digest', () => {
+    const policy = issueEgressPolicy(
+      {
+        refs: [ref],
+        scope,
+        egressSource,
+        requiredAttesters,
+      },
+      {
+        hashText,
+        at: '2026-06-22T10:00:30.000Z',
+        prevEventHash: 'digest:previous',
+      },
+    );
+
+    expect(policy).toEqual({
+      ok: true,
+      value: {
+        id: expect.any(String),
+        runId: 'run-123',
+        operationId: 'operation-789',
+        audience: 'worker',
+        egressPolicyDigest: expect.any(String),
+        defaultAction: 'deny',
+        rules: [
+          {
+            credentialRefIds: ['registry-read'],
+            protocols: ['https'],
+            hosts: ['registry.npmjs.org'],
+            ports: [443],
+            phase: 'dependency-install',
+            purpose: 'install private packages',
+          },
+        ],
+        negativeProbes: [
+          {
+            host: 'github.com',
+            protocol: 'https',
+            expected: 'blocked',
+            reason: 'non-registry egress denied',
+          },
+        ],
+        requiredAttesters: [
+          {
+            point: 'execution-host',
+            capability: 'egress-confinement',
+            driverId: 'local-host',
+            scopeDigest: expect.any(String),
+            egressPolicyDigest: expect.any(String),
+            platform: 'darwin',
+            driverVersion: '1.0.0',
+            runtimeMetadataAvailable: true,
+          },
+        ],
+        negativeProbeIds: [expect.any(String)],
+        freshnessKey: expect.any(String),
+        expiresAt: '2026-06-22T10:02:00.000Z',
+      },
+    });
+  });
+
+  it('deduplicates duplicate credential refs when deriving the egress freshness key inputs', () => {
+    const policy = issueEgressPolicy(
+      {
+        refs: [ref, ref],
+        scope,
+        egressSource,
+        requiredAttesters,
+      },
+      {
+        hashText,
+        at: '2026-06-22T10:00:30.000Z',
+        prevEventHash: 'digest:previous',
+      },
+    );
+
+    expect(policy.ok).toBe(true);
+    expect(policy.value.freshnessKey).toContain('"credentialRefIds":["registry-read"]');
+  });
+
+  it('retains required attesters without runtime metadata and denies release even when other attestation evidence matches', () => {
+    const policy = issueEgressPolicy(
+      {
+        refs: [ref],
+        scope,
+        egressSource: {
+          ...egressSource,
+          requiredAttesters: [
+            ...egressSource.requiredAttesters,
+            {
+              point: 'execution-host',
+              capability: 'egress-confinement',
+              driverId: 'missing-runtime',
+            },
+          ],
+        },
+        requiredAttesters,
+      },
+      {
+        hashText,
+        at: '2026-06-22T10:00:30.000Z',
+        prevEventHash: 'digest:previous',
+      },
+    );
+
+    expect(policy.ok).toBe(true);
+    if (!policy.ok) {
+      return;
+    }
+
+    expect(policy.value.requiredAttesters).toEqual([
+      expect.objectContaining({
+        driverId: 'local-host',
+        runtimeMetadataAvailable: true,
+      }),
+      expect.objectContaining({
+        driverId: 'missing-runtime',
+        platform: 'runtime-metadata-missing',
+        driverVersion: 'runtime-metadata-missing',
+        runtimeMetadataAvailable: false,
+      }),
+    ]);
+
+    const denied = resolveCredential(
+      {
+        ref,
+        scope,
+        requiredAuditEvent: {
+          type: 'CredentialUsePlanned',
+          runId: 'run-123',
+          taskId: 'task-456',
+          operationId: 'operation-789',
+          credentialRefIds: ['registry-read'],
+          party: 'worker',
+          phase: 'dependency-install',
+          policyDigest: 'digest:policy-block',
+          credentialRefDigest: 'digest:credential-refs',
+          scopeDigest: policy.value.requiredAttesters[0]?.scopeDigest ?? 'digest:scope-block',
+          grantEventId: 'grant-123',
+          attestationEventIds: [],
+          evidenceRefs: [],
+          prevEventHash: 'digest:previous',
+          eventHash: 'digest:planned',
+          at: '2026-06-22T10:00:30.000Z',
+          egressPolicyId: policy.value.id,
+          expiresAt: '2026-06-22T10:02:00.000Z',
+          reason: 'scoped injection required',
+        },
+        redactionSet: {
+          id: 'redaction-set-1',
+          credentialRefIds: ['registry-read'],
+          labels: {
+            'registry-read': '[REDACTED:credential:registry-read]',
+          },
+          fingerprintIds: ['fp-registry-read'],
+          expiresAt: '2026-06-22T10:02:00.000Z',
+        },
+        egressPolicy: policy.value,
+        injectionModes: ['env'],
+        attestations: [createPositiveAttestation(policy)],
+        attestationIds: ['attestation-1'],
+      },
+      {
+        hashText,
+        now: '2026-06-22T10:01:00.000Z',
+        issuedAt: '2026-06-22T10:00:00.000Z',
+        host: 'registry.npmjs.org',
+        command: 'pnpm install --frozen-lockfile',
+        at: '2026-06-22T10:01:05.000Z',
+        prevEventHash: 'digest:planned',
+        auditSinkAvailable: true,
+        resolveSecretMaterial: () => ({
+          material: 'super-secret-value',
+          materialHandle: 'memory://registry-read',
+          fingerprintId: 'fp-registry-read',
+        }),
+      },
+    );
+
+    expect(denied).toMatchObject({
+      ok: false,
+      reason: 'egress-policy-unattested',
+    });
+  });
+});
