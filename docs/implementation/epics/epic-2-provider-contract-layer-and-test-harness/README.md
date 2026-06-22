@@ -72,10 +72,10 @@ attestation, mock, conformance, and fixture signals. Concrete provider signals a
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| SDK Agent provider interface and shared DTO catalog. | TBD | covered |
-| Agent capability attestation payloads for approval relay, resume, structured tool exit, Guardian observation, and host parentage evidence. | TBD | covered |
-| Testkit mock Agent provider with positive, degraded, and adversarial event streams. | TBD | covered |
-| Conformance helpers for Agent provider behavior and incident replay inputs. | TBD | covered |
+| SDK Agent provider interface and shared DTO catalog. | `prov-01-s1-agent-port` | covered |
+| Agent capability attestation payloads for approval relay, resume, structured tool exit, Guardian observation, and host parentage evidence. | `prov-01-s1-agent-port` + `prov-00-s1-capability-attestation` | split |
+| Testkit mock Agent provider with positive, degraded, and adversarial event streams. | `prov-01-s2-agent-testkit` | covered |
+| Conformance helpers for Agent provider behavior and incident replay inputs. | `prov-01-s2-agent-testkit` | covered |
 
 - Evidence expectation: Epic 2 stories leave Agent port, mock, attestation, and conformance evidence
   that core approval, liveness, capability, and recovery stories can consume without a Codex driver.
@@ -84,10 +84,10 @@ attestation, mock, conformance, and fixture signals. Concrete provider signals a
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| SDK Forge provider interface and exact-head evidence DTO catalog. | TBD | covered |
-| Forge capability attestations for rulesets, merge queue, review-thread resolution, and protection inspection. | TBD | covered |
-| Testkit Mock Forge with exact-head, degraded, credential, and ambiguous-state scenarios. | TBD | covered |
-| Conformance helpers for Forge reads and expected-head write actions. | TBD | covered |
+| SDK Forge provider interface and exact-head evidence DTO catalog. | `prov-02-s1-forge-port` | covered |
+| Forge capability attestations for rulesets, merge queue, review-thread resolution, and protection inspection. | `prov-02-s1-forge-port` + `prov-00-s1-capability-attestation` | split |
+| Testkit Mock Forge with exact-head, degraded, credential, and ambiguous-state scenarios. | `prov-02-s2-forge-testkit` | covered |
+| Conformance helpers for Forge reads and expected-head write actions. | `prov-02-s2-forge-testkit` | covered |
 
 - Evidence expectation: Epic 2 stories leave Forge port, mock, attestation, and conformance evidence
   that completion, merge readiness, and recovery stories can evaluate without a GitHub driver.
@@ -96,10 +96,10 @@ attestation, mock, conformance, and fixture signals. Concrete provider signals a
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| SDK Work Source provider interface and Track, Task, TaskSnapshot, claim, release, and status DTOs. | TBD | covered |
-| Work Source capability attestations for tracks, claim, status write, and dependencies. | TBD | covered |
-| Testkit mock backlog with dependency, status, claim, stale digest, and degraded storage scenarios. | TBD | covered |
-| Conformance helpers for status authority separation and race-safe task mutation. | TBD | covered |
+| SDK Work Source provider interface and Track, Task, TaskSnapshot, claim, release, and status DTOs. | `prov-03-s1-work-source-port` | covered |
+| Work Source capability attestations for tracks, claim, status write, and dependencies. | `prov-03-s1-work-source-port` + `prov-00-s1-capability-attestation` | split |
+| Testkit mock backlog with dependency, status, claim, stale digest, and degraded storage scenarios. | `prov-03-s2-work-source-testkit` | covered |
+| Conformance helpers for status authority separation and race-safe task mutation. | `prov-03-s2-work-source-testkit` | covered |
 
 - Evidence expectation: Epic 2 stories leave Work Source port, mock, attestation, and conformance
   evidence that run lifecycle and completion stories can consume without Markdown files.
@@ -108,10 +108,10 @@ attestation, mock, conformance, and fixture signals. Concrete provider signals a
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| SDK Execution Host provider interface and workspace, worker, host observation, command, and termination DTOs. | TBD | covered |
-| Execution Host capability attestations for kill, containment strength, structured tool exit, and egress confinement. | TBD | covered |
-| Testkit mock host with positive, degraded, incomplete capture, and termination scenarios. | TBD | covered |
-| Conformance helpers for host observation, command capture, injection separation, and capability freshness. | TBD | covered |
+| SDK Execution Host provider interface and workspace, worker, host observation, command, and termination DTOs. | `prov-04-s1-execution-host-port` | covered |
+| Execution Host capability attestations for kill, containment strength, structured tool exit, and egress confinement. | `prov-04-s1-execution-host-port` + `prov-00-s1-capability-attestation` | split |
+| Testkit mock host with positive, degraded, incomplete capture, and termination scenarios. | `prov-04-s2-execution-host-testkit` | covered |
+| Conformance helpers for host observation, command capture, injection separation, and capability freshness. | `prov-04-s2-execution-host-testkit` | covered |
 
 - Evidence expectation: Epic 2 stories leave Execution Host port, mock, attestation, and conformance
   evidence that supervision, verification, completion, and recovery stories can consume without a
