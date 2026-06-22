@@ -89,6 +89,29 @@ specified."
 - **AC-7** Failure by the owning core writer to append returned diagnostic intents keeps launch blocked
   as `adoption-diagnostic-unrecorded` - evidence: handoff failure fixture.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Diagnose only configured vNext state locations supplied by the caller | AC-4 |
+| Recognize `kit-vnext.event-log.v1`, `kit-vnext.projection.v1`, `kit-vnext.resolved-policy.v1`, `kit-vnext.capability-attestation.v1`, `kit-vnext.launch.v1` artifact markers | AC-1, AC-3 |
+| Return one `AdoptionDiagnosticEmitted` intent per blocking diagnostic and a `PolicyResolutionFailed` intent for fail-closed state | AC-5 |
+| Commit only pre-run `ConfigLoaded` through injected foundation writer | AC-6 |
+| Block launch when diagnostics or `ConfigLoaded` cannot be durably recorded | AC-6, AC-7 |
+| Interfaces / types: `ConfigurationPolicy.diagnoseAdoption`, `ConfigSource`, `AdoptionSource`, `ArtifactSource` | AC-1, AC-2, AC-3, AC-4 |
+| Interfaces / types: `AdoptionReport`, `AdoptionContext`, `DurableEventWriter` | AC-1, AC-6 |
+| Interfaces / types: `AdoptionDiagnostic`, `AdoptionDiagnosticFailure` | AC-2, AC-3, AC-5 |
+| Events / append intents: `ConfigLoaded` | AC-6 |
+| Events / append intents: `AdoptionDiagnosticEmitted` | AC-5 |
+| Events / append intents: `PolicyResolutionFailed` | AC-5 |
+| Failure token `adoption-incompatible` | AC-2, AC-5 |
+| Failure token `adoption-unknown-artifact` | AC-3, AC-5 |
+| Failure token `adoption-diagnostic-unrecorded` | AC-7 |
+| Failure token `config-loaded-unrecorded` | AC-6 |
+| Evidence: adoption diagnostic report with `mayLaunch` and append intents | AC-1, AC-5 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

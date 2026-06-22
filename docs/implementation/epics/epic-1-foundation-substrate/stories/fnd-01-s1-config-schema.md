@@ -89,6 +89,26 @@ specified."
 - **AC-6** Consumer policy shapes expose only desired powers and policy source data; they do not apply
   policy or resolve credentials - evidence: public type/API boundary test.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Accept only `schema: "kit-vnext.config.v1"` | AC-1 |
+| Define all policy block types with unknown fields rejected | AC-1, AC-2 |
+| Ship complete built-in defaults for every leaf field in `PolicyLayer` | AC-3 |
+| Prove no default silently enables autonomous power; `orchestrator-decide` rejected in v1 | AC-4, AC-5 |
+| Produce `PolicyLayer`, `CredentialReferencePolicy`, `EgressPolicySource` for downstream | AC-6 |
+| Interfaces / types: `KitConfig`, `RunConfigInput`, `PolicyLayer`, `PolicyLayerPatch` | AC-1, AC-2, AC-3 |
+| Interfaces / types: `RunPolicy`, `ProvisioningPolicy`, `ApprovalPolicy`, `EscalationPolicy`, `ChangePolicy`, `MergePolicy` | AC-3, AC-4 |
+| Interfaces / types: `CapabilityPolicy`, `CapabilitySetting` | AC-3, AC-4 |
+| Interfaces / types: `CredentialReferencePolicy`, `CredentialRefSource`, `EgressPolicySource`, `EgressRuleSource`, `NegativeProbeSource`, `RequiredAttesterSource` | AC-3, AC-6 |
+| Failure token `config-invalid` | AC-1, AC-2 |
+| Failure token `unsupported-deferred-capability` | AC-5 |
+| Evidence: safe-default snapshot | AC-3, AC-4 |
+| Evidence: schema acceptance/rejection fixtures | AC-1, AC-2 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

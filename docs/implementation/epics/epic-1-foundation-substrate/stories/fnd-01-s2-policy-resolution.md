@@ -86,10 +86,36 @@ specified."
   intent exists per resolved leaf - evidence: provenance order test.
 - **AC-5** `ResolvedPolicy` carries `schema: "kit-vnext.resolved-policy.v1"`, full `PolicyLayer`, and
   `FieldProvenance` for each leaf - evidence: resolved policy snapshot.
-- **AC-6** Unknown profiles return `profile-unknown`; invalid overrides return `override-invalid`; no
-  fallback profile or partial override is applied - evidence: failure tests.
+- **AC-6** Unknown profiles return `profile-unknown`; invalid overrides return `override-invalid`;
+  base config that fails schema validation returns `config-invalid`; any resolution input containing
+  `orchestrator-decide` returns `unsupported-deferred-capability`; in all four cases no fallback,
+  partial override, or `ResolvedPolicy` is returned - evidence: failure tests.
 - **AC-7** If provenance intents cannot be appended by the caller, the result is
   `provenance-write-failed` and no policy is active - evidence: core writer handoff fixture.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Implement `ConfigurationPolicy.resolveRunPolicy` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 |
+| Apply precedence: operator override > profile patch > built-in defaults | AC-1, AC-2 |
+| Enumerate leaf fields in canonical lexicographic order; one `ConfigFieldResolved` per leaf before `ConfigResolved` | AC-4 |
+| Preserve array/scalar replacement and object-map merge semantics | AC-3 |
+| Return no active policy unless caller can append returned provenance intents | AC-7 |
+| Interfaces / types: `ConfigurationPolicy`, `ResolvedPolicy`, `ResolvedPolicyResult` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 |
+| Interfaces / types: `ConfigurationPolicyAppendIntent`, `FieldProvenance`, `ResolutionContext`, `PolicyResolutionFailure` | AC-4, AC-5, AC-6, AC-7 |
+| Events / append intents: `ConfigFieldResolved`, `ConfigResolved` | AC-4, AC-5 |
+| Events / append intents: `PolicyResolutionFailed` | AC-6 |
+| Failure token `profile-unknown` | AC-6 |
+| Failure token `override-invalid` | AC-6 |
+| Failure token `config-invalid` | AC-6 |
+| Failure token `unsupported-deferred-capability` | AC-6 |
+| Failure token `provenance-write-failed` | AC-7 |
+| Evidence: canonical provenance map | AC-4 |
+| Evidence: event-ready append intent batch | AC-4, AC-5 |
+| Evidence: stable resolved policy hash | AC-5 |
 
 ## Failure and degraded outcomes
 

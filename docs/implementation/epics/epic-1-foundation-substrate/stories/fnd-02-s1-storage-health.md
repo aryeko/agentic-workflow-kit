@@ -31,9 +31,11 @@ What the normative design defines and the implementation must expose or consume,
 - Interfaces / types: `StorageHealth`, `StorageError`, `StorageErrorCode`.
 - Events / append intents: none.
 - Provider operations / commands: none.
-- Failure and degraded tokens: `stale-writer-fenced`, `lease-unavailable`, `log-tail-repaired`,
-  `log-interior-corrupt`, `artifact-quarantined`, `export-incomplete-forbidden`,
+- `StorageHealth` states (exactly 6): `ok`, `log-tail-repaired`, `log-interior-corrupt`,
   `network-fs-degraded`, `read-only`, `unusable`.
+- `StorageErrorCode` codes (exactly 7): `stale-writer-fenced`, `lease-unavailable`,
+  `log-tail-repaired`, `log-interior-corrupt`, `artifact-quarantined`, `export-incomplete-forbidden`,
+  `network-fs-degraded`. (`read-only` and `unusable` are health states, not error codes.)
 - Evidence records / attestations: storage health transition table and fail-closed capability matrix.
 
 Done requires every item here present with the design's names, shapes, and semantics.
@@ -70,14 +72,34 @@ specified."
 
 - **AC-1** `StorageHealth` contains `ok`, `log-tail-repaired`, `log-interior-corrupt`,
   `network-fs-degraded`, `read-only`, and `unusable` - evidence: type-level exhaustiveness test.
-- **AC-2** `StorageErrorCode` contains every fnd-02 failure/degraded token named in the design -
-  evidence: token catalog test.
+- **AC-2** `StorageErrorCode` contains exactly `stale-writer-fenced`, `lease-unavailable`,
+  `log-tail-repaired`, `log-interior-corrupt`, `artifact-quarantined`, `export-incomplete-forbidden`,
+  and `network-fs-degraded` - evidence: token catalog test.
 - **AC-3** Authoritative append, lease, evidence-ref, and export operations are classified unavailable
   under `network-fs-degraded`, `read-only`, or `unusable` - evidence: fail-closed table test.
 - **AC-4** `log-tail-repaired` is readable health, while `log-interior-corrupt` rejects append and
   marks history incoherent - evidence: health semantics test.
 - **AC-5** Capability-gate input helpers classify durable logging and coordination as absent when
   storage health is degraded - evidence: capability matrix test.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No
+responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Define canonical health states | AC-1 |
+| Define canonical error codes | AC-2 |
+| Map each token to required fail-closed behavior | AC-3 |
+| Helpers reject authoritative writes under degraded health | AC-3 |
+| Distinguish readable vs append-rejecting log health | AC-4 |
+| Capability gates treat durable/coordination guarantees as absent under degraded health | AC-5 |
+| `StorageHealth` type and its 6 states | AC-1 |
+| `StorageErrorCode` type and its 7 codes | AC-2 |
+| `StorageError` shape | AC-2 |
+| Health transition table evidence | AC-4 |
+| Fail-closed capability matrix evidence | AC-5 |
 
 ## Failure and degraded outcomes
 

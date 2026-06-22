@@ -92,6 +92,27 @@ specified."
 - **AC-7** A worker scope with a Forge credential is always denied as
   `worker-forge-credential-denied` - evidence: worker-no-Forge property test.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Validate fnd-01 policy/source into `CredentialRef` preserving all fields | AC-1 |
+| Preserve `kind`, `purpose`, `secret`, `allowedParties`, `allowedPhases`, `allowedHosts`, `ttlSeconds`, `policyDigest` | AC-1 |
+| Define `CredentialScope` with run, task, operation, party, phase, command prefix, process id, expiry, grant event id | AC-4 |
+| Environment variables are the only v1 secret-material source | AC-5 |
+| Keep secret material unresolved and out of repo files, events, projections, artifacts | AC-5 |
+| Interfaces / types: `CredentialRef` | AC-1 |
+| Interfaces / types: `CredentialScope` | AC-4 |
+| Interfaces / types: `CredentialKind` | AC-2 |
+| Interfaces / types: `CredentialParty` | AC-3 |
+| Interfaces / types: `InjectionMode`, `EnforcementPoint`, `SecretRef` | AC-1, AC-4 |
+| Failure token `credential-ref-unresolved` | AC-5 |
+| Failure token `credential-scope-denied` | AC-6 |
+| Failure token `worker-forge-credential-denied` | AC-7 |
+| Evidence: credential-ref validation report with policy digest and scope digest | AC-1, AC-4 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

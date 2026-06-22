@@ -87,6 +87,21 @@ specified."
 - **AC-6** Boundary sweeps prove no remote, credential, process, CI, PR, check, review, or merge
   symbols appear in fnd-03 public types - evidence: sweep artifact.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Define `RepositoryIdentity` as `{ repoId, repoRoot, gitDir, defaultBaseRef }`, absolute local paths only | AC-1 |
+| Deterministic local task branch naming from `{ repoId, runId, taskId }` plus prefix/collision rules | AC-3 |
+| Reject remote/credential/CI/PR/check/review/merge/process/containment fields at public boundary | AC-2 |
+| Consume fnd-01 policy only by citing `PolicyLayer` and `ResolvedPolicy` | AC-3 |
+| Spec surface: `RepositoryIdentity`, `AbsolutePath`, `RelativePath`, `LocalRef`, `GitSha`, local branch model, boundary predicates | AC-1, AC-2, AC-3 |
+| Spec surface: failure token `base-ref-unresolved` | AC-4 |
+| Spec surface: failure token `branch-conflict` | AC-5 |
+| Spec surface: boundary check report proving no remote/credential/process/CI/PR/check/review/merge fields | AC-2, AC-6 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

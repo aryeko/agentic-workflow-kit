@@ -86,14 +86,38 @@ specified."
   partial success - evidence: unavailable evidence fixtures.
 - **AC-6** Boundary tests prove no remote refs, remote URLs, credential material, CI state, review
   state, merge state, or worker prose appears in `LocalGitEvidence` - evidence: boundary sweep.
+- **AC-7** When uncommitted paths exist and the caller requires a clean worktree, evidence records
+  `clean=false` with the dirty paths in `stagedPaths`/`unstagedPaths`/`untrackedPaths` so consumers
+  fail closed; recording is not silently treated as clean - evidence: dirty-worktree fixture.
+- **AC-8** When the lease `fenceToken` is stale or mismatched before protected evidence recording,
+  `recordLocalGitEvidence` returns `stale-lease-fence` and records no evidence - evidence: fence
+  enforcement test.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Inspect branch existence, commits, `baseSha`, `mergeBaseSha`, `headSha` | AC-1, AC-2 |
+| Inspect diff and working tree state | AC-3, AC-4 |
+| Store optional diff/stat artifacts through fnd-02 artifact refs | AC-3 |
+| Keep `headSha`, `changedPaths`, `clean` as top-level fields | AC-1, AC-3, AC-4 |
+| Return `local-git-evidence-unavailable` instead of partial success | AC-5 |
+| Exclude remote refs, URLs, credentials, CI, review, merge state, worker prose | AC-6 |
+| Spec surface: `LocalGitEvidence`, `LocalCommitSummary`, `ArtifactRefId` | AC-1, AC-2, AC-3 |
+| Spec surface: event `LocalGitEvidenceRecorded` | AC-1 |
+| Spec surface: failure token `local-git-evidence-unavailable` | AC-5 |
+| Spec surface: failure token `dirty-worktree` | AC-7 |
+| Spec surface: failure token `stale-lease-fence` | AC-8 |
 
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `local-git-evidence-unavailable` | Branch, merge base, status, or diff cannot be read. | Return failure and no partial evidence. | AC-5 |
-| `dirty-worktree` | Uncommitted paths exist when clean state is required by the caller. | Record dirty paths and let consumers fail closed. | AC-4 |
-| `stale-lease-fence` | Lease fence is stale before protected evidence recording. | Reject evidence recording. | AC-5 |
+| `dirty-worktree` | Uncommitted paths exist when clean state is required by the caller. | Record dirty paths and let consumers fail closed. | AC-7 |
+| `stale-lease-fence` | Lease fence is stale before protected evidence recording. | Reject evidence recording. | AC-8 |
 
 ## Quality bar
 

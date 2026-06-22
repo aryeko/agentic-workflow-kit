@@ -87,6 +87,29 @@ specified."
 - **AC-7** Cycles and non-exempt orphan modules fail the dependency lane - evidence: graph hygiene
   fixture.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Configure dependency-cruiser to enforce allowed and forbidden package matrix | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 |
+| Named rule: SDK forbidden imports | AC-2, AC-3 |
+| Named rule: provider peer imports | AC-4 |
+| Named rule: provider executable/testkit imports | AC-5 |
+| Named rule: testkit SDK-only imports | AC-2, AC-3 |
+| Named rule: production testkit/fixture imports | AC-5 |
+| Named rule: owner-only external dependency placement | AC-6 |
+| Prove every rule with at least one passing fixture and one failing fixture | AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 |
+| Wire `pnpm deps` to run guardrails over `packages`, `tooling`, and `tests` | AC-1 |
+| `DependencyRuleCheck` (interface / type) | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 |
+| Command `pnpm deps` | AC-1 |
+| Failure token `dependency-rule-violation` | AC-2, AC-3, AC-4, AC-5, AC-6 |
+| Failure token `provider-peer-import` | AC-4 |
+| Failure token `sdk-banned-import` | AC-2, AC-3 |
+| Failure token `production-testkit-import` | AC-5 |
+| Evidence records: passing and failing fixtures for every named package-boundary rule | AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

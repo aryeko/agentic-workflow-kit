@@ -82,10 +82,30 @@ specified."
   fault-injection tests.
 - **AC-4** The same conformance suite runs against deterministic fake filesystem and local temp
   filesystem implementations - evidence: conformance transcript.
-- **AC-5** Fault fixtures cover append/replay equivalence, lease fencing, artifact immutability,
-  export verification, tombstones, scratch refs, and storage degradation - evidence: fixture catalog.
+- **AC-5** Fault fixtures cover append/replay equivalence, lease fencing, lease-unavailable issuance
+  refusal under unprovable guarded update, artifact immutability, export verification including
+  refusal of unverifiable selections, tombstones, scratch refs, and storage degradation - evidence:
+  fixture catalog.
 - **AC-6** No smoke-real, network, credential, or external process behavior is required by local
   conformance - evidence: lane guard test.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No
+responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Implement open-time safety probes | AC-1 |
+| Failed open-time probe enters degraded before authoritative writes | AC-2 |
+| Implement mid-operation degradation | AC-3 |
+| Provide filesystem-backed log/lease/artifact/export behavior | AC-4 |
+| Conformance fixtures over fake and local temp filesystems | AC-4 |
+| Fault-injection fixture coverage across storage behaviors | AC-5 |
+| No real network/process/credential dependency in local lanes | AC-6 |
+| Filesystem implementations of `EventLogStore`, `LeaseStore`, `ArtifactStore` | AC-4 |
+| Storage conformance fixture catalog | AC-5 |
+| Fake fs / local temp fs / fault-injection transcript evidence | AC-4, AC-5 |
 
 ## Failure and degraded outcomes
 

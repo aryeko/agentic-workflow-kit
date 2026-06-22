@@ -87,6 +87,24 @@ specified."
 - **AC-6** The package graph evidence record serializes `PackageTargetPathset` and
   `WorkspacePackageManifest` for downstream stories - evidence: generated inventory artifact.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Create workspace package skeleton for the eight named packages | AC-1 |
+| `pnpm-workspace.yaml` includes package tree and no unrelated runtime package | AC-2 |
+| Every package manifest with stable name, module type, private/public posture, script placeholders | AC-3, AC-4 |
+| Leave source/test directories present but behavior-free | AC-5 |
+| Produce `PackageTargetPathset` and `WorkspacePackageManifest` for downstream stories | AC-6 |
+| `PackageTargetPathset` (interface / type) | AC-6 |
+| `WorkspacePackageManifest` (interface / type) | AC-6 |
+| Failure token `package-target-missing` | AC-1 |
+| Failure token `package-target-extra` | AC-1 |
+| Failure token `package-manifest-invalid` | AC-3, AC-4 |
+| Evidence record: package inventory proving exactly the eight target packages | AC-1, AC-6 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

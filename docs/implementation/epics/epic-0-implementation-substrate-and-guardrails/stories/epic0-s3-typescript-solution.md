@@ -86,6 +86,26 @@ specified."
 - **AC-6** The story emits `TypecheckProjectGraph` evidence in stable package order - evidence:
   generated inventory artifact.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Root `tsconfig.json` is a solution file referencing all package projects and the infrastructure project | AC-1 |
+| Every target package has composite `tsconfig.json` with `rootDir`, `outDir`, declaration output, and strict settings from `tsconfig.base.json` | AC-2 |
+| Project references follow the allowed package dependency matrix; forbidden references are absent | AC-3, AC-5 |
+| `pnpm typecheck` runs `tsc -b` over the full solution graph | AC-4 |
+| Produce `CompositePackageProject` and `TypecheckProjectGraph` for downstream stories | AC-2, AC-6 |
+| `CompositePackageProject` (interface / type) | AC-2 |
+| `TypecheckProjectGraph` (interface / type) | AC-6 |
+| Command `pnpm typecheck` | AC-4 |
+| Failure token `project-reference-missing` | AC-1 |
+| Failure token `forbidden-ts-reference` | AC-3, AC-5 |
+| Failure token `non-composite-package-project` | AC-2 |
+| Evidence record: root TypeScript solution reference graph | AC-1, AC-6 |
+| Evidence record: per-package `tsconfig.json` inventory | AC-2, AC-6 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

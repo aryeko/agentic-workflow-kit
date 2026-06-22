@@ -46,8 +46,8 @@ Done requires every item here present with the design's names, shapes, and seman
 
 ## Responsibilities
 
-- Implement `resolveCredential`, `planInjection`, `issueEgressPolicy`, and `destroy` contract
-  behavior at the planning layer without storing secret material.
+- Implement `resolveCredential`, `planInjection`, and `issueEgressPolicy` contract behavior at the
+  planning layer without storing secret material.
 - Keep the worker environment closed and minimal by default; inject only explicit non-Forge refs whose
   policy allows worker use.
 - Give runner Forge credentials only for runner-owned Forge phases.
@@ -100,8 +100,35 @@ specified."
 - **AC-6** Credential release requiring egress confinement fails as `egress-policy-unattested` unless
   fresh positive matching attestation evidence is supplied by id - evidence: attestation matching
   tests.
-- **AC-7** Missing audit event or redaction set denies use before material exposure as
-  `audit-write-unavailable` or `redaction-unavailable` - evidence: pre-use failure tests.
+- **AC-7** A missing required audit event denies use before any material exposure as
+  `audit-write-unavailable` - evidence: pre-use audit failure test.
+- **AC-8** A missing redaction set denies use before any capture and never persists unredacted
+  material, failing as `redaction-unavailable` - evidence: pre-use redaction failure test.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Implement `resolveCredential`, `planInjection`, `issueEgressPolicy` planning behavior without storing material | AC-1, AC-5 |
+| Keep worker environment closed and minimal; inject only worker-allowed non-Forge refs | AC-2 |
+| Give runner Forge credentials only for runner-owned Forge phases | AC-3 |
+| Enforce party, phase, command prefix, TTL, host, injection mode, egress policy, prior audit event, redaction set, fresh attestation | AC-3, AC-4, AC-6, AC-7, AC-8 |
+| Issue default-deny `EgressPolicy` with rules, negative probes, required attesters, freshness key, expiry, digest | AC-5 |
+| Interfaces / types: `CredentialsAndSecretsContract`, `ResolvedCredential`, `InjectionBinding`, `InjectionPlan`, `ResolveCredentialResult`, `PlanInjectionResult` | AC-1 |
+| Interfaces / types: `EgressPolicy`, `EgressRule`, `RequiredAttester`, `NegativeProbe` | AC-5, AC-6 |
+| Events: `CredentialUsePlanned` | AC-1 |
+| Events: `CredentialUseStarted` | AC-1, AC-3 |
+| Events: `CredentialUseDenied` | AC-2 |
+| Events: `EgressPolicyIssued` | AC-5 |
+| Failure token `credential-ref-unresolved` | AC-1 |
+| Failure token `credential-scope-denied` | AC-3, AC-4 |
+| Failure token `worker-forge-credential-denied` | AC-2 |
+| Failure token `egress-policy-unattested` | AC-6 |
+| Failure token `audit-write-unavailable` | AC-7 |
+| Failure token `redaction-unavailable` | AC-8 |
+| Evidence: injection plan, egress policy digest, matching attestation references, negative probe ids | AC-1, AC-5, AC-6 |
 
 ## Failure and degraded outcomes
 
@@ -111,22 +138,23 @@ specified."
 | `credential-scope-denied` | Scope, grant, host, command prefix, or TTL exceeds policy. | Deny use and emit denial data. | AC-3, AC-4 |
 | `egress-policy-unattested` | Required attestation is missing, stale, partial, or mismatched. | Deny confined credential release. | AC-6 |
 | `audit-write-unavailable` | Required audit event cannot be written before use. | Deny use before material exposure. | AC-7 |
-| `redaction-unavailable` | Redaction set is absent before capture. | Deny use or refuse persistence of captured material. | AC-7 |
+| `redaction-unavailable` | Redaction set is absent before capture. | Deny use before any capture and never persist unredacted material. | AC-8 |
 | `credential-ref-unresolved` | Consumed credential ref cannot resolve. | Deny use and expose no material. | AC-1 |
 
 ## Quality bar
 
 - Coverage scope and threshold: injection/egress modules at 90% minimum, aiming for 95%.
 - Required tests, catalogued by AC and failure row: injection plan, worker-no-Forge property, runner
-  scope, grant narrowing, egress snapshot, attestation matching, and pre-use failure tests.
+  scope, grant narrowing, egress snapshot, attestation matching, pre-use audit failure, and pre-use
+  redaction failure tests.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/credentials-secrets/injection/*.unit.test.ts`;
   `pnpm check`; coverage with `pnpm coverage:baseline`.
 - Determinism constraints: policy digests, scope digests, freshness keys, and expiry inputs are
   injected or canonicalized.
 - Dependency boundaries: no Execution Host enforcement, no provider package, no Forge client, no
   process runner, no network call, no concrete secret backend.
-- File-size or module-size constraints: injection planning, egress policy, attestation matching, and
-  destroy handling remain focused modules.
+- File-size or module-size constraints: injection planning, egress policy, and attestation matching
+  remain focused modules.
 - Domain non-negotiables: worker never receives Forge credentials; egress policy is data for
   attestation, not enforcement.
 

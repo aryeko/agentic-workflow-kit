@@ -89,6 +89,39 @@ specified."
 - **AC-6** `pnpm check` exits zero on the clean substrate and the transcript names every step -
   evidence: command transcript.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Wire `pnpm check` to run the local gate in the order from `check-gate.md` | AC-1 |
+| Keep smoke tests excluded from the fast local loop; preserve a separate smoke command | AC-3 |
+| Configure Vitest lane names and file globs from `test-lanes.md` | AC-3 |
+| Load zero-real-process guard for unit and conformance-mock lanes | AC-3 |
+| Ensure stale docs nav fails before format, lint, dependency, typecheck, or tests | AC-2, AC-5 |
+| `LocalCheckGate` (interface / type) | AC-1, AC-6 |
+| Command `pnpm docs:nav:check` | AC-2 |
+| Command `pnpm format:check` | AC-1 |
+| Command `pnpm lint` | AC-1 |
+| Command `pnpm deps` | AC-1, AC-4 |
+| Command `pnpm typecheck` | AC-1, AC-4 |
+| Command `pnpm test:unit` | AC-1, AC-3 |
+| Command `pnpm test:int` | AC-1, AC-3 |
+| Command `pnpm test:conf` | AC-1, AC-3 |
+| Command `pnpm coverage:baseline` | AC-1 |
+| Command `pnpm check` | AC-1, AC-6 |
+| Failure token `stale-docs-nav` | AC-2 |
+| Failure token `format-failed` | AC-1, AC-5 |
+| Failure token `lint-failed` | AC-1, AC-5 |
+| Failure token `deps-failed` | AC-1, AC-4, AC-5 |
+| Failure token `typecheck-failed` | AC-1, AC-4, AC-5 |
+| Failure token `unit-failed` | AC-1, AC-5 |
+| Failure token `integration-failed` | AC-1, AC-5 |
+| Failure token `conformance-failed` | AC-1, AC-5 |
+| Failure token `coverage-baseline-failed` | AC-1 |
+| Evidence record: ordered gate transcript showing fail-fast step order | AC-6 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

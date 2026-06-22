@@ -85,6 +85,32 @@ specified."
   `log-tail-repaired` for quarantined tail bytes - evidence: replay repair test.
 - **AC-7** Interior corruption marks history incoherent, reports `log-interior-corrupt`, and rejects
   append - evidence: corruption fixture.
+- **AC-8** When storage health is `network-fs-degraded`, `openForAppend`/`append` refuse authoritative
+  writes and previously minted `LogHandle`s are invalidated - evidence: degraded-append test.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No
+responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Define `openForAppend`/`append`/`replay` over opaque bytes | AC-1 |
+| Bind every `LogHandle` to lease name, epoch, and token | AC-1 |
+| Reject stale/missing lease credentials before write | AC-2 |
+| `buffered` semantics (`NonDurableAck`, non-authoritative) | AC-3 |
+| `durable` semantics (`AppendReceipt`) | AC-4 |
+| `barrier` semantics (flush/discard then durable receipt) | AC-5 |
+| Detect/classify tail repair | AC-6 |
+| Detect/classify interior corruption | AC-7 |
+| Refuse authoritative writes and invalidate handles under degradation | AC-8 |
+| `EventLogStore` interface | AC-1 |
+| `LogHandle` type | AC-1 |
+| `AppendBatch` / `DurabilityClass` types | AC-3, AC-4, AC-5 |
+| `AppendReceipt` type | AC-4 |
+| `NonDurableAck` type | AC-3 |
+| `StoredRecord` type and replay ordering | AC-6 |
+| Append/replay transcript evidence | AC-4, AC-6 |
 
 ## Failure and degraded outcomes
 
@@ -93,13 +119,13 @@ specified."
 | `stale-writer-fenced` | Lease name, epoch, or token is not current. | Reject mutation before writing bytes. | AC-2 |
 | `log-tail-repaired` | Partial bytes appear after the last valid commit trailer. | Quarantine/truncate tail and allow replay to continue. | AC-6 |
 | `log-interior-corrupt` | Checksum failure, sequence gap, or invalid frame appears before later committed frames. | Mark log read-only and reject append. | AC-7 |
-| `network-fs-degraded` | Storage root is degraded before or during append. | Refuse authoritative append and invalidate open handles. | AC-3, AC-4 |
+| `network-fs-degraded` | Storage root is degraded before or during append. | Refuse authoritative append and invalidate open handles. | AC-8 |
 
 ## Quality bar
 
 - Coverage scope and threshold: event-log contract modules at 90% minimum, aiming for 95%.
 - Required tests, catalogued by AC and failure row: handle binding, stale writer, durability,
-  receipt, barrier, replay repair, and corruption fixtures.
+  receipt, barrier, replay repair, corruption, and degraded-append fixtures.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/storage/event-log/*.unit.test.ts`;
   `pnpm test:int -- packages/sdk/tests/foundation/storage/event-log/*.int.test.ts`;
   `pnpm check`; coverage with `pnpm coverage:baseline`.

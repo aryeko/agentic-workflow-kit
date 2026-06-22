@@ -87,16 +87,43 @@ specified."
   otherwise it remains `setup-required` - evidence: confirm setup tests.
 - **AC-6** Stale or mismatched `fenceToken` returns `stale-lease-fence` before protected lease state
   changes - evidence: fence enforcement test.
+- **AC-7** When the target `<worktreeRoot>/<repoId>/<runId>/` path already exists or is not owned by
+  the lease, `createLease` refuses lease creation and returns `worktree-path-conflict` rather than
+  reusing or overwriting the path - evidence: path-conflict fixture.
+- **AC-8** When the local `baseRef` cannot be resolved to a local `baseSha`, `createLease` fails
+  closed with `base-ref-unresolved` and attempts no fetch - evidence: missing-base-ref fixture.
+- **AC-9** When the generated task branch already exists at a different commit, `createLease` refuses
+  branch creation and returns `branch-conflict` - evidence: branch-conflict fixture.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Create isolated worktrees at `<worktreeRoot>/<repoId>/<runId>/` from a local `baseSha` | AC-1 |
+| Create a local task branch with no upstream tracking ref | AC-1 |
+| Persist `leaseId`, `epoch`, in-process `fenceToken` backed by fnd-02 `LeaseCapability` | AC-2 |
+| Evaluate declared setup freshness locally; transition `setup-required` or `ready` | AC-4 |
+| `confirmSetup` re-runs freshness and transitions to `ready` only when fresh | AC-5 |
+| Spec surface: `WorktreeLease`, `WorktreeLeaseState` lifecycle | AC-2, AC-3 |
+| Spec surface: `DeclaredSetup`, `SetupEvaluation`, `SetupFreshnessReason` | AC-4 |
+| Spec surface: events `WorktreeLeaseCreated`, `LocalBranchCreated`, `RepoSetupEvaluated`, `RepoSetupConfirmed` | AC-1, AC-4, AC-5 |
+| Spec surface: failure token `worktree-path-conflict` | AC-7 |
+| Spec surface: failure token `setup-freshness-unknown` | AC-4, AC-5 |
+| Spec surface: failure token `stale-lease-fence` | AC-6 |
+| Spec surface: failure token `base-ref-unresolved` | AC-8 |
+| Spec surface: failure token `branch-conflict` | AC-9 |
 
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
-| `worktree-path-conflict` | Target path already exists or is not owned by the lease. | Refuse lease creation and report conflict. | AC-1 |
+| `worktree-path-conflict` | Target path already exists or is not owned by the lease. | Refuse lease creation and report conflict. | AC-7 |
 | `setup-freshness-unknown` | Freshness detector cannot be evaluated or remains stale after setup. | Keep lease `setup-required`; do not mark ready. | AC-4, AC-5 |
 | `stale-lease-fence` | Caller fence token does not match durable lease. | Reject protected state transition. | AC-6 |
-| `base-ref-unresolved` | Local base ref cannot resolve. | Fail closed and do not fetch. | AC-1 |
-| `branch-conflict` | Task branch already exists at another commit. | Refuse branch creation. | AC-1 |
+| `base-ref-unresolved` | Local base ref cannot resolve. | Fail closed and do not fetch. | AC-8 |
+| `branch-conflict` | Task branch already exists at another commit. | Refuse branch creation. | AC-9 |
 
 ## Quality bar
 

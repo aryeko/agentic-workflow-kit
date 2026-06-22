@@ -70,30 +70,54 @@ specified."
 
 - **AC-1** `acquire` succeeds only when no live lease exists or the prior lease is expired and
   advances epoch monotonically - evidence: acquisition table test.
-- **AC-2** `renew` requires current name, epoch, and token, then returns a new `LeaseCapability` with
-  updated expiry - evidence: renewal test.
-- **AC-3** `release` requires current name, epoch, and token; stale release returns
+- **AC-2** `renew` with current name, epoch, and token returns a new `LeaseCapability` with updated
+  expiry - evidence: renewal test.
+- **AC-3** `renew` with a stale epoch or token returns `stale-writer-fenced` and issues no
+  `LeaseCapability` - evidence: stale-renew fencing test.
+- **AC-4** `release` requires current name, epoch, and token; stale release returns
   `stale-writer-fenced` - evidence: release fencing test.
-- **AC-4** `read` returns `LeaseSnapshot` with token digest and never returns token secret - evidence:
+- **AC-5** `read` returns `LeaseSnapshot` with token digest and never returns token secret - evidence:
   snapshot redaction test.
-- **AC-5** `fence(name, epoch, token)` returns true only for the current unexpired lease and matching
+- **AC-6** `fence(name, epoch, token)` returns true only for the current unexpired lease and matching
   token digest - evidence: fence predicate test.
-- **AC-6** When lock guarantees are unavailable, acquire/renew/release fail with `lease-unavailable`
+- **AC-7** When lock guarantees are unavailable, acquire/renew/release fail with `lease-unavailable`
   or `network-fs-degraded` and no partial lease capability is returned - evidence: degraded lease test.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No
+responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Implement `acquire` | AC-1 |
+| Implement `renew` | AC-2, AC-3 |
+| Implement `release` | AC-4 |
+| Implement `read` | AC-5 |
+| Implement `fence` | AC-6 |
+| Increment epoch monotonically on acquisition | AC-1 |
+| Return token secret only in `LeaseCapability`; snapshots expose only `tokenDigest` | AC-5 |
+| Require current epoch and token for renew, release, and protected writes | AC-3, AC-4, AC-6 |
+| Treat lease names as opaque | AC-1 |
+| `LeaseStore` interface | AC-1, AC-2, AC-4, AC-5, AC-6 |
+| `LeaseCapability` type | AC-2 |
+| `LeaseSnapshot` type | AC-5 |
+| Lease transcript with epoch and token-digest evidence | AC-5 |
+| Degraded/unavailable lock handling | AC-7 |
 
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
-| `stale-writer-fenced` | Epoch or token is stale for renew, release, or fence. | Reject the operation before protected state changes. | AC-3, AC-5 |
-| `lease-unavailable` | Lock guarantees cannot be proven. | Do not issue a `LeaseCapability`; coordination is unavailable. | AC-6 |
-| `network-fs-degraded` | Backend cannot prove guarded lease update safety. | Refuse lease mutation and report degraded health. | AC-6 |
+| `stale-writer-fenced` | Epoch or token is stale for renew, release, or fence. | Reject the operation before protected state changes. | AC-3, AC-4, AC-6 |
+| `lease-unavailable` | Lock guarantees cannot be proven. | Do not issue a `LeaseCapability`; coordination is unavailable. | AC-7 |
+| `network-fs-degraded` | Backend cannot prove guarded lease update safety. | Refuse lease mutation and report degraded health. | AC-7 |
 
 ## Quality bar
 
 - Coverage scope and threshold: lease store modules at 90% minimum, aiming for 95%.
-- Required tests, catalogued by AC and failure row: acquisition, renewal, release, snapshot, fence,
-  and degraded-lock fixtures.
+- Required tests, catalogued by AC and failure row: acquisition, renewal, stale-renew fencing,
+  release, snapshot, fence, and degraded-lock fixtures.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/storage/leases/*.unit.test.ts`;
   `pnpm test:int -- packages/sdk/tests/foundation/storage/leases/*.int.test.ts`;
   `pnpm check`; coverage with `pnpm coverage:baseline`.

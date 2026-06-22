@@ -86,6 +86,25 @@ specified."
 - **AC-6** Binary or unredactable artifacts fail as `artifact-redaction-failed` and cannot satisfy
   gates - evidence: artifact quarantine test.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Build `RedactionSet` from fingerprints, labels, shell assignments, JSON values, auth headers, URL-encoded values, sensitive temp file paths | AC-1 |
+| Implement `redact<T extends RedactedInput>` recursively over scalars, arrays, objects, `ProcessOutputChunk`, `TextArtifact` | AC-2, AC-3 |
+| Redact before persistence across events, output, command lines, errors, prompts/tool results, provider responses, CI logs, analysis, text artifacts | AC-2 |
+| Return `RedactedValue` with replacement count, fingerprint ids, `RedactionApplied` | AC-4 |
+| Quarantine binary or unredactable artifacts as `artifact-redaction-failed` | AC-6 |
+| Interfaces / types: `RedactionSet` | AC-1 |
+| Interfaces / types: `ProcessOutputChunk`, `TextArtifact`, `RedactableScalar`, `RedactedInput` | AC-2, AC-3 |
+| Interfaces / types: `RedactedValue`, `RedactResult` | AC-4 |
+| Event: `RedactionApplied` payload shape | AC-4 |
+| Failure token `redaction-unavailable` | AC-5 |
+| Failure token `artifact-redaction-failed` | AC-6 |
+| Evidence: redaction property-test corpus and replacement-count evidence | AC-2, AC-3, AC-4 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |

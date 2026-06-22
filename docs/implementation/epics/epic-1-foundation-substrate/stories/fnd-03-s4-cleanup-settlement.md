@@ -82,18 +82,57 @@ specified."
   the branch is not checked out by any known worktree - evidence: branch disposition tests.
 - **AC-4** Missing or moved worktree paths are settled by tombstone only after registration absence or
   pruning is confirmed - evidence: missing/moved fixture.
-- **AC-5** Dirty paths, branch head mismatch, checked-out branch, path conflict, stale fence, and I/O
-  failure record `WorktreeCleanupBlocked` or `WorktreeCleanupRetryScheduled` with observed state -
-  evidence: blocked cleanup table.
-- **AC-6** Cleanup never reads remote state or infers merge status - evidence: boundary sweep.
+- **AC-5** When the cleanup path exists but is not owned by the lease, `cleanupLease` blocks with
+  `CleanupBlockedReason` `worktree-path-conflict`, records `CleanupObservedState`, and leaves the
+  lease unsettled - evidence: path-conflict blocked fixture.
+- **AC-6** When the worktree registration is still present and cannot be confirmed absent or pruned,
+  `cleanupLease` blocks with `CleanupBlockedReason` `worktree-registration-present`, records observed
+  state, and does not tombstone - evidence: registration-present blocked fixture.
+- **AC-7** When dirty paths remain during cleanup, `cleanupLease` blocks with `CleanupBlockedReason`
+  `dirty-worktree`, records the dirty paths in observed state, and leaves the lease unsettled until
+  operator disposition or new local evidence - evidence: dirty-path blocked fixture.
+- **AC-8** When the branch head does not equal `expectedHeadSha`, `cleanupLease` blocks branch
+  deletion with `CleanupBlockedReason` `branch-head-mismatch`, records observed `observedHeadSha`, and
+  leaves the lease unsettled - evidence: head-mismatch blocked fixture.
+- **AC-9** When the branch is checked out by a known worktree, `cleanupLease` blocks branch deletion
+  with `CleanupBlockedReason` `branch-checked-out` and records observed state - evidence: checked-out
+  blocked fixture.
+- **AC-10** When the cleanup or finalize `fenceToken` does not match the durable lease, the protected
+  state transition is rejected with `CleanupBlockedReason` `stale-lease-fence` and no path, branch, or
+  tombstone write occurs - evidence: stale-fence blocked fixture.
+- **AC-11** When a cleanup I/O operation fails, `cleanupLease` blocks with `CleanupBlockedReason`
+  `cleanup-io-failed`, records observed state and retry/escalation data, and leaves the lease
+  unsettled - evidence: io-failed blocked fixture.
+- **AC-12** Cleanup never reads remote state or infers merge status - evidence: boundary sweep.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Finalize only after local evidence recorded for current `headSha` | AC-1 |
+| Fence finalize and cleanup by `leaseId`, `epoch`, `fenceToken` | AC-1, AC-10 |
+| Remove path, prune registration, optional branch delete on `expectedHeadSha` match | AC-2, AC-3 |
+| Tombstone missing/moved worktrees only after registration absent or pruned | AC-4 |
+| Record blocked reasons, observed state, next retry time, escalation flag | AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11 |
+| Spec surface: `finalizeLease`, `cleanupLease`, `CleanupRequest`, `CleanupResult` | AC-1, AC-2 |
+| Spec surface: `BranchDisposition` | AC-3 |
+| Spec surface: `CleanupBlockedReason` members | AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11 |
+| Spec surface: `CleanupObservedState` | AC-5, AC-6, AC-7, AC-8, AC-9, AC-11 |
+| Spec surface: events `WorktreeLeaseFinalized`, `WorktreeCleanupCompleted`, `WorktreeCleanupBlocked`, `WorktreeCleanupRetryScheduled` | AC-1, AC-2, AC-5, AC-11 |
+| Spec surface: failure token `cleanup-blocked` | AC-5, AC-6, AC-7, AC-8, AC-9, AC-11 |
+| Spec surface: failure token `stale-lease-fence` | AC-10 |
+| Spec surface: failure token `dirty-worktree` | AC-7 |
+| Spec surface: failure token `worktree-path-conflict` | AC-5 |
 
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
-| `cleanup-blocked` | Worktree, branch, or head SHA no longer matches finalized lease. | Record observed state, retry/escalation data, and leave lease unsettled. | AC-5 |
-| `stale-lease-fence` | Cleanup or finalize fence token does not match durable lease. | Reject protected state transition. | AC-1, AC-5 |
-| `dirty-worktree` | Dirty paths remain during cleanup. | Block cleanup until operator disposition or new local evidence. | AC-5 |
+| `cleanup-blocked` | Worktree, branch, or head SHA no longer matches finalized lease. | Record observed state, retry/escalation data, and leave lease unsettled. | AC-5, AC-6, AC-8, AC-9, AC-11 |
+| `stale-lease-fence` | Cleanup or finalize fence token does not match durable lease. | Reject protected state transition. | AC-1, AC-10 |
+| `dirty-worktree` | Dirty paths remain during cleanup. | Block cleanup until operator disposition or new local evidence. | AC-7 |
 | `worktree-path-conflict` | Cleanup path exists but is not owned by the lease. | Block cleanup and record observed state. | AC-5 |
 
 ## Quality bar

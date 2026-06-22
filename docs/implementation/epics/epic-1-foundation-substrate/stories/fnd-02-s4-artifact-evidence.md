@@ -77,17 +77,41 @@ specified."
 
 - **AC-1** `put` publishes immutable artifacts with stable `ArtifactRef.id`, digest, size, media type,
   retention class, classification, and redaction state - evidence: artifact publish test.
-- **AC-2** Rewriting blob bytes for an existing artifact id is impossible; digest mismatch returns
-  `artifact-quarantined` - evidence: immutability test.
-- **AC-3** `putScratch` returns `ScratchArtifactRef` only for non-authoritative degraded output and
-  scratch refs cannot satisfy evidence, export, gates, or retention policy - evidence: scratch ref
-  test.
+- **AC-2** Rewriting blob bytes for an existing artifact id is impossible; a failed digest, redaction,
+  classification, or size check returns `artifact-quarantined` - evidence: immutability and
+  quarantine test.
+- **AC-3** Under `network-fs-degraded`, `put` fails and only `putScratch` returns a
+  `ScratchArtifactRef`, and that scratch ref cannot satisfy evidence, export, gates, or retention
+  policy - evidence: scratch ref test.
 - **AC-4** `redact` creates a new redacted artifact and a tombstone from original digest to replacement
   digest; normal reads deny tombstoned originals - evidence: tombstone test.
 - **AC-5** `export` creates a stable, redacted-by-default `ExportManifest` containing selected refs,
   digests, sizes, log ranges, and log health - evidence: export snapshot.
 - **AC-6** Export refuses any selected blob or log range that cannot be verified with
   `export-incomplete-forbidden` - evidence: incomplete export fixture.
+
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No
+responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Write-once publish with digest, size, media type, retention class, classification, producer, expiry | AC-1 |
+| Preserve stable `ArtifactRef.id` as canonical reference | AC-1 |
+| Blob immutability and check-failure quarantine | AC-2 |
+| `ScratchArtifactRef` degraded-only and barred from evidence/export/gates/retention | AC-3 |
+| Redact via new redacted artifact plus tombstone | AC-4 |
+| Export stable, redacted-by-default manifest | AC-5 |
+| Refuse incomplete or digest-mismatched export | AC-6 |
+| `ArtifactStore` / `ArtifactInput` interfaces | AC-1 |
+| `ArtifactRef` type | AC-1 |
+| `ScratchArtifactRef` type | AC-3 |
+| `ArtifactStream` type | AC-4 |
+| `ExportSelection` / `ExportManifest` types | AC-5 |
+| Artifact metadata record evidence | AC-1 |
+| Tombstone record evidence | AC-4 |
+| Export manifest evidence | AC-5 |
 
 ## Failure and degraded outcomes
 

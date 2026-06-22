@@ -84,6 +84,25 @@ specified."
 - **AC-6** Later stories can cite `PackageTemplateContract` without restating package export rules -
   evidence: generated template contract artifact.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| Define reusable package template for source, tests, manifest, and TypeScript config | AC-1 |
+| Define export conventions for public entrypoints and package-local internal modules | AC-2 |
+| Prove template preserves the package dependency matrix | AC-3 |
+| Prove template preserves test-lane placement | AC-4 |
+| Produce `PackageTemplateContract` and `PackageExportConvention` for the check-gate story | AC-6 |
+| `PackageTemplateContract` (interface / type) | AC-6 |
+| `PackageExportConvention` (interface / type) | AC-2, AC-6 |
+| Failure token `export-map-missing` | AC-2 |
+| Failure token `template-drift` | AC-5 |
+| Failure token `template-forbidden-import` | AC-3 |
+| Evidence record: template validation report | AC-6 |
+| Evidence record: package export inventory | AC-2 |
+
 ## Failure and degraded outcomes
 
 | token | trigger | required behavior | proven by |
