@@ -83,6 +83,12 @@ flowchart TB
 
 ## Shared contracts
 
+The shared shapes below are producer-owned evidence contracts for the Epic 0 delivery run. A
+producer story defines the concrete artifact/schema in its committed implementation, and consumer
+stories cite that committed producer output rather than re-deriving the shape. The dependency edges
+above are therefore commit gates: consumers do not start until the producer story has landed and its
+artifact shape is available as substrate.
+
 | shared shape | producer | consumers |
 |---|---|---|
 | `PackageTargetPathset` | `epic0-s1-package-graph` | `epic0-s2-dependency-guardrails`, `epic0-s4-export-templates` |
