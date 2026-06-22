@@ -34,6 +34,10 @@ the command must be non-writing and fail on formatting drift. Biome 2.5 rejects 
 older `--check` flag, while `biome format .` preserves files and exits non-zero when
 formatting would change.
 
+Stories may cite the format behavior as normative, but must validate any literal
+command spelling against the pinned tool version before freezing it into a story
+contract.
+
 ## Local Inner Loop
 
 Run `pnpm check` locally before pushing. All nine steps run. The gate completes in
@@ -76,6 +80,17 @@ once the first real smoke test is committed.
 Smoke tests require real processes, network, credentials, or external services. They
 are not part of `pnpm check` and must not be made a dependency of the fast local loop.
 See [test-lanes.md](test-lanes.md) for the `smoke-real` lane definition.
+
+## Coverage Scope
+
+`coverage:baseline` currently instruments the `unit`, `integration`, and
+`conformance-mock` Vitest projects. It is a fast local baseline, not proof that every
+story helper named in an implementation contract met its stated coverage bar.
+
+Stories that claim coverage over helpers must name the command and lane(s) that
+instrument that helper scope. The aggregate baseline satisfies a story only when it
+actually includes the helper's test lane and source paths; otherwise the story must
+name a lane-specific coverage command or narrow the stated scope.
 
 ## Gate Integrity
 

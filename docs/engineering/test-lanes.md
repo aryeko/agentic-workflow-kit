@@ -67,6 +67,18 @@ network.
 | `conformance-mock` | yes | no | no | yes |
 | `smoke-real` | no | yes | yes | no (CI-only) |
 
+## Coverage and Lane Scope
+
+Coverage evidence is lane-scoped. The default `coverage:baseline` gate command
+collects coverage for the `unit`, `integration`, and `conformance-mock` lanes, so it
+proves only code exercised by those lane projects.
+
+When a story's meaningful helper scope is exercised outside the baseline lanes, or
+needs a narrower per-lane report, the story must name a coverage command that
+instruments that lane or explicitly narrow its coverage scope to the lane being
+measured. A coverage number must not be reused as evidence for helpers outside the
+instrumented lanes and source paths.
+
 ## The Zero-Real-Process Guard
 
 **File:** `tooling/no-side-effects.setup.ts`
