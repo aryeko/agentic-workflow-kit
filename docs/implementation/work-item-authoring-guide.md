@@ -404,6 +404,23 @@ are **consumers** that cite it verbatim. This is R5's "name the shape once" give
   `<producer-story>/<type>` and never redeclare the shape.
 - A shared shape with two producers is a defect — exactly one node owns it.
 
+#### Catalog and invariant owners vs behavior owners
+
+Shared ownership is not only about types. A signal can own a **catalog** (a failure-token set, an audit
+record shape) or an **invariant** (e.g. "every start has a matching finish and destroy, or the run
+degrades") while *different* stories own the **behaviors** that trigger those tokens or must uphold the
+invariant. Name this split explicitly so a behavior does not fall between two stories:
+
+- The catalog/invariant story owns the token set and the record/invariant AC, and is the cited producer.
+- Each behavior story cites the producer's token verbatim, and carries its own AC proving the behavior
+  that raises the token (and a failure row for it).
+- Neither side may leave the behavior unowned. A token defined in the catalog with no behavior AND no
+  behavior story is dead; a behavior with no token is unrecorded. Both are defects.
+
+A story's **responsibilities may not cross the signal boundary** the story DAG assigned it. If a
+responsibility reaches into another story's signal (the `destroy`-in-the-wrong-story defect), move it to
+the owning story rather than implementing it across the seam.
+
 ### Delivery readiness
 
 The story DAG is the input a plan-first delivery orchestrator (e.g. the `orchestrated-delivery` skill)
@@ -471,6 +488,37 @@ Good ACs are testable:
 The manifest turns "every interface/event/failure-mode implemented" into something countable. Without it,
 readers independently re-derive the spec and find different gaps.
 
+**Each AC is self-contained.** An AC must be checkable from its own text plus the artifacts it names. It
+may not defer its own enumeration to the design — "every token named in the design", "as specified", or
+"exactly as design" are not falsifiable, because the reader has to leave the AC to know what passes. If
+an AC asserts membership of a set (codes, states, fields, events), enumerate the set in the AC.
+
+**One assertion per AC.** Prefer a single falsifiable claim per `AC-n`; split freely. The 3-10 sizing
+heuristic bounds the *story's scope*, not its AC count — a single-surface story with a dozen atomic ACs
+is fine, but bundling three assertions into one AC to hit a number is not. A reviewer must be able to
+mark each AC pass or fail without sub-clauses.
+
+**Keep distinct design shapes distinct in the manifest.** Where the design defines two separate types or
+unions (e.g. a health-state union and an error-code union), list them as separate manifest items. Lumping
+them into one bullet invites an AC that conflates them.
+
+#### Coverage within the story
+
+A story is internally complete only when its obligations and its proofs line up both ways. Carry a small
+matrix that maps every **responsibility** and every **spec-surface item** to the `AC-n` that proves it,
+and confirm every `AC-n` traces back to one of them:
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| <responsibility or manifest item> | AC-<n> |
+
+- A responsibility or manifest item with **no AC** is an orphaned obligation (the `destroy`-with-no-AC
+  defect) — add the AC or remove the obligation.
+- An AC that maps to **no** responsibility or manifest item is invented scope — drop it or push it back
+  to design.
+- A responsibility must stay inside the signal(s) the story DAG assigned this story. A responsibility
+  that reaches into another story's signal is an ownership leak; move it to the owning story.
+
 ### R2 - Name every failure and degraded outcome
 
 Failure behavior is contract surface. For each way the story can fail or degrade, write a row:
@@ -481,6 +529,13 @@ Failure behavior is contract surface. For each way the story can fail or degrade
 
 Bare prose like "fail closed", "degrade safely", or "handle errors" is not enough. The trigger, required
 behavior, and proving AC must be explicit.
+
+**The proving AC must actually assert the row.** The cited `AC-n` is adequate only if its assertion
+contains this row's trigger *and* its required behavior. An AC that proves the happy path, or a different
+condition, does not prove a degraded row just because its number is written in the column. The classic
+miss: a `network-fs-degraded` row whose required behavior is "refuse authoritative append and invalidate
+open handles", pointed at an AC that only asserts durable-receipt fields. Read the cited AC against the
+row before writing its number.
 
 This rule matters because many review blockers happen in degraded paths: audit bypass when no writer is
 configured, authoritative writes during filesystem degradation, lease renewal after TTL expiry, or
@@ -517,6 +572,12 @@ story or a gap in the design:
 This avoids false findings where implementation is graded against a stronger bar than the approved spec.
 The story does not outrun the design.
 
+The story also does not *inherit the design's vagueness*. If an AC cannot be made self-contained, or a
+failure row cannot name a single required behavior, because the design itself is ambiguous or offers a
+choice, the fix is to amend the design (escalate it as a design gap) — not to copy the ambiguity down
+into a vague AC or an "A or B" outcome. A vague design is a design defect surfaced here, never a license
+for a vague story.
+
 ### R5 - No unresolved option branches
 
 A story must not hand unresolved design choices to implementation. Avoid "do A or B" branches. Pick the
@@ -538,6 +599,11 @@ Producer/consumer contracts name the shared shape once. Consumers cite that shap
 fields X supplies." The producer is the node the story DAG designated for that shape (see
 [Shared contracts](#shared-contracts-declare-the-producer-once)); a consumer story references
 `<producer-story>/<type>` rather than redeclaring it.
+
+When the design itself presents the choice ("deny use or refuse persistence"), R5 still applies: resolve
+it to the single design-backed outcome, and if the design genuinely leaves it open, escalate it as a
+design gap (see [R4](#r4---the-story-is-a-subset-of-design)). Copying the design's "or" into the story is
+not resolution.
 
 ### Story contract template
 
@@ -604,7 +670,19 @@ specified."
 - **AC-1** <Falsifiable assertion> - evidence: <test or artifact>.
 - **AC-2** <Falsifiable assertion> - evidence: <test or artifact>.
 
+## Coverage matrix
+
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No
+responsibility crosses this story's assigned signal.
+
+| Responsibility / spec-surface item | Proven by |
+|---|---|
+| <responsibility or manifest item> | AC-<n> |
+
 ## Failure and degraded outcomes
+
+Each row's `proven by` AC must assert this row's trigger and required behavior — verify the cited AC
+against the row.
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
@@ -706,6 +784,20 @@ consumes it, and before marking it `frozen`. The close-out has three steps:
    self-check did not — divergent independent verdicts are a signal that the artifact or the rule is
    under-specified, not noise to average away.
 
+   Two reviewer rules keep the independent pass honest, because most false findings come from the same
+   two slips:
+
+   - **Quote the source.** Every finding must quote the design line (or AC) it contradicts. If the quote
+     actually supports the artifact, the finding is auto-refuted — this catches the "I re-read it the
+     wrong way" false positive.
+   - **Classify story-defect vs design-defect.** A vague AC whose vagueness comes from the design is a
+     *design* gap to escalate, not a story bug to log against the author. Label which it is.
+
+**Self-checks must show their evidence, not assert it.** A self-check block that only lists "PASS" re-runs
+the presence trap that lets hollow cross-references through. Each story's self-check quotes the proving AC
+under every failure row and includes the responsibility/manifest → AC matrix, so an empty proof is
+visible on the page.
+
 Record the findings. A failed reconstruction or a divergent independent verdict is the real signal; do
 not wave it through. Only when all three pass is the layer `ready`; freeze it before its children are
 authored.
@@ -720,15 +812,22 @@ in [Layer 3](#readiness-check-gate-3); the story-contract and evidence gates fol
 
 For every story:
 
-- [ ] AC list exists; every AC is falsifiable and traces to the design.
-- [ ] Spec-surface manifest exists and matches the design.
+- [ ] AC list exists; every AC is falsifiable, **self-contained** (enumerates its own set, never "as in
+  design"), and traces to the design. One assertion per AC.
+- [ ] Spec-surface manifest exists, matches the design, and keeps distinct design types/unions as
+  distinct items.
 - [ ] Covers its story-DAG node: the story names the signal(s) it covers, and those match the node the
   DAG assigned it; shared shapes are cited by producer story, not redeclared.
-- [ ] Failure/degraded outcome table exists; every named state has a proving AC.
+- [ ] **Internal coverage holds both ways:** every responsibility and manifest item maps to a proving
+  AC, every AC maps back to one, and no responsibility crosses the story's assigned signal boundary.
+- [ ] Failure/degraded outcome table exists; **each row's cited AC actually asserts that row's trigger
+  and required behavior** (not the happy path, not a different condition).
 - [ ] Coverage number and enforcement command are stated.
 - [ ] Required tests are catalogued, not presented as examples.
-- [ ] Zero unresolved option branches remain.
-- [ ] Cross-story contracts name exact shapes.
+- [ ] Zero unresolved option branches remain — including choices the design itself leaves open
+  (resolve, or escalate as a design gap).
+- [ ] Cross-story contracts name exact shapes; catalog/invariant tokens are cited verbatim by the
+  behavior stories that raise them.
 - [ ] Sweep commands are listed for cross-corpus or cross-package changes.
 - [ ] Boundaries include owned package/module, owned pathset, dependency-rule edge, and STOP conditions.
 
@@ -773,11 +872,13 @@ parts; the epic table's `Owning story` is backfilled with no `TBD` left; no node
 every shared shape has exactly one producer node; the edge graph is acyclic and labelled; sizing is
 defensible.
 
-A **story contract** is ready when it has: a falsifiable `AC-n` list; a spec-surface manifest; the signal
-it covers and the cited shared shapes; a failure/degraded outcome table; a coverage number and
-enforcement command; a required-test catalogue; zero unresolved option branches; exact cross-story
-shapes; sweep commands where needed; evidence-pack expectations; and an owned boundary with STOP
-conditions.
+A **story contract** is ready when it has: a falsifiable, self-contained `AC-n` list (one assertion each,
+no "as in design"); a spec-surface manifest keeping distinct design shapes distinct; an internal coverage
+matrix where responsibilities and manifest items map to ACs and back; the signal it covers and the cited
+shared shapes; a failure/degraded table whose every row's cited AC actually asserts that row; a coverage
+number and enforcement command; a required-test catalogue; zero unresolved option branches (including
+design-offered ones); exact cross-story shapes with catalog tokens cited verbatim; sweep commands where
+needed; evidence-pack expectations; and an owned boundary with STOP conditions.
 
 The five story rules in one line: R1 enumerate ACs and manifest; R2 name failure outcomes; R3 quantify
 and enforce quality; R4 story is a subset of design; R5 no unresolved branches.
