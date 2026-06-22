@@ -542,11 +542,18 @@ and confirm every `AC-n` traces back to one of them:
 
 ### R2 - Name every failure and degraded outcome
 
-Failure behavior is contract surface. For each way the story can fail or degrade, write a row:
+Failure behavior is contract surface. Runtime stories write a token row for each way the story can fail
+or degrade:
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `<kebab-token>` | Condition that activates the failure. | Required response. | `AC-n` |
+
+Substrate/config stories use a validation-failure row instead of inventing a runtime token:
+
+| failure mode | invalid fixture | required validation | proven by |
+|---|---|---|---|
+| <plain-language failure mode> | <invalid artifact shape or command-chain fault> | <required validation failure> | `AC-n` |
 
 Bare prose like "fail closed", "degrade safely", or "handle errors" is not enough. The trigger, required
 behavior, and proving AC must be explicit.
@@ -749,12 +756,19 @@ responsibility crosses this story's assigned signal.
 
 ## Failure and degraded outcomes
 
-Each row's `proven by` AC must assert this row's trigger and required behavior — verify the cited AC
-against the row.
+For runtime stories, use the token table. Each row's `proven by` AC must assert this row's trigger and
+required behavior — verify the cited AC against the row.
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `<kebab-token>` | <condition> | <required behavior> | AC-<n> |
+
+For substrate/config stories, use the validation-failure table instead. Each row's `proven by` AC must
+assert the invalid fixture and required validation failure — verify the cited AC against the row.
+
+| failure mode | invalid fixture | required validation | proven by |
+|---|---|---|---|
+| <plain-language failure mode> | <invalid artifact shape or command-chain fault> | <required validation failure> | AC-<n> |
 
 ## Quality bar
 
@@ -782,7 +796,7 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 ## Evidence pack
 
 - Test name or artifact proving each AC.
-- Test name or artifact proving each failure/degraded outcome row.
+- Test name or artifact proving each failure/degraded outcome or validation-failure row.
 - Negative fixture or equivalent failing assertion for every rejection, fail-fast, or validation failure
   claim.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
@@ -917,8 +931,9 @@ For every story:
   DAG assigned it; shared shapes are cited by producer story, not redeclared.
 - [ ] **Internal coverage holds both ways:** every responsibility and manifest item maps to a proving
   AC, every AC maps back to one, and no responsibility crosses the story's assigned signal boundary.
-- [ ] Failure/degraded outcome table exists; **each row's cited AC actually asserts that row's trigger
-  and required behavior** (not the happy path, not a different condition).
+- [ ] Runtime stories have a failure/degraded outcome table, and substrate/config stories have a
+  validation-failure table; **each row's cited AC actually asserts that row's trigger or invalid fixture
+  and required behavior or validation failure** (not the happy path, not a different condition).
 - [ ] Every rejection, fail-fast, degraded, or validation-failure AC has a negative fixture or equivalent
   failing assertion; a green happy-path tool exit is not cited for the negative claim.
 - [ ] Coverage number, enforcement command, and instrumented lane(s) are stated, and the command measures
@@ -940,7 +955,7 @@ If any box is empty, the story is not ready.
 An implementation claim can be evaluated only when the evidence pack contains:
 
 - a test or artifact for every AC;
-- a test or artifact for every failure/degraded outcome row;
+- a test or artifact for every failure/degraded outcome or validation-failure row;
 - a negative fixture or equivalent failing assertion for every rejection, fail-fast, degraded, or
   validation-failure claim;
 - gate output or a named unrelated gate blocker;
@@ -981,12 +996,13 @@ A **story contract** is ready when it has: a falsifiable, self-contained `AC-n` 
 no "as in design"); a spec-surface manifest keeping distinct design shapes distinct, or a
 validated-artifacts manifest for substrate/config stories; an internal coverage matrix where
 responsibilities and manifest items map to ACs and back; the signal it covers and the cited shared
-shapes; a failure/degraded table whose every row's cited AC actually asserts that row; negative fixtures
-for every rejection or validation-failure claim; a coverage number and enforcement command that
-instruments the stated scope; frozen command references stated as behavior contracts verified against the
-pinned tool version; a required-test catalogue; zero unresolved option branches (including
-design-offered ones); exact cross-story shapes with catalog tokens cited verbatim; sweep commands where
-needed; evidence-pack expectations; and an owned boundary with STOP conditions.
+shapes; a failure/degraded table for runtime stories or validation-failure table for substrate/config
+stories, with every row's cited AC actually asserting that row; negative fixtures for every rejection or
+validation-failure claim; a coverage number and enforcement command that instruments the stated scope;
+frozen command references stated as behavior contracts verified against the pinned tool version; a
+required-test catalogue; zero unresolved option branches (including design-offered ones); exact
+cross-story shapes with catalog tokens cited verbatim; sweep commands where needed; evidence-pack
+expectations; and an owned boundary with STOP conditions.
 
 The five story rules in one line: R1 enumerate ACs and manifest; R2 name failure outcomes; R3 quantify
 and enforce quality; R4 story is a subset of design; R5 no unresolved branches.
