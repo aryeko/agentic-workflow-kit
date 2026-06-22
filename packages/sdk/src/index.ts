@@ -38,6 +38,7 @@ export type {
   PullRequestUpsertRequest,
   PushBranchRequest,
 } from './providers/forge/index.js';
+export * from './providers/work-source/index.js';
 export {
   AUTHORITATIVE_STORAGE_OPERATIONS,
   getStorageCapabilityMatrix,
