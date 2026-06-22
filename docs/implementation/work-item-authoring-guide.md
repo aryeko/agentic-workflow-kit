@@ -957,6 +957,11 @@ Authoring gates for the contract documents. They are authoring gates, not an exe
 defined in [Layer 1](#readiness-check-gate-1), Gate 2 in [Layer 2](#readiness-check-gate-2), and Gate 3
 in [Layer 3](#readiness-check-gate-3); the story-contract and evidence gates follow.
 
+**Encoding new lessons.** When a delivery surfaces a recurring defect class, encode it as a new gate box,
+template field, or evidence-pack item — not as a new prose block. The guide should get more *checkable*,
+not longer; a lesson that cannot be reduced to a checkable box is not yet ready to add. This is what keeps
+the gate, rather than narrative nobody re-reads, the thing that catches the next defect.
+
 ### Gate 4 - Story is authoring-ready
 
 For every story:
