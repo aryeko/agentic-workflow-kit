@@ -116,11 +116,12 @@ responsibility crosses this story's assigned signal.
 ## Quality bar
 
 - Coverage scope and threshold: lease store modules at 90% minimum, aiming for 95%.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments unit helpers; integration-only helper scope must be measured with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/leases/*.int.test.ts`.
 - Required tests, catalogued by AC and failure row: acquisition, renewal, stale-renew fencing,
   release, snapshot, fence, and degraded-lock fixtures.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/storage/leases/*.unit.test.ts`;
   `pnpm test:int -- packages/sdk/tests/foundation/storage/leases/*.int.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline`.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for unit helpers and `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/leases/*.int.test.ts` for integration helpers.
 - Determinism constraints: tests inject clock/expiry and token generator.
 - Dependency boundaries: lease code imports no repository, core coordination, provider, process, or
   concrete backend behavior.
@@ -146,8 +147,10 @@ plus the evidence pack.
 
 - Test name or artifact proving each AC.
 - Test name or artifact proving each failure/degraded outcome row.
+- Negative fixture or equivalent failing assertion proving every rejection, degraded, or fail-closed
+  claim named by an AC or failure row.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results showing no persisted token secret and no higher-level coordination names
   interpreted by fnd-02.
 

@@ -138,10 +138,11 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: cleanup/finalization modules at 90% minimum, aiming for 95%.
+- Coverage command and instrumented lane(s): integration helper scope must be measured with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/workspace-repository/cleanup/*.int.test.ts`; unit-only `pnpm coverage:baseline` is not sufficient for this story.
 - Required tests, catalogued by AC and failure row: finalize fence, happy-path cleanup, branch
   disposition, missing/moved, blocked cleanup, and boundary sweep tests.
 - Exact commands: `pnpm test:int -- packages/sdk/tests/foundation/workspace-repository/cleanup/*.int.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline`.
+  `pnpm check`; coverage with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/workspace-repository/cleanup/*.int.test.ts` for integration helper scope.
 - Determinism constraints: retry times, timestamps, and fixture SHAs are injected.
 - Dependency boundaries: no remote git, Forge, process execution, credentials, CI, review, or merge
   dependency.
@@ -166,8 +167,10 @@ The SDK cleanup/finalization modules and cleanup event payloads, plus the eviden
 
 - Test name or artifact proving each AC.
 - Test name or artifact proving each failure/degraded outcome row.
+- Negative fixture or equivalent failing assertion proving every rejection, degraded, or fail-closed
+  claim named by an AC or failure row.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results proving cleanup has no remote, Forge, CI, credential, review, merge, or process
   dependency.
 

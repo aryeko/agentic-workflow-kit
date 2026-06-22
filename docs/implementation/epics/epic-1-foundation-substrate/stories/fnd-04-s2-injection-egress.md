@@ -147,11 +147,12 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: injection/egress modules at 90% minimum, aiming for 95%.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated injection/egress helper scope.
 - Required tests, catalogued by AC and failure row: injection plan, worker-no-Forge property, runner
   scope, grant narrowing, egress snapshot, attestation matching, pre-use audit failure, pre-use
   redaction failure, and credential resolution (success + `credential-ref-unresolved`) tests.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/credentials-secrets/injection/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline`.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane injection/egress scope.
 - Determinism constraints: policy digests, scope digests, freshness keys, and expiry inputs are
   injected or canonicalized.
 - Dependency boundaries: no Execution Host enforcement, no provider package, no Forge client, no
@@ -179,8 +180,10 @@ The SDK injection and egress policy modules providing `InjectionPlan`, `EgressPo
 
 - Test name or artifact proving each AC.
 - Test name or artifact proving each failure/degraded outcome row.
+- Negative fixture or equivalent failing assertion proving every rejection, degraded, or fail-closed
+  claim named by an AC or failure row.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results proving no Execution Host enforcement, provider, Forge client, process, network,
   or concrete secret backend dependency.
 

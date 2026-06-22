@@ -138,10 +138,11 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: credential audit/failure modules at 90% minimum, aiming for 95%.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated credential audit/failure helper scope.
 - Required tests, catalogued by AC and failure row: event union, payload schema, denial record,
   destroy record, lifecycle invariant, audit failure, and event detail tests.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/credentials-secrets/audit/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline`.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane credential audit/failure scope.
 - Determinism constraints: payload-local hash chain uses canonical serialized payloads and injected
   prior hash/time.
 - Dependency boundaries: audit code imports no provider, core writer implementation, process, network,
@@ -167,8 +168,10 @@ The SDK credential audit and failure catalog modules, plus the evidence pack.
 
 - Test name or artifact proving each AC.
 - Test name or artifact proving each failure/degraded outcome row.
+- Negative fixture or equivalent failing assertion proving every rejection, degraded, or fail-closed
+  claim named by an AC or failure row.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results proving no secret values, core writer imports, provider imports, process, or
   network code in audit/failure modules.
 

@@ -114,10 +114,11 @@ responsibility crosses this story's assigned signal.
 ## Quality bar
 
 - Coverage scope and threshold: storage health/error modules at 90% minimum, aiming for 95%.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit lane that owns the stated storage health/error helper scope.
 - Required tests, catalogued by AC and failure row: exhaustiveness tests for AC-1/AC-2, fail-closed
   table tests for AC-3, log health semantics tests for AC-4, capability matrix tests for AC-5.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/storage/health/*.unit.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline`.
+  `pnpm check`; coverage with `pnpm coverage:baseline` for the unit-lane storage health/error scope.
 - Determinism constraints: health classification is pure over explicit inputs.
 - Dependency boundaries: SDK storage health code imports no provider, CLI, MCP, process, network, or
   concrete filesystem backend.
@@ -141,8 +142,10 @@ The SDK storage health/error catalog providing `StorageHealth`, `StorageError`, 
 
 - Test name or artifact proving each AC.
 - Test name or artifact proving each failure/degraded outcome row.
+- Negative fixture or equivalent failing assertion proving every rejection, degraded, or fail-closed
+  claim named by an AC or failure row.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results proving storage health code has no concrete provider, process, network, or
   filesystem backend dependency.
 
