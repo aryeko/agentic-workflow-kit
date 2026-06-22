@@ -26,13 +26,30 @@ import {
   type SetupDependencies,
   type SetupEvaluation,
 } from '../setup/index.js';
+import type {
+  CleanupGitDependencies,
+  CleanupRequest,
+  CleanupResult,
+  CleanupRuntimeDependencies,
+  FinalizeLeaseInput,
+  FinalizeLeaseResult,
+} from '../cleanup/index.js';
+import {
+  createCleanupBlockedIntents as buildCleanupBlockedIntents,
+  createCleanupLeaseHandler,
+  createFinalizeLeaseHandler,
+} from '../cleanup/worktree-settlement.js';
 
 import {
   createLocalBranchCreatedIntent,
   createLocalGitEvidenceRecordedIntent,
+  createWorktreeCleanupBlockedIntent,
+  createWorktreeCleanupCompletedIntent,
+  createWorktreeCleanupRetryScheduledIntent,
   createRepoSetupConfirmedIntent,
   createRepoSetupEvaluatedIntent,
   createWorktreeLeaseCreatedIntent,
+  createWorktreeLeaseFinalizedIntent,
   type LocalCommitSummary,
   type LocalGitEvidenceRecordedPayload,
   type WorkspaceRepositoryAppendIntent,
@@ -184,6 +201,8 @@ export interface WorkspaceRepository {
   evaluateSetup(leaseId: string): WorkspaceRepositoryResult;
   confirmSetup(input: ConfirmSetupInput): WorkspaceRepositoryResult;
   recordLocalGitEvidence(input: RecordLocalGitEvidenceInput): RecordLocalGitEvidenceResult;
+  finalizeLease(input: FinalizeLeaseInput): FinalizeLeaseResult;
+  cleanupLease(input: CleanupRequest): CleanupResult;
 }
 
 type GitDependencies = {
@@ -201,7 +220,7 @@ type GitDependencies = {
     readonly targetSha: GitSha;
     readonly trackUpstream: false;
   }) => void;
-};
+} & CleanupGitDependencies;
 
 export type WorkspaceRepositoryDependencies = {
   readonly repository: RepositoryIdentity;
@@ -214,6 +233,7 @@ export type WorkspaceRepositoryDependencies = {
   readonly now: () => string;
   readonly git: GitDependencies;
   readonly localGitEvidenceRecorder?: LocalGitEvidenceRecorder;
+  readonly cleanupDependencies?: Partial<Pick<CleanupRuntimeDependencies, 'retryDelayMs' | 'writeCleanupTombstone'>>;
   readonly setupDependencies?: Partial<SetupDependencies>;
 };
 
@@ -221,6 +241,8 @@ type StoredLeaseRecord = {
   readonly lease: WorktreeLease;
   readonly setup: DeclaredSetup;
   readonly setupEvaluatedAtLeastOnce: boolean;
+  readonly latestEvidence?: LocalGitEvidence;
+  readonly finalizedEvidence?: LocalGitEvidence;
 };
 
 const isStorageError = (value: unknown): value is StorageError =>
@@ -294,6 +316,13 @@ export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDepen
     records.set(record.lease.leaseId, record);
   };
 
+  const cleanupRuntime: CleanupRuntimeDependencies = {
+    ...dependencies.git,
+    now: dependencies.now,
+    retryDelayMs: dependencies.cleanupDependencies?.retryDelayMs ?? 300_000,
+    writeCleanupTombstone: dependencies.cleanupDependencies?.writeCleanupTombstone,
+  };
+
   const evaluateForRecord = (
     record: StoredLeaseRecord,
     occurredAt: string,
@@ -345,6 +374,8 @@ export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDepen
       lease: updatedLease,
       setup: record.setup,
       setupEvaluatedAtLeastOnce: true,
+      latestEvidence: record.latestEvidence,
+      finalizedEvidence: record.finalizedEvidence,
     });
 
     return {
@@ -495,6 +526,8 @@ export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDepen
         lease,
         setup: dependencies.setup,
         setupEvaluatedAtLeastOnce: false,
+        latestEvidence: undefined,
+        finalizedEvidence: undefined,
       });
 
       const occurredAt = dependencies.now();
@@ -627,6 +660,10 @@ export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDepen
       }
 
       const occurredAt = dependencies.now();
+      persistRecord({
+        ...record,
+        latestEvidence: recordedEvidence.value,
+      });
 
       return {
         ok: true,
@@ -638,6 +675,73 @@ export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDepen
         },
       };
     },
+
+    finalizeLease: createFinalizeLeaseHandler<WorktreeLease, StoredLeaseRecord>({
+      getRecord: (leaseId) => records.get(leaseId),
+      persistRecord: (record) => {
+        persistRecord(record as StoredLeaseRecord);
+      },
+      repository: dependencies.repository,
+      runtime: cleanupRuntime,
+      now: dependencies.now,
+      leaseStoreFence: (leaseId, epoch, token) => dependencies.leaseStore.fence(leaseId, epoch, token),
+      updateLeaseState: (lease, state) => updateLeaseState(lease, state as WorktreeLeaseState),
+      createFinalizedIntent: ({ lease, evidenceId, headSha, occurredAt }) =>
+        createWorktreeLeaseFinalizedIntent(
+          {
+            leaseId: lease.leaseId,
+            epoch: lease.epoch,
+            runId: lease.runId,
+            repoId: lease.repoId,
+            worktreePath: lease.worktreePath,
+            branchName: lease.branchName,
+            evidenceId,
+            headSha,
+            finalizedAt: occurredAt,
+            state: 'finalized',
+          },
+          occurredAt,
+        ),
+    }),
+
+    cleanupLease: createCleanupLeaseHandler<WorktreeLease, StoredLeaseRecord>({
+      getRecord: (leaseId) => records.get(leaseId),
+      persistRecord: (record) => {
+        persistRecord(record as StoredLeaseRecord);
+      },
+      repository: dependencies.repository,
+      runtime: cleanupRuntime,
+      now: dependencies.now,
+      leaseStoreFence: (leaseId, epoch, token) => dependencies.leaseStore.fence(leaseId, epoch, token),
+      retryDelayMs: cleanupRuntime.retryDelayMs,
+      updateLeaseState: (lease, state) => updateLeaseState(lease, state as WorktreeLeaseState),
+      createCleanupBlockedIntents: (input) =>
+        buildCleanupBlockedIntents({
+          ...input,
+          createRetryScheduledIntent: (payload) =>
+            createWorktreeCleanupRetryScheduledIntent({ ...payload, state: 'cleanup-blocked' }, input.now),
+          createBlockedIntent: (payload) =>
+            createWorktreeCleanupBlockedIntent({ ...payload, state: 'cleanup-blocked' }, input.now),
+        }),
+      createCleanupCompletedIntent: ({ lease, branchDisposition, expectedHeadSha, cleanupTombstoneRef, cleanedAt }) =>
+        createWorktreeCleanupCompletedIntent(
+          {
+            leaseId: lease.leaseId,
+            epoch: lease.epoch,
+            repoId: lease.repoId,
+            worktreePath: lease.worktreePath,
+            branchName: lease.branchName,
+            expectedHeadSha,
+            pathRemoved: true,
+            worktreeRegistrationPresent: false,
+            branchDisposition,
+            cleanupTombstoneRef,
+            cleanedAt,
+            state: 'cleaned',
+          },
+          cleanedAt,
+        ),
+    }),
   };
 };
 
@@ -652,6 +756,27 @@ export type {
   RepoSetupEvaluatedIntent,
   RepoSetupEvaluatedPayload,
   WorkspaceRepositoryAppendIntent,
+  WorktreeCleanupBlockedIntent,
+  WorktreeCleanupBlockedPayload,
+  WorktreeCleanupCompletedIntent,
+  WorktreeCleanupCompletedPayload,
+  WorktreeCleanupRetryScheduledIntent,
+  WorktreeCleanupRetryScheduledPayload,
   WorktreeLeaseCreatedIntent,
   WorktreeLeaseCreatedPayload,
+  WorktreeLeaseFinalizedIntent,
+  WorktreeLeaseFinalizedPayload,
 } from './intents.js';
+
+export type {
+  BranchDisposition,
+  CleanupBlockedError,
+  CleanupBlockedReason,
+  CleanupObservedState,
+  CleanupRequest,
+  CleanupResult,
+  FinalizeLeaseError,
+  FinalizeLeaseInput,
+  FinalizeLeaseResult,
+  FinalizeLeaseSuccess,
+} from '../cleanup/index.js';

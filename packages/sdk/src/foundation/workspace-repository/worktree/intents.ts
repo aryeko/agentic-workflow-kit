@@ -1,5 +1,6 @@
 import type { AbsolutePath, GitSha, RelativePath } from '../repository/index.js';
 import type { DeclaredSetup, SetupFreshnessReason } from '../setup/index.js';
+import type { BranchDisposition, CleanupBlockedReason, CleanupObservedState } from '../cleanup/index.js';
 
 type AppendIntentBase<TType extends string, TPayload> = {
   readonly domain: 'fnd-03';
@@ -87,6 +88,62 @@ export type LocalGitEvidenceRecordedPayload = {
   readonly untrackedPaths: readonly RelativePath[];
 };
 
+export type WorktreeLeaseFinalizedPayload = {
+  readonly leaseId: string;
+  readonly epoch: number;
+  readonly runId: string;
+  readonly repoId: string;
+  readonly worktreePath: AbsolutePath;
+  readonly branchName: string;
+  readonly evidenceId: string;
+  readonly headSha: GitSha;
+  readonly finalizedAt: string;
+  readonly state: 'finalized';
+};
+
+export type WorktreeCleanupRetryScheduledPayload = {
+  readonly leaseId: string;
+  readonly epoch: number;
+  readonly repoId: string;
+  readonly worktreePath: AbsolutePath;
+  readonly branchName?: string;
+  readonly expectedHeadSha?: GitSha;
+  readonly reason: CleanupBlockedReason;
+  readonly observed: CleanupObservedState;
+  readonly nextRetryAt: string;
+  readonly operatorEscalationRequired: boolean;
+  readonly state: 'cleanup-blocked';
+};
+
+export type WorktreeCleanupCompletedPayload = {
+  readonly leaseId: string;
+  readonly epoch: number;
+  readonly repoId: string;
+  readonly worktreePath: AbsolutePath;
+  readonly branchName?: string;
+  readonly expectedHeadSha?: GitSha;
+  readonly pathRemoved: true;
+  readonly worktreeRegistrationPresent: false;
+  readonly branchDisposition: BranchDisposition;
+  readonly cleanupTombstoneRef?: string;
+  readonly cleanedAt: string;
+  readonly state: 'cleaned';
+};
+
+export type WorktreeCleanupBlockedPayload = {
+  readonly leaseId: string;
+  readonly epoch: number;
+  readonly repoId: string;
+  readonly worktreePath: AbsolutePath;
+  readonly branchName?: string;
+  readonly expectedHeadSha?: GitSha;
+  readonly reason: CleanupBlockedReason;
+  readonly observed: CleanupObservedState;
+  readonly operatorEscalationRequired: boolean;
+  readonly blockedAt: string;
+  readonly state: 'cleanup-blocked';
+};
+
 export type WorktreeLeaseCreatedIntent = AppendIntentBase<'WorktreeLeaseCreated', WorktreeLeaseCreatedPayload>;
 export type LocalBranchCreatedIntent = AppendIntentBase<'LocalBranchCreated', LocalBranchCreatedPayload>;
 export type RepoSetupEvaluatedIntent = AppendIntentBase<'RepoSetupEvaluated', RepoSetupEvaluatedPayload>;
@@ -95,13 +152,27 @@ export type LocalGitEvidenceRecordedIntent = AppendIntentBase<
   'LocalGitEvidenceRecorded',
   LocalGitEvidenceRecordedPayload
 >;
+export type WorktreeLeaseFinalizedIntent = AppendIntentBase<'WorktreeLeaseFinalized', WorktreeLeaseFinalizedPayload>;
+export type WorktreeCleanupRetryScheduledIntent = AppendIntentBase<
+  'WorktreeCleanupRetryScheduled',
+  WorktreeCleanupRetryScheduledPayload
+>;
+export type WorktreeCleanupCompletedIntent = AppendIntentBase<
+  'WorktreeCleanupCompleted',
+  WorktreeCleanupCompletedPayload
+>;
+export type WorktreeCleanupBlockedIntent = AppendIntentBase<'WorktreeCleanupBlocked', WorktreeCleanupBlockedPayload>;
 
 export type WorkspaceRepositoryAppendIntent =
   | WorktreeLeaseCreatedIntent
   | LocalBranchCreatedIntent
   | RepoSetupEvaluatedIntent
   | RepoSetupConfirmedIntent
-  | LocalGitEvidenceRecordedIntent;
+  | LocalGitEvidenceRecordedIntent
+  | WorktreeLeaseFinalizedIntent
+  | WorktreeCleanupRetryScheduledIntent
+  | WorktreeCleanupCompletedIntent
+  | WorktreeCleanupBlockedIntent;
 
 const withEnvelope = <TType extends WorkspaceRepositoryAppendIntent['type'], TPayload>(
   type: TType,
@@ -146,3 +217,28 @@ export const createLocalGitEvidenceRecordedIntent = (
   occurredAt: string,
   correlationId?: string,
 ): LocalGitEvidenceRecordedIntent => withEnvelope('LocalGitEvidenceRecorded', payload, occurredAt, correlationId);
+
+export const createWorktreeLeaseFinalizedIntent = (
+  payload: WorktreeLeaseFinalizedPayload,
+  occurredAt: string,
+  correlationId?: string,
+): WorktreeLeaseFinalizedIntent => withEnvelope('WorktreeLeaseFinalized', payload, occurredAt, correlationId);
+
+export const createWorktreeCleanupRetryScheduledIntent = (
+  payload: WorktreeCleanupRetryScheduledPayload,
+  occurredAt: string,
+  correlationId?: string,
+): WorktreeCleanupRetryScheduledIntent =>
+  withEnvelope('WorktreeCleanupRetryScheduled', payload, occurredAt, correlationId);
+
+export const createWorktreeCleanupCompletedIntent = (
+  payload: WorktreeCleanupCompletedPayload,
+  occurredAt: string,
+  correlationId?: string,
+): WorktreeCleanupCompletedIntent => withEnvelope('WorktreeCleanupCompleted', payload, occurredAt, correlationId);
+
+export const createWorktreeCleanupBlockedIntent = (
+  payload: WorktreeCleanupBlockedPayload,
+  occurredAt: string,
+  correlationId?: string,
+): WorktreeCleanupBlockedIntent => withEnvelope('WorktreeCleanupBlocked', payload, occurredAt, correlationId);
