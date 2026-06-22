@@ -1,13 +1,14 @@
 ---
 title: Epic 1 - stories
 epic: 1
-status: draft
+status: ready
 last-reviewed: "2026-06-22"
 ---
 
 # Epic 1 Stories
 
-Story contracts for Epic 1 will live in this directory.
+Dispatch-ready story contracts for Epic 1 live in this directory. The frozen story DAG is the
+authoritative source for delivery order, path ownership, and shared producer/consumer contracts.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

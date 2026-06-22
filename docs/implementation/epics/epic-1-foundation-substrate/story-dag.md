@@ -145,6 +145,12 @@ flowchart TB
 
 ## Shared contracts
 
+The shared shapes below are producer-owned Foundation contracts for the Epic 1 delivery run. A
+producer story defines the concrete artifact/schema in its committed implementation, and consumer
+stories cite that committed producer output rather than re-deriving the shape. The dependency edges
+above are therefore commit gates: consumers do not start until the producer story has landed and its
+artifact shape is available as substrate.
+
 | shared shape | producer | consumers |
 |---|---|---|
 | `KitConfig`, `PolicyLayer`, `PolicyLayerPatch`, `CredentialReferencePolicy`, `EgressPolicySource` | `fnd-01-s1-config-schema` | `fnd-01-s2-policy-resolution`, `fnd-01-s3-adoption-diagnostics`, `fnd-03-s1-repository-branch`, `fnd-04-s1-credential-refs`, `fnd-04-s2-injection-egress` |
