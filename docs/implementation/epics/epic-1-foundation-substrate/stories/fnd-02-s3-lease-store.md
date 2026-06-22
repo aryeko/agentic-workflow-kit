@@ -2,7 +2,7 @@
 title: "fnd-02-s3-lease-store - lease store implementation story"
 id: "fnd-02-s3-lease-store"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/storage-and-artifacts/README.md"
   - "docs/design/20-sdk-and-packaging/storage-port-types.md"

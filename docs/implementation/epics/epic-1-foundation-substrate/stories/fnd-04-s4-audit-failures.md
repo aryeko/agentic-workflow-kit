@@ -2,7 +2,7 @@
 title: "fnd-04-s4-audit-failures - audit failures implementation story"
 id: "fnd-04-s4-audit-failures"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/credentials-and-secrets/README.md"
   - "docs/design/30-domain-reference/foundation/credentials-and-secrets/contracts-and-events.md"

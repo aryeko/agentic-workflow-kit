@@ -2,7 +2,7 @@
 title: "fnd-03-s3-local-git-evidence - local git evidence implementation story"
 id: "fnd-03-s3-local-git-evidence"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/workspace-and-repository/README.md"
   - "docs/design/30-domain-reference/foundation/workspace-and-repository/events.md"

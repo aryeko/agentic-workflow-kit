@@ -2,7 +2,7 @@
 title: "fnd-03-s2-worktree-setup - worktree setup implementation story"
 id: "fnd-03-s2-worktree-setup"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/workspace-and-repository/README.md"
   - "docs/design/30-domain-reference/foundation/workspace-and-repository/events.md"

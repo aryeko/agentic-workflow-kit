@@ -2,7 +2,7 @@
 title: "fnd-03-s1-repository-branch - repository branch implementation story"
 id: "fnd-03-s1-repository-branch"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/workspace-and-repository/README.md"
   - "docs/design/30-domain-reference/foundation/workspace-and-repository/events.md"

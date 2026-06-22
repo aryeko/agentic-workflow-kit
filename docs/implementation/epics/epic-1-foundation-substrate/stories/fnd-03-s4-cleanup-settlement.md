@@ -2,7 +2,7 @@
 title: "fnd-03-s4-cleanup-settlement - cleanup settlement implementation story"
 id: "fnd-03-s4-cleanup-settlement"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/workspace-and-repository/README.md"
   - "docs/design/30-domain-reference/foundation/workspace-and-repository/events.md"

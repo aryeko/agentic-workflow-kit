@@ -2,7 +2,7 @@
 title: "fnd-01-s1-config-schema - configuration schema implementation story"
 id: "fnd-01-s1-config-schema"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/configuration-and-policy/README.md"
   - "docs/design/30-domain-reference/foundation/configuration-and-policy/schema-and-resolution.md"

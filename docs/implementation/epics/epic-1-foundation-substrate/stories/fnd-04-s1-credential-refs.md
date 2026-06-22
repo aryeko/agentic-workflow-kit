@@ -2,7 +2,7 @@
 title: "fnd-04-s1-credential-refs - credential refs implementation story"
 id: "fnd-04-s1-credential-refs"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/credentials-and-secrets/README.md"
   - "docs/design/30-domain-reference/foundation/credentials-and-secrets/contracts-and-events.md"

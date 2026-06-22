@@ -2,7 +2,7 @@
 title: "fnd-01-s3-adoption-diagnostics - adoption diagnostics implementation story"
 id: "fnd-01-s3-adoption-diagnostics"
 epic: 1
-status: "story: draft"
+status: "story: ready"
 design:
   - "docs/design/30-domain-reference/foundation/configuration-and-policy/README.md"
   - "docs/design/30-domain-reference/foundation/configuration-and-policy/schema-and-resolution.md"
