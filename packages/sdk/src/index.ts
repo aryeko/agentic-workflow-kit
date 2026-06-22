@@ -1,4 +1,6 @@
 export * from './foundation/configuration-policy/index.js';
+export * from './foundation/storage/artifacts/index.js';
+export * from './foundation/storage/evidence-bundles/index.js';
 export {
   AUTHORITATIVE_STORAGE_OPERATIONS,
   getStorageCapabilityMatrix,

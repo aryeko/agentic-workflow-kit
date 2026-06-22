@@ -1,3 +1,5 @@
+export * from './artifacts/index.js';
+export * from './evidence-bundles/index.js';
 export {
   AUTHORITATIVE_STORAGE_OPERATIONS,
   getStorageCapabilityMatrix,
