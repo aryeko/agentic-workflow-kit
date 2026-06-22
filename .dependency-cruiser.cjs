@@ -16,6 +16,8 @@ const npmPackagePath = (packageNamePattern) => [
 
 const NPM_DEPENDENCY_TYPES = ['npm', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-bundled', 'npm-no-pkg', 'npm-unknown'];
 
+const TEST_SUPPORT_PATH = '(^|/)(__fixtures__|__tests__|test-helpers|conformance-helpers)(/|$)';
+
 const TARGET = {
   sdk: packagePath('sdk'),
   cli: packagePath('cli'),
@@ -99,7 +101,7 @@ module.exports = {
       comment: 'provider-* production source may import sdk only, not cli, mcp, or testkit.',
       from: {
         path: TARGET.providers,
-        pathNot: ['\\.(test|spec)\\.[cm]?[tj]sx?$', '(^|/)(__fixtures__|__tests__|test-helpers)(/|$)'],
+        pathNot: ['\\.(test|spec)\\.[cm]?[tj]sx?$', TEST_SUPPORT_PATH],
       },
       to: { path: `(?:${TARGET.cli}|${TARGET.mcp}|${TARGET.testkit})` },
     },
@@ -117,10 +119,10 @@ module.exports = {
       comment: 'Production source must not import testkit, conformance helpers, fixtures, or test helpers.',
       from: {
         path: '^(packages|tooling)/',
-        pathNot: ['\\.(test|spec)\\.[cm]?[tj]sx?$', '(^|/)(__fixtures__|__tests__|test-helpers)(/|$)', TARGET.testkit],
+        pathNot: ['\\.(test|spec)\\.[cm]?[tj]sx?$', TEST_SUPPORT_PATH, TARGET.testkit],
       },
       to: {
-        path: `(?:${TARGET.testkit}|(^|/)(__fixtures__|__tests__|test-helpers)(/|$))`,
+        path: `(?:${TARGET.testkit}|${TEST_SUPPORT_PATH})`,
       },
     },
     {
