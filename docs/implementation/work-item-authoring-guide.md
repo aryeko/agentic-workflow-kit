@@ -55,6 +55,11 @@ frozen`.
 once that epic charter is frozen; author a story contract only once its epic's story DAG is frozen. This
 stops a story from being built against an epic charter that later shifts under it.
 
+`ready` is also the **dispatch gate**: a story is dispatchable only when it is `ready`, and the delivery
+orchestrator refuses anything that is not (see [`delivery-roles.md`](delivery-roles.md)). "Ready" means
+every box in the story's readiness gate ([Gate 4](#gate-4---story-is-authoring-ready)) is satisfied with
+attached evidence — that checklist is the story's *definition of ready*, not a suggestion.
+
 ## The authoring layers
 
 Implementation planning descends through four artifacts. Two kinds alternate: **structure** artifacts
@@ -588,7 +593,13 @@ Every story states:
 - exact commands required for completion evidence;
 - coverage scope and threshold, normally at least 90% for the meaningful implementation area;
 - required tests as a catalogue, not examples;
-- file-size and determinism constraints, including injected clock/id/randomness where relevant;
+- public exposure: for any shape the story makes part of the public SDK surface, the intended import path
+  (the package export, root/domain barrel, and `exports` entry if applicable) and a public-import test
+  that imports the shape through that path — not only from its private module;
+- a numeric file-size budget per file, consistent with the repo convention (soft cap ~200 lines, per
+  [`../design/00-orientation/conventions.md`](../design/00-orientation/conventions.md)); a story that
+  legitimately needs a larger module states the number and the reason, rather than "stay focused";
+- determinism constraints, including injected clock/id/randomness where relevant;
 - dependency boundaries from
   [`../design/20-sdk-and-packaging/dependency-rules.md`](../design/20-sdk-and-packaging/dependency-rules.md);
 - domain-specific non-negotiables, such as redaction proven or no secret value in source/test output.
@@ -655,6 +666,11 @@ Good:
 - producer X defines `PolicyLayer.credentialRef: { id: string; source: "env" | "file" }`;
 - consumer Y cites that shape verbatim;
 - `rg 'old_token' docs packages` returns zero hits, with output captured in the evidence pack.
+
+A boundary or forbidden-symbol sweep is a runnable recipe, not a prose label: name the exact command,
+the path roots it scans, the forbidden-token set it proves absent (the real public surface, not a curated
+subset), and the expected zero-match, with the command output captured in the evidence pack.
+"Sweep-grep results" without the command and its output is not evidence.
 
 Producer/consumer contracts name the shared shape once. Consumers cite that shape verbatim, never "the
 fields X supplies." The producer is the node the story DAG designated for that shape (see
@@ -740,10 +756,12 @@ Name exact producer/consumer shapes. Do not write "the fields supplied by X."
 
 Each AC is a single assertion that is true or false against a test or artifact. Avoid "exactly as
 specified." A happy-path command proves only successful acceptance; every rejection or negative-outcome
-AC names the failing fixture or artifact that proves it.
+AC names the failing fixture or artifact that proves it. The `evidence` names the exact test id or command
+and the result it produces, so a reviewer can re-run it — a prose category like "schema tests" is not
+evidence.
 
-- **AC-1** <Falsifiable assertion> - evidence: <test or artifact>.
-- **AC-2** <Falsifiable assertion> - evidence: <test or artifact>.
+- **AC-1** <Falsifiable assertion> - evidence: <exact test id or command, and the result it produces>.
+- **AC-2** <Falsifiable assertion> - evidence: <exact test id or command, and the result it produces>.
 
 ## Coverage matrix
 
@@ -775,9 +793,10 @@ assert the invalid fixture and required validation failure — verify the cited 
 - Coverage scope and threshold:
 - Coverage command and instrumented lane(s):
 - Required tests, catalogued by AC and failure row:
+- Public exposure (import path + public-import test), or "none — no public SDK surface":
 - Determinism constraints:
 - Dependency boundaries:
-- File-size or module-size constraints:
+- File-size budget (lines per file; default soft cap ~200):
 - Domain non-negotiables:
 
 ## Required reading
@@ -801,7 +820,10 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
   claim.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
 - Coverage command, instrumented lane(s), and number for the stated scope.
-- Sweep-grep results for any cross-corpus or cross-package change.
+- Public-import test result for every shape the story exposes on the public SDK surface (imported through
+  the intended path, not a private module).
+- Boundary/forbidden-symbol sweep: exact command, path roots, forbidden-token set, and zero-match output,
+  for any cross-corpus or cross-package change.
 - Conformance evidence for every provider port/mocking surface involved; runtime / production
   attestation evidence only when the story claims a real driver capability or live production power.
   Core stories may use recorded/mock attestations to prove gate predicates, but must not require real
@@ -945,7 +967,21 @@ For every story:
   (resolve, or escalate as a design gap).
 - [ ] Cross-story contracts name exact shapes; catalog/invariant tokens are cited verbatim by the
   behavior stories that raise them.
-- [ ] Sweep commands are listed for cross-corpus or cross-package changes.
+- [ ] Public exposure: every shape the story places on the public SDK surface names its import path
+  (package export, root/domain barrel, and `exports` entry if applicable) and a public-import test that
+  imports it through that path; or the story states it exposes no public SDK surface.
+- [ ] Contracts are constructable: no AC or manifest shape requires a combination no value can satisfy
+  (e.g. an impossible type intersection); a fixture constructs each public shape.
+- [ ] Safety invariants are fail-closed by construction: where the domain marks an invariant
+  safety-critical, the contract makes the unsafe state unrepresentable or rejected by construction —
+  proven by a test that the unsafe state fails closed — not left to caller discipline.
+- [ ] Public-input and validator/config stories enumerate the negative-case matrix per input shape:
+  missing-required, wrong-type, unknown-field, malformed-nested, and unsafe-runtime input; exported
+  canonical catalogs are runtime-frozen or justified as not canonical.
+- [ ] File-size budget is a number of lines per file (default soft cap ~200), not an adjective.
+- [ ] Boundary/forbidden-symbol sweeps are runnable recipes — exact command, path roots, forbidden-token
+  set (the real public surface, not a curated subset), expected zero-match, output captured — not a prose
+  "sweep-grep results" label.
 - [ ] Boundaries include owned package/module, owned pathset, dependency-rule edge, and STOP conditions.
 
 If any box is empty, the story is not ready.
@@ -961,7 +997,9 @@ An implementation claim can be evaluated only when the evidence pack contains:
 - gate output or a named unrelated gate blocker;
 - coverage command, instrumented lane(s), and result for the stated scope, with the command measuring the
   helper scope the story claims;
-- sweep-grep output for cross-corpus or cross-package changes;
+- public-import test result for every shape the story exposes on the public SDK surface;
+- boundary/forbidden-symbol sweep output — the exact command, forbidden-token set, and zero-match — for any
+  cross-corpus or cross-package change;
 - conformance evidence for provider ports and mocks, plus runtime / production attestation evidence only
   for real driver capabilities or live production powers.
 
