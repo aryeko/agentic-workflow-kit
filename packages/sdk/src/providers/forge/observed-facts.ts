@@ -65,6 +65,7 @@ export interface ForgeRuleset {
   readonly id: string;
   readonly name: string;
   readonly enforcement: string;
+  readonly requiredStatusChecks: readonly string[];
   readonly target?: string;
 }
 

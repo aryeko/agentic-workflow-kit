@@ -170,6 +170,7 @@ export const rulesetFixture = {
   id: 'ruleset-1',
   name: 'default',
   enforcement: 'active',
+  requiredStatusChecks: ['check'],
   target: 'branch',
 } satisfies ForgeRuleset;
 
