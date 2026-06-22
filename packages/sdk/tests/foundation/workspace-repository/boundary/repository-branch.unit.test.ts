@@ -2,26 +2,24 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildLocalBranchName,
+  isAbsolutePath,
   planLocalBranch,
+  resolveLocalBaseRef,
+  type AbsolutePath,
+  type BaseRefUnresolved,
   type BranchConflict,
+  type GitSha,
   type LocalBranchNameOptions,
   type LocalBranchPlan,
   type LocalBranchPlanResult,
-} from '../../../../src/foundation/workspace-repository/branch/index.js';
+  type LocalRef,
+  type RepositoryIdentity,
+  type ResolveLocalBaseRefResult,
+} from '../../../../src/index.js';
 import {
   workspaceRepositoryBoundaryReport,
   workspaceRepositoryForbiddenBoundaryTerms,
 } from '../../../../src/foundation/workspace-repository/boundary/index.js';
-import {
-  isAbsolutePath,
-  resolveLocalBaseRef,
-  type AbsolutePath,
-  type BaseRefUnresolved,
-  type GitSha,
-  type LocalRef,
-  type RepositoryIdentity,
-  type ResolveLocalBaseRefResult,
-} from '../../../../src/foundation/workspace-repository/repository/index.js';
 
 type ExpectTrue<T extends true> = T;
 
@@ -46,6 +44,12 @@ type RepositoryIdentityHasNoCredentialRef = ExpectTrue<
 type RepositoryIdentityHasNoContainment = ExpectTrue<
   HasKey<RepositoryIdentity, 'containment'> extends false ? true : false
 >;
+type LocalBranchPlanKeysExact = ExpectTrue<KeysExactly<LocalBranchPlan, 'branchName' | 'targetSha'>>;
+type LocalBranchPlanHasNoRemoteUrl = ExpectTrue<HasKey<LocalBranchPlan, 'remoteUrl'> extends false ? true : false>;
+type BranchConflictKeysExact = ExpectTrue<
+  KeysExactly<BranchConflict, 'token' | 'branchName' | 'existingSha' | 'targetSha'>
+>;
+type BaseRefUnresolvedKeysExact = ExpectTrue<KeysExactly<BaseRefUnresolved, 'token' | 'ref'>>;
 
 type RootWorkspaceRepositoryExports = {
   readonly repository: RepositoryIdentity;
@@ -64,7 +68,11 @@ describe('fnd-03-s1 repository identity and branch contracts', () => {
       RepositoryIdentityHasNoHostedRepoId,
       RepositoryIdentityHasNoCredentialRef,
       RepositoryIdentityHasNoContainment,
-    ] = [true, true, true, true, true];
+      LocalBranchPlanKeysExact,
+      LocalBranchPlanHasNoRemoteUrl,
+      BranchConflictKeysExact,
+      BaseRefUnresolvedKeysExact,
+    ] = [true, true, true, true, true, true, true, true, true];
 
     const repository: RepositoryIdentity = {
       repoId: 'workflow-kit',
@@ -72,11 +80,44 @@ describe('fnd-03-s1 repository identity and branch contracts', () => {
       gitDir: '/Users/aryekogan/repos/workflow-kit/.git' as AbsolutePath,
       defaultBaseRef: 'refs/heads/v-next' as LocalRef,
     };
+    const baseRefResult = resolveLocalBaseRef({
+      repository,
+      resolveRefToSha: () => 'abc1234' as GitSha,
+    });
+    const branchPlanResult = planLocalBranch({
+      repoId: repository.repoId,
+      runId: 'run-0042',
+      taskId: 'fnd-03-s1',
+      targetSha: 'abc1234' as GitSha,
+      options: {
+        prefix: 'task',
+        includeRunId: true,
+        includeTaskId: true,
+        maxLength: 80,
+      },
+    });
+    if (!baseRefResult.ok || !branchPlanResult.ok) {
+      throw new Error('expected local root export contracts to produce successful fixtures');
+    }
+    const rootExports: RootWorkspaceRepositoryExports = {
+      repository,
+      baseRefResult,
+      branchPlan: branchPlanResult.value,
+      branchPlanResult,
+      branchConflict: {
+        token: 'branch-conflict',
+        branchName: branchPlanResult.value.branchName,
+        existingSha: 'def5678' as GitSha,
+        targetSha: branchPlanResult.value.targetSha,
+      },
+      baseRefUnresolved: {
+        token: 'base-ref-unresolved',
+        ref: repository.defaultBaseRef,
+      },
+    };
 
-    const rootExports: Partial<RootWorkspaceRepositoryExports> = {};
-
-    expect(compileOnlyAssertions).toEqual([true, true, true, true, true]);
-    expect(rootExports).toEqual({});
+    expect(compileOnlyAssertions).toEqual([true, true, true, true, true, true, true, true, true]);
+    expect(rootExports.branchPlan.branchName).toBe('task/workflow-kit/run-0042/fnd-03-s1');
     expect(workspaceRepositoryBoundaryReport.repositoryIdentity.fields).toEqual([
       'repoId',
       'repoRoot',

@@ -19,7 +19,7 @@ export type LeaseSnapshot = {
 export interface LeaseStore {
   acquire(name: string, holder: string, ttlMs: number): LeaseCapability | StorageError;
   renew(name: string, epoch: number, token: string, ttlMs: number): LeaseCapability | StorageError;
-  release(name: string, epoch: number, token: string): void | StorageError;
+  release(name: string, epoch: number, token: string): undefined | StorageError;
   read(name: string): { readonly snapshot?: LeaseSnapshot; readonly health: StorageHealth };
   fence(name: string, epoch: number, token: string): boolean;
 }
