@@ -1,0 +1,17 @@
+{
+  "name": "sdk",
+  "version": "0.0.0",
+  "description": "Core runtime library skeleton for kit-vnext.",
+  "private": true,
+  "type": "module",
+  "files": [
+    "README.md",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {}
+}
