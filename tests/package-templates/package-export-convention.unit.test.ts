@@ -16,6 +16,7 @@ describe('PackageExportConvention', () => {
     expect(inventory.packages).toHaveLength(8);
     expect(inventory.packages.every((entry) => entry.publicEntrypoints.includes('.'))).toBe(true);
     expect(inventory.packages.flatMap((entry) => entry.exposedForbiddenEntrypoints)).toEqual([]);
+    expect(inventory.exposedForbiddenEntrypoints).toEqual([]);
     expect(inventory.failures).toEqual([]);
   });
 
@@ -41,6 +42,30 @@ describe('PackageExportConvention', () => {
       exposedForbiddenEntrypoints: [],
       failures: [],
     });
+  });
+
+  it('collects forbidden export entries in the package export inventory', () => {
+    const inventory = createPackageExportInventory([
+      {
+        packageId: 'sdk',
+        packageJson: {
+          exports: {
+            '.': './dist/src/index.js',
+            './tests': './dist/tests/index.js',
+          },
+        },
+      },
+    ]);
+
+    expect(inventory.failures).toEqual([]);
+    expect(inventory.exposedForbiddenEntrypoints).toEqual([
+      {
+        packageId: 'sdk',
+        publicEntrypoints: ['.'],
+        exposedForbiddenEntrypoints: ['./tests'],
+        failures: [],
+      },
+    ]);
   });
 
   it('records forbidden export subpaths without treating them as public entrypoints', () => {

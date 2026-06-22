@@ -3,6 +3,7 @@ import {
   PACKAGE_TEMPLATE_CONTRACT,
   applyPackageTemplate,
   createTemplateValidationReport,
+  isTemplateValidationReportValid,
   packageTemplateTargets,
 } from '../../tooling/package-templates/package-template.js';
 
@@ -106,5 +107,28 @@ describe('PackageTemplateContract', () => {
         message: 'Generated file packages/sdk/package.json contains forbidden template content.',
       },
     ]);
+  });
+
+  it('marks template validation invalid when export inventory exposes forbidden entrypoints', () => {
+    const report = createTemplateValidationReport([
+      {
+        ...packageTemplateTargets.sdk,
+        packageName: 'sdk',
+      },
+    ]);
+    const exportInventoryWithForbiddenExport = {
+      ...report.exportInventory,
+      exposedForbiddenEntrypoints: [
+        {
+          packageId: 'sdk',
+          publicEntrypoints: ['.'],
+          exposedForbiddenEntrypoints: ['./tests'],
+          failures: [],
+        },
+      ],
+    };
+
+    expect(report.valid).toBe(true);
+    expect(isTemplateValidationReportValid(report.failures, exportInventoryWithForbiddenExport)).toBe(false);
   });
 });

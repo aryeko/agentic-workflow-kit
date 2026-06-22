@@ -18,6 +18,9 @@ describe('LocalCheckGate contract', () => {
       [8, 'test:conf', 'conformance-failed'],
       [9, 'coverage:baseline', 'coverage-baseline-failed'],
     ]);
+    expect(LOCAL_CHECK_GATE.steps.at(-1)?.command).toBe(
+      'vitest run --project unit --project integration --project conformance-mock --coverage --passWithNoTests',
+    );
   });
 
   it('renders the pnpm check command as an && chain so earlier failures stop later steps', () => {

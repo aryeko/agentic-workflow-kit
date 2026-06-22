@@ -282,12 +282,20 @@ export const createTemplateValidationReport = (
 
   return {
     contractName: PACKAGE_TEMPLATE_CONTRACT.contractName,
-    valid: failures.length === 0 && exportInventory.failures.length === 0,
+    valid: isTemplateValidationReportValid(failures, exportInventory),
     packages,
     exportInventory,
     failures,
   };
 };
+
+export const isTemplateValidationReportValid = (
+  failures: readonly TemplateValidationFailure[],
+  exportInventory: PackageExportInventory,
+): boolean =>
+  failures.length === 0 &&
+  exportInventory.failures.length === 0 &&
+  exportInventory.exposedForbiddenEntrypoints.length === 0;
 
 export const diffTemplateApplications = (
   previous: PackageTemplateApplication,

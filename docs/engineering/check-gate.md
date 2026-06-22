@@ -15,19 +15,24 @@ pass. It runs nine steps in sequence, fail-fast, cheapest first. Nothing merges 
 | # | Script | Tool | What It Checks |
 |---|---|---|---|
 | 1 | `docs:nav:check` | `node tooling/docs-nav/generate-nav.mjs --check` | Docs navigation freshness — fails if generated nav blocks are stale, before anything compiles |
-| 2 | `format:check` | `biome format --check .` | Formatting — catches whitespace and style before anything compiles |
+| 2 | `format:check` | `biome format .` | Non-writing formatting check — catches whitespace and style drift before anything compiles |
 | 3 | `lint` | `biome lint .` | Lint rules — catches obvious errors early |
 | 4 | `deps` | `depcruise --config .dependency-cruiser.cjs packages tooling tests` | Dependency-graph rules — no cycles, no orphans, and package-boundary violations |
 | 5 | `typecheck` | `tsc -b` | TypeScript project references — full compilation of all composite projects |
 | 6 | `test:unit` | `vitest run --project unit` | Hermetic unit tests |
 | 7 | `test:int` | `vitest run --project integration` | Integration tests (real filesystem, no network) |
 | 8 | `test:conf` | `vitest run --project conformance-mock --passWithNoTests` | Conformance suites against mock drivers (hermetic); passes empty until provider mocks land |
-| 9 | `coverage:baseline` | Vitest coverage reporter | Baseline coverage instrumentation until implementation packages land |
+| 9 | `coverage:baseline` | Vitest coverage reporter across unit, integration, and conformance-mock lanes | Baseline coverage instrumentation for hermetic helpers until implementation packages land |
 
 **Ordering rationale.** Steps are arranged cheapest-first so that the most common
 mistakes (stale docs nav, formatting, lint) are caught in under a second, before the
 type-checker or test runner is invoked. A failure in step 1 saves the full cost of
 steps 2–9.
+
+`format:check` is pinned to the gate behavior rather than a stale flag spelling:
+the command must be non-writing and fail on formatting drift. Biome 2.5 rejects the
+older `--check` flag, while `biome format .` preserves files and exits non-zero when
+formatting would change.
 
 ## Local Inner Loop
 
@@ -48,7 +53,7 @@ flowchart TD
     B4 --> B5["6 test:unit"]
     B5 --> B6["7 test:int"]
     B6 --> B7["8 test:conf"]
-    B7 --> B8["9 coverage:baseline"]
+    B7 --> B8["9 coverage:baseline (unit + integration + conformance-mock)"]
     B8 --> B9["pack:dry-run (CI only)"]
 
     A --> C{smoke trigger?}

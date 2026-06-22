@@ -26,6 +26,7 @@ export type PackageExportInventory = {
   readonly conventionName: 'PackageExportConvention';
   readonly packages: readonly PackageExportInventoryEntry[];
   readonly failures: readonly PackageExportFailure[];
+  readonly exposedForbiddenEntrypoints: readonly PackageExportInventoryEntry[];
 };
 
 export type PackageExportInventorySource = {
@@ -92,6 +93,7 @@ export const createPackageExportInventory = (
     conventionName: PACKAGE_EXPORT_CONVENTION.contractName,
     packages,
     failures: packages.flatMap((entry) => entry.failures),
+    exposedForbiddenEntrypoints: packages.filter((entry) => entry.exposedForbiddenEntrypoints.length > 0),
   };
 };
 

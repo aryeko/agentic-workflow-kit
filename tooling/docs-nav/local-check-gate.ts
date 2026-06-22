@@ -76,7 +76,8 @@ export const LOCAL_CHECK_GATE: LocalCheckGate = {
     {
       ordinal: 9,
       script: 'coverage:baseline',
-      command: 'vitest run --project unit --coverage --passWithNoTests',
+      command:
+        'vitest run --project unit --project integration --project conformance-mock --coverage --passWithNoTests',
       failureToken: 'coverage-baseline-failed',
     },
   ],

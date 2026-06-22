@@ -36,7 +36,7 @@
     "test:int": "vitest run --project integration --passWithNoTests",
     "test:conf": "vitest run --project conformance-mock --passWithNoTests",
     "test:smoke": "vitest run --project smoke-real --passWithNoTests",
-    "coverage:baseline": "vitest run --project unit --coverage --passWithNoTests",
+    "coverage:baseline": "vitest run --project unit --project integration --project conformance-mock --coverage --passWithNoTests",
     "docs:nav": "node tooling/docs-nav/generate-nav.mjs",
     "docs:nav:check": "node tooling/docs-nav/generate-nav.mjs --check",
     "check": "pnpm docs:nav:check && pnpm format:check && pnpm lint && pnpm deps && pnpm typecheck && pnpm test:unit && pnpm test:int && pnpm test:conf && pnpm coverage:baseline",
