@@ -1,6 +1,7 @@
 export * from './artifacts/index.js';
 export * from './event-log/index.js';
 export * from './evidence-bundles/index.js';
+export * from './filesystem/index.js';
 export * from './leases/index.js';
 export {
   AUTHORITATIVE_STORAGE_OPERATIONS,
