@@ -7,6 +7,7 @@ export * from './foundation/storage/filesystem/index.js';
 export * from './foundation/storage/leases/index.js';
 export * from './foundation/workspace-repository/index.js';
 export * from './providers/attestation/index.js';
+export * from './providers/agent/index.js';
 export * from './providers/execution-host/index.js';
 export type {
   EvidenceRequest,
