@@ -1,0 +1,32 @@
+export {
+  configurationSchemaMarker,
+  deferredCapabilityName,
+  type ApprovalPolicy,
+  type CapabilityPolicy,
+  type CapabilitySetting,
+  type ChangePolicy,
+  type CredentialRefSource,
+  type CredentialReferencePolicy,
+  type DeepPartial,
+  type EgressPolicySource,
+  type EgressRuleSource,
+  type EscalationPolicy,
+  type KitConfig,
+  type MergePolicy,
+  type NegativeProbeSource,
+  type PolicyLayer,
+  type PolicyLayerPatch,
+  type RequiredAttesterSource,
+  type Result,
+  type RunConfigInput,
+  type RunPolicy,
+  type ProvisioningPolicy,
+  type ValidationFailure,
+} from './types.js';
+
+export {
+  validateKitConfig,
+  validatePolicyLayer,
+  validatePolicyLayerPatch,
+  validateRunConfigInput,
+} from './validate.js';
