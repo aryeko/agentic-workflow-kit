@@ -37,6 +37,8 @@ The implementation plan is being **re-derived from scratch** against the now-fro
 - [`delivery-roles.md`](delivery-roles.md) - the delivery operating model: the actors (architect,
   orchestrator, implementer/reviewer sub-agents), the two review loops, and the planning-artifact
   responsibilities that pair with the authoring guide.
+- [`lessons-ledger.md`](lessons-ledger.md) - recurring defect classes from each delivery, each mapped to
+  the gate or role that covers it; the "lessons land before the next wave" verification.
 - [`domain-dag.md`](domain-dag.md) - the domain-level dependency picture used to derive the epic DAG.
 - [`epic-dag.md`](epic-dag.md) - the milestone-level epic DAG used to derive charters and stories.
 - [`domains/`](domains/README.md) - domain implementation charters, grouped by design layer.
@@ -96,6 +98,6 @@ standard is in [`work-item-authoring-guide.md`](work-item-authoring-guide.md).
 
 **↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [delivery roles and responsibilities](./delivery-roles.md)
 
-**Children:** [delivery roles and responsibilities](./delivery-roles.md) · [work item authoring guide](./work-item-authoring-guide.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
+**Children:** [delivery roles and responsibilities](./delivery-roles.md) · [work item authoring guide](./work-item-authoring-guide.md) · [implementation lessons ledger](./lessons-ledger.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
 
 <!-- /DOCS-NAV -->

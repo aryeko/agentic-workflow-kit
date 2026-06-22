@@ -106,8 +106,9 @@ being checkable. The same instinct applies at every layer, and it sharpens as yo
    token, or semantic, that is spec surface, not internal detail - and it is named, not paraphrased, at
    whatever layer first references it.
 
-The rest of this guide gives each layer its purpose, its shape or template, its readiness check, and the
-lesson it encodes.
+The rest of this guide gives each layer its purpose, its shape or template, and its readiness check. The
+provenance for each rule — the delivery lesson that motivated it — lives in
+[`lessons-ledger.md`](lessons-ledger.md).
 
 ## Coverage validation
 
@@ -227,12 +228,6 @@ A domain charter is planning-ready only when all four hold:
 
 If any box is empty, the charter is not ready and its stories must not be authored.
 
-### Lesson encoded
-
-The early epic charters were coherent for design review but seeded ambiguous stories. The fix at the
-domain layer is not acceptance criteria - it is boundary crispness and signal traceability, because those
-two properties are exactly what the stories under the domain inherit.
-
 ---
 
 ## Layer 2 - Epic charter
@@ -328,12 +323,6 @@ An epic charter is planning-ready only when all five hold:
   catalogues, or file layouts appear; those are story surface.
 
 If any box is empty, the epic is not ready and its story DAG must not be authored.
-
-### Lesson encoded
-
-Epic 2 worked because its frame was clear and the rubric lived in its stories. The epic charter's job is
-to make the milestone reviewable and bound the stories - not to inflate into a spec, and not to deflate
-into adjectives.
 
 ---
 
@@ -476,12 +465,6 @@ A story DAG is ready to freeze only when all of these hold:
 
 If any box is empty, the story DAG is not ready and its story contracts must not be authored.
 
-### Lesson encoded
-
-We slice before we spec. The DAG makes the signal->story partition and the shared-contract producers
-explicit and reviewable before dozens of story contracts are written against an implicit slicing nobody
-agreed on. It is the cheapest place to catch a bundled or orphaned story.
-
 ---
 
 ## Layer 4 - Story contract
@@ -523,12 +506,6 @@ Done for a substrate/config story means every declared artifact's shape is asser
 failure mode has its own failing fixture. A build tool's happy-path exit proves only that the accepted
 configuration currently passes; it does not prove the story rejects a missing reference, forbidden edge,
 non-composite package, stale generated file, or similar negative condition.
-
-#### Lesson encoded
-
-Epic 0 showed that runtime-shaped manifests can make pure config stories unbuildable. The fix is not a
-prose "type" in a README or an unused token catalog; it is a validated-artifacts manifest with negative
-fixtures for the config shapes the story actually owns.
 
 **Each AC is self-contained.** An AC must be checkable from its own text plus the artifacts it names. It
 may not defer its own enumeration to the design — "every token named in the design", "as specified", or
@@ -592,11 +569,6 @@ acceptance. Every AC that asserts a rejection, fail-fast stop, degraded outcome,
 its own failing fixture or artifact that makes that negative outcome observable. Do not cite a green tool
 exit as proof that the tool rejects the bad case.
 
-#### Lesson encoded
-
-Epic 0's TypeScript solution passed `tsc -b`, but that did not prove missing references, forbidden
-references, or non-composite package configs were rejected. Negative claims require negative evidence.
-
 This rule matters because many review blockers happen in degraded paths: audit bypass when no writer is
 configured, authoritative writes during filesystem degradation, lease renewal after TTL expiry, or
 missing redaction hooks. Those are not edge cases; they are the contract.
@@ -630,11 +602,6 @@ for that helper. The story must either name a coverage command that collects the
 state a narrower coverage scope that matches the instrumented command. Repository aggregate coverage is
 not a substitute for measuring the story's meaningful implementation area.
 
-#### Lesson encoded
-
-Epic 0 reported a high baseline while large integration-lane helpers were outside the instrumented unit
-coverage command. Coverage bars are only enforceable when the command measures the code the bar names.
-
 ### R4 - The story is a subset of design
 
 The normative design source wins. A story may make design requirements countable, but it must not add
@@ -660,11 +627,6 @@ spelling. When a story freezes a command from engineering design, validate the l
 the pinned tool version and phrase the story around the behavior: for example, "a non-writing format
 check that fails on drift" with the current command as evidence. Do not freeze a flag string that a
 dependency bump can invalidate unless the exact flag is itself the design requirement.
-
-#### Lesson encoded
-
-Epic 0 inherited a frozen Biome `--check` spelling that Biome 2.5 rejected, while the live gate already
-used the correct non-writing check behavior. Freeze the behavior contract; verify the example command.
 
 ### R5 - No unresolved option branches
 
@@ -959,7 +921,9 @@ in [Layer 3](#readiness-check-gate-3); the story-contract and evidence gates fol
 **Encoding new lessons.** When a delivery surfaces a recurring defect class, encode it as a new gate box,
 template field, or evidence-pack item — not as a new prose block. The guide should get more *checkable*,
 not longer; a lesson that cannot be reduced to a checkable box is not yet ready to add. This is what keeps
-the gate, rather than narrative nobody re-reads, the thing that catches the next defect.
+the gate, rather than narrative nobody re-reads, the thing that catches the next defect. Record each lesson
+and the gate that covers it in [`lessons-ledger.md`](lessons-ledger.md); an uncovered lesson is an open gap
+to close before the next epic is authored.
 
 ### Gate 4 - Story is authoring-ready
 
@@ -1070,6 +1034,6 @@ and enforce quality; R4 story is a subset of design; R5 no unresolved branches.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [delivery roles and responsibilities](./delivery-roles.md) · **Next →:** [domain dependency DAG](./domain-dag.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [delivery roles and responsibilities](./delivery-roles.md) · **Next →:** [implementation lessons ledger](./lessons-ledger.md)
 
 <!-- /DOCS-NAV -->

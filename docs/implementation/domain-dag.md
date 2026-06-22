@@ -255,6 +255,6 @@ The epic DAG should preserve these constraints:
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [work item authoring guide](./work-item-authoring-guide.md) · **Next →:** [epic dependency DAG](./epic-dag.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation lessons ledger](./lessons-ledger.md) · **Next →:** [epic dependency DAG](./epic-dag.md)
 
 <!-- /DOCS-NAV -->
