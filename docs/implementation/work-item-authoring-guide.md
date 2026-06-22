@@ -440,10 +440,11 @@ consumes, so author it to dispatch cleanly:
 - **One ownership scope per node.** Each story owns one path boundary (the files/globs it may create or
   modify) so the orchestrator can stage and commit strictly that pathset. Record it as the story's owned
   pathset (a story-contract field).
-- **Shared files have an owner.** Any file more than one story must touch — a root/domain barrel, a
-  package `exports` map, a generated index, a shared `tsconfig` — is assigned to exactly one owner story
-  or marked `coordinator-owned integration` (the orchestrator wires it at commit; parallel workers do not
-  edit it). Unowned shared files cause lost edits and false review findings.
+- **Shared-file collisions are the orchestrator's job, not the author's.** Pathsets may overlap on a file
+  several stories touch (e.g. a barrel each exports through); the author does not force disjoint pathsets.
+  The orchestrator isolates each story in its own worktree and merges approved pathsets at commit
+  (serializing only what cannot be safely merged). Planning supplies accurate per-story pathsets and the
+  public-exposure ACs — not a shared-file owner.
 - **Phase boundaries are readiness gates.** When an epic is delivered in phases, a later phase may consume
   an earlier phase's shape only once that shape is exported and importable through its intended public
   path. State this as the phase-boundary condition so a consumer is never dispatched against a seam that
@@ -455,7 +456,7 @@ consumes, so author it to dispatch cleanly:
 
 ### Readiness check (Gate 3)
 
-A story DAG is ready to freeze only when all five hold:
+A story DAG is ready to freeze only when all of these hold:
 
 - [ ] **Coverage closed.** Every signal the epic owns (per its `Per-domain expectations`) maps to exactly
   one story node or named `split` parts; the epic table's `Owning story` column is backfilled from `TBD`
@@ -469,8 +470,6 @@ A story DAG is ready to freeze only when all five hold:
   falsifiable AC.
 - [ ] **Dispatch-ready.** Each node names one owned pathset and sits in a topological band (its delivery
   wave); every edge is a commit-gate a delivery orchestrator can enforce.
-- [ ] **Shared files are owned.** Every file in more than one node's pathset is assigned to a single owner
-  story or marked `coordinator-owned integration`; no two parallel nodes silently share a file.
 - [ ] **Seams are importable.** Every cross-story shape records the public import path its consumers use,
   and the producer node carries the public-exposure AC that exposes it there; phase boundaries state the
   exported-and-importable condition a later wave depends on.

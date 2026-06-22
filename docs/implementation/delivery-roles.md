@@ -112,10 +112,14 @@ Pure coordination. Moves work; never judges it.
 
 - **Owns:** sequencing dependency waves; per-story worktree isolation; capacity planning (reserve
   reviewer/readdress slots within the agent cap); honoring the **characterized ownership** (workers
-  touch only their owned pathset; the orchestrator wires coordinator-owned shared files) and the
-  **characterized model tier** (the DAG's suggested tier is the floor); committing **only the
-  approved pathset**; opening/updating the PR; **gating on the reviewer's verdict** and routing
-  BLOCKING findings back to the implementer.
+  touch only their owned pathset) and the **characterized model tier** (the DAG's suggested tier is the
+  floor); committing **only the approved pathset**; opening/updating the PR; **gating on the reviewer's
+  verdict** and routing BLOCKING findings back to the implementer.
+- **Owns shared-file non-collision.** When stories' pathsets overlap on a file several must touch (e.g. a
+  barrel each exports through), the orchestrator isolates each story in its own worktree and merges the
+  approved pathsets at commit — serializing only a file whose parallel edits cannot be safely merged.
+  Shared-file handling is an orchestration concern; planning supplies accurate pathsets and the
+  public-exposure ACs, not a shared-file owner.
 - **Hard rule:** **refuses to dispatch any story not flagged `ready`** — a boolean check, not a
   judgment.
 - **Does NOT:** review code, judge the "what", inspect diffs for quality, or improvise scope.
