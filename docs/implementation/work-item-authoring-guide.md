@@ -488,6 +488,27 @@ Good ACs are testable:
 The manifest turns "every interface/event/failure-mode implemented" into something countable. Without it,
 readers independently re-derive the spec and find different gaps.
 
+**Substrate/config stories use a different manifest shape.** A story whose deliverable is declarative
+substrate rather than runtime surface — `tsconfig.json`, `package.json`, workspace files, dependency
+rules, CI wiring, or formatter/linter configuration — must not invent a runtime TypeScript type or
+kebab-case token just to fill the runtime manifest. Use:
+
+- `Validated artifacts:` the concrete files, generated inventories, config shapes, or script chains the
+  story produces, named by path or artifact name.
+- `Validation failure modes:` the invalid artifact shapes or command-chain failures the story must
+  reject, each with a negative fixture or equivalent assertion.
+
+Done for a substrate/config story means every declared artifact's shape is asserted and every validation
+failure mode has its own failing fixture. A build tool's happy-path exit proves only that the accepted
+configuration currently passes; it does not prove the story rejects a missing reference, forbidden edge,
+non-composite package, stale generated file, or similar negative condition.
+
+#### Lesson encoded
+
+Epic 0 showed that runtime-shaped manifests can make pure config stories unbuildable. The fix is not a
+prose "type" in a README or an unused token catalog; it is a validated-artifacts manifest with negative
+fixtures for the config shapes the story actually owns.
+
 **Each AC is self-contained.** An AC must be checkable from its own text plus the artifacts it names. It
 may not defer its own enumeration to the design — "every token named in the design", "as specified", or
 "exactly as design" are not falsifiable, because the reader has to leave the AC to know what passes. If
@@ -521,11 +542,18 @@ and confirm every `AC-n` traces back to one of them:
 
 ### R2 - Name every failure and degraded outcome
 
-Failure behavior is contract surface. For each way the story can fail or degrade, write a row:
+Failure behavior is contract surface. Runtime stories write a token row for each way the story can fail
+or degrade:
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `<kebab-token>` | Condition that activates the failure. | Required response. | `AC-n` |
+
+Substrate/config stories use a validation-failure row instead of inventing a runtime token:
+
+| failure mode | invalid fixture | required validation | proven by |
+|---|---|---|---|
+| <plain-language failure mode> | <invalid artifact shape or command-chain fault> | <required validation failure> | `AC-n` |
 
 Bare prose like "fail closed", "degrade safely", or "handle errors" is not enough. The trigger, required
 behavior, and proving AC must be explicit.
@@ -536,6 +564,17 @@ condition, does not prove a degraded row just because its number is written in t
 miss: a `network-fs-degraded` row whose required behavior is "refuse authoritative append and invalidate
 open handles", pointed at an AC that only asserts durable-receipt fields. Read the cited AC against the
 row before writing its number.
+
+The same standard applies to tool and config validation. A passing happy-path command — `tsc -b`,
+`pnpm deps`, `biome format .`, `pnpm check`, or similar — is evidence only for ACs that assert successful
+acceptance. Every AC that asserts a rejection, fail-fast stop, degraded outcome, or forbidden shape needs
+its own failing fixture or artifact that makes that negative outcome observable. Do not cite a green tool
+exit as proof that the tool rejects the bad case.
+
+#### Lesson encoded
+
+Epic 0's TypeScript solution passed `tsc -b`, but that did not prove missing references, forbidden
+references, or non-composite package configs were rejected. Negative claims require negative evidence.
 
 This rule matters because many review blockers happen in degraded paths: audit bypass when no writer is
 configured, authoritative writes during filesystem degradation, lease renewal after TTL expiry, or
@@ -558,6 +597,17 @@ Coverage is not proof by itself. The required-test catalogue must enumerate the 
 ACs and failure rows. "Property and integration tests, for example..." leaves the hard choices to
 implementation and usually reappears as review churn.
 
+The coverage command must demonstrably instrument the helper scope the story claims. If the meaningful
+helper code is exercised in the integration lane, a unit-only `coverage:baseline` number is not evidence
+for that helper. The story must either name a coverage command that collects the relevant lane(s), or
+state a narrower coverage scope that matches the instrumented command. Repository aggregate coverage is
+not a substitute for measuring the story's meaningful implementation area.
+
+#### Lesson encoded
+
+Epic 0 reported a high baseline while large integration-lane helpers were outside the instrumented unit
+coverage command. Coverage bars are only enforceable when the command measures the code the bar names.
+
 ### R4 - The story is a subset of design
 
 The normative design source wins. A story may make design requirements countable, but it must not add
@@ -577,6 +627,17 @@ failure row cannot name a single required behavior, because the design itself is
 choice, the fix is to amend the design (escalate it as a design gap) — not to copy the ambiguity down
 into a vague AC or an "A or B" outcome. A vague design is a design defect surfaced here, never a license
 for a vague story.
+
+Frozen inputs may cite commands, but the contract is the behavior they provide, not a brittle flag
+spelling. When a story freezes a command from engineering design, validate the literal invocation against
+the pinned tool version and phrase the story around the behavior: for example, "a non-writing format
+check that fails on drift" with the current command as evidence. Do not freeze a flag string that a
+dependency bump can invalidate unless the exact flag is itself the design requirement.
+
+#### Lesson encoded
+
+Epic 0 inherited a frozen Biome `--check` spelling that Biome 2.5 rejected, while the live gate already
+used the correct non-writing check behavior. Freeze the behavior contract; verify the example command.
 
 ### R5 - No unresolved option branches
 
@@ -637,13 +698,26 @@ If these sources do not answer a contract question, this story is not ready.
 
 What the normative design defines and the implementation must expose or consume, by name:
 
+For runtime stories, use:
+
 - Interfaces / types:
 - Events / append intents:
 - Provider operations / commands:
 - Failure and degraded tokens:
 - Evidence records / attestations:
 
-Done requires every item here present with the design's names, shapes, and semantics.
+For substrate/config stories, use:
+
+- Validated artifacts:
+- Validation failure modes:
+- Evidence records / attestations:
+
+Pick the variant that matches the story's deliverable. Do not invent unused runtime types or tokens to
+satisfy the template.
+
+Done requires every item here present with the design's names, shapes, and semantics. For
+substrate/config stories, every validated artifact must have an artifact-shape assertion and every
+validation failure mode must have a negative fixture or equivalent failing assertion.
 
 ## Responsibilities
 
@@ -665,7 +739,8 @@ Name exact producer/consumer shapes. Do not write "the fields supplied by X."
 ## Acceptance criteria
 
 Each AC is a single assertion that is true or false against a test or artifact. Avoid "exactly as
-specified."
+specified." A happy-path command proves only successful acceptance; every rejection or negative-outcome
+AC names the failing fixture or artifact that proves it.
 
 - **AC-1** <Falsifiable assertion> - evidence: <test or artifact>.
 - **AC-2** <Falsifiable assertion> - evidence: <test or artifact>.
@@ -681,16 +756,24 @@ responsibility crosses this story's assigned signal.
 
 ## Failure and degraded outcomes
 
-Each row's `proven by` AC must assert this row's trigger and required behavior — verify the cited AC
-against the row.
+For runtime stories, use the token table. Each row's `proven by` AC must assert this row's trigger and
+required behavior — verify the cited AC against the row.
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `<kebab-token>` | <condition> | <required behavior> | AC-<n> |
 
+For substrate/config stories, use the validation-failure table instead. Each row's `proven by` AC must
+assert the invalid fixture and required validation failure — verify the cited AC against the row.
+
+| failure mode | invalid fixture | required validation | proven by |
+|---|---|---|---|
+| <plain-language failure mode> | <invalid artifact shape or command-chain fault> | <required validation failure> | AC-<n> |
+
 ## Quality bar
 
 - Coverage scope and threshold:
+- Coverage command and instrumented lane(s):
 - Required tests, catalogued by AC and failure row:
 - Determinism constraints:
 - Dependency boundaries:
@@ -713,9 +796,11 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 ## Evidence pack
 
 - Test name or artifact proving each AC.
-- Test name or artifact proving each failure/degraded outcome row.
+- Test name or artifact proving each failure/degraded outcome or validation-failure row.
+- Negative fixture or equivalent failing assertion for every rejection, fail-fast, or validation failure
+  claim.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results for any cross-corpus or cross-package change.
 - Conformance evidence for every provider port/mocking surface involved; runtime / production
   attestation evidence only when the story claims a real driver capability or live production power.
@@ -764,6 +849,31 @@ Failure row:
 | `redaction-unavailable` | A path that requires redaction has no redaction hook. | Refuse the write; never emit unredacted material. | AC-8 |
 
 Now the story names the cases that matter. There is no private re-derivation left for a later reader.
+
+### Worked fragment: substrate/config story
+
+Wrong:
+
+> Interfaces / types: `TypecheckProjectGraph`. Failure tokens: `forbidden-ts-reference`.
+> **AC-4** `pnpm typecheck` exits zero.
+
+That describes a runtime surface the TypeScript config story does not host, then uses the happy path to
+stand in for a rejection claim.
+
+Right:
+
+> Validated artifacts: root `tsconfig.json` solution references; `packages/*/tsconfig.json` composite
+> project configs; generated TypeScript reference inventory.
+>
+> Validation failure modes: missing root package reference; forbidden package reference; non-composite
+> package project.
+>
+> **AC-4** `pnpm typecheck` invokes `tsc -b` over the accepted solution and exits zero.
+>
+> **AC-5** A fixture with a forbidden package reference fails the reference-graph assertion before code
+> can rely on it.
+
+The manifest names the config artifacts the story owns, and the negative AC has its own fixture.
 
 ---
 
@@ -815,15 +925,22 @@ For every story:
 - [ ] AC list exists; every AC is falsifiable, **self-contained** (enumerates its own set, never "as in
   design"), and traces to the design. One assertion per AC.
 - [ ] Spec-surface manifest exists, matches the design, and keeps distinct design types/unions as
-  distinct items.
+  distinct items; substrate/config stories use `Validated artifacts` and `Validation failure modes`
+  rather than invented runtime types or tokens.
 - [ ] Covers its story-DAG node: the story names the signal(s) it covers, and those match the node the
   DAG assigned it; shared shapes are cited by producer story, not redeclared.
 - [ ] **Internal coverage holds both ways:** every responsibility and manifest item maps to a proving
   AC, every AC maps back to one, and no responsibility crosses the story's assigned signal boundary.
-- [ ] Failure/degraded outcome table exists; **each row's cited AC actually asserts that row's trigger
-  and required behavior** (not the happy path, not a different condition).
-- [ ] Coverage number and enforcement command are stated.
+- [ ] Runtime stories have a failure/degraded outcome table, and substrate/config stories have a
+  validation-failure table; **each row's cited AC actually asserts that row's trigger or invalid fixture
+  and required behavior or validation failure** (not the happy path, not a different condition).
+- [ ] Every rejection, fail-fast, degraded, or validation-failure AC has a negative fixture or equivalent
+  failing assertion; a green happy-path tool exit is not cited for the negative claim.
+- [ ] Coverage number, enforcement command, and instrumented lane(s) are stated, and the command measures
+  the helper scope the story claims.
 - [ ] Required tests are catalogued, not presented as examples.
+- [ ] Frozen command references validate the literal command against the pinned tool version and state the
+  behavior contract, not only a flag string.
 - [ ] Zero unresolved option branches remain — including choices the design itself leaves open
   (resolve, or escalate as a design gap).
 - [ ] Cross-story contracts name exact shapes; catalog/invariant tokens are cited verbatim by the
@@ -838,9 +955,12 @@ If any box is empty, the story is not ready.
 An implementation claim can be evaluated only when the evidence pack contains:
 
 - a test or artifact for every AC;
-- a test or artifact for every failure/degraded outcome row;
+- a test or artifact for every failure/degraded outcome or validation-failure row;
+- a negative fixture or equivalent failing assertion for every rejection, fail-fast, degraded, or
+  validation-failure claim;
 - gate output or a named unrelated gate blocker;
-- coverage command and result for the stated scope;
+- coverage command, instrumented lane(s), and result for the stated scope, with the command measuring the
+  helper scope the story claims;
 - sweep-grep output for cross-corpus or cross-package changes;
 - conformance evidence for provider ports and mocks, plus runtime / production attestation evidence only
   for real driver capabilities or live production powers.
@@ -873,12 +993,16 @@ every shared shape has exactly one producer node; the edge graph is acyclic and 
 defensible.
 
 A **story contract** is ready when it has: a falsifiable, self-contained `AC-n` list (one assertion each,
-no "as in design"); a spec-surface manifest keeping distinct design shapes distinct; an internal coverage
-matrix where responsibilities and manifest items map to ACs and back; the signal it covers and the cited
-shared shapes; a failure/degraded table whose every row's cited AC actually asserts that row; a coverage
-number and enforcement command; a required-test catalogue; zero unresolved option branches (including
-design-offered ones); exact cross-story shapes with catalog tokens cited verbatim; sweep commands where
-needed; evidence-pack expectations; and an owned boundary with STOP conditions.
+no "as in design"); a spec-surface manifest keeping distinct design shapes distinct, or a
+validated-artifacts manifest for substrate/config stories; an internal coverage matrix where
+responsibilities and manifest items map to ACs and back; the signal it covers and the cited shared
+shapes; a failure/degraded table for runtime stories or validation-failure table for substrate/config
+stories, with every row's cited AC actually asserting that row; negative fixtures for every rejection or
+validation-failure claim; a coverage number and enforcement command that instruments the stated scope;
+frozen command references stated as behavior contracts verified against the pinned tool version; a
+required-test catalogue; zero unresolved option branches (including design-offered ones); exact
+cross-story shapes with catalog tokens cited verbatim; sweep commands where needed; evidence-pack
+expectations; and an owned boundary with STOP conditions.
 
 The five story rules in one line: R1 enumerate ACs and manifest; R2 name failure outcomes; R3 quantify
 and enforce quality; R4 story is a subset of design; R5 no unresolved branches.

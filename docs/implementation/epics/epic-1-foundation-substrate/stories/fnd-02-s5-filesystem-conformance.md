@@ -120,11 +120,12 @@ responsibility crosses this story's assigned signal.
 
 - Coverage scope and threshold: filesystem storage and conformance fixture modules at 90% minimum,
   aiming for 95%.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes for the aggregate gate; use `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.int.test.ts` and `pnpm exec vitest run --project conformance-mock --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.conformance.test.ts` when a focused per-lane report is needed for this story's stated helper scope.
 - Required tests, catalogued by AC and failure row: probe matrix, degraded-open, mid-operation fault,
   fake/local conformance, fixture catalog, and lane guard tests.
 - Exact commands: `pnpm test:int -- packages/sdk/tests/foundation/storage/conformance/*.int.test.ts`;
   `pnpm test:conf -- packages/sdk/tests/foundation/storage/conformance/*.conformance.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline`.
+  `pnpm check`; coverage with `pnpm coverage:baseline`; focused conformance coverage with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.int.test.ts` and `pnpm exec vitest run --project conformance-mock --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/conformance/*.conformance.test.ts` when needed.
 - Determinism constraints: fake filesystem faults are seeded and reproducible; temp filesystem tests
   use isolated temp directories.
 - Dependency boundaries: filesystem storage remains SDK-compatible and does not import providers,
@@ -150,8 +151,10 @@ The filesystem storage implementation and conformance fixtures over `EventLogSto
 
 - Test name or artifact proving each AC.
 - Test name or artifact proving each failure/degraded outcome row.
+- Negative fixture or equivalent failing assertion proving every rejection, degraded, or fail-closed
+  claim named by an AC or failure row.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results proving no real network/process/credential dependency in local conformance.
 
 ## Boundaries and STOP conditions

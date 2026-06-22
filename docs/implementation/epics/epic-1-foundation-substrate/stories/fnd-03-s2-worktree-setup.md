@@ -128,10 +128,11 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 ## Quality bar
 
 - Coverage scope and threshold: worktree/setup modules at 90% minimum, aiming for 95%.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes for the aggregate gate; use `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/workspace-repository/worktree/*.int.test.ts` when a focused per-lane report is needed for this story's stated helper scope.
 - Required tests, catalogued by AC and failure row: worktree fixture, lease shape, state transition,
   freshness, confirmation, and fence tests.
 - Exact commands: `pnpm test:int -- packages/sdk/tests/foundation/workspace-repository/worktree/*.int.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline`.
+  `pnpm check`; coverage with `pnpm coverage:baseline`; focused integration coverage with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/workspace-repository/worktree/*.int.test.ts` when needed.
 - Determinism constraints: branch suffixes, run ids, task ids, and timestamps are injected.
 - Dependency boundaries: no Execution Host, process, Forge, CI, credential, or remote git dependency.
 - File-size or module-size constraints: worktree lifecycle and setup freshness modules remain
@@ -155,8 +156,10 @@ The SDK worktree lifecycle and setup freshness modules plus event payloads, with
 
 - Test name or artifact proving each AC.
 - Test name or artifact proving each failure/degraded outcome row.
+- Negative fixture or equivalent failing assertion proving every rejection, degraded, or fail-closed
+  claim named by an AC or failure row.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results proving no process execution, remote git, Forge, CI, or credential fields.
 
 ## Boundaries and STOP conditions

@@ -124,11 +124,12 @@ responsibility crosses this story's assigned signal.
 ## Quality bar
 
 - Coverage scope and threshold: artifact/evidence modules at 90% minimum, aiming for 95%.
+- Coverage command and instrumented lane(s): `pnpm coverage:baseline` instruments the unit, integration, and conformance-mock lanes for the aggregate gate; use `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/artifacts/*.int.test.ts` when a focused per-lane report is needed for this story's stated helper scope.
 - Required tests, catalogued by AC and failure row: publish, immutability, scratch, tombstone, export,
   and incomplete export fixtures.
 - Exact commands: `pnpm test:unit -- packages/sdk/tests/foundation/storage/artifacts/*.unit.test.ts`;
   `pnpm test:int -- packages/sdk/tests/foundation/storage/artifacts/*.int.test.ts`;
-  `pnpm check`; coverage with `pnpm coverage:baseline`.
+  `pnpm check`; coverage with `pnpm coverage:baseline`; focused integration coverage with `pnpm exec vitest run --project integration --coverage --passWithNoTests -- packages/sdk/tests/foundation/storage/artifacts/*.int.test.ts` when needed.
 - Determinism constraints: export ordering and digest computation are stable over explicit inputs.
 - Dependency boundaries: artifact store imports no provider, operator report, concrete driver, or
   secret material resolver.
@@ -154,8 +155,10 @@ and `ExportManifest`, plus the evidence pack.
 
 - Test name or artifact proving each AC.
 - Test name or artifact proving each failure/degraded outcome row.
+- Negative fixture or equivalent failing assertion proving every rejection, degraded, or fail-closed
+  claim named by an AC or failure row.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
-- Coverage command and number for the stated scope.
+- Coverage command, instrumented lane(s), and number for the stated scope.
 - Sweep-grep results showing no provider evidence semantics, operator report semantics, or secret
   resolver imports.
 
