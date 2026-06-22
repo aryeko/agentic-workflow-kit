@@ -1011,6 +1011,6 @@ and enforce quality; R4 story is a subset of design; R5 no unresolved branches.
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [implementation contract](./README.md) · **Next →:** [domain dependency DAG](./domain-dag.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [delivery roles and responsibilities](./delivery-roles.md) · **Next →:** [domain dependency DAG](./domain-dag.md)
 
 <!-- /DOCS-NAV -->

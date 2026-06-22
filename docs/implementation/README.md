@@ -9,8 +9,11 @@ last-reviewed: "2026-06-21"
 This directory defines the implementation contract for building kit-vnext from the approved design
 corpus: what must be built, in what dependency order, and what evidence proves each item.
 
-It does not define the execution process. Operational prompts, review-loop mechanics, PR batching,
-commit policy, and session orchestration are deliberately outside this folder.
+It defines the implementation "what" and, in [`delivery-roles.md`](delivery-roles.md), the delivery
+operating model — who authors, reviews, proves, and verifies that "what". It does not define the
+runtime "how": operational prompts, isolation and commit mechanics, and PR batching live in the
+`orchestrated-delivery` skill. (Co-locating the operating model here is a deliberate, temporary choice
+to keep the implementation docs together; the scope boundary may be revisited in a later restructure.)
 
 ## Relationship to other docs
 
@@ -31,6 +34,9 @@ The implementation plan is being **re-derived from scratch** against the now-fro
 
 - [`work-item-authoring-guide.md`](work-item-authoring-guide.md) - how to write falsifiable story
   contracts (the standard every epic charter and story must meet).
+- [`delivery-roles.md`](delivery-roles.md) - the delivery operating model: the actors (architect,
+  orchestrator, implementer/reviewer sub-agents), the two review loops, and the planning-artifact
+  responsibilities that pair with the authoring guide.
 - [`domain-dag.md`](domain-dag.md) - the domain-level dependency picture used to derive the epic DAG.
 - [`epic-dag.md`](epic-dag.md) - the milestone-level epic DAG used to derive charters and stories.
 - [`domains/`](domains/README.md) - domain implementation charters, grouped by design layer.
@@ -88,8 +94,8 @@ standard is in [`work-item-authoring-guide.md`](work-item-authoring-guide.md).
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [work item authoring guide](./work-item-authoring-guide.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [delivery roles and responsibilities](./delivery-roles.md)
 
-**Children:** [work item authoring guide](./work-item-authoring-guide.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
+**Children:** [delivery roles and responsibilities](./delivery-roles.md) · [work item authoring guide](./work-item-authoring-guide.md) · [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
 
 <!-- /DOCS-NAV -->
