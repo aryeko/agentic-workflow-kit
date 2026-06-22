@@ -1,6 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 
+import type { ArtifactRef } from '../../storage/artifacts/index.js';
 import type { StorageError } from '../../storage/errors/index.js';
 import type { LeaseStore } from '../../storage/leases/index.js';
 import {
@@ -15,6 +16,7 @@ import {
   type BaseRefUnresolved,
   type GitSha,
   type LocalRef,
+  type RelativePath,
   type RepositoryIdentity,
 } from '../repository/index.js';
 import {
@@ -27,9 +29,12 @@ import {
 
 import {
   createLocalBranchCreatedIntent,
+  createLocalGitEvidenceRecordedIntent,
   createRepoSetupConfirmedIntent,
   createRepoSetupEvaluatedIntent,
   createWorktreeLeaseCreatedIntent,
+  type LocalCommitSummary,
+  type LocalGitEvidenceRecordedPayload,
   type WorkspaceRepositoryAppendIntent,
 } from './intents.js';
 
@@ -105,6 +110,12 @@ export type ConfirmSetupInput = {
   readonly fenceToken: string;
 };
 
+export type RecordLocalGitEvidenceInput = {
+  readonly leaseId: string;
+  readonly epoch: number;
+  readonly fenceToken: string;
+};
+
 export type LeaseOperationSuccess = {
   readonly lease: WorktreeLease;
   readonly setupEvaluation: SetupEvaluation;
@@ -115,10 +126,64 @@ export type WorkspaceRepositoryResult =
   | { readonly ok: true; readonly value: LeaseOperationSuccess }
   | { readonly ok: false; readonly error: WorkspaceRepositoryError };
 
+export type ArtifactRefId = ArtifactRef['id'];
+
+export type LocalGitEvidence = {
+  readonly evidenceId: string;
+  readonly leaseId: string;
+  readonly repoId: string;
+  readonly worktreePath: AbsolutePath;
+  readonly branchName: string;
+  readonly inspectedAt: string;
+  readonly baseSha: GitSha;
+  readonly mergeBaseSha: GitSha;
+  readonly headSha: GitSha;
+  readonly localCommits: readonly LocalCommitSummary[];
+  readonly fromSha: GitSha;
+  readonly toSha: GitSha;
+  readonly changedPaths: readonly RelativePath[];
+  readonly statRef?: ArtifactRefId;
+  readonly patchRef?: ArtifactRefId;
+  readonly clean: boolean;
+  readonly stagedPaths: readonly RelativePath[];
+  readonly unstagedPaths: readonly RelativePath[];
+  readonly untrackedPaths: readonly RelativePath[];
+};
+
+export type LocalGitEvidenceUnavailable = {
+  readonly token: 'local-git-evidence-unavailable';
+  readonly leaseId: string;
+};
+
+export type LocalGitEvidenceRecorderResult =
+  | { readonly ok: true; readonly value: LocalGitEvidence }
+  | { readonly ok: false; readonly error: LocalGitEvidenceUnavailable };
+
+export type LocalGitEvidenceRecorderInput = {
+  readonly lease: WorktreeLease;
+  readonly repository: RepositoryIdentity;
+};
+
+export interface LocalGitEvidenceRecorder {
+  record(input: LocalGitEvidenceRecorderInput): LocalGitEvidenceRecorderResult;
+}
+
+export type RecordLocalGitEvidenceSuccess = {
+  readonly evidence: LocalGitEvidence;
+  readonly appendIntents: readonly WorkspaceRepositoryAppendIntent[];
+};
+
+export type RecordLocalGitEvidenceError = LeaseNotFound | StaleLeaseFence | LocalGitEvidenceUnavailable;
+
+export type RecordLocalGitEvidenceResult =
+  | { readonly ok: true; readonly value: RecordLocalGitEvidenceSuccess }
+  | { readonly ok: false; readonly error: RecordLocalGitEvidenceError };
+
 export interface WorkspaceRepository {
   createLease(input: CreateLeaseInput): WorkspaceRepositoryResult;
   evaluateSetup(leaseId: string): WorkspaceRepositoryResult;
   confirmSetup(input: ConfirmSetupInput): WorkspaceRepositoryResult;
+  recordLocalGitEvidence(input: RecordLocalGitEvidenceInput): RecordLocalGitEvidenceResult;
 }
 
 type GitDependencies = {
@@ -148,6 +213,7 @@ export type WorkspaceRepositoryDependencies = {
   readonly leaseTtlMs: number;
   readonly now: () => string;
   readonly git: GitDependencies;
+  readonly localGitEvidenceRecorder?: LocalGitEvidenceRecorder;
   readonly setupDependencies?: Partial<SetupDependencies>;
 };
 
@@ -189,8 +255,39 @@ const updateLeaseState = (lease: WorktreeLease, state: WorktreeLeaseState): Work
   state,
 });
 
+const toLocalGitEvidenceRecordedPayload = (evidence: LocalGitEvidence): LocalGitEvidenceRecordedPayload => ({
+  evidenceId: evidence.evidenceId,
+  leaseId: evidence.leaseId,
+  repoId: evidence.repoId,
+  worktreePath: evidence.worktreePath,
+  branchName: evidence.branchName,
+  inspectedAt: evidence.inspectedAt,
+  baseSha: evidence.baseSha,
+  mergeBaseSha: evidence.mergeBaseSha,
+  headSha: evidence.headSha,
+  localCommits: evidence.localCommits,
+  fromSha: evidence.fromSha,
+  toSha: evidence.toSha,
+  changedPaths: evidence.changedPaths,
+  statRef: evidence.statRef,
+  patchRef: evidence.patchRef,
+  clean: evidence.clean,
+  stagedPaths: evidence.stagedPaths,
+  unstagedPaths: evidence.unstagedPaths,
+  untrackedPaths: evidence.untrackedPaths,
+});
+
 export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDependencies): WorkspaceRepository => {
   const setupDependencies = createSetupDependencies(dependencies.setupDependencies);
+  const localGitEvidenceRecorder: LocalGitEvidenceRecorder = dependencies.localGitEvidenceRecorder ?? {
+    record: ({ lease }) => ({
+      ok: false,
+      error: {
+        token: 'local-git-evidence-unavailable',
+        leaseId: lease.leaseId,
+      },
+    }),
+  };
   const records = new Map<string, StoredLeaseRecord>();
 
   const persistRecord = (record: StoredLeaseRecord): void => {
@@ -495,12 +592,61 @@ export const createWorkspaceRepository = (dependencies: WorkspaceRepositoryDepen
         value: evaluateForRecord(record, dependencies.now(), createRepoSetupConfirmedIntent),
       };
     },
+
+    recordLocalGitEvidence(input) {
+      const record = records.get(input.leaseId);
+
+      if (record === undefined) {
+        return {
+          ok: false,
+          error: {
+            token: 'lease-not-found',
+            leaseId: input.leaseId,
+          },
+        };
+      }
+
+      if (!dependencies.leaseStore.fence(input.leaseId, input.epoch, input.fenceToken)) {
+        return {
+          ok: false,
+          error: {
+            token: 'stale-lease-fence',
+            leaseId: input.leaseId,
+            epoch: input.epoch,
+          },
+        };
+      }
+
+      const recordedEvidence = localGitEvidenceRecorder.record({
+        lease: record.lease,
+        repository: dependencies.repository,
+      });
+
+      if (!recordedEvidence.ok) {
+        return recordedEvidence;
+      }
+
+      const occurredAt = dependencies.now();
+
+      return {
+        ok: true,
+        value: {
+          evidence: recordedEvidence.value,
+          appendIntents: [
+            createLocalGitEvidenceRecordedIntent(toLocalGitEvidenceRecordedPayload(recordedEvidence.value), occurredAt),
+          ],
+        },
+      };
+    },
   };
 };
 
 export type {
   LocalBranchCreatedIntent,
   LocalBranchCreatedPayload,
+  LocalCommitSummary,
+  LocalGitEvidenceRecordedIntent,
+  LocalGitEvidenceRecordedPayload,
   RepoSetupConfirmedIntent,
   RepoSetupConfirmedPayload,
   RepoSetupEvaluatedIntent,

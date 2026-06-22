@@ -14,11 +14,14 @@ import {
   type ArtifactRef,
   type DeclaredSetup,
   type GitSha,
+  type LocalGitEvidence,
+  type LocalGitEvidenceRecordedPayload,
   type LocalRef,
   type RepositoryIdentity,
   type SetupEvaluation,
   type WorktreeLease,
   type WorktreeLeaseState,
+  type WorkspaceRepository,
   type WorkspaceRepositoryAppendIntent,
 } from '../../../../src/index.js';
 
@@ -44,6 +47,54 @@ type WorktreeLeaseKeysExact = ExpectTrue<
   >
 >;
 type SetupEvaluationKeysExact = ExpectTrue<KeysExactly<SetupEvaluation, 'leaseId' | 'setup' | 'fresh' | 'reason'>>;
+type LocalGitEvidenceKeysExact = ExpectTrue<
+  KeysExactly<
+    LocalGitEvidence,
+    | 'evidenceId'
+    | 'leaseId'
+    | 'repoId'
+    | 'worktreePath'
+    | 'branchName'
+    | 'inspectedAt'
+    | 'baseSha'
+    | 'mergeBaseSha'
+    | 'headSha'
+    | 'localCommits'
+    | 'fromSha'
+    | 'toSha'
+    | 'changedPaths'
+    | 'statRef'
+    | 'patchRef'
+    | 'clean'
+    | 'stagedPaths'
+    | 'unstagedPaths'
+    | 'untrackedPaths'
+  >
+>;
+type LocalGitEvidenceRecordedPayloadKeysExact = ExpectTrue<
+  KeysExactly<
+    LocalGitEvidenceRecordedPayload,
+    | 'evidenceId'
+    | 'leaseId'
+    | 'repoId'
+    | 'worktreePath'
+    | 'branchName'
+    | 'inspectedAt'
+    | 'baseSha'
+    | 'mergeBaseSha'
+    | 'headSha'
+    | 'localCommits'
+    | 'fromSha'
+    | 'toSha'
+    | 'changedPaths'
+    | 'statRef'
+    | 'patchRef'
+    | 'clean'
+    | 'stagedPaths'
+    | 'unstagedPaths'
+    | 'untrackedPaths'
+  >
+>;
 
 const createdRoots: string[] = [];
 
@@ -79,6 +130,7 @@ type HarnessOptions = {
   readonly readTextFileFails?: boolean;
   readonly createWorktreeFails?: boolean;
   readonly leaseHealth?: 'ok' | 'network-fs-degraded' | 'read-only' | 'unusable';
+  readonly localGitEvidence?: LocalGitEvidence;
 };
 
 const createHarness = (options: HarnessOptions) => {
@@ -107,6 +159,7 @@ const createHarness = (options: HarnessOptions) => {
     readonly baseSha: GitSha;
   }> = [];
   const resolvedRefs: LocalRef[] = [];
+  const localGitEvidenceCalls: WorktreeLease[] = [];
 
   const leaseStore = createLeaseStore({
     health: options.leaseHealth,
@@ -153,6 +206,27 @@ const createHarness = (options: HarnessOptions) => {
         branchCalls.push({ branchName, targetSha, trackUpstream, worktreePath });
       },
     },
+    localGitEvidenceRecorder: {
+      record: ({ lease }) => {
+        localGitEvidenceCalls.push(lease);
+
+        const evidence = options.localGitEvidence;
+        if (evidence === undefined) {
+          return {
+            ok: false,
+            error: {
+              token: 'local-git-evidence-unavailable',
+              leaseId: lease.leaseId,
+            },
+          } as const;
+        }
+
+        return {
+          ok: true,
+          value: evidence,
+        } as const;
+      },
+    },
     setupDependencies: {
       readTextFile: (path) => {
         if (options.readTextFileFails) {
@@ -184,6 +258,7 @@ const createHarness = (options: HarnessOptions) => {
     repository,
     resolvedRefs,
     root,
+    localGitEvidenceCalls,
     worktreeRoot: worktreeRoot as AbsolutePath,
     workspaceRepository,
     worktreeCalls,
@@ -664,6 +739,282 @@ describe('fnd-03-s2 worktree setup', () => {
     if (afterFailure.ok) {
       expect(afterFailure.value.lease.state).toBe('setup-required');
     }
+  });
+
+  it('exposes a fenced recordLocalGitEvidence contract and delegates matching lease fences to the injected recorder', () => {
+    const compileOnlyAssertions: readonly [LocalGitEvidenceKeysExact, LocalGitEvidenceRecordedPayloadKeysExact] = [
+      true,
+      true,
+    ];
+    const localGitEvidence: LocalGitEvidence = {
+      evidenceId: 'evidence-001',
+      leaseId: 'worktree:workflow-kit:evidence-run',
+      repoId: 'workflow-kit',
+      worktreePath: join(createTempRoot(), 'evidence-run') as AbsolutePath,
+      branchName: 'task/workflow-kit/evidence-run/fnd-03-s3',
+      inspectedAt: '2026-06-22T09:05:00.000Z',
+      baseSha: 'abc1234' as GitSha,
+      mergeBaseSha: 'abc1234' as GitSha,
+      headSha: 'def5678' as GitSha,
+      localCommits: [
+        {
+          sha: 'def5678' as GitSha,
+          parentShas: ['abc1234' as GitSha],
+          subject: 'feat: record local git evidence',
+          authoredAt: '2026-06-22T09:04:00.000Z',
+        },
+      ],
+      fromSha: 'abc1234' as GitSha,
+      toSha: 'def5678' as GitSha,
+      changedPaths: ['packages/sdk/src/foundation/workspace-repository/worktree/index.ts'],
+      statRef: 'artifact-stat-001',
+      patchRef: 'artifact-patch-001',
+      clean: true,
+      stagedPaths: [],
+      unstagedPaths: [],
+      untrackedPaths: [],
+    };
+    const harness = createHarness({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'path-set', paths: ['node_modules'] },
+        rerunPolicy: 'when-stale',
+      },
+      baseSha: 'abc1234' as GitSha,
+      localGitEvidence,
+    });
+    const created = expectCreateLeaseSuccess(
+      harness.workspaceRepository.createLease({
+        runId: 'evidence-run',
+        taskId: 'fnd-03-s3',
+        repoId: harness.repository.repoId,
+      }),
+    );
+
+    const recordMethod: WorkspaceRepository['recordLocalGitEvidence'] =
+      harness.workspaceRepository.recordLocalGitEvidence;
+    const recorded = recordMethod({
+      leaseId: created.lease.leaseId,
+      epoch: created.lease.epoch,
+      fenceToken: created.lease.fenceToken,
+    });
+
+    expect(compileOnlyAssertions).toEqual([true, true]);
+    expect(typeof recordMethod).toBe('function');
+    expect(harness.localGitEvidenceCalls).toEqual([created.lease]);
+    expect(recorded).toEqual({
+      ok: true,
+      value: {
+        evidence: localGitEvidence,
+        appendIntents: [
+          {
+            domain: 'fnd-03',
+            type: 'LocalGitEvidenceRecorded',
+            occurredAt: '2026-06-22T09:00:00.000Z',
+            durability: 'durable',
+            payload: localGitEvidence,
+          },
+        ],
+      },
+    });
+
+    if (recorded.ok) {
+      expect(Object.keys(recorded.value.appendIntents[0].payload).sort()).toEqual([
+        'baseSha',
+        'branchName',
+        'changedPaths',
+        'clean',
+        'evidenceId',
+        'fromSha',
+        'headSha',
+        'inspectedAt',
+        'leaseId',
+        'localCommits',
+        'mergeBaseSha',
+        'patchRef',
+        'repoId',
+        'stagedPaths',
+        'statRef',
+        'toSha',
+        'unstagedPaths',
+        'untrackedPaths',
+        'worktreePath',
+      ]);
+      expect(recorded.value.appendIntents[0].payload).not.toMatchObject({
+        remoteRef: expect.anything(),
+        remoteUrl: expect.anything(),
+        ciState: expect.anything(),
+        prNumber: expect.anything(),
+        reviewState: expect.anything(),
+        mergeState: expect.anything(),
+      });
+    }
+  });
+
+  it('rejects stale epoch or mismatched fenceToken before local git evidence recorder invocation', () => {
+    const harness = createHarness({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'path-set', paths: ['node_modules'] },
+        rerunPolicy: 'when-stale',
+      },
+      baseSha: 'abc1234' as GitSha,
+    });
+    const created = expectCreateLeaseSuccess(
+      harness.workspaceRepository.createLease({
+        runId: 'evidence-fence',
+        taskId: 'fnd-03-s3',
+        repoId: harness.repository.repoId,
+      }),
+    );
+
+    expect(
+      harness.workspaceRepository.recordLocalGitEvidence({
+        leaseId: created.lease.leaseId,
+        epoch: created.lease.epoch + 1,
+        fenceToken: created.lease.fenceToken,
+      }),
+    ).toEqual({
+      ok: false,
+      error: {
+        token: 'stale-lease-fence',
+        leaseId: created.lease.leaseId,
+        epoch: created.lease.epoch + 1,
+      },
+    });
+    expect(
+      harness.workspaceRepository.recordLocalGitEvidence({
+        leaseId: created.lease.leaseId,
+        epoch: created.lease.epoch,
+        fenceToken: 'wrong-token',
+      }),
+    ).toEqual({
+      ok: false,
+      error: {
+        token: 'stale-lease-fence',
+        leaseId: created.lease.leaseId,
+        epoch: created.lease.epoch,
+      },
+    });
+    expect(harness.localGitEvidenceCalls).toEqual([]);
+  });
+
+  it('rejects missing leases before local git evidence recorder invocation', () => {
+    const harness = createHarness({
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'path-set', paths: ['node_modules'] },
+        rerunPolicy: 'when-stale',
+      },
+      baseSha: 'abc1234' as GitSha,
+    });
+
+    expect(
+      harness.workspaceRepository.recordLocalGitEvidence({
+        leaseId: 'missing-lease',
+        epoch: 1,
+        fenceToken: 'missing-token',
+      }),
+    ).toEqual({
+      ok: false,
+      error: {
+        token: 'lease-not-found',
+        leaseId: 'missing-lease',
+      },
+    });
+    expect(harness.localGitEvidenceCalls).toEqual([]);
+  });
+
+  it('fails closed when recordLocalGitEvidence is called without a configured local git evidence recorder', () => {
+    const clock = createClock('2026-06-22T09:00:00.000Z');
+    const root = createTempRoot();
+    const repoRoot = join(root, 'repo');
+    const worktreeRoot = join(root, 'worktrees');
+    mkdirSync(join(repoRoot, '.git'), { recursive: true });
+    mkdirSync(worktreeRoot, { recursive: true });
+
+    const repository: RepositoryIdentity = {
+      repoId: 'workflow-kit',
+      repoRoot: repoRoot as AbsolutePath,
+      gitDir: join(repoRoot, '.git') as AbsolutePath,
+      defaultBaseRef: 'refs/heads/v-next' as LocalRef,
+    };
+
+    const leaseStore = createLeaseStore({
+      now: clock.now,
+      createToken: (() => {
+        let next = 0;
+        return () => {
+          next += 1;
+          return `lease-token-${next}`;
+        };
+      })(),
+      digestToken: (token) => `digest:${token}`,
+    });
+
+    const workspaceRepository = createWorkspaceRepository({
+      repository,
+      worktreeRoot: worktreeRoot as AbsolutePath,
+      setup: {
+        command: 'pnpm install',
+        workingDirectory: '.',
+        freshness: { kind: 'path-set', paths: ['node_modules'] },
+        rerunPolicy: 'when-stale',
+      },
+      leaseStore,
+      leaseHolder: 'worker:test',
+      leaseTtlMs: 60_000,
+      branchOptions: {
+        prefix: 'task',
+        includeRunId: true,
+        includeTaskId: true,
+        maxLength: 80,
+      },
+      now: () => clock.now().toISOString(),
+      git: {
+        resolveRefToSha: () => 'abc1234' as GitSha,
+        getExistingBranchSha: () => undefined,
+        createWorktree: ({ worktreePath }) => {
+          mkdirSync(worktreePath, { recursive: false });
+        },
+        createLocalBranch: () => {},
+      },
+      setupDependencies: {
+        readTextFile: (path) => {
+          if (!existsSync(path)) {
+            return { ok: true, value: undefined } as const;
+          }
+
+          return { ok: true, value: readFileSync(path, 'utf8') } as const;
+        },
+        resolveArtifactRef: () => ({ ok: true, value: undefined }) as const,
+      },
+    });
+
+    const created = expectCreateLeaseSuccess(
+      workspaceRepository.createLease({
+        runId: 'evidence-default-fail-closed',
+        taskId: 'fnd-03-s3',
+        repoId: repository.repoId,
+      }),
+    );
+
+    expect(
+      workspaceRepository.recordLocalGitEvidence({
+        leaseId: created.lease.leaseId,
+        epoch: created.lease.epoch,
+        fenceToken: created.lease.fenceToken,
+      }),
+    ).toEqual({
+      ok: false,
+      error: {
+        token: 'local-git-evidence-unavailable',
+        leaseId: created.lease.leaseId,
+      },
+    });
   });
 
   it('surfaces degraded lease acquisition and worktree creation failures as fail-closed results', () => {

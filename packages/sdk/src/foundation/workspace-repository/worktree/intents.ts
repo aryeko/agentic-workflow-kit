@@ -1,4 +1,4 @@
-import type { AbsolutePath, GitSha } from '../repository/index.js';
+import type { AbsolutePath, GitSha, RelativePath } from '../repository/index.js';
 import type { DeclaredSetup, SetupFreshnessReason } from '../setup/index.js';
 
 type AppendIntentBase<TType extends string, TPayload> = {
@@ -58,16 +58,50 @@ export type RepoSetupConfirmedPayload = {
   readonly resultingState: 'setup-required' | 'ready';
 };
 
+export type LocalCommitSummary = {
+  readonly sha: GitSha;
+  readonly parentShas: readonly GitSha[];
+  readonly subject: string;
+  readonly authoredAt: string;
+};
+
+export type LocalGitEvidenceRecordedPayload = {
+  readonly evidenceId: string;
+  readonly leaseId: string;
+  readonly repoId: string;
+  readonly worktreePath: AbsolutePath;
+  readonly branchName: string;
+  readonly inspectedAt: string;
+  readonly baseSha: GitSha;
+  readonly mergeBaseSha: GitSha;
+  readonly headSha: GitSha;
+  readonly localCommits: readonly LocalCommitSummary[];
+  readonly fromSha: GitSha;
+  readonly toSha: GitSha;
+  readonly changedPaths: readonly RelativePath[];
+  readonly statRef?: string;
+  readonly patchRef?: string;
+  readonly clean: boolean;
+  readonly stagedPaths: readonly RelativePath[];
+  readonly unstagedPaths: readonly RelativePath[];
+  readonly untrackedPaths: readonly RelativePath[];
+};
+
 export type WorktreeLeaseCreatedIntent = AppendIntentBase<'WorktreeLeaseCreated', WorktreeLeaseCreatedPayload>;
 export type LocalBranchCreatedIntent = AppendIntentBase<'LocalBranchCreated', LocalBranchCreatedPayload>;
 export type RepoSetupEvaluatedIntent = AppendIntentBase<'RepoSetupEvaluated', RepoSetupEvaluatedPayload>;
 export type RepoSetupConfirmedIntent = AppendIntentBase<'RepoSetupConfirmed', RepoSetupConfirmedPayload>;
+export type LocalGitEvidenceRecordedIntent = AppendIntentBase<
+  'LocalGitEvidenceRecorded',
+  LocalGitEvidenceRecordedPayload
+>;
 
 export type WorkspaceRepositoryAppendIntent =
   | WorktreeLeaseCreatedIntent
   | LocalBranchCreatedIntent
   | RepoSetupEvaluatedIntent
-  | RepoSetupConfirmedIntent;
+  | RepoSetupConfirmedIntent
+  | LocalGitEvidenceRecordedIntent;
 
 const withEnvelope = <TType extends WorkspaceRepositoryAppendIntent['type'], TPayload>(
   type: TType,
@@ -106,3 +140,9 @@ export const createRepoSetupConfirmedIntent = (
   occurredAt: string,
   correlationId?: string,
 ): RepoSetupConfirmedIntent => withEnvelope('RepoSetupConfirmed', payload, occurredAt, correlationId);
+
+export const createLocalGitEvidenceRecordedIntent = (
+  payload: LocalGitEvidenceRecordedPayload,
+  occurredAt: string,
+  correlationId?: string,
+): LocalGitEvidenceRecordedIntent => withEnvelope('LocalGitEvidenceRecorded', payload, occurredAt, correlationId);
