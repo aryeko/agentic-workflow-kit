@@ -407,6 +407,9 @@ are **consumers** that cite it verbatim. This is R5's "name the shape once" give
 - Mark the producer node in the DAG; put a dependency edge from every consumer to it.
 - The shared shape lives in the **producer story's spec surface**. Consumers reference
   `<producer-story>/<type>` and never redeclare the shape.
+- Record the **public import path** the consumer will use (the package export / barrel), and make
+  exposing the shape on that path part of the producer story's public-exposure AC. A type a consumer
+  cannot import through the intended path is not delivered, even if it exists privately.
 - A shared shape with two producers is a defect — exactly one node owns it.
 
 #### Catalog and invariant owners vs behavior owners
@@ -437,9 +440,18 @@ consumes, so author it to dispatch cleanly:
 - **One ownership scope per node.** Each story owns one path boundary (the files/globs it may create or
   modify) so the orchestrator can stage and commit strictly that pathset. Record it as the story's owned
   pathset (a story-contract field).
+- **Shared files have an owner.** Any file more than one story must touch — a root/domain barrel, a
+  package `exports` map, a generated index, a shared `tsconfig` — is assigned to exactly one owner story
+  or marked `coordinator-owned integration` (the orchestrator wires it at commit; parallel workers do not
+  edit it). Unowned shared files cause lost edits and false review findings.
+- **Phase boundaries are readiness gates.** When an epic is delivered in phases, a later phase may consume
+  an earlier phase's shape only once that shape is exported and importable through its intended public
+  path. State this as the phase-boundary condition so a consumer is never dispatched against a seam that
+  exists only privately.
 - **Suggested tier (optional).** A node may carry a suggested delivery tier - `light` / `standard` /
   `elevated` - to hint implementer/reviewer effort. If a node looks like it needs more than the top
-  tier, it is mis-sized: decompose it, do not escalate effort.
+  tier, it is mis-sized: decompose it, do not escalate effort. The orchestrator treats this tier as the
+  floor for the implementer's model effort.
 
 ### Readiness check (Gate 3)
 
@@ -457,6 +469,11 @@ A story DAG is ready to freeze only when all five hold:
   falsifiable AC.
 - [ ] **Dispatch-ready.** Each node names one owned pathset and sits in a topological band (its delivery
   wave); every edge is a commit-gate a delivery orchestrator can enforce.
+- [ ] **Shared files are owned.** Every file in more than one node's pathset is assigned to a single owner
+  story or marked `coordinator-owned integration`; no two parallel nodes silently share a file.
+- [ ] **Seams are importable.** Every cross-story shape records the public import path its consumers use,
+  and the producer node carries the public-exposure AC that exposes it there; phase boundaries state the
+  exported-and-importable condition a later wave depends on.
 
 If any box is empty, the story DAG is not ready and its story contracts must not be authored.
 
