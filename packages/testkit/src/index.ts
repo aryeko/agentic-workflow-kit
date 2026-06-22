@@ -1,4 +1,25 @@
 export {
+  agentApprovalAnswerFixture,
+  agentApprovalRequestFixture,
+  agentProbeScopeFixture,
+  agentStartRequestFixture,
+  agentWorkerHandleFixture,
+  createMockAgentOutputSink,
+  scopedGrantFixture,
+  type MockAgentOutputSink,
+} from './fixtures/agent/index.js';
+export {
+  createMockAgentProvider,
+  isAgentFailure,
+  mockAgentScenarioFixture,
+  type MockAgentAnswerRule,
+  type MockAgentProvider,
+  type MockAgentProviderOptions,
+  type MockAgentScenario,
+  type MockAgentStep,
+  type MockAgentToolObserved,
+} from './agent/index.js';
+export {
   createForgeTestkitFixtures,
   type ForgeTestkitFixtureOverrides,
   type ForgeTestkitFixtures,
