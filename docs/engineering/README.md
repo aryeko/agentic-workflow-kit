@@ -36,7 +36,7 @@ not be looser than the design specification.
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation coverage rollup](../implementation/coverage.md) · **Next →:** [Check Gate](./check-gate.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation lessons ledger](../implementation-authoring/lessons-ledger.md) · **Next →:** [Check Gate](./check-gate.md)
 
 **Children:** [Check Gate](./check-gate.md) · [Dependency Policy](./dependency-policy.md) · [Dependency Rule Enforcement](./dependency-rule-enforcement.md) · [Test Lanes](./test-lanes.md) · [Testing Policy](./testing-policy.md) · [Tooling and CI](./tooling-and-ci.md)
 

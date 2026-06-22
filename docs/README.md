@@ -21,6 +21,7 @@ full corpus.
 | 5 | [Domain reference](design/30-domain-reference/README.md) | Full domain specs by layer — read only the domain(s) your task touches |
 | 6 | [Decisions](design/40-decisions/README.md) | Accepted design decisions and their rationale |
 | 7 | [Implementation contract](implementation/README.md) | Dependency frontiers, story contracts, readiness evidence, and migration tracking |
+| 8 | [Implementation-planning authoring standard](implementation-authoring/README.md) | How to author the plan artifacts (the standard + gates) and the delivery operating-model spec |
 
 The [engineering](engineering/README.md) folder covers verification policy and tooling — relevant
 for implementation and CI work, not required for design reading.
@@ -33,6 +34,8 @@ This bundle covers:
 - The full domain-level design corpus, organized by layer under `design/30-domain-reference/`.
 - The implementation contract layer under `implementation/`, which translates approved design into
   dependency frontiers, story contracts, and evidence tracking.
+- The implementation-planning authoring standard under `implementation-authoring/`, which defines how
+  the plan artifacts are authored and the delivery operating model.
 
 Review history and execution-process material are maintained separately. See
 [IMPLEMENTATION_STATUS_NOTE.md](design/IMPLEMENTATION_STATUS_NOTE.md) for context.
@@ -49,6 +52,6 @@ not duplicate them.
 
 **Next →:** [design corpus overview](./design/README.md)
 
-**Children:** [design corpus overview](./design/README.md) · [implementation contract](./implementation/README.md) · [Engineering Policy Index](./engineering/README.md) · [roadmap](./roadmap.md)
+**Children:** [design corpus overview](./design/README.md) · [implementation contract](./implementation/README.md) · [Implementation planning — authoring standard](./implementation-authoring/README.md) · [Engineering Policy Index](./engineering/README.md) · [roadmap](./roadmap.md)
 
 <!-- /DOCS-NAV -->

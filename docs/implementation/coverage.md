@@ -8,7 +8,7 @@ last-reviewed: "2026-06-22"
 
 This is the global coverage view. It confirms that every domain's `Story Group Signals` are accounted
 for across the whole epic set, with no signal left unclaimed and none owned by two epics. The model and
-the per-layer gates are in [`work-item-authoring-guide.md`](work-item-authoring-guide.md#coverage-validation).
+the per-layer gates are in the [authoring standard's coverage rule](../implementation-authoring/authoring-standard/60-coverage.md).
 
 The domain charters are the coverage oracle. The unit of coverage is the **Story Group Signal**, not the
 domain, because domains span epics. Each signal must resolve to exactly one disposition:
@@ -87,6 +87,6 @@ triggers until trigger auth and transport contracts exist. No domain has a pendi
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Epic 7 - story DAG](./epics/epic-7-operator-surfaces-and-composition/story-dag.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Epic 7 - story DAG](./epics/epic-7-operator-surfaces-and-composition/story-dag.md) · **Next →:** [Implementation planning — authoring standard](../implementation-authoring/README.md)
 
 <!-- /DOCS-NAV -->
