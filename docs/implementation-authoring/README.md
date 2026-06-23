@@ -1,7 +1,7 @@
 ---
 title: "Implementation planning — authoring standard"
 status: draft
-last-reviewed: "2026-06-22"
+last-reviewed: "2026-06-23"
 ---
 
 # Implementation planning — authoring standard
@@ -19,12 +19,13 @@ review sub-agents — consume the **authored artifacts** in [`../implementation/
 (charters, DAGs, story contracts), **not** this corpus. This corpus produces the *standard* for those
 artifacts and the *spec* for the delivery engine that runs them.
 
-## The two pillars
+## The three pillars
 
 | If you are… | Go to |
 |---|---|
 | authoring the plan (domain charter → epic charter → story DAG → story contract) | [authoring-standard/](authoring-standard/README.md) |
 | building or verifying the delivery engine + role agents | [operating-model/](operating-model/README.md) |
+| building, recreating, or verifying the delivery skills (`ready` epic → merged) | [delivery-pipeline/](delivery-pipeline/README.md) |
 
 ## North star
 
@@ -52,6 +53,8 @@ Recurring defect classes, each mapped to the gate or role that covers it: [lesso
 
 - [authoring-standard/](authoring-standard/README.md) — Pillar 1: the bar every planning artifact meets.
 - [operating-model/](operating-model/README.md) — Pillar 2: the delivery-engine + role-agent spec.
+- [delivery-pipeline/](delivery-pipeline/README.md) — Pillar 3: the three skills that run the operating
+  model from `story: ready` to merged, their gates, and their evals.
 - [lessons-ledger.md](lessons-ledger.md) — retro lessons → covering gate or role; the "lessons land
   before the next wave" gate.
 
@@ -61,6 +64,6 @@ Recurring defect classes, each mapped to the gate or role that covers it: [lesso
 
 **↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation coverage rollup](../implementation/coverage.md) · **Next →:** [Authoring standard — Pillar 1](./authoring-standard/README.md)
 
-**Children:** [Authoring standard — Pillar 1](./authoring-standard/README.md) · [Operating model — delivery system spec](./operating-model/README.md) · [implementation lessons ledger](./lessons-ledger.md)
+**Children:** [Authoring standard — Pillar 1](./authoring-standard/README.md) · [Operating model — delivery system spec](./operating-model/README.md) · [Delivery pipeline — the skill spec](./delivery-pipeline/README.md) · [implementation lessons ledger](./lessons-ledger.md)
 
 <!-- /DOCS-NAV -->
