@@ -32,6 +32,12 @@ export type AppendCall = {
   envelopes: RunEventEnvelope[];
 };
 
+export type ReleaseCall = {
+  name: string;
+  epoch: number;
+  token: string;
+};
+
 type PartialAckUnknown = {
   code: 'partial-ack-unknown';
   commit: 'exact' | 'absent' | 'conflict';
@@ -49,6 +55,7 @@ export type LogHarness = {
   leaseStore: LeaseStore;
   eventLogStore: EventLogStore;
   appendCalls: AppendCall[];
+  releaseCalls: ReleaseCall[];
   records: StoredRecord[];
   acquireLease(): LeaseCapability;
   supersedeLease(): LeaseCapability;
@@ -132,6 +139,7 @@ export function createHarness(options: HarnessOptions = {}): LogHarness {
   let nextGeneratedId = 1;
   const records: StoredRecord[] = [];
   const appendCalls: AppendCall[] = [];
+  const releaseCalls: ReleaseCall[] = [];
   const appendOutcomes = [...(options.appendOutcomes ?? [])];
 
   const leaseStore: LeaseStore = {
@@ -162,7 +170,17 @@ export function createHarness(options: HarnessOptions = {}): LogHarness {
       nextEpoch += 1;
       return currentLease;
     },
-    release() {
+    release(name: string, epoch: number, token: string) {
+      releaseCalls.push({ name, epoch, token });
+      if (!currentLease || currentLease.name !== name || currentLease.epoch !== epoch || currentLease.token !== token) {
+        return {
+          code: 'stale-writer-fenced',
+          message: 'stale lease',
+          health: 'ok',
+        };
+      }
+
+      currentLease = undefined;
       return undefined;
     },
     read(name: string) {
@@ -299,6 +317,7 @@ export function createHarness(options: HarnessOptions = {}): LogHarness {
     leaseStore,
     eventLogStore,
     appendCalls,
+    releaseCalls,
     records,
     acquireLease,
     supersedeLease,

@@ -7,6 +7,16 @@ import type { RunEventLogDependencies } from './types.js';
 
 const leaseName = (runId: string): string => `run-writer:${runId}`;
 
+type AcquiredLease = {
+  name: string;
+  epoch: number;
+  token: string;
+};
+
+const releaseAcquiredLease = (deps: RunEventLogDependencies, lease: AcquiredLease): void => {
+  deps.leaseStore.release(lease.name, lease.epoch, lease.token);
+};
+
 export const createRun = (
   deps: RunEventLogDependencies,
   input: CreateRunInput,
@@ -61,12 +71,14 @@ export const createRun = (
 
   const appended = appendEnvelopes(deps.eventLogStore, input.runId, lease, [created, transitioned], 'barrier');
   if (appended.kind === 'failure') {
+    releaseAcquiredLease(deps, lease);
     return appended.failure;
   }
 
   if (appended.kind === 'partial') {
     const recovered = recoverLostAck({ deps, runId: input.runId, lease }, [created, transitioned], 'barrier');
     if (!recovered.ok) {
+      releaseAcquiredLease(deps, lease);
       return recovered;
     }
 
@@ -77,6 +89,7 @@ export const createRun = (
   }
 
   if (appended.kind === 'non-durable') {
+    releaseAcquiredLease(deps, lease);
     return appendFailure('partial-ack-unknown', 'Run creation acknowledgement was not authoritative.');
   }
 

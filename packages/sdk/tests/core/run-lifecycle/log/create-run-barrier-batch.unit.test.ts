@@ -86,4 +86,45 @@ describe('RunEventLog.createRun', () => {
       'RunLifecycleTransitioned',
     ]);
   });
+
+  it('releases the acquired writer lease when the initial append fails definitively', () => {
+    const harness = createHarness({
+      appendOutcomes: [{ code: 'network-fs-degraded', message: 'append failed', health: 'network-fs-degraded' }],
+    });
+
+    const failed = harness.log.createRun({
+      runId,
+      holder: 'holder-1',
+      leaseTtlMs: 60_000,
+      idempotencyKey: 'idempotency-1',
+      createdAt: '2026-06-23T12:00:00.000Z',
+      payload: {
+        idempotencyKey: 'idempotency-1',
+        requestedBy: 'operator-1',
+      },
+    });
+
+    expect(failed.ok).toBe(false);
+    expect(harness.releaseCalls).toEqual([
+      {
+        name: `run-writer:${runId}`,
+        epoch: 1,
+        token: 'token-1',
+      },
+    ]);
+
+    const retry = harness.log.createRun({
+      runId,
+      holder: 'holder-1',
+      leaseTtlMs: 60_000,
+      idempotencyKey: 'idempotency-1',
+      createdAt: '2026-06-23T12:00:01.000Z',
+      payload: {
+        idempotencyKey: 'idempotency-1',
+        requestedBy: 'operator-1',
+      },
+    });
+
+    expect(retry.ok).toBe(true);
+  });
 });
