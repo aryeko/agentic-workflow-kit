@@ -28,6 +28,27 @@ Audit every package artifact against the source inventory:
 - reasoning tier is greater than or equal to the carried suggested-tier floor;
 - reviewer routing uses `frontier-reviewer`.
 
+## Independent Reviewer
+
+After deterministic local validation passes, dispatch exactly one independent read-only reviewer for
+the target package. The reviewer must assess quality, correctness, compliance, and readiness for
+implementation against:
+
+- `references/source-readiness.md`;
+- `references/package-layout.md`;
+- `references/model-routing.md`;
+- `references/plan-artifact.md`;
+- `references/tracker-artifact.md`;
+- `references/implementer-prompt.md`;
+- `references/reviewer-prompt.md`;
+- this closeout checklist;
+- the target epic's frozen DAG and selected ready story contracts;
+- the generated execution package.
+
+The reviewer must not edit files, stage, commit, push, open PRs, merge, dispatch implementation work,
+or update tracker state. Treat reviewer blocking findings as package blockers. If the reviewer reports
+only non-blocking issues, record the judgment and rationale in the closeout report.
+
 ## Artifact Compliance
 
 Check each file against its owning reference:
@@ -55,11 +76,12 @@ If skipped, state why.
 ## Readiness Verdict
 
 Mark `ready_for_implementation` only when all completeness, projection, compliance, and static
-checks pass. The verdict must name:
+checks pass and the independent reviewer returns no blocking findings. The verdict must name:
 
 - sources reviewed;
 - selected stories covered;
 - per-artifact checks performed;
+- independent reviewer verdict;
 - final verdict.
 
 Use `blocked` if any blocker remains. List the affected artifact, source evidence, and required
@@ -80,6 +102,7 @@ Report:
 - docs navigation command/result, or why skipped;
 - deterministic package validation command/result;
 - projection audit result;
+- independent reviewer verdict;
 - `ready_for_implementation` or `blocked`;
 - `pnpm check` command/result, or why skipped;
 - blockers and assumptions.

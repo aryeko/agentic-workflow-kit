@@ -1,0 +1,164 @@
+# Epic 3 Execution Package Plan
+
+## Source Baseline
+
+- Repo path: `/Users/aryekogan/repos/workflow-kit`.
+- Package worktree path: `/Users/aryekogan/repos/workflow-kit/.worktrees/plan-delivery-epic3`.
+- Base branch: `v-next`.
+- Package branch: `codex/plan-delivery-epic3`.
+- HEAD inspected: `7bc960a52372b274501cf42127e045bb2e106d6e`.
+- Epic slug: `epic-3-core-runtime-spine`.
+- Package author/date: Codex, 2026-06-23.
+- Source inventory: frozen DAG plus 14 ready story contracts listed below; every package row and prompt cites its source story id and ordered AC ids.
+
+Source files read:
+- `AGENTS.md`
+- `CLAUDE.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/README.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/story-dag.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/README.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-01-s1-event-contracts.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-02-s1-capability-registry.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-01-s2-replay-and-corruption.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-01-s3-lifecycle-and-linkage.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-02-s2-gate-evaluator.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-07-s1-telemetry-and-metrics.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/edge-01-s1-operator-command-contract.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-01-s5-projections.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-01-s6-cursor-wait.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-02-s3-gate-record-durability.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-07-s2-analyzer.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/edge-01-s2-cli-mcp-parity-smoke.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-01-s4-run-event-log-and-writer.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-07-s3-analysis-records-and-reports.md`
+
+## Readiness Verdict
+
+Ready. Gate 1 passed for `epic-3-core-runtime-spine`: `docs/implementation/epics/epic-3-core-runtime-spine/story-dag.md` frontmatter is `status: "story-dag: frozen"`, `docs/implementation/epics/epic-3-core-runtime-spine/stories/README.md` records 14 of 14 stories as `story: ready`, and every selected source contract frontmatter is `status: "story: ready"`. The package is projectable without adding scope, changing ACs, reordering dependencies, changing owned pathsets, lowering suggested-tier floors, or binding provider-specific runtime model ids.
+
+## Implementation-Readiness Evidence
+
+`$plan-delivery` performed deep artifact review for this execution package and marks it `ready_for_implementation`.
+
+Sources reviewed:
+- `docs/implementation/epics/epic-3-core-runtime-spine/story-dag.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/README.md`
+- the 14 selected ready story contracts listed in `Source files read`
+- `.agents/skills/plan-delivery/references/source-readiness.md`
+- `.agents/skills/plan-delivery/references/package-layout.md`
+- `.agents/skills/plan-delivery/references/model-routing.md`
+- `.agents/skills/plan-delivery/references/plan-artifact.md`
+- `.agents/skills/plan-delivery/references/tracker-artifact.md`
+- `.agents/skills/plan-delivery/references/implementer-prompt.md`
+- `.agents/skills/plan-delivery/references/reviewer-prompt.md`
+- `.agents/skills/plan-delivery/references/closeout-validation.md`
+
+Selected stories covered:
+- `core-01-s1-event-contracts`
+- `core-02-s1-capability-registry`
+- `core-01-s2-replay-and-corruption`
+- `core-01-s3-lifecycle-and-linkage`
+- `core-02-s2-gate-evaluator`
+- `core-07-s1-telemetry-and-metrics`
+- `edge-01-s1-operator-command-contract`
+- `core-01-s5-projections`
+- `core-01-s6-cursor-wait`
+- `core-02-s3-gate-record-durability`
+- `core-07-s2-analyzer`
+- `edge-01-s2-cli-mcp-parity-smoke`
+- `core-01-s4-run-event-log-and-writer`
+- `core-07-s3-analysis-records-and-reports`
+
+Artifact checks performed:
+- `plan.md`: confirmed the source baseline, source file inventory, readiness verdict, projection summary, wave order, prompt inventory, verification policy, downstream execution metadata, resume semantics, and stop point are present and project only from the frozen DAG plus selected ready story contracts.
+- `tracker.md`: confirmed every selected story has exactly one row with story id, source AC ids, wave, dependencies, pending status, implementer routing, reviewer routing, prompt paths, reviewer verdict, gate evidence, commit hash, blockers, and notes columns; initial execution-only evidence cells remain blank by design.
+- implementer prompts: confirmed all 14 selected stories have exactly one `execution/prompts/<story-id>/implementer.md`, each carrying exact task, ACs, reason, source material, allowed paths, dependency inputs, non-goals, implementation instructions, verification commands, delivery format, and mutation limits.
+- reviewer prompts: confirmed all 14 selected stories have exactly one `execution/prompts/<story-id>/reviewer.md`, each carrying original scope and ACs, review boundaries, required checks, verdict format, and `frontier-reviewer` safeguard requirements.
+- package layout: confirmed package artifacts live under `docs/implementation/epics/epic-3-core-runtime-spine/execution/` and no extra prompt directory exists outside the selected source set.
+- static checks: confirmed no scaffold marker text, provider-specific runtime model ids, runtime model aliases or versions, fake commit hashes, stale tracker statuses, missing selected story prompt pairs, or prompt truncation/parity mismatches remain.
+
+Independent reviewer verdict:
+- Reviewer: Rawls (`019ef54a-c376-7413-bb7e-d7d735958c0f`), read-only.
+- Scope: quality, correctness, compliance, and readiness for implementation against the plan-delivery references, closeout checklist, frozen DAG, selected ready story contracts, and generated execution package.
+- Final reviewer result: `READY_FOR_IMPLEMENTATION`; no blocking findings remained after prompt regeneration and deterministic package checks.
+
+Final verdict:
+- `ready_for_implementation`
+
+## Projection Summary
+
+| story id | source AC ids | job | wave | dependencies | dependents | owned pathset | suggested-tier floor | routing |
+|---|---|---|---|---|---|---|---|---|
+| `core-01-s1-event-contracts` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13` | Declare the host-neutral run-log contract surface: every type plus the `RunEventLog`/`RunWriter` interfaces, as the single shared producer. | 1 | none | `core-01-s2-replay-and-corruption`, `core-01-s3-lifecycle-and-linkage`, `core-01-s4-run-event-log-and-writer`, `core-01-s5-projections`, `core-01-s6-cursor-wait`, `core-02-s2-gate-evaluator`, `core-02-s3-gate-record-durability`, `core-07-s1-telemetry-and-metrics`, `core-07-s2-analyzer`, `core-07-s3-analysis-records-and-reports`, `edge-01-s1-operator-command-contract`, `edge-01-s2-cli-mcp-parity-smoke` | `packages/sdk/src/core/run-lifecycle/contracts/**`<br>`packages/sdk/tests/core/run-lifecycle/contracts/**` | `elevated` | implementer: strong-coder; effort high; reasoning elevated; DAG floor elevated; rationale: core-01-s1-event-contracts covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13 and carries public shared run-log contract surface and single-producer type catalog consumed by the rest of Epic 3.<br>reviewer: frontier-reviewer; effort high; reasoning elevated; DAG floor elevated; rationale: core-01-s1-event-contracts covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13 and carries public shared run-log contract surface and single-producer type catalog consumed by the rest of Epic 3. |
+| `core-02-s1-capability-registry` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14` | Declare the capability registry: `CapabilityId`, `CapabilityMode`, the v1 posture/guarantee-requirement catalog, and explicit deferral. | 1 | none | `core-02-s2-gate-evaluator` | `packages/sdk/src/core/capability/registry/**`<br>`packages/sdk/tests/core/capability/registry/**` | `elevated` | implementer: strong-coder; effort high; reasoning elevated; DAG floor elevated; rationale: core-02-s1-capability-registry covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14 and carries public capability posture catalog and safety vocabulary used by gate evaluation.<br>reviewer: frontier-reviewer; effort high; reasoning elevated; DAG floor elevated; rationale: core-02-s1-capability-registry covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14 and carries public capability posture catalog and safety vocabulary used by gate evaluation. |
+| `core-01-s2-replay-and-corruption` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10` | Implement `replay()`: assemble `RunReplay` from `fnd-02` `EventLogStore.replay`, validate envelopes, and classify tail/interior/unavailable health. | 2 | `core-01-s1-event-contracts` | `core-01-s4-run-event-log-and-writer`, `core-01-s5-projections`, `core-01-s6-cursor-wait` | `packages/sdk/src/core/run-lifecycle/replay/**`<br>`packages/sdk/tests/core/run-lifecycle/replay/**` | `standard` | implementer: general-coder; effort medium; reasoning standard; DAG floor standard; rationale: core-01-s2-replay-and-corruption covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10 and carries bounded replay implementation with corruption classification and deterministic fixture evidence.<br>reviewer: frontier-reviewer; effort medium; reasoning standard; DAG floor standard; rationale: core-01-s2-replay-and-corruption covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10 and carries bounded replay implementation with corruption classification and deterministic fixture evidence. |
+| `core-01-s3-lifecycle-and-linkage` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14` | Own the legal lifecycle transition table + terminal guardrails and the append-only session linkage rules as a pure validate/fold module. | 2 | `core-01-s1-event-contracts` | `core-01-s4-run-event-log-and-writer`, `core-01-s5-projections` | `packages/sdk/src/core/run-lifecycle/lifecycle/**`<br>`packages/sdk/tests/core/run-lifecycle/lifecycle/**` | `standard` | implementer: general-coder; effort medium; reasoning standard; DAG floor standard; rationale: core-01-s3-lifecycle-and-linkage covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14 and carries bounded pure lifecycle and linkage implementation with generated transition-table evidence.<br>reviewer: frontier-reviewer; effort medium; reasoning standard; DAG floor standard; rationale: core-01-s3-lifecycle-and-linkage covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14 and carries bounded pure lifecycle and linkage implementation with generated transition-table evidence. |
+| `core-02-s2-gate-evaluator` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14`, `AC-15`, `AC-16`, `AC-17`, `AC-18` | Implement `evaluateCapabilityGate(request, replay, projections)`: guarantee predicates, attestation consumption, and the `CapabilityGateRecordPayload` + denial-reason catalog. | 2 | `core-02-s1-capability-registry`, `core-01-s1-event-contracts` | `core-02-s3-gate-record-durability` | `packages/sdk/src/core/capability/evaluator/**`<br>`packages/sdk/tests/core/capability/evaluator/**` | `elevated` | implementer: strong-coder; effort high; reasoning elevated; DAG floor elevated; rationale: core-02-s2-gate-evaluator covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-18 and carries safety boundary and fail-closed capability gate evaluator over committed evidence and attestations.<br>reviewer: frontier-reviewer; effort high; reasoning elevated; DAG floor elevated; rationale: core-02-s2-gate-evaluator covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-18 and carries safety boundary and fail-closed capability gate evaluator over committed evidence and attestations. |
+| `core-07-s1-telemetry-and-metrics` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10` | Declare the telemetry topic taxonomy over committed run events and the honest `MetricValue<T>` wrapper. | 2 | `core-01-s1-event-contracts` | `core-07-s2-analyzer` | `packages/sdk/src/core/observability/telemetry/**`<br>`packages/sdk/tests/core/observability/telemetry/**` | `standard` | implementer: general-coder; effort medium; reasoning standard; DAG floor standard; rationale: core-07-s1-telemetry-and-metrics covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10 and carries public observability taxonomy and metric wrapper, but type-only and bounded by catalog tests.<br>reviewer: frontier-reviewer; effort medium; reasoning standard; DAG floor standard; rationale: core-07-s1-telemetry-and-metrics covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10 and carries public observability taxonomy and metric wrapper, but type-only and bounded by catalog tests. |
+| `edge-01-s1-operator-command-contract` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11` | Declare the shared operator command-envelope substrate in the SDK for preview/start/inspect only, without `OperatorControlPort` or later-epic fields. | 2 | `core-01-s1-event-contracts` | `edge-01-s2-cli-mcp-parity-smoke` | `packages/sdk/src/edge/operator-command/**`<br>`packages/sdk/tests/edge/operator-command/**` | `elevated` | implementer: strong-coder; effort high; reasoning elevated; DAG floor elevated; rationale: edge-01-s1-operator-command-contract covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11 and carries public Edge command-envelope contract and explicit later-epic boundary exclusions.<br>reviewer: frontier-reviewer; effort high; reasoning elevated; DAG floor elevated; rationale: edge-01-s1-operator-command-contract covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11 and carries public Edge command-envelope contract and explicit later-epic boundary exclusions. |
+| `core-01-s5-projections` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14` | Implement `project()`: the pure `state`/`summary`/`metrics`/`launch` projections with reducer totality and deterministic rebuild. | 3 | `core-01-s1-event-contracts`, `core-01-s2-replay-and-corruption`, `core-01-s3-lifecycle-and-linkage` | `core-01-s4-run-event-log-and-writer` | `packages/sdk/src/core/run-lifecycle/projections/**`<br>`packages/sdk/tests/core/run-lifecycle/projections/**` | `standard` | implementer: general-coder; effort medium; reasoning standard; DAG floor standard; rationale: core-01-s5-projections covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14 and carries bounded pure projection reducers over replay and lifecycle inputs.<br>reviewer: frontier-reviewer; effort medium; reasoning standard; DAG floor standard; rationale: core-01-s5-projections covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14 and carries bounded pure projection reducers over replay and lifecycle inputs. |
+| `core-01-s6-cursor-wait` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8` | Implement `waitRunEvents()`: the bounded poll-over-replay cursor primitive with no lease/projection/mutation side effects. | 3 | `core-01-s1-event-contracts`, `core-01-s2-replay-and-corruption` | `core-01-s4-run-event-log-and-writer` | `packages/sdk/src/core/run-lifecycle/cursor-wait/**`<br>`packages/sdk/tests/core/run-lifecycle/cursor-wait/**` | `standard` | implementer: general-coder; effort medium; reasoning standard; DAG floor standard; rationale: core-01-s6-cursor-wait covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 and carries bounded cursor wait behavior with injected clock and no mutation authority.<br>reviewer: frontier-reviewer; effort medium; reasoning standard; DAG floor standard; rationale: core-01-s6-cursor-wait covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 and carries bounded cursor wait behavior with injected clock and no mutation authority. |
+| `core-02-s3-gate-record-durability` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6` | Append the `CapabilityGateRecord` event at `barrier` via `RunWriter` and fail closed when the record is unwritable. | 3 | `core-02-s2-gate-evaluator`, `core-01-s1-event-contracts` | none | `packages/sdk/src/core/capability/record/**`<br>`packages/sdk/tests/core/capability/record/**` | `standard` | implementer: general-coder; effort medium; reasoning standard; DAG floor standard; rationale: core-02-s3-gate-record-durability covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6 and carries bounded durability wrapper with fail-closed append behavior.<br>reviewer: frontier-reviewer; effort medium; reasoning standard; DAG floor standard; rationale: core-02-s3-gate-record-durability covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6 and carries bounded durability wrapper with fail-closed append behavior. |
+| `core-07-s2-analyzer` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14`, `AC-15`, `AC-16`, `AC-17`, `AC-18` | Implement the pure analyzer: `classifyTrigger` auto-fire triggers and `analyze(request, snapshot)` over a deterministic snapshot. | 3 | `core-07-s1-telemetry-and-metrics`, `core-01-s1-event-contracts` | `core-07-s3-analysis-records-and-reports` | `packages/sdk/src/core/observability/analyzer/**`<br>`packages/sdk/tests/core/observability/analyzer/**` | `elevated` | implementer: strong-coder; effort high; reasoning elevated; DAG floor elevated; rationale: core-07-s2-analyzer covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-18 and carries shared analyzer rules and deterministic failure classification consumed by analysis records.<br>reviewer: frontier-reviewer; effort high; reasoning elevated; DAG floor elevated; rationale: core-07-s2-analyzer covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-18 and carries shared analyzer rules and deterministic failure classification consumed by analysis records. |
+| `edge-01-s2-cli-mcp-parity-smoke` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13` | Prove the mock-backed executable smoke: CLI and MCP build byte-identical envelopes for preview/start/inspect using injected fakes. | 3 | `edge-01-s1-operator-command-contract`, `core-01-s1-event-contracts` | none | `packages/testkit/src/operator/**`<br>`packages/testkit/src/fixtures/operator/**`<br>`packages/cli/src/operator-smoke/**`<br>`packages/cli/tests/operator/**`<br>`packages/mcp/src/operator-smoke/**`<br>`packages/mcp/tests/operator/**` | `standard` | implementer: strong-coder; effort high; reasoning elevated; DAG floor standard; rationale: edge-01-s2-cli-mcp-parity-smoke covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13 and carries cross-package CLI/MCP/testkit smoke with dependency-boundary sweeps and public testkit exposure.<br>reviewer: frontier-reviewer; effort high; reasoning elevated; DAG floor standard; rationale: edge-01-s2-cli-mcp-parity-smoke covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13 and carries cross-package CLI/MCP/testkit smoke with dependency-boundary sweeps and public testkit exposure. |
+| `core-01-s4-run-event-log-and-writer` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10` | Implement the concrete `RunEventLog` + `RunWriter`: leased writer, epoch fencing, monotonic sequence, atomic-batch durability, transition enforcement, lost-ack recovery; delegate read methods. | 4 | `core-01-s1-event-contracts`, `core-01-s2-replay-and-corruption`, `core-01-s3-lifecycle-and-linkage`, `core-01-s5-projections`, `core-01-s6-cursor-wait` | none | `packages/sdk/src/core/run-lifecycle/log/**`<br>`packages/sdk/tests/core/run-lifecycle/log/**` | `elevated` | implementer: strong-coder; effort high; reasoning elevated; DAG floor elevated; rationale: core-01-s4-run-event-log-and-writer covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10 and carries assembled runtime write path, fencing, durability, lost-ack recovery, and facade delegation.<br>reviewer: frontier-reviewer; effort high; reasoning elevated; DAG floor elevated; rationale: core-01-s4-run-event-log-and-writer covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10 and carries assembled runtime write path, fencing, durability, lost-ack recovery, and facade delegation. |
+| `core-07-s3-analysis-records-and-reports` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10` | Implement `recordAnalysisOutcome`: `AnalysisRecorded`/`AnalysisFailed` events, redacted write-once report refs, and the terminal-analysis invariant. | 4 | `core-07-s2-analyzer`, `core-01-s1-event-contracts` | none | `packages/sdk/src/core/observability/records/**`<br>`packages/sdk/tests/core/observability/records/**` | `elevated` | implementer: strong-coder; effort high; reasoning elevated; DAG floor elevated; rationale: core-07-s3-analysis-records-and-reports covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10 and carries analysis record durability, redacted artifact references, and terminal-analysis invariant fail-closed behavior.<br>reviewer: frontier-reviewer; effort high; reasoning elevated; DAG floor elevated; rationale: core-07-s3-analysis-records-and-reports covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10 and carries analysis record durability, redacted artifact references, and terminal-analysis invariant fail-closed behavior. |
+
+## Execution Waves
+
+The execution stage must follow the topological bands from `docs/implementation/epics/epic-3-core-runtime-spine/story-dag.md`. A dependent story can start only after every direct dependency row is `done` in `tracker.md`; `approved_pending_gate`, reviewed, or committed-without-gate states do not unlock dependents.
+
+| wave | stories |
+|---|---|
+| 1 | `core-01-s1-event-contracts`, `core-02-s1-capability-registry` |
+| 2 | `core-01-s2-replay-and-corruption`, `core-01-s3-lifecycle-and-linkage`, `core-02-s2-gate-evaluator`, `core-07-s1-telemetry-and-metrics`, `edge-01-s1-operator-command-contract` |
+| 3 | `core-01-s5-projections`, `core-01-s6-cursor-wait`, `core-02-s3-gate-record-durability`, `core-07-s2-analyzer`, `edge-01-s2-cli-mcp-parity-smoke` |
+| 4 | `core-01-s4-run-event-log-and-writer`, `core-07-s3-analysis-records-and-reports` |
+
+## Prompt Inventory
+
+| source story | source AC ids | implementer prompt | reviewer prompt |
+|---|---|---|---|
+| `core-01-s1-event-contracts` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s1-event-contracts/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s1-event-contracts/reviewer.md` |
+| `core-02-s1-capability-registry` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-02-s1-capability-registry/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-02-s1-capability-registry/reviewer.md` |
+| `core-01-s2-replay-and-corruption` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s2-replay-and-corruption/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s2-replay-and-corruption/reviewer.md` |
+| `core-01-s3-lifecycle-and-linkage` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s3-lifecycle-and-linkage/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s3-lifecycle-and-linkage/reviewer.md` |
+| `core-02-s2-gate-evaluator` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14`, `AC-15`, `AC-16`, `AC-17`, `AC-18` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-02-s2-gate-evaluator/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-02-s2-gate-evaluator/reviewer.md` |
+| `core-07-s1-telemetry-and-metrics` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-07-s1-telemetry-and-metrics/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-07-s1-telemetry-and-metrics/reviewer.md` |
+| `edge-01-s1-operator-command-contract` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/edge-01-s1-operator-command-contract/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/edge-01-s1-operator-command-contract/reviewer.md` |
+| `core-01-s5-projections` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s5-projections/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s5-projections/reviewer.md` |
+| `core-01-s6-cursor-wait` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s6-cursor-wait/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s6-cursor-wait/reviewer.md` |
+| `core-02-s3-gate-record-durability` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-02-s3-gate-record-durability/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-02-s3-gate-record-durability/reviewer.md` |
+| `core-07-s2-analyzer` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14`, `AC-15`, `AC-16`, `AC-17`, `AC-18` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-07-s2-analyzer/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-07-s2-analyzer/reviewer.md` |
+| `edge-01-s2-cli-mcp-parity-smoke` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/edge-01-s2-cli-mcp-parity-smoke/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/edge-01-s2-cli-mcp-parity-smoke/reviewer.md` |
+| `core-01-s4-run-event-log-and-writer` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s4-run-event-log-and-writer/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-01-s4-run-event-log-and-writer/reviewer.md` |
+| `core-07-s3-analysis-records-and-reports` | `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-07-s3-analysis-records-and-reports/implementer.md` | `docs/implementation/epics/epic-3-core-runtime-spine/execution/prompts/core-07-s3-analysis-records-and-reports/reviewer.md` |
+
+## Verification Policy
+
+Each story must use the targeted checks, evidence-pack items, required sweeps, coverage expectations, and `pnpm check` gate from its source contract. The execution package does not add or relax checks. Worker and reviewer prompts carry the source `Quality bar` and `Evidence pack` sections for the relevant story, including public-import tests, forbidden-symbol or dependency sweeps, coverage commands, and failure/degraded evidence rows when the story contract names them.
+
+## Downstream Execution Metadata
+
+- Model class, effort, reasoning tier, suggested-tier floor, and routing rationale are abstract delivery-plan decisions.
+- Provider-specific runtime model ids, aliases, and versions are selected later by `orchestrated-delivery` from live provider availability.
+- Dependency validity comes from tracker `done` state plus committed dependency inputs in `{{DEPENDENCY_COMMITS}}`.
+- Tracker update authority belongs to the execution stage; this package initializes state only.
+- Commit boundaries follow each source story's owned pathset.
+- Verifiable evidence wins over worker prose: git state, check output, and live review truth resolve conflicts.
+
+## Resume Semantics
+
+A later execution run resumes from `tracker.md` by reading each row's status, prompt paths, recorded gate evidence, reviewer verdict, commit hash, blockers, and notes. If tracker evidence conflicts with repository state, check output, or live review truth, the execution run must prefer repository state, check output, and live review truth. A dependency is resumable only when its row is `done` and its commit hash/evidence still match the implementation state being consumed.
+
+## Stop Point
+
+Package creation ends here. Feature implementation, worker dispatch, review, commits, pushes, PRs, merges, and delivery closeout begin only in a later execution run.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [Epic 3 - Core runtime spine](../README.md) · **← Prev:** [Epic 3 - story DAG](../story-dag.md) · **Next →:** [Implementer Prompt: core-01-s1-event-contracts](./prompts/core-01-s1-event-contracts/implementer.md)
+
+<!-- /DOCS-NAV -->

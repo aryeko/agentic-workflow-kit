@@ -239,6 +239,6 @@ flowchart TB
 
 ---
 
-**↑ Up:** [Epic 3 - Core runtime spine](./README.md) · **← Prev:** [Epic 3 - Core runtime spine](./README.md) · **Next →:** [Epic 3 - stories](./stories/README.md)
+**↑ Up:** [Epic 3 - Core runtime spine](./README.md) · **← Prev:** [Epic 3 - Core runtime spine](./README.md) · **Next →:** [Epic 3 Execution Package Plan](./execution/plan.md)
 
 <!-- /DOCS-NAV -->
