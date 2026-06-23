@@ -10,6 +10,7 @@ export type {
   ProviderDomain,
 } from './core/capability/evaluator/index.js';
 export { evaluateCapabilityGate } from './core/capability/evaluator/index.js';
+export { appendGateRecord, GateRecordUnwritable } from './core/capability/record/index.js';
 export * from './core/capability/registry/index.js';
 export type {
   AnalysisFailure,
