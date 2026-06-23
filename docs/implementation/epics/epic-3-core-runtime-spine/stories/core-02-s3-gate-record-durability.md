@@ -281,6 +281,22 @@ and the local `GateRecordUnwritable` error type, plus the evidence pack.
   `AppendIntent` / `RunAppendReceipt` / `RunAppendFailure` need to be authored (those belong to
   their producer stories).
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: gate-records-are-barrier-durable
+
+- Rationale: capability decisions gate acting powers, so consumers must cite a committed barrier record
+  before acting.
+- Design trace: `docs/design/30-domain-reference/core/capability-and-safety/gate-evaluation-and-records.md`
+  (`CapabilityGateRecord` append uses `barrier` durability and denies on append failure).
+- Falsification: caller-supplied durability can downgrade the append, or a gate record is authored with
+  `durable` / `buffered`.
+- Escalation: if a caller asks for lower durability, reject it at the contract boundary and escalate a
+  caller defect; do not expose a durability override.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

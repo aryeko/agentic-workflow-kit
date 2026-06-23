@@ -518,6 +518,34 @@ the evidence pack.
     explanation view types beyond what `edge-01-s1` has already declared) is needed — escalate as
     a design-sequencing gap, do not invent.
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: structural-fake-not-named-operator-control-port
+
+- Rationale: Epic 3 must prove CLI/MCP envelope parity without declaring the later Epic 7
+  `OperatorControlPort`, so the smoke uses an injected structural three-method fake only.
+- Design trace: `story-dag.md` scope decision `edge-01-command-substrate-only`;
+  `docs/design/30-domain-reference/edge/operator-surface/command-surface-and-envelopes.md`
+  (preview/start/inspect commands and full later port).
+- Falsification: production or testkit code exports a named `OperatorControlPort` interface from this
+  story, or the fake implements actions beyond preview/start/inspect.
+- Escalation: if the smoke cannot be expressed structurally, defer the smoke to Epic 7; do not publish
+  the named port early.
+
+### Decision: builders-are-internal-only
+
+- Rationale: the smoke builders are proof fixtures for CLI/MCP parity and future production wiring, not
+  a public API surface in this epic.
+- Design trace: `docs/design/30-domain-reference/edge/operator-surface/command-surface-and-envelopes.md`
+  (CLI/MCP commands construct shared envelopes); this story's public-exposure constraint.
+- Falsification: CLI or MCP builders are re-exported from public entrypoints, or consumers outside tests
+  depend on them as API.
+- Escalation: if a public operator builder API is needed, defer it to Epic 7 production wiring and keep
+  Epic 3's builders internal.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

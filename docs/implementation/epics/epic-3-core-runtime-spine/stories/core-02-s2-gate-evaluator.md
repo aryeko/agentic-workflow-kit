@@ -498,6 +498,33 @@ events, split into focused files, exposed on the `sdk` public entrypoint, plus t
   contract question (e.g. the precise approved-parent-scope rule or the policy-permits shape), report it
   as a design gap — do not invent it.
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: gate-record-unwritable-declared-not-raised-here
+
+- Rationale: the evaluator owns the denial catalog and payload shape, but only the record writer can
+  know an append failed.
+- Design trace: `docs/design/30-domain-reference/core/capability-and-safety/gate-evaluation-and-records.md`
+  (`gate-record-unwritable` denial reason and append-failure behavior).
+- Falsification: `evaluateCapabilityGate` returns `gate-record-unwritable` without an attempted
+  durable record append.
+- Escalation: if evaluator callers need append-status information, route through `core-02-s3`; do not
+  make the pure evaluator perform record I/O.
+
+### Decision: stable-failure-ordering-for-replay-determinism
+
+- Rationale: gate decisions must replay deterministically from the same evidence, so simultaneous
+  failures need one stable ordering.
+- Design trace: `docs/design/30-domain-reference/core/capability-and-safety/gate-evaluation-and-records.md`
+  (evaluation over replay/projections/attestations and stable denial reasons).
+- Falsification: equivalent replay inputs produce denial reasons in different orders, or ordering
+  depends on object iteration, wall time, or random values.
+- Escalation: if two failures have equal priority, record an explicit tie-breaker in this contract
+  before implementation.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

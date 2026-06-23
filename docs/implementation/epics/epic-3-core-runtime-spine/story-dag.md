@@ -75,36 +75,57 @@ edge below names the exact shared type, event, or evidence shape that creates th
 
 ## Epic-specific scope decisions (reviewable)
 
-These decisions shape node boundaries and must be graded in the characterization review:
+These decisions shape node boundaries and must be graded in the characterization review. Each entry
+records rationale, design trace, falsification, and escalation.
 
-1. **Contracts as the single producer.** All `core-01` types and the `RunEventLog` / `RunWriter`
-   interface *declarations* live in `core-01-s1` (the design's `contracts.md` surface). Behavior
-   stories (`s2`/`s3`/`s4`/`s5`/`s6`) implement against it and never redeclare a contract type. This
-   is the seam-density mitigation: the shape everyone imports is declared once, in a stable
-   type-only story.
-2. **`RunEventLog` is assembled in `core-01-s4`.** The concrete log object exposes `createRun` /
-   `openWriter` directly and delegates `replay` / `project` / `waitRunEvents` to the `s2` / `s5` /
-   `s6` modules. `s4` therefore depends on `s2`, `s3`, `s5`, `s6`; it proves the write-path behaviors
-   itself and proves delegation by a single equivalence AC (the read behaviors are proven in their
-   own stories, not re-proven here).
-3. **`edge-01` declares the shared command-envelope substrate + the preview/start/inspect surface;
-   the full `OperatorControlPort` is Epic 7's (forced by forward dependencies).** The design's full
-   11-method `OperatorControlPort` and several of its param/view types reference types owned by
-   **later** epics (approval params → `core-03`/Epic 4; recovery params → `core-06`/Epic 5; the
-   operator audit payload references `PolicyGrantScope` from `core-03`). Epic 3 runs **before** those
-   epics, so it cannot declare the full port type-only without depending on types that do not yet
-   exist. Therefore `edge-01-s1` declares only what is self-contained and is exactly what the single
-   owned signal ("CLI and MCP command parity **over the shared operator command envelope**") needs:
-   the `OperatorCommandEnvelope` substrate (`OperatorActionKind`, actor/target/error/event-ref types),
-   the `preview-run`/`start-run`/`inspect-run` param + view types, the `OperatorActionRecorded`
-   payload, and the `OperatorCommandResult` shape — each restricted to fields whose types resolve from
-   `core-01` or `edge-01` itself. **Single-producer is preserved by Epic 3 NOT declaring
-   `OperatorControlPort`** (the canonical full interface is produced by Epic 7, consuming these Epic-3
-   types); the `edge-01-s2` smoke calls a structural three-method fake port, not a named SDK
-   interface. Any field/type that resolves only to a later epic (e.g. `PolicyGrantScope`,
-   `attention`/`explanation` views) is recorded as **deferred to Epic 7**, not invented here. If the
-   `edge-01-s1` author finds the audit payload or result genuinely cannot be declared without a
-   later-epic type, that is a **design-sequencing gap to escalate**, not to invent around.
+### Decision: contracts-as-single-producer
+
+- Rationale: all `core-01` types and the `RunEventLog` / `RunWriter` interface declarations live in
+  `core-01-s1` (the design's `contracts.md` surface). Behavior stories (`s2`/`s3`/`s4`/`s5`/`s6`)
+  implement against it and never redeclare a contract type. This is the seam-density mitigation: the
+  shape everyone imports is declared once, in a stable type-only story.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/contracts.md` (the
+  single host-neutral contract surface and `RunEventLog` / `RunWriter` declarations).
+- Falsification: any `core-01` value type or `RunEventLog` / `RunWriter` interface declaration appears
+  in a behavior story, or a consumer imports a redeclared behavior-local shape instead of the
+  `core-01-s1` producer.
+- Escalation: if a behavior detail seems required to declare a shared shape, stop and raise a
+  story-DAG defect against this scope decision; do not split or duplicate the type surface.
+
+### Decision: run-event-log-assembled-in-s4
+
+- Rationale: the concrete log object exposes `createRun` / `openWriter` directly and delegates
+  `replay` / `project` / `waitRunEvents` to the `s2` / `s5` / `s6` modules. `s4` therefore depends on
+  `s2`, `s3`, `s5`, `s6`; it proves the write-path behaviors itself and proves delegation by a single
+  equivalence AC (the read behaviors are proven in their own stories, not re-proven here).
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/contracts.md`
+  (`RunEventLog` methods); `docs/design/30-domain-reference/core/run-lifecycle-and-state/event-log-writer-and-corruption.md`
+  (writer, `createRun`, append, durability, and corruption behavior).
+- Falsification: `core-01-s4` re-proves replay/projection/cursor semantics beyond delegation
+  equivalence, or `s2`/`s5`/`s6` assemble the concrete `RunEventLog` facade instead of owning their
+  behavior modules.
+- Escalation: if facade assembly needs a read behavior change, raise a dependency or contract defect
+  against the owning story; do not widen `core-01-s4` to re-own replay, projection, or cursor semantics.
+
+### Decision: edge-01-command-substrate-only
+
+- Rationale: the design's full 11-method `OperatorControlPort` and several of its param/view types
+  reference types owned by later epics (approval params -> `core-03`/Epic 4; recovery params ->
+  `core-06`/Epic 5; the operator audit payload references `PolicyGrantScope` from `core-03`). Epic 3
+  runs before those epics, so it cannot declare the full port type-only without depending on types that
+  do not yet exist. Therefore `edge-01-s1` declares only what is self-contained and is exactly what the
+  single owned signal ("CLI and MCP command parity over the shared operator command envelope") needs:
+  the `OperatorCommandEnvelope` substrate (`OperatorActionKind`, actor/target/error/event-ref types),
+  the `preview-run`/`start-run`/`inspect-run` param + view types, the `OperatorActionRecorded` payload,
+  and the `OperatorCommandResult` shape, each restricted to fields whose types resolve from `core-01`
+  or `edge-01` itself.
+- Design trace: `docs/design/30-domain-reference/edge/operator-surface/command-surface-and-envelopes.md`
+  (full `OperatorControlPort`, command-envelope substrate, preview/start/inspect actions, and
+  later-epic param/view surface).
+- Falsification: Epic 3 declares the named `OperatorControlPort`, forwards references to a later-epic
+  type, or adds any action/param/view beyond the self-contained preview/start/inspect subset.
+- Escalation: if the audit payload or result genuinely cannot be declared without a later-epic type,
+  stop and raise a design-sequencing gap; do not invent a placeholder type or widen Epic 3's scope.
 
 ## Story nodes
 

@@ -498,6 +498,33 @@ consuming `core-07-s1` `MetricValue`/topics and `core-01-s1` run-log value types
   `analysis-invariant-missing`, or `recordAnalysisOutcome` is reached — all owned by
   `core-07-s3-analysis-records-and-reports`. You analyze; you do not record.
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: analyzer-is-pure-over-values
+
+- Rationale: analysis consumes a deterministic snapshot and recorded values, so it can classify issues
+  without runtime behavior, provider calls, or append side effects.
+- Design trace: `docs/design/30-domain-reference/core/observability-and-analysis/analysis-contract.md`
+  (`AnalysisSnapshot`, `AnalysisRequest`, and analyzer outcome inputs).
+- Falsification: analyzer production code imports `RunWriter`, `ArtifactStore`, `EventLogStore`, or
+  provider/process/network behavior.
+- Escalation: if a rule needs live behavior, move that requirement to a later runtime story; do not
+  weaken analyzer purity.
+
+### Decision: analysis-outcome-single-producer-for-s3
+
+- Rationale: `core-07-s3` records an analyzer outcome; it must consume one upstream result shape rather
+  than re-declare analyzer success/failure variants.
+- Design trace: `docs/design/30-domain-reference/core/observability-and-analysis/analysis-contract.md`
+  (`AnalysisOutcome` and `recordAnalysisOutcome` input relationship).
+- Falsification: records story defines its own outcome union, or analyzer and records disagree on
+  recorded/failed variants.
+- Escalation: if record persistence needs more outcome data, extend this analyzer contract first; do not
+  add a records-local fork.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

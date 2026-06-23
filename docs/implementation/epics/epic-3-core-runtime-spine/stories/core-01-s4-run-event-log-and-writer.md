@@ -282,9 +282,13 @@ responsibility crosses this story's assigned signal.
 - Dependency boundaries: `sdk → pure libs only`; this module imports `core-01-s1` types and the
   s2/s3/s5/s6 modules plus the injected fnd-02 ports; it imports no provider package, no concrete
   storage backend, and no `testkit` in production source (test files only).
-- File-size budget: soft cap ~200 lines/file; split the writer (`append`/validation), the `createRun`
-  composer, the lost-ack recovery helper, and the `RunEventLog` facade into separate files to stay
-  under the cap.
+- File-size budget (lines per named file):
+  - `append-writer.ts` (append validation, fencing, sequence, and durability normalization) <= 220.
+  - `create-run.ts` (`createRun` composer and first-lease bootstrap) <= 160.
+  - `lost-ack-recovery.ts` (replay-driven committed/absent/conflict recovery) <= 180.
+  - `run-event-log.ts` (`RunEventLog` facade, `openWriter`, and read-method delegation) <= 180.
+  - `append-rejected.ts` (`RunAppendRejected` payload builder for in-writable semantic rejections)
+    <= 120.
 - Domain non-negotiables: one `append` == one atomic fnd-02 `AppendBatch` (never split); canonical run
   events are only `durable` or `barrier` (`buffered` rejected, `NonDurableAck` never returned); a stale
   writer can never append (epoch fencing is the safety mechanism); terminal closure is
@@ -364,6 +368,34 @@ pack.
 - STOP when: a shape the design does not name is required; replay internals, projection math, the
   lifecycle legal-transition table, session-linkage rules, or cursor poll/timeout semantics must be
   (re)defined here — those belong to s2/s5/s3/s6.
+
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: run-event-log-assembled-here
+
+- Rationale: `core-01-s4` owns the concrete writer and facade composition while `core-01-s1` owns the
+  interfaces; this keeps the runtime object behind the already-stable type surface.
+- Design trace: `story-dag.md` scope decision `run-event-log-assembled-in-s4`;
+  `docs/design/30-domain-reference/core/run-lifecycle-and-state/contracts.md` (`RunEventLog` /
+  `RunWriter` declarations).
+- Falsification: any other story constructs the concrete `RunEventLog` facade, or this story declares
+  new `RunEventLog` / `RunWriter` fields.
+- Escalation: if assembly requires changing the interface, return to `core-01-s1` and the DAG scope
+  decision before implementing.
+
+### Decision: read-methods-delegated-to-s5-s6-and-s2
+
+- Rationale: `s4` proves write-path behavior and delegation equivalence only; replay, projections, and
+  cursor wait retain their own acceptance criteria and failure semantics.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/event-log-writer-and-corruption.md`
+  (writer and `createRun` behavior); `story-dag.md` dependency table for `s4` delegation edges.
+- Falsification: `s4` re-implements replay, projection, or cursor polling internals instead of calling
+  the owning modules.
+- Escalation: if a delegated method fails to meet facade needs, raise a dependency or contract defect
+  against the owning behavior story; do not absorb it into `s4`.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

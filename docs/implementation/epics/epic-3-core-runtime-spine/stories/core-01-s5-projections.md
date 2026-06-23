@@ -355,6 +355,34 @@ from `core-01-s1-event-contracts` through the `sdk` public entrypoint, plus the 
 - STOP when: append or write path (s4) is needed, replay internals or corruption handling (s2) must
   be changed, lifecycle table itself must be re-declared (s3), or cursor/wait behavior (s6) is reached.
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: pure-functions-over-replay-values
+
+- Rationale: projections rebuild deterministic values from `RunReplay`, so they remain hermetic and do
+  not depend on the live event-log runtime object.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/projections-lifecycle-and-tests.md`
+  (`state`, `summary`, `metrics`, and `launch` projections over replayed events).
+- Falsification: projection code imports `EventLogStore`, `RunWriter`, `RunEventLog`, or any append /
+  lease surface.
+- Escalation: if a projection needs live I/O, raise a design defect; do not weaken the pure projection
+  boundary.
+
+### Decision: consume-s3-lifecycle-reducer
+
+- Rationale: projection folding needs the lifecycle result but not ownership of the legal transition
+  catalog, so it consumes the `s3` reducer.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/projections-lifecycle-and-tests.md`
+  (legal transition table and lifecycle projection); `story-dag.md` dependency table edge from `s3` to
+  `s5`.
+- Falsification: this story re-declares legal lifecycle transitions or accepts state pairs not accepted
+  by `core-01-s3`.
+- Escalation: if projection folding needs a different transition interpretation, raise it against
+  `core-01-s3`; do not fork the table.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

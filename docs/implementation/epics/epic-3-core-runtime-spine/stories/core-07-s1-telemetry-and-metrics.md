@@ -344,6 +344,32 @@ The `packages/sdk/src/core/observability/telemetry/` module providing `Telemetry
   `core-07-s3-analysis-records-and-reports`); or `EvidenceEventRef` declaration needs to be
   authored (declared by `core-01-s1-event-contracts`).
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: event-type-names-are-string-literals
+
+- Rationale: telemetry is a taxonomy over committed event types, not an import graph across sibling
+  domains, so it should not couple to their implementation modules.
+- Design trace: `docs/design/30-domain-reference/core/observability-and-analysis/analysis-contract.md`
+  (telemetry topic taxonomy over event type names).
+- Falsification: telemetry production source imports sibling core domain code to name event types.
+- Escalation: if a topic needs a new sibling event name, add the literal catalog entry and cite the
+  owning contract; do not import the sibling module.
+
+### Decision: non-empty-missing-enforcement-deferred-to-s2
+
+- Rationale: `MetricValue<T>` declares the shape, while analyzer validation decides when partial metrics
+  have sufficient missing-source evidence.
+- Design trace: `docs/design/30-domain-reference/core/observability-and-analysis/analysis-contract.md`
+  (`MetricValue<T>` shape and examples of missing denominators/source classes).
+- Falsification: this story implements analyzer validation rules or classifies metric health from run
+  evidence.
+- Escalation: if shape-level constraints are insufficient, raise the validation requirement against
+  `core-07-s2`; do not make the telemetry catalog perform analysis.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

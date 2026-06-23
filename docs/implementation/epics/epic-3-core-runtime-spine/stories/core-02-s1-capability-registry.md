@@ -366,6 +366,36 @@ the `sdk` public entrypoint, plus the evidence pack.
   `core-02-s2`) or the durable gate record / `gate-record-unwritable` path (that is `core-02-s3`). This
   story declares the registry; it does not evaluate gates or write records.
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: registry-and-mode-tokens-owned-here
+
+- Rationale: `CapabilityId`, `CapabilityMode`, and posture/guarantee requirements are the stable
+  catalog that evaluator and record stories consume.
+- Design trace: `docs/design/30-domain-reference/core/capability-and-safety/capability-registry.md`
+  (capability catalog); `docs/design/30-domain-reference/core/capability-and-safety/gate-evaluation-and-records.md`
+  (`CapabilityMode`).
+- Falsification: evaluator or record modules declare their own capability ids, modes, or posture
+  requirements.
+- Escalation: if a capability token is missing, update this registry contract first; do not add
+  evaluator-local catalog entries.
+
+### Decision: gate-evaluation-delegated-to-s2
+
+- Rationale: registry data is declarative; replay/projection/attestation predicates belong to the
+  evaluator so the catalog remains constructable without runtime evidence.
+- Design trace: `docs/design/30-domain-reference/core/capability-and-safety/capability-registry.md`
+  (registry feeds `evaluateCapabilityGate`);
+  `docs/design/30-domain-reference/core/capability-and-safety/gate-evaluation-and-records.md`
+  (`evaluateCapabilityGate`).
+- Falsification: this story imports run replay/projection types for evaluation behavior, or implements
+  denial ordering/predicate logic.
+- Escalation: if a registry row needs executable semantics, move that requirement to `core-02-s2` and
+  keep this catalog declarative.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---
