@@ -4,6 +4,29 @@ export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export { replay } from './core/run-lifecycle/replay/index.js';
+export type {
+  DeferredExternalTriggerActorRef,
+  InspectRunParams,
+  OperatorActionKind,
+  OperatorActionRecordedPayload,
+  OperatorActorRef,
+  OperatorCommandEnvelope,
+  OperatorCommandError,
+  OperatorCommandResult,
+  OperatorCommandStatus,
+  OperatorCommandTarget,
+  OperatorEnvelopeError,
+  OperatorEnvelopeErrorCode,
+  OperatorEventRef,
+  OperatorSurface,
+  OsUserOperatorActorRef,
+  PreviewRunParams,
+  PreviewRunView,
+  RunInspectionView,
+  RunStartedView,
+  StartRunParams,
+  UnavailableOsUserOperatorActorRef,
+} from './edge/operator-command/index.js';
 export * from './foundation/configuration-policy/index.js';
 export * from './foundation/credentials-secrets/index.js';
 export * from './foundation/storage/artifacts/index.js';

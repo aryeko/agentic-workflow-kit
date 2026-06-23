@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "rootDir": "../../.."
+  },
+  "include": ["./*.unit.test.ts", "./fixtures.ts", "./public-import-support.ts"],
+  "exclude": ["./operator-command-public-import.unit.test.ts"]
+}
