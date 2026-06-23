@@ -46,7 +46,7 @@ export interface MockWorkSourceFailures {
   readonly statusWriteUnavailableTaskIds?: readonly string[];
 }
 
-export interface CreateMockWorkSourceProviderOptions {
+export interface MockWorkSourceOptions {
   readonly workSourceId?: string;
   readonly driverVersion?: string;
   readonly now?: string | (() => string);
@@ -54,6 +54,8 @@ export interface CreateMockWorkSourceProviderOptions {
   readonly failures?: MockWorkSourceFailures;
   readonly tracks: readonly MockWorkSourceTrackFixture[];
 }
+
+export type CreateMockWorkSourceProviderOptions = MockWorkSourceOptions;
 
 interface InternalTask {
   readonly key: TaskKey;
@@ -221,7 +223,7 @@ const normalizeTask = (workSourceId: string, trackId: string, task: MockWorkSour
   ...(task.claim === undefined ? {} : { claim: clone(task.claim) }),
 });
 
-const normalizeTracks = (options: CreateMockWorkSourceProviderOptions): MockWorkSourceState => ({
+const normalizeTracks = (options: MockWorkSourceOptions): MockWorkSourceState => ({
   tracks: options.tracks.map((track) => {
     const workSourceId = track.workSourceId ?? options.workSourceId ?? defaultWorkSourceId;
     return {
@@ -249,7 +251,7 @@ const replaceTask = (
   ),
 });
 
-export const createMockWorkSourceProvider = (options: CreateMockWorkSourceProviderOptions): WorkSourceProvider => {
+export const createMockWorkSourceProvider = (options: MockWorkSourceOptions): WorkSourceProvider => {
   let state = normalizeTracks(options);
   const driverVersion = options.driverVersion ?? defaultDriverVersion;
   const now = (): string =>

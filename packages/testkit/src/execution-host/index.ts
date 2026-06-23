@@ -8,4 +8,5 @@ export type {
   MockExecutionHostCapabilities,
   MockExecutionHostProvider,
   MockExecutionHostProviderOptions,
+  MockExecutionHostScenario,
 } from './mock-execution-host-provider.js';

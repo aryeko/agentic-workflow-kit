@@ -239,6 +239,86 @@ describe('execution host mock testkit provider', () => {
     );
   });
 
+  it('provides named scenario selectors for positive, degraded, incomplete-capture, and termination paths', async () => {
+    const degradedProvider = createMockExecutionHostProvider({ scenario: 'degraded' });
+    const incompleteCaptureProvider = createMockExecutionHostProvider({ scenario: 'incomplete-capture' });
+    const terminationProvider = createMockExecutionHostProvider({ scenario: 'termination' });
+
+    for (const provider of [degradedProvider, incompleteCaptureProvider, terminationProvider]) {
+      provider.probeCapabilities(hostProbeScopeFixture({ capabilities: ['egress-confinement'] }));
+    }
+
+    const degradedWorkspace = degradedProvider.attachWorkspace(workspaceAttachmentFixture());
+    const incompleteWorkspace = incompleteCaptureProvider.attachWorkspace(workspaceAttachmentFixture());
+    const terminationWorkspace = terminationProvider.attachWorkspace(workspaceAttachmentFixture());
+
+    if (isHostFailure(degradedWorkspace) || isHostFailure(incompleteWorkspace) || isHostFailure(terminationWorkspace)) {
+      throw new Error('scenario setup should attach workspaces');
+    }
+
+    const degradedWorker = degradedProvider.spawnWorker(spawnWorkerRequestFixture({ workspace: degradedWorkspace }));
+    const terminationWorker = terminationProvider.spawnWorker(
+      spawnWorkerRequestFixture({ workspace: terminationWorkspace }),
+    );
+
+    if (isHostFailure(degradedWorker) || isHostFailure(terminationWorker)) {
+      throw new Error('scenario setup should spawn workers');
+    }
+
+    const degradedObservations = await collectObservations(degradedProvider.observeWorker(degradedWorker));
+    const incompleteCommand = incompleteCaptureProvider.runCommand(
+      hostCommandRequestFixture({ workspace: incompleteWorkspace }),
+    );
+    const termination = terminationProvider.terminateWorker(terminationWorker, terminationPolicyFixture());
+
+    expect(degradedObservations).toEqual([
+      expect.objectContaining({
+        type: 'host-failure',
+        failure: expect.objectContaining({ reason: 'host-observation-incomplete' }),
+      }),
+    ]);
+    expect(incompleteCommand).toEqual(expect.objectContaining({ reason: 'runner-command-capture-incomplete' }));
+    expect(termination.proof).toEqual(expect.objectContaining({ reaped: false, containmentEmpty: false }));
+  });
+
+  it('returns defensive snapshots from state getter helpers', () => {
+    const provider = createMockExecutionHostProvider();
+    provider.probeCapabilities(hostProbeScopeFixture({ capabilities: ['egress-confinement'] }));
+    const workspace = provider.attachWorkspace(workspaceAttachmentFixture());
+
+    expect(isHostFailure(workspace)).toBe(false);
+    if (isHostFailure(workspace)) {
+      throw new Error(workspace.message);
+    }
+
+    const worker = provider.spawnWorker(spawnWorkerRequestFixture({ workspace }));
+    if (isHostFailure(worker)) {
+      throw new Error(worker.message);
+    }
+
+    provider.runCommand(hostCommandRequestFixture({ workspace }));
+    provider.terminateWorker(worker, terminationPolicyFixture());
+    provider.releaseWorkspace(workspace);
+
+    const attached = provider.getAttachedWorkspaces();
+    const captured = provider.getCapturedCommands();
+    const released = provider.getReleasedWorkspaces();
+    const spawned = provider.getSpawnedWorkers();
+    const terminations = provider.getTerminations();
+
+    (attached as HostObservation[]).length = 0;
+    (captured[0] as { argv: string[] }).argv.push('mutated');
+    (released[0] as { credentialMaterialDestroyed: boolean }).credentialMaterialDestroyed = false;
+    (spawned[0] as { handleId: string }).handleId = 'mutated';
+    (terminations[0].proof as { containmentEmpty: boolean }).containmentEmpty = false;
+
+    expect(provider.getAttachedWorkspaces()).toHaveLength(1);
+    expect(provider.getCapturedCommands()[0].argv).toEqual(['pnpm', 'check']);
+    expect(provider.getReleasedWorkspaces()[0].credentialMaterialDestroyed).toBe(true);
+    expect(provider.getSpawnedWorkers()[0].handleId).toBe(worker.handleId);
+    expect(provider.getTerminations()[0].proof.containmentEmpty).toBe(true);
+  });
+
   it('fails closed when egress attestation evidence or injection binding is missing', () => {
     const provider = createMockExecutionHostProvider();
     const unscopedEgress = provider.probeCapabilities(

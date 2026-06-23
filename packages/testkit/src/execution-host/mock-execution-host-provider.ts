@@ -42,6 +42,8 @@ export type MockExecutionHostCapabilities = Partial<
   Record<HostCapability, CapabilityAttestationResult | CapabilityAttestation<HostCapability>>
 >;
 
+export type MockExecutionHostScenario = 'positive' | 'degraded' | 'incomplete-capture' | 'termination';
+
 export type MockCapturedCommand = {
   readonly operationId: string;
   readonly kind: HostCommandRequest['kind'];
@@ -67,6 +69,7 @@ export type MockExecutionHostProviderOptions = {
   readonly driverId?: string;
   readonly observations?: readonly HostObservation[];
   readonly platform?: string;
+  readonly scenario?: MockExecutionHostScenario;
   readonly spawnFailure?: HostFailure;
   readonly terminationProof?: TerminationProof;
   readonly version?: string;
@@ -89,6 +92,48 @@ const createHostFailure = (
   at: defaultAt,
   ...overrides,
 });
+
+const clone = <T>(value: T): T => structuredClone(value) as T;
+
+const scenarioOptions = (
+  scenario: MockExecutionHostScenario | undefined,
+): Partial<MockExecutionHostProviderOptions> => {
+  if (scenario === undefined || scenario === 'positive') {
+    return {};
+  }
+
+  if (scenario === 'degraded') {
+    return {
+      observations: [
+        {
+          type: 'host-failure',
+          failure: createHostFailure('host-observation-incomplete'),
+          at: defaultAt,
+        },
+      ],
+    };
+  }
+
+  if (scenario === 'incomplete-capture') {
+    return {
+      commandResults: {
+        'op-verify-01': createHostFailure('runner-command-capture-incomplete'),
+      },
+    };
+  }
+
+  return {
+    terminationProof: {
+      signalSent: true,
+      graceObserved: true,
+      forceKillSent: true,
+      reaped: false,
+      containmentEmpty: false,
+      evidenceRef: 'artifact://execution-host/termination-unproven',
+      checkedAt: defaultAt,
+    },
+  };
+};
 
 const canonicalJson = (value: JsonValue): string => {
   if (value === null || typeof value !== 'object') {
@@ -322,8 +367,17 @@ const validateInjection = (
 };
 
 export const createMockExecutionHostProvider = (
-  options: MockExecutionHostProviderOptions = {},
+  inputOptions: MockExecutionHostProviderOptions = {},
 ): MockExecutionHostProvider => {
+  const scenarioDefaults = scenarioOptions(inputOptions.scenario);
+  const options: MockExecutionHostProviderOptions = {
+    ...scenarioDefaults,
+    ...inputOptions,
+    commandResults: {
+      ...scenarioDefaults.commandResults,
+      ...inputOptions.commandResults,
+    },
+  };
   const at = options.at ?? defaultAt;
   const driverId = options.driverId ?? 'testkit-execution-host';
   const driverVersion = options.version ?? '0.0.0';
@@ -540,11 +594,11 @@ export const createMockExecutionHostProvider = (
 
       return result;
     },
-    getAttachedWorkspaces: () => attachedWorkspaces,
-    getCapturedCommands: () => capturedCommands,
-    getReleasedWorkspaces: () => releasedWorkspaces,
-    getSpawnedWorkers: () => spawnedWorkers,
-    getTerminations: () => terminations,
+    getAttachedWorkspaces: () => attachedWorkspaces.map((workspace) => clone(workspace)),
+    getCapturedCommands: () => capturedCommands.map((command) => clone(command)),
+    getReleasedWorkspaces: () => releasedWorkspaces.map((release) => clone(release)),
+    getSpawnedWorkers: () => spawnedWorkers.map((worker) => clone(worker)),
+    getTerminations: () => terminations.map((termination) => clone(termination)),
   };
 
   return provider;

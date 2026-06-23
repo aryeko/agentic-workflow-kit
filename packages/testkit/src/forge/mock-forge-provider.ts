@@ -22,7 +22,7 @@ import { createForgeTestkitFixtures } from '../fixtures/forge/index.js';
 
 type MockForgeAction = 'pushBranch' | 'upsertPullRequest' | 'publishComment' | 'updateBranch' | 'enqueue' | 'merge';
 
-export interface MockForgeProviderScript {
+export interface ForgeScenario {
   readonly scope?: ForgeScope;
   readonly branch?: ForgeBranchRef;
   readonly pullRequest?: PullRequestRef;
@@ -35,6 +35,8 @@ export interface MockForgeProviderScript {
   readonly credentialAuditEventIds?: readonly string[];
   readonly at?: string;
 }
+
+export type MockForgeProviderScript = ForgeScenario;
 
 export interface MockForgeCommentState {
   readonly commentId?: string;
@@ -97,19 +99,25 @@ const currentFacts = (facts: ForgeObservedFacts, pullRequest: MockForgePullReque
   ...(facts.protection === undefined ? {} : { protection: facts.protection }),
   ...(facts.mergeQueue === undefined
     ? {}
-    : {
-        mergeQueue: {
-          ...facts.mergeQueue,
-          mergeQueueEntry: pullRequest.isInMergeQueue
-            ? {
-                position: 1,
-                state: 'queued',
-                baseCommitOid: facts.prState?.baseRefOid ?? defaultFacts.prState.baseRefOid,
-                headCommitOid: pullRequest.headSha,
-              }
-            : facts.mergeQueue.mergeQueueEntry,
-        },
-      }),
+    : (() => {
+        const { mergeQueueEntry: _staleMergeQueueEntry, ...mergeQueue } = facts.mergeQueue;
+
+        return {
+          mergeQueue: {
+            ...mergeQueue,
+            ...(pullRequest.isInMergeQueue
+              ? {
+                  mergeQueueEntry: {
+                    position: 1,
+                    state: 'queued',
+                    baseCommitOid: facts.prState?.baseRefOid ?? defaultFacts.prState.baseRefOid,
+                    headCommitOid: pullRequest.headSha,
+                  },
+                }
+              : {}),
+          },
+        };
+      })()),
 });
 
 const missingEvidenceToken = (facts: ForgeObservedFacts): ForgeFailureToken | undefined => {
@@ -145,7 +153,7 @@ const invalidCredentialToken = (
 const accepted = (
   observedHeadSha: string,
   evidenceRef: string,
-  script: MockForgeProviderScript,
+  script: ForgeScenario,
 ): Extract<ForgeActionResult, { kind: 'accepted' }> => ({
   kind: 'accepted',
   observedHeadSha,
@@ -159,7 +167,7 @@ const refused = (
   token: ForgeFailureToken,
   observedHeadSha: string,
   evidenceRef: string,
-  script: MockForgeProviderScript,
+  script: ForgeScenario,
 ): Extract<ForgeActionResult, { kind: 'refused' }> => ({
   kind: 'refused',
   token,
@@ -174,7 +182,7 @@ const degraded = (
   token: ForgeFailureToken,
   observedHeadSha: string | undefined,
   evidenceRef: string,
-  script: MockForgeProviderScript,
+  script: ForgeScenario,
   observedFacts?: ForgeObservedFacts,
 ): ForgeDegraded => ({
   kind: 'degraded',
@@ -190,7 +198,7 @@ const degraded = (
 const commentBodyRef = (commentId: string | undefined): string =>
   `artifact://testkit/forge/comment/${commentId ?? 'new'}`;
 
-export const createMockForgeProvider = (script: MockForgeProviderScript = {}): MockForgeProvider => {
+export const createMockForgeProvider = (script: ForgeScenario = {}): MockForgeProvider => {
   const initialBranch = script.branch ?? fixtureDefaults.branch;
   const initialPullRequest = script.pullRequest ?? fixtureDefaults.pullRequest;
   const scope = script.scope ?? fixtureDefaults.scope;

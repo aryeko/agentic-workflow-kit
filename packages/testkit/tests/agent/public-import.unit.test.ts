@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { AgentProvider } from 'sdk';
 
-import { agentStartRequestFixture, createMockAgentProvider, isAgentFailure } from '../../src/index.js';
+import { agentStartRequestFixture, createMockAgentProvider, isAgentFailure } from 'testkit';
 
 describe('testkit Agent public import surface', () => {
   it('exports an AgentProvider-compatible mock and fixtures', () => {

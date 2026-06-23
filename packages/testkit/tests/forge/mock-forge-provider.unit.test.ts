@@ -116,6 +116,19 @@ describe('testkit mock ForgeProvider', () => {
     ).toBe(false);
   });
 
+  it('omits stale merge queue entries when the PR is not queued', () => {
+    const fixtures = createForgeTestkitFixtures();
+    const provider = createMockForgeProvider();
+    const snapshot = provider.collectEvidence(fixtures.evidenceRequest);
+
+    expect(snapshot).toMatchObject({
+      prState: { isInMergeQueue: false },
+      mergeQueue: { mergeQueuePresent: true },
+    });
+    expect('kind' in snapshot).toBe(false);
+    expect('kind' in snapshot ? undefined : snapshot.mergeQueue.mergeQueueEntry).toBeUndefined();
+  });
+
   it('runs push, PR, comment, update, enqueue, and merge as deterministic in-memory state changes', () => {
     const fixtures = createForgeTestkitFixtures();
     const updatedHeadSha = '3333333333333333333333333333333333333333';

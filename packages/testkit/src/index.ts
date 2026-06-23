@@ -45,19 +45,20 @@ export {
   type MockExecutionHostCapabilities,
   type MockExecutionHostProvider,
   type MockExecutionHostProviderOptions,
+  type MockExecutionHostScenario,
 } from './execution-host/index.js';
 export {
   createMockForgeProvider,
+  type ForgeScenario,
   type MockForgeCommentState,
   type MockForgeProvider,
-  type MockForgeProviderScript,
   type MockForgeProviderState,
   type MockForgePullRequestState,
 } from './forge/index.js';
 export { createMockWorkSourceProvider } from './work-source/index.js';
 export type {
-  CreateMockWorkSourceProviderOptions,
   MockWorkSourceFailures,
+  MockWorkSourceOptions,
   MockWorkSourceTaskFixture,
   MockWorkSourceTrackFixture,
 } from './work-source/index.js';
