@@ -1,4 +1,16 @@
 export * from './core/capability/registry/index.js';
+export type {
+  AnalysisFailure,
+  AnalysisInputHealth,
+  AnalysisIssue,
+  AnalysisOutcome,
+  AnalysisRequest,
+  AnalysisResult,
+  AnalysisSnapshot,
+  AnalysisTrigger,
+  AnalysisTriggerKind,
+} from './core/observability/analyzer/index.js';
+export { analyze, classifyTrigger } from './core/observability/analyzer/index.js';
 export * from './core/observability/telemetry/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
