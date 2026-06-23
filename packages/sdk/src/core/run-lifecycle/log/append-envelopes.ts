@@ -20,7 +20,6 @@ type WriterBinding = {
 type IntentMetadata = {
   sequence?: number;
   writerEpoch?: number;
-  payloadDigest?: string;
 };
 
 export type BuiltAppend = {
@@ -94,7 +93,7 @@ const makeEnvelope = (
     durability: effectiveDurability,
     occurredAt: intent.occurredAt,
     recordedAt: binding.deps.now(),
-    payloadDigest: metadata.payloadDigest ?? binding.deps.digestPayload(intent.payload),
+    payloadDigest: binding.deps.digestPayload(intent.payload),
     payload: intent.payload,
     causationId: intent.causationId,
     correlationId: intent.correlationId,

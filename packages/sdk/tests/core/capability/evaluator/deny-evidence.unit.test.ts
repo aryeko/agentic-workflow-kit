@@ -4,6 +4,7 @@ import { evaluateCapabilityGate } from '../../../../src/core/capability/evaluato
 
 import { evidenceAbsentFixture } from './fixtures/evidence-absent.fixture.js';
 import { evidenceAmbiguousFixture } from './fixtures/evidence-ambiguous.fixture.js';
+import { createAllowAutoMergeScenario } from './shared.js';
 
 describe('core-02-s2 deny required evidence failures', () => {
   it('denies missing recorded evidence refs', () => {
@@ -19,6 +20,28 @@ describe('core-02-s2 deny required evidence failures', () => {
     expect(payload.failureReason).toBe('required-evidence-absent');
     expect(evidenceGuarantee).toMatchObject({
       passed: false,
+      failureReason: 'required-evidence-absent',
+    });
+  });
+
+  it('denies empty required evidence refs', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      {
+        ...scenario.request,
+        evidenceRefs: [],
+      },
+      scenario.replay,
+      scenario.projections,
+    );
+    const evidenceGuarantee = payload.evaluatedGuarantees.find(
+      (guarantee) => guarantee.guaranteeId === 'recorded-evidence-unambiguous-not-self-report',
+    );
+
+    expect(payload.failureReason).toBe('required-evidence-absent');
+    expect(evidenceGuarantee).toMatchObject({
+      passed: false,
+      evidenceRefs: [],
       failureReason: 'required-evidence-absent',
     });
   });

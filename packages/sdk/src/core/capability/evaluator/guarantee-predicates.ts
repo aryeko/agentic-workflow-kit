@@ -43,7 +43,7 @@ export const evaluateReplayHealthGuarantee = (
     replay.health === 'interior-corrupt' ||
     replay.health === 'event-log-unavailable' ||
     projections === undefined ||
-    projections.launch.linkage === 'ambiguous';
+    projections.launch.linkage !== 'known';
 
   return {
     evaluation: {
@@ -61,7 +61,10 @@ export const evaluateEvidenceGuarantee = (request: CapabilityGateRequest, replay
   const recordedEvidence = collectRecordedEvidence(replay.events);
   const evidenceRefs = sortEvidenceRefs(request.evidenceRefs);
 
-  if (evidenceRefs.some((evidenceRef) => recordedEvidence.get(evidenceRef) === undefined)) {
+  if (
+    evidenceRefs.length === 0 ||
+    evidenceRefs.some((evidenceRef) => recordedEvidence.get(evidenceRef) === undefined)
+  ) {
     return {
       evaluation: {
         guaranteeId: guaranteeRequirementCatalog[3],

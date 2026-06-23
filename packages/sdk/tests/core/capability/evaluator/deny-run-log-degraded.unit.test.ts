@@ -4,6 +4,7 @@ import { evaluateCapabilityGate } from '../../../../src/core/capability/evaluato
 
 import { ambiguousLinkageFixture } from './fixtures/ambiguous-linkage.fixture.js';
 import { degradedReplayFixture } from './fixtures/degraded-replay.fixture.js';
+import { createAllowAutoMergeScenario, createProjections } from './shared.js';
 
 describe('core-02-s2 deny run-log-degraded', () => {
   it('denies degraded replays before attestation evaluation', () => {
@@ -22,6 +23,24 @@ describe('core-02-s2 deny run-log-degraded', () => {
       ambiguousLinkageFixture.request,
       ambiguousLinkageFixture.replay,
       ambiguousLinkageFixture.projections,
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('run-log-degraded');
+  });
+
+  it('denies unknown linkage as degraded run-log input', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      scenario.request,
+      scenario.replay,
+      createProjections({
+        ...scenario.projections,
+        launch: {
+          ...scenario.projections.launch,
+          linkage: 'unknown',
+        },
+      }),
     );
 
     expect(payload.decision).toBe('deny');

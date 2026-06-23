@@ -170,6 +170,25 @@ describe('RunEventLog and RunWriter edge failures', () => {
     }
   });
 
+  it('computes payload digests instead of trusting caller-supplied digest metadata', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (writer.ok) {
+      const payload = { ok: true };
+      const result = writer.value.append([
+        appendIntent('SiblingFact', payload, {
+          payloadDigest: 'sha256:caller-supplied',
+        }),
+      ]);
+
+      expect(result.ok).toBe(true);
+      expect(harness.appendCalls[0]?.envelopes[0]?.payloadDigest).toBe(`digest:${JSON.stringify(payload)}`);
+    }
+  });
+
   it('renews only with a currently fenced lease', () => {
     const harness = createHarness();
     harness.seedCreatedRun();
