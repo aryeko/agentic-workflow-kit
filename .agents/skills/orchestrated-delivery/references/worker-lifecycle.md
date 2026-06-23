@@ -12,7 +12,10 @@ report evidence; the coordinator owns all mutations and lifecycle decisions.
   both its story commit and tracker evidence commit exist, and its implementer/reviewer pair is
   closed or marked terminal.
 - Independent package stories may run concurrently from the first wave when pathsets do not conflict
-  and active sessions remain below `worker-cap`.
+  and the launch keeps both total active worker sessions at or below `worker-cap` and active
+  implementers at or below `implementer-cap`.
+- Keep `review-reserve` available for reviewers, rereviews, and fix-loop progress. Do not spend
+  reviewer reserve on speculative implementer launches, even when more dependency-ready stories exist.
 - Send each worker the packaged prompt plus a narrow runtime envelope. Do not alter the packaged
   prompt body.
 
