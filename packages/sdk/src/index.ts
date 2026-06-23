@@ -1,3 +1,4 @@
+export * from './core/capability/registry/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
 export * from './foundation/configuration-policy/index.js';
