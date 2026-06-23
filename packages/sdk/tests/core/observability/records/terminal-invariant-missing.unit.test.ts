@@ -23,6 +23,30 @@ describe('core-07-s3 terminal analysis invariant', () => {
     });
   });
 
+  it('treats blocked lifecycle transitions as terminal without the optional terminal flag', () => {
+    const result = checkTerminalAnalysisInvariant(
+      createReplay([
+        createEvent({
+          eventId: 'blocked-transition',
+          sequence: 10,
+          type: 'RunLifecycleTransitioned',
+          payload: {
+            from: 'running',
+            to: 'blocked',
+            reason: 'blocked',
+            authority: 'system',
+            sourceEventIds: ['source-event'],
+          },
+        }),
+      ]),
+    );
+
+    expect(result).toMatchObject({
+      status: 'unmet',
+      reason: 'analysis-invariant-missing',
+    });
+  });
+
   it('reports satisfied only when an analysis fact exists at or after the terminal sequence', () => {
     const input = createRecordInput();
     const payload = {

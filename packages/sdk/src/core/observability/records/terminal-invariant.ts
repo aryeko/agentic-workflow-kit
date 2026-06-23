@@ -2,7 +2,7 @@ import type { EvidenceEventRef, RunEventEnvelope, RunReplay } from '../../run-li
 
 import type { TerminalAnalysisInvariantResult } from './types.js';
 
-const TERMINAL_STATES = new Set(['completed', 'failed', 'canceled']);
+const TERMINAL_STATES = new Set(['completed', 'blocked', 'failed', 'canceled']);
 const USABLE_REPLAY_HEALTH = new Set(['ok', 'tail-repaired']);
 const ANALYSIS_EVENT_TYPES = new Set(['AnalysisRecorded', 'AnalysisFailed']);
 
