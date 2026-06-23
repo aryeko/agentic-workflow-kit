@@ -30,6 +30,68 @@ Source files read:
 
 Ready. Gate 1 passed for `epic-4-human-control-and-liveness-loop`: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` frontmatter is `status: "story-dag: frozen"`, every selected source contract frontmatter is `status: "story: ready"`, and all eight selected stories have stable ids, ordered AC ids, dependency data, owned pathsets, and DAG suggested-tier floors. The package is projectable without adding scope, changing ACs, reordering dependencies, changing owned pathsets, lowering suggested-tier floors, or binding provider-specific runtime model ids.
 
+## Implementation-Readiness Evidence
+
+`$plan-delivery` performed deterministic package validation and independent read-only review for this
+execution package and marks it `ready_for_implementation`.
+
+Sources reviewed:
+- `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md`
+- `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/README.md`
+- the 8 selected ready story contracts listed in `Source files read`
+- `.agents/skills/plan-delivery/references/source-readiness.md`
+- `.agents/skills/plan-delivery/references/package-layout.md`
+- `.agents/skills/plan-delivery/references/model-routing.md`
+- `.agents/skills/plan-delivery/references/plan-artifact.md`
+- `.agents/skills/plan-delivery/references/tracker-artifact.md`
+- `.agents/skills/plan-delivery/references/implementer-prompt.md`
+- `.agents/skills/plan-delivery/references/reviewer-prompt.md`
+- `.agents/skills/plan-delivery/references/closeout-validation.md`
+
+Selected stories covered:
+- `core-03-s1-approval-contracts`
+- `core-04-s1-supervision-contracts`
+- `core-03-s2-risk-and-decision`
+- `core-04-s2-liveness-fold`
+- `core-03-s3-pending-park-resume`
+- `core-04-s3-timers-and-wait`
+- `core-03-s4-grant-mapping-and-outcome`
+- `core-04-s4-termination-handoff`
+
+Artifact checks performed:
+- `plan.md`: confirmed the source baseline, source file inventory, readiness verdict, projection
+  summary, wave order, prompt inventory, verification policy, downstream execution metadata, resume
+  semantics, and stop point are present and project only from the frozen DAG plus selected ready story
+  contracts.
+- `tracker.md`: confirmed every selected story has exactly one row with story id, source AC ids, wave,
+  dependencies, pending status, implementer routing, reviewer routing, prompt paths, reviewer verdict,
+  gate evidence, commit hash, blockers, and notes columns; initial execution-only evidence cells remain
+  blank by design.
+- implementer prompts: confirmed all 8 selected stories have exactly one
+  `execution/prompts/<story-id>/implementer.md`, each carrying assigned routing, exact task, why it
+  matters, required reading, source ACs, allowed writes, dependency inputs, non-goals, STOP
+  conditions, implementation constraints, verification, delivery report, and mutation limits.
+- reviewer prompts: confirmed all 8 selected stories have exactly one
+  `execution/prompts/<story-id>/reviewer.md`, each carrying assigned routing, original scope, runtime
+  slots, review checklist, verdict format, and mutation limits.
+- package layout: confirmed package artifacts live under
+  `docs/implementation/epics/epic-4-human-control-and-liveness-loop/execution/` and no extra prompt
+  directory exists outside the selected source set.
+- static checks: confirmed no scaffold marker text, provider-specific runtime model ids, runtime model
+  aliases or versions, fake commit hashes, invalid tracker statuses, missing selected story prompt
+  pairs, malformed design references, or prompt/source AC mismatches remain.
+
+Independent reviewer verdict:
+- Reviewer: Heisenberg (`019ef60d-86cc-79a2-9524-8d487721b1bb`), read-only.
+- Scope: quality, correctness, compliance, and readiness for implementation against the plan-delivery
+  references, closeout checklist, frozen DAG, selected ready story contracts, and generated execution
+  package.
+- Final reviewer result: `ready_for_implementation`; no blocking findings remained after the
+  package-boundary repair and deterministic package checks.
+
+Final verdict:
+- `ready_for_implementation`
+
 ## Projection Summary
 
 | story id | source AC ids | job | wave | dependencies | dependents | owned pathset | suggested-tier floor | routing |
