@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { StorageError } from '../../../../src/index.js';
+import type { LeaseCapability, StorageError } from '../../../../src/index.js';
 
 import { appendIntent, createHarness, expectFailureCode, runId } from './test-support.js';
 
@@ -116,6 +116,17 @@ describe('RunEventLog and RunWriter edge failures', () => {
     }
   });
 
+  it('rejects writers opened with a lease scoped to another run', () => {
+    const harness = createHarness();
+    const wrongRunLease = harness.leaseStore.acquire(
+      `run-writer:${runId}:other`,
+      'holder-other',
+      60_000,
+    ) as LeaseCapability;
+
+    expectFailureCode(harness.log.openWriter(runId, wrongRunLease), 'stale-writer-fenced');
+  });
+
   it('maps openForAppend and malformed replay failures to sequence-conflict', () => {
     const openFailure = createHarness();
     openFailure.seedCreatedRun();
@@ -204,6 +215,13 @@ describe('RunEventLog and RunWriter edge failures', () => {
     if (writer.ok) {
       expect(writer.value.renew(renewed).ok).toBe(true);
       expectFailureCode(writer.value.renew(lease), 'stale-writer-fenced');
+
+      const wrongRunLease = harness.leaseStore.acquire(
+        `run-writer:${runId}:other`,
+        'holder-other',
+        60_000,
+      ) as LeaseCapability;
+      expectFailureCode(writer.value.renew(wrongRunLease), 'stale-writer-fenced');
     }
   });
 });

@@ -17,6 +17,7 @@ const describeFailureReason = (reason: CapabilityGateFailureReason): CapabilityG
     case 'attestation-out-of-scope':
     case 'attestation-contradictory':
     case 'attestation-non-replayable':
+    case 'attestation-insufficient-containment':
     case 'self-report-only':
     case 'gate-record-unwritable':
       return reason;
@@ -26,7 +27,7 @@ const describeFailureReason = (reason: CapabilityGateFailureReason): CapabilityG
 };
 
 describe('core-02-s2 failure reason union', () => {
-  it('covers the closed 14-member failure union', () => {
+  it('covers the closed 15-member failure union', () => {
     const reasons: readonly CapabilityGateFailureReason[] = [
       'mode-disallows-capability',
       'policy-disallows-capability',
@@ -40,6 +41,7 @@ describe('core-02-s2 failure reason union', () => {
       'attestation-out-of-scope',
       'attestation-contradictory',
       'attestation-non-replayable',
+      'attestation-insufficient-containment',
       'self-report-only',
       'gate-record-unwritable',
     ];

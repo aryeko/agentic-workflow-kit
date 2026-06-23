@@ -1,5 +1,6 @@
 import type { CapabilityAttestation } from '../../../providers/attestation/index.js';
 import type { RunEventEnvelope } from '../../run-lifecycle/contracts/index.js';
+import { capabilityContainmentFloor } from '../registry/index.js';
 import type { RecordedEvidence } from './evidence-records.js';
 import { isEvidenceReplayable } from './evidence-records.js';
 import type {
@@ -20,6 +21,7 @@ export interface AttestationRequirementResult {
     | 'attestation-out-of-scope'
     | 'attestation-contradictory'
     | 'attestation-non-replayable'
+    | 'attestation-insufficient-containment'
   >;
   readonly attestationRefs: readonly AttestationRef[];
   readonly evidenceRefs: readonly string[];
@@ -123,6 +125,15 @@ const hasPositiveConflict = (candidates: readonly ValidAttestationCandidate[]): 
     ),
   );
   return signatures.size > 1;
+};
+
+const hasSufficientContainmentStrength = (candidate: ValidAttestationCandidate): boolean => {
+  if (candidate.attestation.capability !== 'containmentStrength') {
+    return true;
+  }
+
+  const strength = candidate.attestation.details?.containmentStrength;
+  return typeof strength === 'string' && capabilityContainmentFloor.includes(strength as never);
 };
 
 export const evaluateAttestationRequirement = (
@@ -262,6 +273,16 @@ export const evaluateAttestationRequirement = (
     return {
       passed: false,
       failureReason: 'attestation-non-replayable',
+      attestationRefs: sortAttestationRefs(positiveCandidates.map(toAttestationRef)),
+      evidenceRefs: sortEvidenceRefs(positiveCandidates.map((candidate) => candidate.attestation.evidenceRef)),
+    };
+  }
+
+  const insufficientContainment = positiveCandidates.some((candidate) => !hasSufficientContainmentStrength(candidate));
+  if (insufficientContainment) {
+    return {
+      passed: false,
+      failureReason: 'attestation-insufficient-containment',
       attestationRefs: sortAttestationRefs(positiveCandidates.map(toAttestationRef)),
       evidenceRefs: sortEvidenceRefs(positiveCandidates.map((candidate) => candidate.attestation.evidenceRef)),
     };

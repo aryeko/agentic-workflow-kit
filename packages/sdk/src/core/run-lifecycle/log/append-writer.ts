@@ -15,6 +15,8 @@ type WriterContext = {
   lease: LeaseCapability;
 };
 
+const runWriterLeaseName = (runId: string): string => `run-writer:${runId}`;
+
 export const createRunWriter = (context: WriterContext): RunWriter => ({
   append(batch: AppendIntent[]): Result<RunAppendReceipt, RunAppendFailure> {
     if (batch.length === 0) {
@@ -83,6 +85,10 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
   },
 
   renew(lease: LeaseCapability): Result<RunWriter, RunAppendFailure> {
+    if (lease.name !== runWriterLeaseName(context.runId)) {
+      return appendFailure('stale-writer-fenced', 'Renewed lease is not scoped to the writer run.');
+    }
+
     if (!context.deps.leaseStore.fence(lease.name, lease.epoch, lease.token)) {
       return appendFailure('stale-writer-fenced', 'Renewed lease does not fence current.');
     }

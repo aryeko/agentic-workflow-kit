@@ -18,7 +18,10 @@ import { replay } from '../replay/index.js';
 
 import { createRunWriter } from './append-writer.js';
 import { createRun } from './create-run.js';
+import { appendFailure } from './failures.js';
 import type { RunEventLogDependencies } from './types.js';
+
+const runWriterLeaseName = (runId: string): string => `run-writer:${runId}`;
 
 export const createRunEventLog = (deps: RunEventLogDependencies): RunEventLog => ({
   createRun(input: CreateRunInput): Result<RunWriter, RunAppendFailure> {
@@ -26,6 +29,10 @@ export const createRunEventLog = (deps: RunEventLogDependencies): RunEventLog =>
   },
 
   openWriter(runId: string, lease: LeaseCapability): Result<RunWriter, RunAppendFailure> {
+    if (lease.name !== runWriterLeaseName(runId)) {
+      return appendFailure('stale-writer-fenced', 'Writer lease is not scoped to the requested run.');
+    }
+
     return {
       ok: true,
       value: createRunWriter({ deps, runId, lease }),
