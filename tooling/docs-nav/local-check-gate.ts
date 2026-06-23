@@ -4,7 +4,8 @@ export type LocalCheckGateFailureToken =
   | 'lint-failed'
   | 'deps-failed'
   | 'typecheck-failed'
-  | 'coverage-baseline-failed';
+  | 'coverage-baseline-failed'
+  | 'type-fixtures-failed';
 
 export type LocalCheckGateStep = {
   readonly ordinal: number;
@@ -20,12 +21,14 @@ export type LocalCheckGate = {
 };
 
 /**
- * The six leaf scripts that Turbo orchestrates under //#check:gate.
+ * The seven leaf scripts that Turbo orchestrates under //#check:gate.
  * Ordering is cheapest-first for documentation and audit purposes only —
- * Turbo runs all six in parallel and caches each by its declared inputs.
+ * Turbo runs all seven in parallel and caches each by its declared inputs.
  * The duplicate unit/int/conf pass has been collapsed: coverage:baseline
  * already runs those three suites under V8 coverage, so the plain test
- * runs are not part of the gate.
+ * runs are not part of the gate. The type:fixtures leaf compiles every
+ * negative/public type-fixture so the compile-time AC proofs are enforced
+ * by the standing gate rather than left to a manual one-off.
  */
 export const LOCAL_CHECK_GATE: LocalCheckGate = {
   contractName: 'LocalCheckGate',
@@ -67,13 +70,19 @@ export const LOCAL_CHECK_GATE: LocalCheckGate = {
         'vitest run --project unit --project integration --project conformance-mock --coverage --passWithNoTests',
       failureToken: 'coverage-baseline-failed',
     },
+    {
+      ordinal: 7,
+      script: 'type:fixtures',
+      command: 'node tooling/type-fixtures/run-type-fixtures.ts',
+      failureToken: 'type-fixtures-failed',
+    },
   ],
   excludedFromLocalGate: ['test:smoke'],
 };
 
 /**
  * Returns the Turbo invocation that runs //#check:gate.
- * The aggregate no-op root task depends on all six leaf tasks declared in
+ * The aggregate no-op root task depends on all seven leaf tasks declared in
  * LOCAL_CHECK_GATE.steps. The gate script is fixed — the steps array is
  * used for audit/documentation, not for building the shell command.
  */

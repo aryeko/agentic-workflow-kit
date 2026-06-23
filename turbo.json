@@ -18,6 +18,7 @@
         "//#lint",
         "//#deps",
         "//#typecheck",
+        "//#type:fixtures",
         "//#coverage:baseline"
       ],
       "outputs": []
@@ -60,6 +61,15 @@
         "!**/node_modules/**"
       ],
       "outputs": ["packages/*/dist/**", "packages/*/*.tsbuildinfo", "*.tsbuildinfo"]
+    },
+    "//#type:fixtures": {
+      "inputs": [
+        "packages/**/tests/**/tsconfig.negative.json",
+        "packages/**/tests/**/tsconfig.public.json",
+        "packages/**/tests/**/*.fixture.ts",
+        "tooling/type-fixtures/**"
+      ],
+      "outputs": []
     },
     "//#coverage:baseline": {
       "dependsOn": ["//#typecheck"],

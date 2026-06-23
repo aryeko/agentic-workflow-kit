@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { LOCAL_CHECK_GATE, localCheckGateScript } from '../../tooling/docs-nav/local-check-gate.js';
 
 describe('LocalCheckGate contract', () => {
-  it('names the six Turbo leaf steps in documented cheapest-first order', () => {
+  it('names the seven Turbo leaf steps in documented cheapest-first order', () => {
     expect(LOCAL_CHECK_GATE).toMatchObject({
       contractName: 'LocalCheckGate',
       excludedFromLocalGate: ['test:smoke'],
     });
-    // Six steps: the duplicate unit/int/conf pass has been folded into coverage:baseline.
+    // Seven steps: the duplicate unit/int/conf pass has been folded into coverage:baseline;
+    // type:fixtures enforces negative/public type-fixture compilation at the standing gate.
     expect(LOCAL_CHECK_GATE.steps.map((step) => [step.ordinal, step.script, step.failureToken])).toEqual([
       [1, 'docs:nav:check', 'stale-docs-nav'],
       [2, 'format:check', 'format-failed'],
@@ -15,10 +16,9 @@ describe('LocalCheckGate contract', () => {
       [4, 'deps', 'deps-failed'],
       [5, 'typecheck', 'typecheck-failed'],
       [6, 'coverage:baseline', 'coverage-baseline-failed'],
+      [7, 'type:fixtures', 'type-fixtures-failed'],
     ]);
-    expect(LOCAL_CHECK_GATE.steps.at(-1)?.command).toBe(
-      'vitest run --project unit --project integration --project conformance-mock --coverage --passWithNoTests',
-    );
+    expect(LOCAL_CHECK_GATE.steps.at(-1)?.command).toBe('node tooling/type-fixtures/run-type-fixtures.ts');
   });
 
   it('returns the Turbo root-task invocation rather than a plain && chain', () => {
