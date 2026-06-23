@@ -171,8 +171,12 @@ export const validateLifecycleAndLinkage = (
   let lifecycle = reduceRunLifecycle(replayed.events).lifecycle;
 
   for (const [index, envelope] of envelopes.entries()) {
-    if (envelope.type !== 'RunLifecycleTransitioned' || !isLifecyclePayload(envelope.payload)) {
+    if (envelope.type !== 'RunLifecycleTransitioned') {
       continue;
+    }
+
+    if (!isLifecyclePayload(envelope.payload)) {
+      return lifecycleFailure(context, replayed, envelope);
     }
 
     if (lifecycle !== null && TERMINAL_STATES.has(lifecycle)) {

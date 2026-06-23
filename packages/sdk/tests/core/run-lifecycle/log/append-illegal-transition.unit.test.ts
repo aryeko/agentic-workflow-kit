@@ -39,6 +39,54 @@ describe('RunWriter lifecycle validation', () => {
     });
   });
 
+  it('rejects malformed lifecycle transition payloads before committing them', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const policy = writer.value.append([
+      appendIntent(
+        'RunPolicyBound',
+        {
+          policyDigest: 'sha256:policy',
+          provenanceRef: 'artifact://policy',
+        },
+        { eventId: 'evt-policy', durability: 'barrier' },
+      ),
+    ]);
+    expect(policy.ok).toBe(true);
+    harness.resetAppendCalls();
+
+    const result = writer.value.append([
+      appendIntent(
+        'RunLifecycleTransitioned',
+        {
+          from: 'created',
+          to: 'configured',
+          sourceEventIds: ['RunPolicyBound:evt-policy'],
+        },
+        {
+          durability: 'barrier',
+        },
+      ),
+    ]);
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+    expect(
+      harness.records
+        .map((record) => harness.decode(record.payload))
+        .filter((envelope) => envelope.type === 'RunLifecycleTransitioned')
+        .map((envelope) => (envelope.payload as { to?: string }).to),
+    ).not.toContain('configured');
+    expect(harness.appendCalls).toHaveLength(1);
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+  });
+
   it('returns storage failure when RunAppendRejected cannot be durably authored', () => {
     for (const fixture of [
       { storageCode: 'log-interior-corrupt' as const, expectedCode: 'interior-corrupt' as const },

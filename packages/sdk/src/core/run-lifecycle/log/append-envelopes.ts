@@ -8,7 +8,7 @@ import type {
 } from '../contracts/index.js';
 import { TERMINAL_LIFECYCLE_STATE_SET } from '../lifecycle/index.js';
 import { LIFECYCLE_LEGAL_EDGE_CATALOG } from '../lifecycle/transition-table.js';
-
+import { isLifecycleTransitionPayload } from '../replay/payload-validator.js';
 import type { RunEventLogDependencies } from './types.js';
 
 type WriterBinding = {
@@ -29,8 +29,7 @@ export type BuiltAppend = {
 
 const TERMINAL_STATES = new Set<RunLifecycleState>(TERMINAL_LIFECYCLE_STATE_SET);
 
-export const isLifecyclePayload = (value: unknown): value is RunLifecycleTransitionPayload =>
-  Boolean(value && typeof value === 'object' && 'from' in value && 'to' in value && 'sourceEventIds' in value);
+export const isLifecyclePayload = isLifecycleTransitionPayload;
 
 const strongestDurability = (batch: readonly AppendIntent[]): RunDurabilityClass =>
   batch.some((intent) => intent.durability === 'barrier') ? 'barrier' : 'durable';

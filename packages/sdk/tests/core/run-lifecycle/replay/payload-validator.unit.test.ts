@@ -9,10 +9,31 @@ import { lifecycleTransitionPayload, makeEnvelope, runId, tailRepairedPayload } 
 
 describe('core-01-s2 payload validator', () => {
   it('accepts declared relevant payloads for all replay-owned event types', () => {
-    expect(hasValidDeclaredPayload(makeEnvelope(1, 'RunLifecycleTransitioned', lifecycleTransitionPayload))).toBe(true);
+    expect(
+      hasValidDeclaredPayload(makeEnvelope(1, 'RunCreated', { idempotencyKey: 'idem-1', requestedBy: 'runner' })),
+    ).toBe(true);
     expect(
       hasValidDeclaredPayload(
-        makeEnvelope(2, 'SessionLinked', {
+        makeEnvelope(2, 'RunPolicyBound', {
+          policyDigest: 'sha256:policy',
+          provenanceRef: 'artifact://policy',
+          profile: 'strict',
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      hasValidDeclaredPayload(
+        makeEnvelope(3, 'TaskSnapshotRecorded', {
+          taskId: 'task-1',
+          sourceRef: 'tracker://task-1',
+          snapshotDigest: 'sha256:snapshot',
+        }),
+      ),
+    ).toBe(true);
+    expect(hasValidDeclaredPayload(makeEnvelope(4, 'RunLifecycleTransitioned', lifecycleTransitionPayload))).toBe(true);
+    expect(
+      hasValidDeclaredPayload(
+        makeEnvelope(5, 'SessionLinked', {
           linkOrdinal: 1,
           sessionId: 'session-1',
           linkRole: 'primary',
@@ -24,7 +45,7 @@ describe('core-01-s2 payload validator', () => {
     ).toBe(true);
     expect(
       hasValidDeclaredPayload(
-        makeEnvelope(3, 'SessionLinkSuperseded', {
+        makeEnvelope(6, 'SessionLinkSuperseded', {
           supersededOrdinal: 1,
           replacementOrdinal: 2,
           reason: 'handoff',
@@ -34,7 +55,7 @@ describe('core-01-s2 payload validator', () => {
     ).toBe(true);
     expect(
       hasValidDeclaredPayload(
-        makeEnvelope(4, 'RunAppendRejected', {
+        makeEnvelope(7, 'RunAppendRejected', {
           attemptedEventId: 'evt-attempt',
           attemptedType: 'RunLifecycleTransitioned',
           attemptedDomain: 'core-01',
@@ -46,32 +67,39 @@ describe('core-01-s2 payload validator', () => {
         }),
       ),
     ).toBe(true);
-    expect(hasValidDeclaredPayload(makeEnvelope(5, 'RunLogTailRepaired', tailRepairedPayload))).toBe(true);
+    expect(hasValidDeclaredPayload(makeEnvelope(8, 'RunLogTailRepaired', tailRepairedPayload))).toBe(true);
   });
 
   it('rejects malformed declared relevant payloads and preserves unknown future types', () => {
+    expect(hasValidDeclaredPayload(makeEnvelope(1, 'RunCreated', { idempotencyKey: 'idem-1' }))).toBe(false);
+    expect(hasValidDeclaredPayload(makeEnvelope(2, 'RunPolicyBound', { provenanceRef: 'artifact://policy' }))).toBe(
+      false,
+    );
     expect(
-      hasValidDeclaredPayload(
-        makeEnvelope(1, 'RunLifecycleTransitioned', { ...lifecycleTransitionPayload, to: 'bogus' }),
-      ),
-    ).toBe(false);
-    expect(hasValidDeclaredPayload(makeEnvelope(2, 'SessionLinked', { linkOrdinal: 'bad' }))).toBe(false);
-    expect(hasValidDeclaredPayload(makeEnvelope(3, 'SessionLinkSuperseded', null))).toBe(false);
-    expect(
-      hasValidDeclaredPayload(
-        makeEnvelope(4, 'RunAppendRejected', { attemptedType: 'x', attemptedDomain: 'core-01', failureCode: 'bad' }),
-      ),
+      hasValidDeclaredPayload(makeEnvelope(3, 'TaskSnapshotRecorded', { taskId: 'task-1', snapshotDigest: false })),
     ).toBe(false);
     expect(
       hasValidDeclaredPayload(
-        makeEnvelope(5, 'RunAppendRejected', {
+        makeEnvelope(4, 'RunLifecycleTransitioned', { ...lifecycleTransitionPayload, to: 'bogus' }),
+      ),
+    ).toBe(false);
+    expect(hasValidDeclaredPayload(makeEnvelope(5, 'SessionLinked', { linkOrdinal: 'bad' }))).toBe(false);
+    expect(hasValidDeclaredPayload(makeEnvelope(6, 'SessionLinkSuperseded', null))).toBe(false);
+    expect(
+      hasValidDeclaredPayload(
+        makeEnvelope(7, 'RunAppendRejected', { attemptedType: 'x', attemptedDomain: 'core-01', failureCode: 'bad' }),
+      ),
+    ).toBe(false);
+    expect(
+      hasValidDeclaredPayload(
+        makeEnvelope(8, 'RunAppendRejected', {
           attemptedType: 'RunLifecycleTransitioned',
           attemptedDomain: 'core-01',
           recordedReason: 'missing failure code',
         }),
       ),
     ).toBe(false);
-    expect(hasValidDeclaredPayload(makeEnvelope(6, 'UnknownFutureEvent', { runId }))).toBe(true);
+    expect(hasValidDeclaredPayload(makeEnvelope(9, 'UnknownFutureEvent', { runId }))).toBe(true);
   });
 
   it('finds the latest valid tail repair payload and returns undefined when absent', () => {

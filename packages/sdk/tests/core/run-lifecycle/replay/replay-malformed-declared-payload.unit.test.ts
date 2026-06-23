@@ -6,22 +6,26 @@ import { makeEnvelope, makeReplayStore, makeStoredRecord, runId } from './test-s
 
 describe('core-01-s2 malformed declared payload replay failures', () => {
   it('fails when a declared relevant payload is malformed', () => {
-    const result = replay(
-      runId,
-      makeReplayStore({
-        health: 'ok',
-        records: [
-          makeStoredRecord(1, makeEnvelope(1, 'RunCreated', { idempotencyKey: 'idem-1', requestedBy: 'runner' })),
-          makeStoredRecord(2, makeEnvelope(2, 'RunLifecycleTransitioned', {})),
-        ],
-      }),
-    );
+    for (const envelope of [
+      makeEnvelope(1, 'RunCreated', { idempotencyKey: 'idem-1' }),
+      makeEnvelope(1, 'RunPolicyBound', { provenanceRef: 'artifact://policy' }),
+      makeEnvelope(1, 'TaskSnapshotRecorded', { taskId: 'task-1', sourceRef: 'tracker://task-1' }),
+      makeEnvelope(1, 'RunLifecycleTransitioned', {}),
+    ]) {
+      const result = replay(
+        runId,
+        makeReplayStore({
+          health: 'ok',
+          records: [makeStoredRecord(1, envelope)],
+        }),
+      );
 
-    expect(result).toMatchObject({
-      ok: false,
-      error: {
-        code: 'malformed-declared-payload',
-      },
-    });
+      expect(result).toMatchObject({
+        ok: false,
+        error: {
+          code: 'malformed-declared-payload',
+        },
+      });
+    }
   });
 });

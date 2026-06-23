@@ -1,12 +1,15 @@
 import type {
   RunAppendFailureCode,
   RunAppendRejectedPayload,
+  RunCreatedPayload,
   RunEventEnvelope,
   RunLifecycleState,
   RunLifecycleTransitionPayload,
   RunLogTailRepairedPayload,
+  RunPolicyBoundPayload,
   SessionLinkedPayload,
   SessionLinkSupersededPayload,
+  TaskSnapshotRecordedPayload,
 } from '../contracts/index.js';
 
 const RUN_LIFECYCLE_STATES = new Set<RunLifecycleState>([
@@ -45,7 +48,45 @@ const isStringArray = (value: unknown): value is string[] => Array.isArray(value
 const isLifecycleState = (value: unknown): value is RunLifecycleState =>
   hasString(value) && RUN_LIFECYCLE_STATES.has(value as RunLifecycleState);
 
-const isLifecycleTransitionPayload = (value: unknown): value is RunLifecycleTransitionPayload => {
+const isRunCreatedPayload = (value: unknown): value is RunCreatedPayload => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const payload = value as Partial<RunCreatedPayload>;
+
+  return (
+    hasString(payload.idempotencyKey) &&
+    hasString(payload.requestedBy) &&
+    (payload.operatorRef === undefined || hasString(payload.operatorRef))
+  );
+};
+
+const isRunPolicyBoundPayload = (value: unknown): value is RunPolicyBoundPayload => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const payload = value as Partial<RunPolicyBoundPayload>;
+
+  return (
+    hasString(payload.policyDigest) &&
+    hasString(payload.provenanceRef) &&
+    (payload.profile === undefined || hasString(payload.profile))
+  );
+};
+
+const isTaskSnapshotRecordedPayload = (value: unknown): value is TaskSnapshotRecordedPayload => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const payload = value as Partial<TaskSnapshotRecordedPayload>;
+
+  return hasString(payload.taskId) && hasString(payload.sourceRef) && hasString(payload.snapshotDigest);
+};
+
+export const isLifecycleTransitionPayload = (value: unknown): value is RunLifecycleTransitionPayload => {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
@@ -130,6 +171,12 @@ const isRunAppendRejectedPayload = (value: unknown): value is RunAppendRejectedP
 
 export const hasValidDeclaredPayload = (envelope: RunEventEnvelope): boolean => {
   switch (envelope.type) {
+    case 'RunCreated':
+      return isRunCreatedPayload(envelope.payload);
+    case 'RunPolicyBound':
+      return isRunPolicyBoundPayload(envelope.payload);
+    case 'TaskSnapshotRecorded':
+      return isTaskSnapshotRecordedPayload(envelope.payload);
     case 'RunLifecycleTransitioned':
       return isLifecycleTransitionPayload(envelope.payload);
     case 'SessionLinked':
