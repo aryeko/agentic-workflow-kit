@@ -1,101 +1,69 @@
 # `execution/plan.md` Artifact
 
-Author `execution/plan.md` as a concise execution record for a future run. Record what the
-later execution run must honor; do not execute, dispatch, stage, commit, push, or update
-tracker rows from this artifact.
+Author `execution/plan.md` as the durable plan for a future `orchestrated-delivery` run. Record
+what the execution stage must honor; do not execute.
 
-Keep the plan focused on these sections, in this order.
+## Required Sections
 
-## Source Baseline
+Use these sections in order.
 
-Record:
+### Source Baseline
 
-- Repo path.
-- Base branch and HEAD inspected.
-- Epic slug.
-- Package author and date.
-- Source files read.
+Record repo path, worktree path, base branch, HEAD inspected, epic slug, package author/date, and
+source files read. Cite the source story inventory used for the package.
 
-## Readiness Verdict
+### Readiness Verdict
 
-Record whether the source is package-ready:
+Use `ready` only when Gate 1 passed and every package element can be projected from ready source
+contracts. Use `blocked` with exact source evidence when the package cannot be projected.
 
-- `ready` only when the DAG is frozen, all stories are ready, and no source edits are
-  required.
-- `blocked` otherwise, with the concise reason.
+### Projection Summary
 
-## Story Table
+Include one row per selected story:
 
-Include one row per story with:
+| story id | source AC ids | job | wave | dependencies | dependents | owned pathset | suggested-tier floor | routing |
+|---|---|---|---|---|---|---|---|---|
 
-- Story id.
-- One-line job.
-- Owned pathset.
-- Dependencies.
-- Downstream dependents.
-- Suggested tier.
-- Implementer model class and effort.
-- Reviewer model class and effort.
-- Routing rationale.
+The `routing` cell records provider profile, abstract model class, effort, reasoning tier, and
+rationale for implementer and reviewer. Do not record runtime model IDs.
 
-Keep routing rationale brief. Do not include the full model routing table; use
-`model-routing.md` for that responsibility.
+### Execution Waves
 
-## Execution Waves
+Record the topological order from the DAG. State that a dependent story can start only after every
+dependency is `done` in `tracker.md`.
 
-Record the topological order from the DAG.
+### Prompt Inventory
 
-State the dependency gate: a dependent story can start only after every dependency has
-`done` status in `tracker.md`.
+List every implementer and reviewer prompt path with source story id and source `AC-n` ids.
 
-## Prompt Inventory
+### Verification Policy
 
-List the path to each implementer and reviewer prompt.
+Record per-story targeted checks, evidence-pack requirements, required sweeps, and the repo gate
+from the story contracts. Do not add checks that change the accepted story bar.
 
-Do not duplicate implementer or reviewer prompt field lists; use `implementer-prompt.md`
-and `reviewer-prompt.md` for those responsibilities.
+### Downstream Execution Metadata
 
-## Verification Policy
+Record what the execution stage must honor:
 
-Record:
+- provider profile, model class, effort, reasoning tier, and routing rationale are abstract plan
+  decisions;
+- provider-specific runtime model IDs are selected later;
+- dependency validity comes from tracker `done` state and committed dependency inputs;
+- tracker update authority belongs to the execution stage;
+- commit boundaries follow owned pathsets;
+- verifiable evidence wins over worker prose.
 
-- Per-story targeted checks from the story contract.
-- The repo gate.
-- Evidence pack requirements.
+### Resume Semantics
 
-Keep this as policy for the future execution run. Do not include closeout validation
-steps for this planning skill.
+Explain how a later run reads existing tracker rows, commit hashes, and evidence conflicts. Evidence
+conflicts resolve toward git state, check output, and live review truth.
 
-## Downstream Execution Metadata
+### Stop Point
 
-Record what the later execution run must honor about:
-
-- Model routing.
-- Dependency validity.
-- Tracker update authority.
-- Commit boundaries.
-- Evidence precedence.
-
-Describe constraints and expected evidence only. Do not provide coordinator execution
-instructions or story-completion procedures.
-
-## Resume Semantics
-
-Record how a later run should interpret:
-
-- Existing tracker rows.
-- Recorded commit hashes.
-- Evidence conflicts.
-
-State that evidence conflicts resolve toward verifiable evidence over prose.
-
-## Stop Point
-
-State that package creation ends here. Feature implementation begins only in a later
-execution run.
+State that package creation ends here and feature implementation begins only in a later execution
+run.
 
 ## Exclusions
 
-Do not include source readiness steps, package layout trees, tracker column or status
-schemas, model routing tables, implementer or reviewer prompt field lists, downstream
-coordinator execution instructions, or closeout validation procedures.
+Do not include package authoring procedures, tracker schema details, prompt field lists, coordinator
+execution steps, source fixes, or feature implementation instructions.

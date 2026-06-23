@@ -1,0 +1,62 @@
+[
+  {
+    "id": "positive-after-plan-epic",
+    "query": "Use $plan-delivery to turn this frozen workflow-kit story DAG and ready contracts into an execution package.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-package-ready-epic",
+    "query": "The epic is story-dag: frozen and all stories are story: ready; create plan.md, tracker.md, and prompts for orchestrated-delivery.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "positive-repair-plan-delivery-package",
+    "query": "Review the existing plan-delivery execution package for this ready epic and fix missing source story and AC traces.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-abstract-routing-package",
+    "query": "Package the ready stories with provider profiles, model classes, effort, tiers, and routing rationale but no runtime model names.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "negative-plan-epic-authoring",
+    "query": "Use $plan-epic to write the story DAG and story contracts for this ready epic charter.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-orchestrated-delivery-execution",
+    "query": "Use $orchestrated-delivery to dispatch implementers, review their diffs, commit approved stories, and open the PR.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-implement-one-story",
+    "query": "Implement story fnd-02 now, run tests, and commit the approved pathset.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-review-pr-feedback",
+    "query": "Inspect unresolved GitHub review threads on the delivery PR and fix the requested changes.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-design-charter",
+    "query": "Draft the domain and epic charters that decide the scope and acceptance criteria for a new workflow-kit epic.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-runtime-model-selection",
+    "query": "Pick the runtime-bound provider identifiers to use for tonight's orchestrated delivery run based on current availability.",
+    "should_trigger": false,
+    "split": "validation"
+  }
+]

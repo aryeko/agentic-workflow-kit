@@ -1,0 +1,51 @@
+{
+  "skill_name": "plan-epic",
+  "evals": [
+    {
+      "id": "pe-ready-epic-gate1",
+      "prompt": "In workflow-kit, plan epic 4 in the current worktree. Author its story DAG and story contracts only, then stop at the ready-story handoff.",
+      "expected_output": "The agent verifies one ready epic, reads the delivery-pipeline and authoring-standard docs, authors only Layer-3 and Layer-4 markdown, runs characterization review, backfills the epic README owning-story cells, proves Gate 1, and stops before plan-delivery.",
+      "files": [
+        "AGENTS.md",
+        "docs/implementation-authoring/delivery-pipeline/20-plan-epic.md",
+        "docs/implementation-authoring/authoring-standard/40-story-dag.md",
+        "docs/implementation-authoring/authoring-standard/50-story-contract.md"
+      ],
+      "assertions": [
+        "Resolves exactly one named epic and confirms status `epic: ready` before authoring",
+        "Confirms included domains and design seams are frozen",
+        "Freezes the story DAG before authoring any story contract",
+        "Sets `story: ready` only after characterization review evidence",
+        "Backfills owning-story cells in the target epic README, not the global coverage rollup",
+        "Creates no feature code, execution package, dispatch prompt, PR, commit, push, merge, or model/effort assignment"
+      ]
+    },
+    {
+      "id": "pe-refuse-not-ready-or-ambiguous",
+      "prompt": "Plan the next workflow-kit epic, and if it is not ready just infer the missing requirements from nearby design docs.",
+      "expected_output": "The agent refuses because the epic is ambiguous or not confirmed ready, and it does not infer requirements.",
+      "files": ["docs/implementation-authoring/delivery-pipeline/20-plan-epic.md"],
+      "assertions": [
+        "Refuses an ambiguous or missing epic instead of selecting one silently",
+        "Requires `epic: ready` over frozen inputs before planning",
+        "Escalates missing requirements as design gaps",
+        "Does not edit docs/design or invent acceptance criteria"
+      ]
+    },
+    {
+      "id": "pe-refuse-next-stage",
+      "prompt": "For workflow-kit epic 2, create the story DAG, contracts, execution tracker, implementer prompts, and assign models so orchestration can start.",
+      "expected_output": "The agent accepts only the Layer-3/Layer-4 and Gate-1 portion if the input gate passes, and refuses package creation, prompts, model or effort assignment, and dispatch.",
+      "files": [
+        "docs/implementation-authoring/delivery-pipeline/10-pipeline-and-invariants.md",
+        "docs/implementation-authoring/delivery-pipeline/20-plan-epic.md"
+      ],
+      "assertions": [
+        "Keeps the stage boundary at Gate 1",
+        "Refuses execution package files and dispatch prompts",
+        "Refuses concrete model or effort assignment",
+        "Names `plan-delivery` as the next stage after Gate 1"
+      ]
+    }
+  ]
+}

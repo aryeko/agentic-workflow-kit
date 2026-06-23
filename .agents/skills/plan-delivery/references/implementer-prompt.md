@@ -1,141 +1,99 @@
 # Implementer Prompt Reference
 
-Author `execution/prompts/<story-id>/implementer.md` as a self-contained worker contract for one
-story. A low-tier implementer prompt must be decision-complete: the assigned worker must be able to
-execute without guessing about scope, paths, inputs, behavior, verification, or delivery evidence.
-
-Do not use "implement this story" as the prompt body. State the contract, constraints, and expected
-reporting shape explicitly.
-
-Adjacent responsibilities live in `reviewer-prompt.md`, `tracker-artifact.md`, `plan-artifact.md`,
-`package-layout.md`, and `source-readiness.md`.
+Author `execution/prompts/<story-id>/implementer.md` as a self-contained contract for one later
+implementer worker. The prompt must be decision-complete without changing the source story.
 
 ## Required Sections
 
-### Assigned Model
+### Assigned Routing
 
-Record the model assignment exactly as planned:
+Record:
 
-- Provider profile.
-- Model class.
-- Concrete model, when known.
-- Effort.
-- Tier.
-- Rationale for why this assignment fits the story risk and complexity.
+- source story id;
+- source `AC-n` ids covered by this prompt;
+- provider profile;
+- model class;
+- effort;
+- suggested-tier floor;
+- reasoning tier;
+- routing rationale.
+
+Do not record provider-specific runtime model IDs.
 
 ### Exact Task
 
-State:
-
-- Story id.
-- Current epic.
-- The single outcome the worker must deliver.
-
-Keep the task narrow. Do not add adjacent cleanup, follow-up work, or optional improvements.
+State the story id, epic slug, and single outcome the worker must deliver. Keep the task limited to
+the ready story scope.
 
 ### Why It Matters
 
-Explain the downstream contracts and DAG risk that make the story necessary. Name the dependent
-story ids, interfaces, or behavior that this story unblocks or protects.
+Explain the downstream contracts and DAG risk that make the story necessary. Name dependent story
+ids, interfaces, behavior, or evidence that the source artifacts already name.
 
 ### Required Reading
 
-List exact files and inputs the worker must read:
+List exact files the worker must read:
 
-- The exact story contract.
-- The story DAG.
-- Design and engineering files named by the story.
-- Committed dependency inputs or dependency commit hashes known at dispatch time.
+- the source story contract;
+- the story DAG;
+- design and engineering files named by the contract;
+- committed dependency inputs or the `{{DEPENDENCY_COMMITS}}` runtime slot.
 
-Do not send the worker to broad context. If a dependency hash is not known while packaging, use an
-explicit runtime slot such as `{{DEPENDENCY_COMMITS}}`.
+Do not send the worker to broad context or another skill to discover the story.
 
 ### Acceptance Criteria
 
-Restate the story acceptance criteria with enough detail to test pass/fail without reopening broad
-context. Include failure and degraded rows from the story contract when present.
+Restate the source ACs with their original `AC-n` ids. Include failure, degraded, or validation rows
+when the story contract includes them. Keep each criterion observable and tied to the expected files,
+behavior, tests, or evidence named by the source contract.
 
-Each criterion must be concrete, observable, and tied to expected files, behavior, tests, or evidence.
+Do not add ACs. Do not weaken ACs. Do not convert evidence requirements into prose-only goals.
 
 ### Allowed Writes
 
-List the exact owned pathset from the story contract. State that all other writes are forbidden.
-
-The allowed pathset is exclusive. Do not permit repo-wide cleanup, generated churn outside the owned
-paths, dependency edits, tracker edits, or prompt/package rewrites.
+List the exact owned pathset from the source contract. State that every other write is forbidden,
+including package files, tracker files, source planning artifacts, repo-wide cleanup, dependency
+churn, and generated files outside the owned pathset.
 
 ### Dependency Inputs
 
-Record every required dependency input:
-
-- Producer story ids.
-- Shared shapes or contracts.
-- Public import paths.
-- Dependency commit hashes known at dispatch time.
-- Runtime slots for future hashes, such as `{{DEPENDENCY_COMMITS}}`.
-
-The worker must build only on committed dependency inputs or explicit runtime slots supplied later.
+Record producer story ids, shared shapes, public import paths, and dependency commit inputs named by
+the source artifacts. Use runtime slots only for values that cannot exist until execution, such as
+`{{DEPENDENCY_COMMITS}}`.
 
 ### Non-Goals And STOP Conditions
 
-Copy the story contract non-goals and STOP conditions. Add that unrelated cleanup is forbidden.
+Copy source non-goals and STOP conditions. Add that the worker must stop and report on source gaps,
+missing dependency inputs, required writes outside the owned pathset, or any need to reinterpret an
+AC.
 
-STOP conditions must tell the worker when to stop and report instead of guessing, widening scope, or
-editing outside the allowed pathset.
+### Implementation Constraints
 
-### Implementation Instructions
+Include decisions already fixed by the story contract: required names, events, failure tokens,
+determinism, boundary rules, import rules, conformance obligations, and safety invariants.
 
-Include all implementation decisions already fixed by the story contract:
-
-- Required names.
-- Events.
-- Failure tokens.
-- Deterministic behavior.
-- Boundary rules.
-- Import rules.
-- Conformance obligations.
-
-Do not leave gray areas for a low-tier worker. If a behavior, name, import path, or failure mode is
-required, spell it out.
+Do not introduce implementation choices that the source did not authorize.
 
 ### Verification
 
-List the checks the worker must run or report as blocked:
+List targeted commands, required sweeps, evidence-pack items, and the repo gate exactly as sourced
+from the story contract. Require exact command output or an explicit blocked reason.
 
-- Targeted commands.
-- Required sweeps for sibling occurrences or affected contracts.
-- Evidence-pack items required by the story.
-- The repo gate command.
-
-Require exact command names and expected evidence. Do not accept prose-only self-reporting as
-verification.
-
-### Delivery Format
+### Delivery Report
 
 Require the worker report to include:
 
-- Changed files.
-- Acceptance-criteria coverage.
-- Tests and checks run.
-- Evidence pack.
-- Open questions.
-- Blockers.
+- changed files;
+- AC coverage by `AC-n`;
+- tests and checks run;
+- evidence pack;
+- open questions;
+- blockers.
 
-The worker report is evidence for later review; it is not permission to mutate delivery state.
+The report is evidence for later review. It is not permission to update tracker state or perform
+delivery actions.
 
 ### Mutation Limits
 
-State these limits explicitly:
-
-- No staging.
-- No commits.
-- No pushes.
-- No PRs.
-- No merges.
-- No worker closure.
-- No tracker edits.
-- No writes outside allowed paths.
-
-The implementer prompt describes future worker execution only. It must not instruct the authoring
-skill, a coordinator, or the worker to perform repository delivery actions beyond the allowed story
-edits and required local verification/reporting.
+State explicitly: no staging, commits, pushes, PRs, merges, worker closure, tracker edits, package
+edits, source planning edits, or writes outside allowed paths.

@@ -1,0 +1,57 @@
+{
+  "skill_name": "orchestrated-delivery",
+  "evals": [
+    {
+      "id": "execute-ready-package",
+      "prompt": "Use $orchestrated-delivery to execute the existing package at docs/implementation/epics/E7/execution. It is marked ready_for_implementation. Stop after local commits unless I explicitly ask for PR publication.",
+      "expected_output": "The agent validates the package, binds runtime/provider facts, presents or follows an approved execution plan, dispatches packaged implementer and reviewer prompts in dependency waves, commits approved pathsets, creates tracker evidence commits, and stops before PR publication.",
+      "files": [
+        "docs/implementation/epics/E7/execution/plan.md",
+        "docs/implementation/epics/E7/execution/tracker.md",
+        "docs/implementation/epics/E7/execution/prompts/S1/implementer.md",
+        "docs/implementation/epics/E7/execution/prompts/S1/reviewer.md",
+        "docs/implementation/epics/E7/execution/prompts/S2/implementer.md",
+        "docs/implementation/epics/E7/execution/prompts/S2/reviewer.md"
+      ],
+      "assertions": [
+        "OD-1: The run starts only after finding an existing package marked ready_for_implementation.",
+        "OD-2: The agent records runtime/provider facts without editing package-owned scope, prompts, ACs, dependency order, model class, or effort.",
+        "OD-3: Dependency waves launch only when prerequisite story and tracker evidence commits exist.",
+        "OD-4: Each story reuses one implementer and one reviewer context, and workers do not stage, commit, push, PR, merge, or close contexts.",
+        "OD-5: Coordinator treats reviewer approval as advisory and commits only the approved pathset after its own scope/gate inspection.",
+        "OD-6: Each completed story has a story commit followed by a tracker-only evidence commit.",
+        "OD-7: The agent stops at the requested local-commit boundary.",
+        "OD-8: Updates are sparse and evidence-based."
+      ]
+    },
+    {
+      "id": "refuse-non-ready-package",
+      "prompt": "Use $orchestrated-delivery on this execution folder. It has plan.md and tracker.md, but no package-contained deep readiness verdict and one implementer prompt says to infer missing ACs from the code.",
+      "expected_output": "The agent refuses execution and routes the package back to plan-delivery or plan-epic as appropriate. It does not repair prompts, invent ACs, reorder stories, change model class or effort, or dispatch workers.",
+      "files": [
+        "execution/plan.md",
+        "execution/tracker.md",
+        "execution/prompts/S1/implementer.md",
+        "execution/prompts/S1/reviewer.md"
+      ],
+      "assertions": [
+        "OD-1: Missing deep readiness evidence or incomplete prompts cause refusal.",
+        "OD-1: Structural file presence alone is not treated as readiness.",
+        "OD-2: The agent does not author or repair package-owned decisions.",
+        "OD-8: The refusal is concise and names the owning planning repair path."
+      ]
+    },
+    {
+      "id": "pr-boundary-and-review-wait",
+      "prompt": "Use $orchestrated-delivery on the ready package and open a PR when all stories land. Do not wait for review, merge, or clean up.",
+      "expected_output": "The agent completes local story and tracker commits, opens or updates the PR only after authorization, reports the PR URL, and stops without review waiting, merge, cleanup, or worker-context overreach.",
+      "files": ["execution/plan.md", "execution/tracker.md"],
+      "assertions": [
+        "OD-6: Story commits and tracker evidence commits exist before publication.",
+        "OD-7: PR publication respects the requested boundary and stops after reporting the URL.",
+        "OD-7: Review waiting is not started without explicit request.",
+        "OD-8: The closeout reports evidence rather than dumping transcripts or diffs."
+      ]
+    }
+  ]
+}

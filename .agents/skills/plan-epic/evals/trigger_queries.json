@@ -1,0 +1,62 @@
+[
+  {
+    "id": "positive-plan-named-epic",
+    "query": "Use $plan-epic to author the story DAG and story contracts for workflow-kit epic 3.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-ready-epic-handoff",
+    "query": "Plan epic 5 in workflow-kit to the `story-dag: frozen` and `story: ready` handoff, then stop.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "positive-story-contracts-only-stage",
+    "query": "Break the named ready workflow-kit epic into a Layer-3 DAG and Layer-4 contracts with characterization review.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "negative-plan-delivery-package",
+    "query": "Build the execution package and tracker for stories that are already `story: ready`.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-orchestrated-delivery",
+    "query": "Dispatch implementers and reviewers for this ready workflow-kit story batch.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-design-authoring",
+    "query": "Write a new domain design and update docs/design before planning stories.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-code-implementation",
+    "query": "Implement the packages for epic 2 and make the tests pass.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-ambiguous-next-epic",
+    "query": "Plan the next epic.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-review-existing-contracts",
+    "query": "Review these existing story contracts for gaps but do not author the DAG or set readiness.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-model-assignment",
+    "query": "Assign model classes and effort levels for every story in the epic delivery plan.",
+    "should_trigger": false,
+    "split": "validation"
+  }
+]
