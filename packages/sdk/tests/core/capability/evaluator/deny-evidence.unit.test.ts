@@ -88,4 +88,28 @@ describe('core-02-s2 deny required evidence failures', () => {
 
     expect(payload.failureReason).toBe('required-evidence-absent');
   });
+
+  it('accepts evidence recorded at the gate instant with an ISO offset', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const offsetEvidenceEvents = scenario.replay.events.map((event) =>
+      event.type === 'RecordedEvidence'
+        ? {
+            ...event,
+            occurredAt: '2026-06-23T13:00:00+01:00',
+            recordedAt: '2026-06-23T13:00:00+01:00',
+          }
+        : event,
+    );
+
+    const payload = evaluateCapabilityGate(
+      scenario.request,
+      {
+        ...scenario.replay,
+        events: offsetEvidenceEvents,
+      },
+      scenario.projections,
+    );
+
+    expect(payload.decision).toBe('allow');
+  });
 });

@@ -4,6 +4,7 @@ import { guaranteeRequirementCatalog } from './guarantee-requirements.js';
 import type {
   ActivePostureEntry,
   AutoMergeAttestations,
+  AutoMergeConditionalAttestations,
   AutoRecoverAttestations,
   ContainmentPostureEntry,
   DeferredPostureEntry,
@@ -17,6 +18,7 @@ type SharedGuarantees = typeof guaranteeRequirementCatalog;
 
 type AutoMergePostureEntry = ActivePostureEntry<AutoMergeAttestations> & {
   readonly requiredGuaranteeIds: SharedGuarantees;
+  readonly conditionalAttestations: AutoMergeConditionalAttestations;
 };
 
 type AutoRecoverPostureEntry = ContainmentPostureEntry<AutoRecoverAttestations> & {
@@ -48,7 +50,11 @@ export const capabilityPostureCatalog = deepFreeze({
     status: 'assisted',
     allowedMode: ['assisted'],
     requiredGuaranteeIds: sharedGuarantees,
-    requiredAttestations: ['canInspectProtection', 'supportsRulesets', 'supportsMergeQueue', 'supportsStatusWrite'],
+    requiredAttestations: ['canInspectProtection', 'supportsRulesets'],
+    conditionalAttestations: {
+      requiresMergeQueue: ['supportsMergeQueue'],
+      marksTaskComplete: ['supportsStatusWrite'],
+    },
   },
   'auto-recover': {
     status: 'assisted',

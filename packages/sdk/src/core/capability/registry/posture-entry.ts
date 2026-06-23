@@ -17,9 +17,12 @@ type DeferredAttestations = readonly [];
 export type AutoMergeAttestations = readonly [
   Extract<ForgeCapability, 'canInspectProtection'>,
   Extract<ForgeCapability, 'supportsRulesets'>,
-  Extract<ForgeCapability, 'supportsMergeQueue'>,
-  Extract<WorkSourceCapability, 'supportsStatusWrite'>,
 ];
+
+export type AutoMergeConditionalAttestations = {
+  readonly requiresMergeQueue: readonly [Extract<ForgeCapability, 'supportsMergeQueue'>];
+  readonly marksTaskComplete: readonly [Extract<WorkSourceCapability, 'supportsStatusWrite'>];
+};
 
 export type AutoRecoverAttestations = readonly [
   Extract<HostCapability, 'canKill'>,
@@ -66,7 +69,9 @@ export type DeferredPostureEntry = {
 };
 
 export type PostureEntry =
-  | ActivePostureEntry<AutoMergeAttestations>
+  | (ActivePostureEntry<AutoMergeAttestations> & {
+      readonly conditionalAttestations: AutoMergeConditionalAttestations;
+    })
   | ContainmentPostureEntry<AutoRecoverAttestations>
   | ContainmentPostureEntry<UnattendedRunAttestations>
   | ActivePostureEntry<EscalationAutoGrantAttestations>

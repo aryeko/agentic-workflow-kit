@@ -17,6 +17,9 @@ describe('core-02-s1 posture catalog coverage', () => {
     expect(Object.isFrozen(autoMergeEntry.allowedMode)).toBe(true);
     expect(Object.isFrozen(autoMergeEntry.requiredGuaranteeIds)).toBe(true);
     expect(Object.isFrozen(autoMergeEntry.requiredAttestations)).toBe(true);
+    expect(Object.isFrozen(autoMergeEntry.conditionalAttestations)).toBe(true);
+    expect(Object.isFrozen(autoMergeEntry.conditionalAttestations.requiresMergeQueue)).toBe(true);
+    expect(Object.isFrozen(autoMergeEntry.conditionalAttestations.marksTaskComplete)).toBe(true);
     expect(Object.isFrozen(capabilityPostureCatalog['auto-recover'].containmentFloor)).toBe(true);
 
     expect(() => {
@@ -33,6 +36,9 @@ describe('core-02-s1 posture catalog coverage', () => {
     }).toThrow(TypeError);
     expect(() => {
       (autoMergeEntry.requiredAttestations as unknown as string[]).push('future-attestation');
+    }).toThrow(TypeError);
+    expect(() => {
+      (autoMergeEntry.conditionalAttestations.requiresMergeQueue as unknown as string[]).push('future-attestation');
     }).toThrow(TypeError);
     expect(() => {
       (capabilityPostureCatalog['auto-recover'].containmentFloor as unknown as string[]).push('none');

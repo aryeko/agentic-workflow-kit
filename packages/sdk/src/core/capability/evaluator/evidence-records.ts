@@ -23,6 +23,25 @@ const isEvidenceSupportKind = (value: unknown): value is EvidenceSupportKind =>
   value === 'schema-only' ||
   value === 'feature-list';
 
+const toEpochMs = (timestamp: string): number | undefined => {
+  const parsed = Date.parse(timestamp);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const isCommittedBy = (event: RunEventEnvelope, evaluatedAt: string): boolean => {
+  const occurredAt = toEpochMs(event.occurredAt);
+  const recordedAt = toEpochMs(event.recordedAt);
+  const gateTime = toEpochMs(evaluatedAt);
+
+  return (
+    occurredAt !== undefined &&
+    recordedAt !== undefined &&
+    gateTime !== undefined &&
+    occurredAt <= gateTime &&
+    recordedAt <= gateTime
+  );
+};
+
 export const collectRecordedEvidence = (
   events: readonly RunEventEnvelope[],
   evaluatedAt?: string,
@@ -34,7 +53,7 @@ export const collectRecordedEvidence = (
       continue;
     }
 
-    if (evaluatedAt !== undefined && (event.occurredAt > evaluatedAt || event.recordedAt > evaluatedAt)) {
+    if (evaluatedAt !== undefined && !isCommittedBy(event, evaluatedAt)) {
       continue;
     }
 

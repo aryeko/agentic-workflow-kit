@@ -13,6 +13,30 @@ type GuaranteeResult = {
 const sortEvidenceRefs = (evidenceRefs: readonly string[]): string[] =>
   [...evidenceRefs].sort((left, right) => left.localeCompare(right));
 
+const mergeQueueActions = new Set(['enqueue-pull-request', 'merge-pull-request-via-queue']);
+const taskCompletingActions = new Set([
+  'merge-pull-request-and-complete-task',
+  'enqueue-pull-request-and-complete-task',
+]);
+
+const requiredAttestationsForRequest = (request: CapabilityGateRequest): readonly string[] => {
+  const posture = capabilityPostureCatalog[request.capability];
+  if (request.capability !== 'auto-merge') {
+    return posture.requiredAttestations;
+  }
+
+  const autoMergePosture = capabilityPostureCatalog['auto-merge'];
+  return [
+    ...autoMergePosture.requiredAttestations,
+    ...(mergeQueueActions.has(request.requestedAction)
+      ? autoMergePosture.conditionalAttestations.requiresMergeQueue
+      : []),
+    ...(taskCompletingActions.has(request.requestedAction)
+      ? autoMergePosture.conditionalAttestations.marksTaskComplete
+      : []),
+  ];
+};
+
 export const evaluateModeGuarantee = (request: CapabilityGateRequest): GuaranteeResult => ({
   evaluation: {
     guaranteeId: guaranteeRequirementCatalog[0],
@@ -115,13 +139,12 @@ export const evaluateEvidenceGuarantee = (request: CapabilityGateRequest, replay
 };
 
 export const evaluateAttestationGuarantee = (request: CapabilityGateRequest, replay: RunReplay): GuaranteeResult => {
-  const posture = capabilityPostureCatalog[request.capability];
   const recordedEvidence = collectRecordedEvidence(replay.events, request.evaluatedAt);
   const attestationRefs = [];
   const evidenceRefs = [];
   let failureReason: CapabilityGateFailureReason | undefined;
 
-  for (const capability of posture.requiredAttestations) {
+  for (const capability of requiredAttestationsForRequest(request)) {
     const expectedProvider = deriveExpectedProviderDomain(capability);
     if (expectedProvider === undefined) {
       failureReason = 'attestation-absent';

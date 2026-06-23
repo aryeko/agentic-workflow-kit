@@ -23,12 +23,12 @@ export const expectedGuaranteeRequirementIds = [
   'attestations-fresh-positive-in-scope-non-contradictory-replayable',
 ] as const satisfies readonly GuaranteeRequirementId[];
 
-export const expectedAutoMergeAttestations = [
-  'canInspectProtection',
-  'supportsRulesets',
-  'supportsMergeQueue',
-  'supportsStatusWrite',
-] as const;
+export const expectedAutoMergeAttestations = ['canInspectProtection', 'supportsRulesets'] as const;
+
+export const expectedAutoMergeConditionalAttestations = {
+  requiresMergeQueue: ['supportsMergeQueue'],
+  marksTaskComplete: ['supportsStatusWrite'],
+} as const;
 
 export const expectedAutoRecoverAttestations = [
   'canKill',

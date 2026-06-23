@@ -51,4 +51,42 @@ describe('core-02-s2 deny attestation absent', () => {
     expect(payload.decision).toBe('deny');
     expect(payload.failureReason).toBe('attestation-absent');
   });
+
+  it('denies queue actions without a merge-queue attestation', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      {
+        ...scenario.request,
+        requestedAction: 'enqueue-pull-request',
+      },
+      {
+        ...scenario.replay,
+        events: scenario.replay.events.filter(
+          (event) => event.eventId !== 'evt-forge-merge-queue' && event.eventId !== 'evt-work-source-status',
+        ),
+      },
+      scenario.projections,
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('attestation-absent');
+  });
+
+  it('denies task-completing merge actions without a status-write attestation', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      {
+        ...scenario.request,
+        requestedAction: 'merge-pull-request-and-complete-task',
+      },
+      {
+        ...scenario.replay,
+        events: scenario.replay.events.filter((event) => event.eventId !== 'evt-work-source-status'),
+      },
+      scenario.projections,
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('attestation-absent');
+  });
 });
