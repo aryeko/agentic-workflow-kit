@@ -281,4 +281,36 @@ describe('delivery observability import and summary', () => {
       expect(result.stderr).toContain('reserved event field');
     });
   });
+
+  it('rejects token usage events that are not cumulative snapshots', async () => {
+    await withFixture(async (fixtureRoot) => {
+      const eventsPath = path.join(fixtureRoot, 'events.jsonl');
+
+      const first = await runScript(observeScriptPath, [
+        '--events',
+        eventsPath,
+        '--type',
+        'token_usage_observed',
+        '--payload',
+        JSON.stringify({ usage: { input: 10, cachedInput: 0, output: 5, reasoning: 1, total: 16 } }),
+        '--run-id',
+        'run-demo',
+      ]);
+      expect(first).toMatchObject({ code: 0 });
+
+      const second = await runScript(observeScriptPath, [
+        '--events',
+        eventsPath,
+        '--type',
+        'token_usage_observed',
+        '--payload',
+        JSON.stringify({ usage: { input: 1, cachedInput: 0, output: 1, reasoning: 0, total: 2 } }),
+        '--run-id',
+        'run-demo',
+      ]);
+
+      expect(second.code).toBe(1);
+      expect(second.stderr).toContain('must be cumulative');
+    });
+  });
 });

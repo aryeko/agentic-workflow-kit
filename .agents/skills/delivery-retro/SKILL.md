@@ -20,7 +20,8 @@ using it unless the user explicitly asks for a separate follow-up change.
    raw session JSONL.
 4. When a future delivery run needs to record observability, append one event at a time with
    `node scripts/observe-delivery-run.mjs --events <path> --type <type> --payload <json>`. Record
-   turn counts as `turn_observed` events, not by re-counting raw transcripts later.
+   turn counts as `turn_observed` events, not by re-counting raw transcripts later. Treat the events
+   file as a single-writer artifact owned by the runner/orchestrator.
 5. When analyzing an older run without normalized observability, backfill once with
    `node scripts/import-session-observability.mjs --session-jsonl <path> --output <events.jsonl>`.
    Treat the generated file as the analysis source after import.
@@ -44,7 +45,8 @@ using it unless the user explicitly asks for a separate follow-up change.
   to stdout, diagnostics/errors to stderr, and exits 2 for `needs_input`.
 - `scripts/observe-delivery-run.mjs`: append-only recorder for future runs. Use it during delivery to
   write normalized events directly, including `turn_observed`, worker, review, PR, commit, and token
-  events.
+  events. For `token_usage_observed`, pass cumulative `usage` snapshots; the analyzer reports the
+  latest snapshot as the run total.
 - `scripts/import-session-observability.mjs`: one-time backfill adapter from Codex session JSONL to
   normalized observability events for older runs that did not record `events.jsonl`.
 - `scripts/summarize-delivery-observability.mjs`: report worker, review, finding, token, and turn

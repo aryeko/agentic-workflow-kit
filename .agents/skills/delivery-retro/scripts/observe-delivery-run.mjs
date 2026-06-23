@@ -14,7 +14,8 @@ session transcripts.
 Options:
   --events <path>      Normalized observability events JSONL path
   --type <type>        Event type, such as turn_observed or worker_spawned
-  --payload <json>     Event payload object, excluding type/runId/source/sequence
+  --payload <json>     Event payload object, excluding type/runId/source/sequence.
+                       token_usage_observed usage must be a cumulative snapshot.
   --run-id <id>        Stable delivery run id
   --timestamp <iso>    Event timestamp (default: current time)
   --help               Show this help
@@ -100,31 +101,80 @@ const parsePayload = (value) => {
   }
 };
 
-const nextSequence = async (eventsPath) => {
+const parseJsonl = (text) =>
+  text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
+const readEvents = async (eventsPath) => {
   try {
-    const text = await readFile(eventsPath, 'utf8');
-    return (
-      text
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean).length + 1
-    );
+    return parseJsonl(await readFile(eventsPath, 'utf8'));
   } catch (error) {
     if (error && typeof error === 'object' && error.code === 'ENOENT') {
-      return 1;
+      return [];
     }
     throw error;
+  }
+};
+
+const tokenTotal = (usage) => {
+  const total = usage?.total ?? usage?.total_tokens;
+  return typeof total === 'number' ? total : null;
+};
+
+const validateTokenUsagePayload = (payload, existingEvents, runId) => {
+  const usage = payload.usage;
+  if (!usage || typeof usage !== 'object' || Array.isArray(usage)) {
+    throw new Error('token_usage_observed payload must include a usage object');
+  }
+
+  const total = tokenTotal(usage);
+  if (total === null || total < 0) {
+    throw new Error('token_usage_observed usage.total must be a non-negative cumulative total');
+  }
+
+  for (const [key, value] of Object.entries(usage)) {
+    if (typeof value !== 'number' || value < 0) {
+      throw new Error(`token_usage_observed usage.${key} must be a non-negative number`);
+    }
+  }
+
+  const previousTotals = existingEvents
+    .filter((event) => event?.type === 'token_usage_observed' && (event.runId ?? null) === runId)
+    .map((event) => tokenTotal(event.usage))
+    .filter((value) => value !== null);
+  const previousTotal = previousTotals.at(-1);
+
+  if (previousTotal !== undefined && total < previousTotal) {
+    throw new Error(
+      `token_usage_observed usage.total must be cumulative; received ${total} after previous total ${previousTotal}`,
+    );
   }
 };
 
 export const appendObservabilityEvent = async (options) => {
   const eventsPath = path.resolve(options.events);
   const payload = parsePayload(options.payload);
-  const sequence = await nextSequence(eventsPath);
+  const runId = options.runId ?? null;
+  const existingEvents = await readEvents(eventsPath);
+  if (options.type === 'token_usage_observed') {
+    validateTokenUsagePayload(payload, existingEvents, runId);
+  }
+
+  const sequence = existingEvents.length + 1;
   const event = {
     version: 1,
     sequence,
-    runId: options.runId ?? null,
+    runId,
     timestamp: options.timestamp ?? new Date().toISOString(),
     type: options.type,
     source: {

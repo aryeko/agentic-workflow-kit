@@ -141,7 +141,9 @@ const sourceKindsForOutput = (sourceKinds) =>
   [...sourceKinds].sort((left, right) => sourceKindOrder.indexOf(left) - sourceKindOrder.indexOf(right));
 
 const confidenceFor = (sourceKinds) =>
-  sourceKinds.has('spawn_agent') || sourceKinds.has('record_field') ? 'observed' : 'reconstructed';
+  sourceKinds.has('spawn_agent') || sourceKinds.has('record_field') || sourceKinds.has('event_msg')
+    ? 'observed'
+    : 'reconstructed';
 
 const createCollector = () => {
   const aliases = new Map();

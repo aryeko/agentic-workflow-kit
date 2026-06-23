@@ -39,12 +39,27 @@ Supported normalized event types:
 Turn counts are first-class observability. Count `turn_observed` events by role and include totals in
 cross-run summaries. Do not infer turn counts from prose summaries.
 
+`token_usage_observed.usage` must be a cumulative snapshot for the run, not a per-turn or per-call
+delta. The analyzer reports the latest cumulative snapshot as the run token total. Story-scoped token
+snapshots follow the same rule: use the latest attributable cumulative snapshot, not the sum of
+snapshots.
+
+`review_completed` is the review-round event. PR lifecycle events such as `pr_reviewed` and
+`pr_fixed` may support rework analysis, but they do not increment story review-round counts.
+
+The normalized events file is a single-writer artifact. The recorder assigns sequence numbers from
+the current file length and is intended to be called by the runner/orchestrator, not concurrently by
+parallel workers writing to the same path.
+
 ## Source Rules
 
 - Treat `execution/tracker.md`, `execution/plan.md`, session JSONL, PR data supplied by the user, and
   git commits as source evidence.
 - Treat normalized observability events as the preferred source for worker aliases, review rounds,
   findings, token usage, elapsed time, and turn counts.
+- Attribute normalized events to a story only when the event contains a structured story id, such as
+  `storyId`, `story_id`, `story`, `worker.storyId`, or `scope: { "type": "story", "id": "..." }`.
+  Do not substring-match unstructured record text against story ids.
 - Resolve worker aliases from session JSONL with `scripts/find-worker-aliases.mjs` before asking the
   user for worker ids. The scanner is deterministic and should be preferred over manually searching
   large JSONL transcripts.

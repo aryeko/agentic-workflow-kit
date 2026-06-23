@@ -227,16 +227,6 @@ const parseJsonl = (text) =>
       }
     });
 
-const textFromRecord = (record) => {
-  if (typeof record === 'string') {
-    return record;
-  }
-  if (record === null || typeof record !== 'object') {
-    return '';
-  }
-  return JSON.stringify(record);
-};
-
 const getRecordValue = (record, keys) => {
   if (record === null || typeof record !== 'object') {
     return null;
@@ -439,7 +429,7 @@ const storyIdForRecord = (record) => {
 const recordsForStory = (records, storyId) =>
   records.filter((record) => {
     const recordStoryId = storyIdForRecord(record);
-    return recordStoryId ? String(recordStoryId) === storyId : textFromRecord(record).includes(storyId);
+    return recordStoryId ? String(recordStoryId) === storyId : false;
   });
 
 const classifyFinding = (finding) => {
@@ -576,7 +566,7 @@ const isReviewEvent = (record, source) => {
   }
 
   if (source === 'observability-events') {
-    return ['review_completed', 'pr_reviewed', 'pr_fixed'].includes(String(record.type ?? '').toLowerCase());
+    return String(record.type ?? '').toLowerCase() === 'review_completed';
   }
 
   const role = String(getRecordValue(record, ['role']) ?? '').toLowerCase();
@@ -643,7 +633,8 @@ const buildStoryReport = (row, records, source) => {
       source,
       confidence: durationMs === null ? 'unavailable' : 'reconstructed',
     },
-    tokenUsage: sumTokenUsage(storyRecords, source),
+    tokenUsage:
+      source === 'observability-events' ? latestTokenUsage(storyRecords, source) : sumTokenUsage(storyRecords, source),
   };
 };
 

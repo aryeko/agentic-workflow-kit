@@ -190,6 +190,12 @@ describe('delivery retro analyzer', () => {
           verdict: 'approved',
         },
         {
+          timestamp: '2026-06-23T10:06:30.000Z',
+          type: 'pr_fixed',
+          storyId: 'S1',
+          worker: { alias: 'impl-s1', role: 'implementer' },
+        },
+        {
           timestamp: '2026-06-23T10:07:00.000Z',
           type: 'token_usage_observed',
           usage: { input: 30, cachedInput: 5, output: 15, reasoning: 4, total: 49 },
@@ -237,6 +243,34 @@ describe('delivery retro analyzer', () => {
         cachedInput: 10,
       });
       expect(parsed.report.summary.missingObservabilityFields).toContain('S1:token-usage');
+    });
+  });
+
+  it('does not attribute unstructured observability records through story-id substring matches', async () => {
+    await withFixture(async (fixtureRoot) => {
+      const { packagePath, sessionPath } = await writePackage(fixtureRoot);
+      const eventsPath = path.join(packagePath, 'observability/events.jsonl');
+      await writeSession(sessionPath, []);
+      await writeEvents(eventsPath, [
+        {
+          timestamp: '2026-06-23T10:00:00.000Z',
+          type: 'review_completed',
+          verdict: 'changes_requested',
+          message: 'Review for S10 found missing evidence.',
+          findings: [{ class: 'ac-miss', summary: 'S10 evidence missing' }],
+        },
+      ]);
+
+      const result = await runScript(['--package', packagePath, '--events', eventsPath, '--format', 'json']);
+      expect(result).toMatchObject({ code: 0 });
+      const parsed = JSON.parse(result.stdout);
+
+      expect(parsed.report.stories[0]).toMatchObject({
+        storyId: 'S1',
+        reviewRounds: { value: 0, source: 'observability-events', confidence: 'unavailable' },
+        findings: [],
+      });
+      expect(parsed.report.summary.findingClasses).toEqual({});
     });
   });
 

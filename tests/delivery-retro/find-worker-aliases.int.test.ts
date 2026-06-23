@@ -117,7 +117,7 @@ describe('worker alias finder', () => {
           alias: 'b1-attest-review',
           agentIds: ['019ef0d6-f60b-7150-ba4a-9f3a1d111ca3'],
           sourceKinds: ['event_msg'],
-          confidence: 'reconstructed',
+          confidence: 'observed',
         }),
         expect.objectContaining({
           alias: 'top-level-reviewer',
