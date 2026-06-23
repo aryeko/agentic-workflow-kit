@@ -19,7 +19,7 @@
   },
   {
     "id": "positive-resume-packaged-run",
-    "query": "$orchestrated-delivery resume the ready package from the tracker evidence and continue dependency waves.",
+    "query": "$orchestrated-delivery resume the ready package from tracker state and approved-story commits, then continue dependency waves.",
     "should_trigger": true,
     "split": "validation"
   },

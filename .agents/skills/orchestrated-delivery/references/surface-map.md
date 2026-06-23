@@ -14,19 +14,20 @@ mutation or worker-control capability is unavailable.
 | `worker-completion` | subagents: native result; visible threads: wake-file fallback | native tool result or completion notification | bounded sleep on a stable signal |
 | `worker-readdress` | continue the same subagent/thread | send a message to the same agent id/name | fresh worker with compact prior-context bundle |
 | `worker-naming` | subagent/thread title or ledger alias | agent description/name | ledger alias plus prompt prefix |
-| `worker-isolation` | per-story git worktree when needed | agent worktree isolation when available | shared worktree with strict commit lock |
+| `story-worktree` | temporary per-story git worktree | temporary per-story git worktree | refuse execution or ask for explicit fallback |
+| `worker-isolation` | worker bound to story worktree | worker bound to story worktree | refuse execution or ask for explicit fallback |
 | `worker-close` | subagents close; visible threads archive | close/end agent context | mark only that pair terminal in the ledger |
 | `reasoning-tier` | detected effort field | detected effort field | closest supported level |
 | `model-routing` | provider profile plus model override when exposed | provider profile plus agent model field when exposed | inherit model and record fallback |
 | `prompt-contract` | packaged prompt verification plus ledger status | packaged prompt verification plus ledger status | coordinator executes only if package is complete |
 | `worker-cap` | tool or config cap, else 6 | practical parallel cap, else 6 | assume 6 |
 | `pr-review-wait` | global `watch-pr` skill | global `watch-pr` skill | inline detect-only review-state read |
-| `pr-thread-followup` | global `thread-aware-pr-followup` skill | global `thread-aware-pr-followup` skill | unresolved threads first, then scoped fix |
+| `pr-thread-followup` | unresolved-thread inspection and story-scope routing | unresolved-thread inspection and story-scope routing | unresolved threads first, then explicit repair step |
 | `merge-cleanup` | global `repo-cleanup-closeout` skill | global `repo-cleanup-closeout` skill | inline verified closeout |
 
 The global skills live under `~/.agents/skills`. Preserve their boundaries: review waiting detects
-state only, review follow-up patches current-head findings, and merge cleanup requires explicit
-current user instruction.
+state only, review follow-up inspects unresolved threads and routes story-scope findings through the
+story worktree path, and merge cleanup requires explicit current user instruction.
 
 ## Effort Mapping
 

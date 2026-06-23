@@ -45,7 +45,7 @@ Every selected story row must expose:
 - prompt paths
 - `reviewer verdict`
 - `gate evidence`
-- `commit hash`
+- commit reference field, when the package schema includes one
 - `blockers`
 - `notes`
 
