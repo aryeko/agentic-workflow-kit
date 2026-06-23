@@ -1,8 +1,8 @@
 # Orchestrated Delivery — Shared Eval / Test Specification
 
 **Skill under test:** `orchestrated-delivery`
-**Version pin (combined skill hash):** `0e8f8bab0ad21115`
-**Per-file hashes:** `SKILL.md` 228ae90a2297 · `references/commit-tracker.md` 19b4217db973 ·
+**Version pin (combined skill hash):** `24af0e4fe95b134f`
+**Per-file hashes:** `SKILL.md` faf2d5f76e83 · `references/commit-tracker.md` 19b4217db973 ·
 `references/communication.md` c063301c3e48 · `references/package-preflight.md` f2630fe3f77 ·
 `references/pr-merge.md` 44e309e4cc4d · `references/runtime-binding.md` ece55b92f31d ·
 `references/surface-map.md` 4d510e2a0223 · `references/worker-lifecycle.md` e0ba575d965f ·
