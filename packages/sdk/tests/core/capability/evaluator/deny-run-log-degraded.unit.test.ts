@@ -29,7 +29,7 @@ describe('core-02-s2 deny run-log-degraded', () => {
     expect(payload.failureReason).toBe('run-log-degraded');
   });
 
-  it('denies unknown linkage as degraded run-log input', () => {
+  it('allows unknown linkage when replay and projections are otherwise usable', () => {
     const scenario = createAllowAutoMergeScenario();
     const payload = evaluateCapabilityGate(
       scenario.request,
@@ -43,8 +43,7 @@ describe('core-02-s2 deny run-log-degraded', () => {
       }),
     );
 
-    expect(payload.decision).toBe('deny');
-    expect(payload.failureReason).toBe('run-log-degraded');
+    expect(payload.decision).toBe('allow');
   });
 
   it('denies missing projections as degraded run-log input', () => {

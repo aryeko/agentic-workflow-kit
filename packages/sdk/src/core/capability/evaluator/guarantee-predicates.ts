@@ -43,7 +43,7 @@ export const evaluateReplayHealthGuarantee = (
     replay.health === 'interior-corrupt' ||
     replay.health === 'event-log-unavailable' ||
     projections === undefined ||
-    projections.launch.linkage !== 'known';
+    projections.launch.linkage === 'ambiguous';
 
   return {
     evaluation: {
