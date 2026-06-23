@@ -1,4 +1,5 @@
 export * from './core/capability/registry/index.js';
+export * from './core/observability/telemetry/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
