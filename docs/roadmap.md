@@ -27,6 +27,6 @@ last-reviewed: "2026-06-19"
 
 ---
 
-**↑ Up:** [documentation home](./README.md) · **← Prev:** [Tooling and CI](./engineering/tooling-and-ci.md)
+**↑ Up:** [documentation home](./README.md) · **← Prev:** [Turbo Check-Gate Caching (design)](./engineering/turbo-check-caching-design.md)
 
 <!-- /DOCS-NAV -->

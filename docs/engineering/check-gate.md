@@ -1,33 +1,47 @@
 ---
 title: kit-vnext — Check Gate
 status: high-level design
-last-reviewed: "2026-06-19"
+last-reviewed: "2026-06-23"
 ---
 
 # Check Gate
 
 `pnpm check` is the required local and CI gate that every implementation story must
-pass. It runs nine steps in sequence, fail-fast, cheapest first. Nothing merges to
-`v-next` without a green gate.
+pass. Nothing merges to `v-next` without a green gate.
+
+The gate runs via Turborepo (`turbo run //#check:gate`). Each of the six leaf steps is
+a cacheable root task with declared `inputs`/`outputs`. Turbo runs them concurrently,
+caches each by its input hash, and skips any leaf whose inputs are unchanged since the
+last run. A cache hit replays the original exit code and logs — it cannot turn a red
+step green.
+
+The one ordering constraint is `coverage:baseline` depends on `typecheck`: the test
+lanes import the built (`dist/`) entry points of workspace packages (e.g. `sdk`,
+`testkit`), so `tsc -b` must produce — or restore from cache — those outputs before the
+suites run. The other four leaves have no inter-dependencies and run in parallel.
 
 ## Step Composition
 
 | # | Script | Tool | What It Checks |
 |---|---|---|---|
-| 1 | `docs:nav:check` | `node tooling/docs-nav/generate-nav.mjs --check` | Docs navigation freshness — fails if generated nav blocks are stale, before anything compiles |
-| 2 | `format:check` | `biome format .` | Non-writing formatting check — catches whitespace and style drift before anything compiles |
+| 1 | `docs:nav:check` | `node tooling/docs-nav/generate-nav.mjs --check` | Docs navigation freshness — fails if generated nav blocks are stale |
+| 2 | `format:check` | `biome format .` | Non-writing formatting check — catches whitespace and style drift |
 | 3 | `lint` | `biome lint .` | Lint rules — catches obvious errors early |
-| 4 | `deps` | `depcruise --config .dependency-cruiser.cjs packages tooling tests` | Dependency-graph rules — no cycles, no orphans, and package-boundary violations |
+| 4 | `deps` | `depcruise --config .dependency-cruiser.cjs packages tooling tests` | Dependency-graph rules — no cycles, no orphans, no package-boundary violations |
 | 5 | `typecheck` | `tsc -b` | TypeScript project references — full compilation of all composite projects |
-| 6 | `test:unit` | `vitest run --project unit` | Hermetic unit tests |
-| 7 | `test:int` | `vitest run --project integration` | Integration tests (real filesystem, no network) |
-| 8 | `test:conf` | `vitest run --project conformance-mock --passWithNoTests` | Conformance suites against mock drivers (hermetic); passes empty until provider mocks land |
-| 9 | `coverage:baseline` | Vitest coverage reporter across unit, integration, and conformance-mock lanes | Baseline coverage instrumentation for hermetic helpers until implementation packages land |
+| 6 | `coverage:baseline` | `vitest run --project unit --project integration --project conformance-mock --coverage` | Unit, integration, and conformance-mock suites under V8 coverage; enforces 90% thresholds |
 
-**Ordering rationale.** Steps are arranged cheapest-first so that the most common
-mistakes (stale docs nav, formatting, lint) are caught in under a second, before the
-type-checker or test runner is invoked. A failure in step 1 saves the full cost of
-steps 2–9.
+**Ordering rationale.** The numeric order is cheapest-first for documentation purposes.
+Turbo runs the leaves concurrently, so the numeric order does not determine execution
+sequence — the only real edge is `coverage:baseline` waiting on `typecheck` (see above).
+Each task otherwise fails independently rather than blocking the others.
+
+**Redundancy elimination.** The old gate ran `test:unit`, `test:int`, and `test:conf`
+as plain steps and then re-ran the same three suites inside `coverage:baseline`. The
+duplicate pass (~14s on V8 instrumentation) was eliminated: `coverage:baseline` already
+runs all three suites and enforces coverage thresholds, so the plain test runs are no
+longer part of the gate. `test:unit`, `test:int`, and `test:conf` scripts remain
+available for targeted local runs.
 
 `format:check` is pinned to the gate behavior rather than a stale flag spelling:
 the command must be non-writing and fail on formatting drift. Biome 2.5 rejects the
@@ -40,34 +54,43 @@ contract.
 
 ## Local Inner Loop
 
-Run `pnpm check` locally before pushing. All nine steps run. The gate completes in
-seconds when packages are small and hermetic lanes have no real I/O. Smoke tests and
-pack dry-run are intentionally excluded from `pnpm check` so the local loop stays fast.
+Run `pnpm check` locally before pushing. Turbo runs all six leaf tasks, restoring
+cache hits from `.turbo/` when inputs are unchanged. Warm no-op or docs-only re-runs
+complete in under a second. A cold run (all cache misses) completes in roughly 16–20s.
+Smoke tests and pack dry-run are intentionally excluded from `pnpm check`.
+
+## CI Cache
+
+CI persists `.turbo` between runs using `actions/cache@v4`, keyed on the lockfile hash
+plus `github.sha`. On a PR push that only touches docs or config, the test and typecheck
+tasks replay from cache, and the gate completes in seconds.
+
+`pnpm check:ci` runs with `--force` (recomputes all tasks, still populates the cache
+for downstream local hits) and is available when a guaranteed cold run is required.
 
 ## CI Split
 
 ```mermaid
 flowchart TD
     A[push / PR] --> B[check job]
-    B --> B0["1 docs:nav:check"]
-    B0 --> B1["2 format:check"]
-    B1 --> B2["3 lint"]
-    B2 --> B3["4 deps"]
-    B3 --> B4["5 typecheck"]
-    B4 --> B5["6 test:unit"]
-    B5 --> B6["7 test:int"]
-    B6 --> B7["8 test:conf"]
-    B7 --> B8["9 coverage:baseline (unit + integration + conformance-mock)"]
-    B8 --> B9["pack:dry-run (CI only)"]
+    B --> B_cache["Restore .turbo cache"]
+    B_cache --> B0["1 docs:nav:check (Turbo leaf)"]
+    B_cache --> B1["2 format:check (Turbo leaf)"]
+    B_cache --> B2["3 lint (Turbo leaf)"]
+    B_cache --> B3["4 deps (Turbo leaf)"]
+    B_cache --> B4["5 typecheck (Turbo leaf)"]
+    B_cache --> B5["6 coverage:baseline (Turbo leaf)"]
+    B0 & B1 & B2 & B3 & B4 & B5 --> B6["//#check:gate aggregate"]
+    B6 --> B7["pack:dry-run (CI only)"]
 
     A --> C{smoke trigger?}
     C -->|push to main/v-next or 'smoke' label| D[smoke job]
     D --> D1["vitest run --project smoke-real"]
 ```
 
-The `check` job (all nine steps plus `pack:dry-run`) is a required branch-protection
-check. `pack:dry-run` runs only in CI because it exercises packaging metadata that is
-meaningless before `pnpm install` with a lockfile.
+The `check` job (all six leaf tasks via Turbo, plus `pack:dry-run`) is a required
+branch-protection check. `pack:dry-run` runs only in CI because it exercises packaging
+metadata that is meaningless before `pnpm install` with a lockfile.
 
 The `smoke` job runs `vitest run --project smoke-real`. It fires on pushes to `main`
 or `v-next`, or on PRs labelled `smoke`. It is **not** a required branch-protection
