@@ -1,0 +1,14 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "rootDir": "../../../.."
+  },
+  "include": [
+    "./fixtures/gate-record-bad-schema.fixture.ts",
+    "./fixtures/attestation-ref-missing-expiry.fixture.ts",
+    "./fixtures/policy-decision-missing-permits.fixture.ts",
+    "./fixtures/failure-reason-unknown.fixture.ts"
+  ]
+}

@@ -1,3 +1,15 @@
+export type {
+  AttestationRef,
+  CapabilityGateFailureReason,
+  CapabilityGatePolicyDecision,
+  CapabilityGateRecordPayload,
+  CapabilityGateRequest,
+  CapabilityGateScope,
+  GateDecision,
+  GuaranteeEvaluation,
+  ProviderDomain,
+} from './core/capability/evaluator/index.js';
+export { evaluateCapabilityGate } from './core/capability/evaluator/index.js';
 export * from './core/capability/registry/index.js';
 export type {
   AnalysisFailure,
