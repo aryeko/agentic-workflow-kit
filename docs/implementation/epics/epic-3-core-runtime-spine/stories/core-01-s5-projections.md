@@ -70,10 +70,11 @@ Done requires every item here present with the design's names, shapes, and seman
   `occurredAt` timestamps from envelopes), `firstRecordedAt?` (earliest `recordedAt` in stream),
   `lastRecordedAt?` (latest `recordedAt` in stream).
 - `launch` reducer: extract `policyDigest?` (from `RunPolicyBoundPayload`),
-  `taskSnapshotDigest?` (from `TaskSnapshotRecordedPayload`), `linkage` (`"known"` when the
-  non-superseded link is `linkRole = "primary"` or `"recovery"`, `"unknown"` when no non-superseded
-  link exists, `"ambiguous"` when multiple non-superseded links conflict per the
-  `core-01-s3-lifecycle-and-linkage` resolution rules), `currentSession?` (the latest
+  `taskSnapshotDigest?` (from `TaskSnapshotRecordedPayload`), `linkage` (`"known"` when exactly one
+  latest non-superseded link is resolvable, `"unknown"` when no non-superseded link exists **or** when
+  multiple conflicting non-superseded links make the owner ambiguous — ambiguous folds to `"unknown"`
+  for the launch projection per the design and the `core-01-s3-lifecycle-and-linkage` resolution
+  rules), `currentSession?` (the latest
   non-superseded `SessionLinkedPayload`), and `linkHistory[]` (all `SessionLinkedPayload`s in
   ordinal order, unfiltered).
 - Enforce projection purity: reducers do not call append APIs, do not write projection files, do not
@@ -182,12 +183,14 @@ Done requires every item here present with the design's names, shapes, and seman
   `launch-projection.unit.test.ts` builds a fixture with `RunPolicyBound`, `TaskSnapshotRecorded`,
   and two `SessionLinked` envelopes and asserts all three fields (pass).
 
-- **AC-10** `launch.linkage` is `"known"` when the latest non-superseded link has `linkRole =
-  "primary"` or `"recovery"`, `"unknown"` when no non-superseded link exists, and `"ambiguous"`
-  when the linkage resolution rules in `core-01-s3-lifecycle-and-linkage` produce an ambiguous
-  result — evidence: `launch-linkage.unit.test.ts` provides three fixtures (no links, one primary
-  link, two conflicting non-superseded links) and asserts `linkage` is `"unknown"`, `"known"`, and
-  `"ambiguous"` respectively (pass on all three).
+- **AC-10** `launch.linkage` is `"known"` when exactly one latest non-superseded session link is
+  resolvable (an unambiguous owner), and `"unknown"` when no non-superseded link exists **or** when
+  multiple conflicting non-superseded links make the owner ambiguous — ambiguous linkage folds to
+  `"unknown"` for the launch projection per the design (`projections-lifecycle-and-tests.md`
+  §Session linkage: "Missing or ambiguous linkage projects to `launch.linkage = "unknown"`") and the
+  `core-01-s3-lifecycle-and-linkage` resolution rules — evidence: `launch-linkage.unit.test.ts`
+  provides three fixtures (no links, one link, two conflicting non-superseded links) and asserts
+  `linkage` is `"unknown"`, `"known"`, and `"unknown"` respectively (pass on all three).
 
 - **AC-11** When a `SessionLinkSuperseded` event supersedes link ordinal N, that link's
   `SessionLinkedPayload` is excluded from `launch.currentSession` and contributes to
@@ -233,7 +236,7 @@ Every responsibility and spec-surface item maps to a proving AC; every AC maps b
 | `metrics.retryCount`: only recovery-authority re-entry lifecycle transitions | AC-7 |
 | `metrics.parkedMs`: sum of parked intervals; open interval = zero | AC-8 |
 | `launch.policyDigest` / `taskSnapshotDigest` / `linkHistory` | AC-9 |
-| `launch.linkage` resolution (`known`/`unknown`/`ambiguous`) | AC-10 |
+| `launch.linkage` resolution (`known`/`unknown`; ambiguous folds to `unknown`) | AC-10 |
 | `launch.currentSession` / supersession exclusion | AC-11 |
 | Projection purity: no append, no file writes, no live-state reads | AC-12 |
 | `RunReplayFailure` propagation from `replay()` | AC-13 |

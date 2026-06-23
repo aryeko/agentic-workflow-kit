@@ -49,8 +49,11 @@ What the normative design defines and the implementation must expose or consume,
   - `malformed-envelope` — a committed frame decodes but the resulting object fails the
     `RunEventEnvelope` contract (missing required field, wrong schema string, non-contiguous sequence,
     or other shape violation).
-  - `interior-corrupt` — fnd-02 reports `log-interior-corrupt`; marks `degradedHealth =
-    "interior-corrupt"` and refuses authoritative reads-for-mutation.
+  - `interior-corrupt` — fnd-02 reports `log-interior-corrupt`; replay fails closed, returning
+    `RunReplayFailure { code: "interior-corrupt", healthRecords: [RunLogCorruptionRecord { kind:
+    "interior-corrupt" }] }` (committed history is incoherent, so no trustworthy ordered stream can be
+    served). The §Corruption-handling degraded recovery-read over read-only evidence is a separate
+    core-06 path (Epic 5), not this canonical `replay()`.
   - `event-log-unavailable` — fnd-02 reports `network-fs-degraded`, `read-only`, or `unusable`;
     returns `RunReplayFailure { code: "event-log-unavailable", ... }`.
   - `malformed-declared-payload` — a frame for a core-01 declared-relevant event type (`RunLifecycleTransitioned`,
@@ -84,9 +87,12 @@ Done requires every item here present with the design's names, shapes, and seman
   fnd-02 health signal, add it to `healthRecords`, set `health = "tail-repaired"`, and return a
   successful `RunReplay` (tail-repaired is usable, not a failure).
 - For `log-interior-corrupt`: assemble a `RunLogCorruptionRecord { kind: "interior-corrupt", ... }`,
-  add it to `healthRecords`, set `health = "interior-corrupt"`, and return a successful `RunReplay`
-  with `degradedHealth = "interior-corrupt"` so the caller (gate evaluator, mutation guard) can refuse
-  authoritative reads-for-mutation.
+  add it to `healthRecords`, and return `RunReplayFailure { code: "interior-corrupt", healthRecords }`
+  — fail closed (incoherent committed history yields no trustworthy ordered stream), so downstream
+  `project()` and `waitRunEvents()` propagate the failure rather than acting on corrupt data. (The
+  design's §Corruption-handling "mark projections degraded / recover from read-only evidence" is the
+  core-06 recovery path in Epic 5, which consumes the `interior-corrupt` `healthRecords`; it is not
+  this canonical `replay()`.)
 - For `network-fs-degraded | read-only | unusable`: assemble a `RunLogHealthRecord { kind:
   "event-log-unavailable", ... }` and return `RunReplayFailure { code: "event-log-unavailable",
   healthRecords }`.
@@ -162,12 +168,12 @@ Done requires every item here present with the design's names, shapes, and seman
   "log-tail-repaired"`.
 
 - **AC-6** Given a fnd-02 store reporting `storageHealth === "log-interior-corrupt"`, `replay(runId)`
-  returns `{ ok: true, value: RunReplay }` with `health === "interior-corrupt"` and
-  `healthRecords` containing exactly one `RunLogCorruptionRecord { kind: "interior-corrupt" }`, so that
-  callers can detect and refuse authoritative reads-for-mutation - evidence:
-  `replay-interior-corrupt.unit.test.ts` uses a fault-injected store; asserts `ok === true`,
-  `value.health === "interior-corrupt"`, `value.healthRecords[0].kind === "interior-corrupt"`,
-  `value.healthRecords[0].storageHealth === "log-interior-corrupt"`.
+  fails closed, returning `{ ok: false, error: RunReplayFailure { code: "interior-corrupt" } }` whose
+  `error.healthRecords` contains exactly one `RunLogCorruptionRecord { kind: "interior-corrupt" }`, so
+  downstream `project()`/`waitRunEvents()` propagate the failure rather than serving incoherent history
+  - evidence: `replay-interior-corrupt.unit.test.ts` uses a fault-injected store; asserts
+  `ok === false`, `error.code === "interior-corrupt"`, `error.healthRecords[0].kind ===
+  "interior-corrupt"`, `error.healthRecords[0].storageHealth === "log-interior-corrupt"`.
 
 - **AC-7** Given a fnd-02 store reporting `storageHealth === "network-fs-degraded"` (and independently
   `"read-only"` and `"unusable"`), `replay(runId)` returns
@@ -203,14 +209,14 @@ Done requires every item here present with the design's names, shapes, and seman
 | Envelope validation: non-contiguous sequences → `malformed-envelope` | AC-3 |
 | Declared-payload validation: invalid `RunLifecycleTransitionPayload` → `malformed-declared-payload` | AC-4 |
 | `log-tail-repaired` → usable `RunReplay`, `health = "tail-repaired"`, `RunLogCorruptionRecord { kind: "tail-repaired" }` | AC-5, AC-9 |
-| `log-interior-corrupt` → usable `RunReplay`, `health = "interior-corrupt"`, `RunLogCorruptionRecord { kind: "interior-corrupt" }` | AC-6 |
+| `log-interior-corrupt` → `RunReplayFailure { code: "interior-corrupt" }` (fail-closed), `RunLogCorruptionRecord { kind: "interior-corrupt" }` in `healthRecords` | AC-6 |
 | `network-fs-degraded` / `read-only` / `unusable` → `RunReplayFailure { code: "event-log-unavailable" }` | AC-7 |
 | Determinism: same byte sequence → same `RunReplay` output | AC-8 |
 | `RunLogTailRepairedPayload` fields mapped to `RunLogCorruptionRecord` fields | AC-9 |
 | `replay()` public SDK export | AC-10 |
 | `core-01-s1-event-contracts/RunReplay` shape consumed (not redeclared) | AC-1 |
 | `core-01-s1-event-contracts/RunEventEnvelope` consumed | AC-1, AC-2, AC-3 |
-| `core-01-s1-event-contracts/RunReplayFailure` consumed | AC-2, AC-3, AC-4, AC-7 |
+| `core-01-s1-event-contracts/RunReplayFailure` consumed | AC-2, AC-3, AC-4, AC-6, AC-7 |
 | `core-01-s1-event-contracts/RunLogHealthRecord` (including `RunLogCorruptionRecord`) produced | AC-5, AC-6, AC-7, AC-9 |
 | `core-01-s1-event-contracts/RunDegradedHealth` mapping | AC-5, AC-6, AC-7 |
 | `core-01-s1-event-contracts/RunLogTailRepairedPayload` consumed | AC-9 |
@@ -221,7 +227,7 @@ Done requires every item here present with the design's names, shapes, and seman
 |---|---|---|---|
 | `malformed-envelope` | A committed frame decodes but the resulting object violates the `RunEventEnvelope` contract (missing required field such as `schema`, wrong schema string, wrong field type, non-contiguous sequence, or mismatched `runId`) | Return `{ ok: false, error: RunReplayFailure { code: "malformed-envelope", healthRecords } }`; include any health records accumulated before detection | AC-2 (missing field), AC-3 (non-contiguous sequence) |
 | `malformed-declared-payload` | A frame for a core-01 declared-relevant type (`RunLifecycleTransitioned`, `SessionLinked`, `SessionLinkSuperseded`, `RunLogTailRepaired`, `RunAppendRejected`) has a payload that fails its declared schema | Return `{ ok: false, error: RunReplayFailure { code: "malformed-declared-payload", healthRecords } }` | AC-4 |
-| `interior-corrupt` | fnd-02 reports `storageHealth === "log-interior-corrupt"` | Return `{ ok: true, value: RunReplay { health: "interior-corrupt", healthRecords: [RunLogCorruptionRecord { kind: "interior-corrupt" }], ... } }`; caller must refuse authoritative reads-for-mutation | AC-6 |
+| `interior-corrupt` | fnd-02 reports `storageHealth === "log-interior-corrupt"` | Fail closed: return `{ ok: false, error: RunReplayFailure { code: "interior-corrupt", healthRecords: [RunLogCorruptionRecord { kind: "interior-corrupt" }] } }`; downstream `project()`/`waitRunEvents()` propagate it (the degraded recovery-read is core-06/Epic 5) | AC-6 |
 | `event-log-unavailable` | fnd-02 reports `storageHealth` of `"network-fs-degraded"`, `"read-only"`, or `"unusable"` | Return `{ ok: false, error: RunReplayFailure { code: "event-log-unavailable", healthRecords: [{ kind: "event-log-unavailable", storageHealth: <injected value> }] } }` | AC-7 |
 | `tail-repaired` (degraded health — not a failure) | fnd-02 reports `storageHealth === "log-tail-repaired"` | Return `{ ok: true, value: RunReplay { health: "tail-repaired", healthRecords: [RunLogCorruptionRecord { kind: "tail-repaired", ... }], ... } }`; log is usable; caller may proceed | AC-5, AC-9 |
 
@@ -263,8 +269,9 @@ Done requires every item here present with the design's names, shapes, and seman
 - Domain non-negotiables:
   - Tail-repaired is a usable result, not a failure; callers that need mutation-safety must inspect
     `health` themselves.
-  - Interior-corrupt returns `ok: true` with `health = "interior-corrupt"`; callers that refuse
-    authoritative reads-for-mutation must check `health` — `replay()` does not gate callers.
+  - Interior-corrupt fails closed: `replay()` returns `RunReplayFailure { code: "interior-corrupt" }`
+    (with the `RunLogCorruptionRecord` in `healthRecords`); it never serves incoherent committed history
+    as a successful `RunReplay`. The degraded recovery-read over read-only evidence is core-06/Epic 5.
   - Replay output is deterministic: same fnd-02 byte sequence → same `RunReplay` every time.
   - Declared-payload validation covers only core-01 declared-relevant types; well-formed unknown future
     payloads are preserved in `events` and do not fail replay.

@@ -415,15 +415,17 @@ exact `failureReason`) against its own negative fixture — never a happy-path e
 ### Forbidden-symbol sweep (runnable recipe)
 
 ```sh
-grep -REn "execa|child_process|node:net|node:http|node:https|@octokit|net\\.connect|spawn\\(|new WebSocket|RunWriter|RunEventLog|\\.append\\(|\"barrier\"|gate-record-unwritable|testkit|provider-(codex|local|github|markdown)|interface CapabilityAttestation|type CapabilityAttestation|type CapabilityId|Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID" \
+grep -REn "execa|child_process|node:net|node:http|node:https|@octokit|net\\.connect|spawn\\(|new WebSocket|RunWriter|RunEventLog|\\.append\\(|\"barrier\"|testkit|provider-(codex|local|github|markdown)|interface CapabilityAttestation|type CapabilityAttestation|type CapabilityId|Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID" \
   packages/sdk/src/core/capability/evaluator/
 ```
 
 - Path root: `packages/sdk/src/core/capability/evaluator/`.
 - Forbidden-token set: `execa`, `child_process`, `node:net`, `node:http`, `node:https`, `@octokit`,
   `net.connect`, `spawn(`, `new WebSocket` (process/network leaks); `RunWriter`, `RunEventLog`,
-  `.append(`, `"barrier"`, `gate-record-unwritable` (the append-at-barrier behavior owned by
-  `core-02-s3`); `testkit`, `provider-codex|local|github|markdown` (forbidden package edges);
+  `.append(`, `"barrier"` (the append-at-barrier behavior owned by `core-02-s3`; the token
+  `gate-record-unwritable` is intentionally **not** swept — it is a legitimate member of this story's
+  `CapabilityGateFailureReason` union declaration, and non-raising is proven by the absence of the
+  append/`barrier`/`RunWriter` machinery); `testkit`, `provider-codex|local|github|markdown` (forbidden package edges);
   `interface/type CapabilityAttestation`, `type CapabilityId` (redeclaring a consumed shape);
   `Date.now`, `new Date(`, `Math.random`, `crypto.randomUUID` (ambient nondeterminism).
 - Expected result: zero matches (exit code 1, no lines), captured into the evidence pack, plus the
