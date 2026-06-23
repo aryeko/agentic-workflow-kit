@@ -1,0 +1,62 @@
+[
+  {
+    "id": "positive-post-run-retro",
+    "query": "Run a post-run retro for the orchestrated-delivery package we just completed.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-self-improvement",
+    "query": "Analyze review rounds, findings, token use, and elapsed time from the completed delivery run.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-needs-handles",
+    "query": "Use the session JSONL, PR, workers, and git range to summarize delivery churn.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-retro-lessons",
+    "query": "Which recurring finding classes from the last delivery should feed self-improvement?",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "positive-observability-summary",
+    "query": "Create a delivery observability summary from the execution tracker and rollout JSONL.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "negative-execute-package",
+    "query": "Use $orchestrated-delivery to execute this ready package.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-create-package",
+    "query": "Use $plan-delivery to create the execution tracker and worker prompts.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-pr-review-followup",
+    "query": "Fix the unresolved PR review threads and push the changes.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-skill-authoring",
+    "query": "Create a new skill for analyzing PDF documents.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-status-only",
+    "query": "What is the current PR status?",
+    "should_trigger": false,
+    "split": "validation"
+  }
+]
