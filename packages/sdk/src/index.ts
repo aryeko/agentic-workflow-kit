@@ -24,6 +24,29 @@ export type {
   AnalysisTriggerKind,
 } from './core/observability/analyzer/index.js';
 export { analyze, classifyTrigger } from './core/observability/analyzer/index.js';
+export type { AnalysisFailureReason, RecordableAnalysisFailureReason } from './core/observability/analyzer/types.js';
+export type {
+  AnalysisFailedPayload,
+  AnalysisPayload,
+  AnalysisRecordCommit,
+  AnalysisRecordedPayload,
+  AnalysisRecordFailure,
+  AnalysisRecordInput,
+  AnalysisRecordOptions,
+  AnalysisReportRefCandidate,
+  TerminalAnalysisInvariantResult,
+} from './core/observability/records/index.js';
+export {
+  buildAnalysisFailedPayload,
+  buildAnalysisRecordedPayload,
+  checkTerminalAnalysisInvariant,
+  createAnalysisEventId,
+  createAnalysisKey,
+  createAnalysisPayloadDigest,
+  isRedactedWriteOnceArtifactRef,
+  recordAnalysisOutcome,
+  resolveExistingAnalysisRecord,
+} from './core/observability/records/index.js';
 export * from './core/observability/telemetry/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
