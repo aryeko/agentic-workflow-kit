@@ -1,0 +1,38 @@
+import { describe, expect, it } from 'vitest';
+
+import { createHarness, runId } from './test-support.js';
+
+describe('RunEventLog.createRun', () => {
+  it('acquires the first run writer lease and commits RunCreated plus created lifecycle in one barrier batch', () => {
+    const harness = createHarness();
+
+    const result = harness.log.createRun({
+      runId,
+      holder: 'holder-1',
+      leaseTtlMs: 60_000,
+      idempotencyKey: 'idempotency-1',
+      createdAt: '2026-06-23T12:00:00.000Z',
+      payload: {
+        idempotencyKey: 'idempotency-1',
+        requestedBy: 'operator-1',
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(harness.appendCalls).toHaveLength(1);
+
+    const [call] = harness.appendCalls;
+    expect(call.batch.durability).toBe('barrier');
+    expect(call.batch.expectedSequence).toBe(1);
+    expect(call.envelopes).toHaveLength(2);
+    expect(call.envelopes[0].type).toBe('RunCreated');
+    expect(call.envelopes[0].sequence).toBe(1);
+    expect(call.envelopes[1].type).toBe('RunLifecycleTransitioned');
+    expect(call.envelopes[1].sequence).toBe(2);
+    expect(call.envelopes[1].payload).toMatchObject({
+      from: null,
+      to: 'created',
+      sourceEventIds: [call.envelopes[0].eventId],
+    });
+  });
+});

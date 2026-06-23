@@ -1,0 +1,70 @@
+import { describe, expect, it } from 'vitest';
+
+import { appendIntent, createHarness, expectFailureCode, lifecyclePayload, runId } from './test-support.js';
+
+const storageFailure = (code: 'stale-writer-fenced' | 'log-interior-corrupt' | 'network-fs-degraded') => ({
+  code,
+  message: `storage:${code}`,
+  health:
+    code === 'log-interior-corrupt'
+      ? ('log-interior-corrupt' as const)
+      : code === 'network-fs-degraded'
+        ? ('network-fs-degraded' as const)
+        : ('ok' as const),
+});
+
+describe('RunWriter lifecycle validation', () => {
+  it('returns illegal-lifecycle-transition and authors RunAppendRejected while writable', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    const result = writer.ok
+      ? writer.value.append([
+          appendIntent('RunLifecycleTransitioned', lifecyclePayload('created', 'running'), {
+            durability: 'durable',
+          }),
+        ])
+      : writer;
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+    expect(harness.appendCalls).toHaveLength(1);
+    expect(harness.appendCalls[0].batch.durability).toBe('durable');
+    expect(harness.appendCalls[0].envelopes).toHaveLength(1);
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+    expect(harness.appendCalls[0].envelopes[0].durability).toBe('durable');
+    expect(harness.appendCalls[0].envelopes[0].payload).toMatchObject({
+      failureCode: 'illegal-lifecycle-transition',
+    });
+  });
+
+  it('returns storage failure when RunAppendRejected cannot be durably authored', () => {
+    for (const fixture of [
+      { storageCode: 'log-interior-corrupt' as const, expectedCode: 'interior-corrupt' as const },
+      { storageCode: 'network-fs-degraded' as const, expectedCode: 'event-log-unavailable' as const },
+      { storageCode: 'stale-writer-fenced' as const, expectedCode: 'stale-writer-fenced' as const },
+    ]) {
+      const harness = createHarness({
+        appendOutcomes: [storageFailure(fixture.storageCode)],
+      });
+      harness.seedCreatedRun();
+      const writer = harness.log.openWriter(runId, harness.acquireLease());
+      expect(writer.ok).toBe(true);
+
+      const result = writer.ok
+        ? writer.value.append([
+            appendIntent('RunLifecycleTransitioned', lifecyclePayload('created', 'running'), {
+              durability: 'durable',
+            }),
+          ])
+        : writer;
+
+      expectFailureCode(result, fixture.expectedCode);
+      if (!result.ok) {
+        expect(result.error.rejection).toBeUndefined();
+      }
+      expect(harness.records.map((record) => harness.decode(record.payload).type)).not.toContain('RunAppendRejected');
+    }
+  });
+});

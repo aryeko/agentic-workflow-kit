@@ -1,0 +1,190 @@
+import { describe, expect, it } from 'vitest';
+
+import type { StorageError } from '../../../../src/index.js';
+
+import { appendIntent, createHarness, expectFailureCode, runId } from './test-support.js';
+
+const storageError = (code: StorageError['code'], health: StorageError['health']): StorageError => ({
+  code,
+  message: `storage:${code}`,
+  health,
+});
+
+describe('RunEventLog and RunWriter edge failures', () => {
+  it('returns event-log-unavailable when createRun cannot acquire the first lease', () => {
+    const harness = createHarness();
+    harness.leaseStore.acquire = () => storageError('lease-unavailable', 'network-fs-degraded');
+
+    const result = harness.log.createRun({
+      runId,
+      holder: 'holder-1',
+      leaseTtlMs: 60_000,
+      idempotencyKey: 'idempotency-1',
+      createdAt: '2026-06-23T12:00:00.000Z',
+      payload: {
+        idempotencyKey: 'idempotency-1',
+        requestedBy: 'operator-1',
+      },
+    });
+
+    expectFailureCode(result, 'event-log-unavailable');
+  });
+
+  it('surfaces createRun append storage failures and partial acknowledgements', () => {
+    const failed = createHarness({
+      appendOutcomes: [storageError('log-interior-corrupt', 'log-interior-corrupt')],
+    });
+    const failure = failed.log.createRun({
+      runId,
+      holder: 'holder-1',
+      leaseTtlMs: 60_000,
+      idempotencyKey: 'idempotency-1',
+      createdAt: '2026-06-23T12:00:00.000Z',
+      payload: {
+        idempotencyKey: 'idempotency-1',
+        requestedBy: 'operator-1',
+      },
+    });
+    expectFailureCode(failure, 'interior-corrupt');
+
+    const partial = createHarness({
+      appendOutcomes: [{ acknowledged: true, durability: 'buffered', expectedSequence: 1 }],
+    });
+    const partialResult = partial.log.createRun({
+      runId,
+      holder: 'holder-1',
+      leaseTtlMs: 60_000,
+      idempotencyKey: 'idempotency-1',
+      createdAt: '2026-06-23T12:00:00.000Z',
+      payload: {
+        idempotencyKey: 'idempotency-1',
+        requestedBy: 'operator-1',
+      },
+    });
+    expectFailureCode(partialResult, 'partial-ack-unknown');
+  });
+
+  it('rejects empty batches and session ordinal gaps before attempting the requested append', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (writer.ok) {
+      expectFailureCode(writer.value.append([]), 'sequence-conflict');
+      expectFailureCode(
+        writer.value.append([
+          appendIntent(
+            'SessionLinked',
+            {
+              linkOrdinal: 2,
+              sessionId: 'session-2',
+              linkRole: 'primary',
+              startedAt: '2026-06-23T12:01:00.000Z',
+              sourceEventId: 'source:2',
+            },
+            { durability: 'barrier' },
+          ),
+        ]),
+        'illegal-lifecycle-transition',
+      );
+    }
+  });
+
+  it('maps append storage errors without returning a receipt', () => {
+    const stale = createHarness({
+      appendOutcomes: [storageError('stale-writer-fenced', 'ok')],
+    });
+    stale.seedCreatedRun();
+    const staleWriter = stale.log.openWriter(runId, stale.acquireLease());
+    expect(staleWriter.ok).toBe(true);
+    if (staleWriter.ok) {
+      expectFailureCode(staleWriter.value.append([appendIntent('SiblingFact', { ok: true })]), 'stale-writer-fenced');
+    }
+
+    const unavailable = createHarness({
+      appendOutcomes: [storageError('network-fs-degraded', 'read-only')],
+    });
+    unavailable.seedCreatedRun();
+    const unavailableWriter = unavailable.log.openWriter(runId, unavailable.acquireLease());
+    expect(unavailableWriter.ok).toBe(true);
+    if (unavailableWriter.ok) {
+      expectFailureCode(
+        unavailableWriter.value.append([appendIntent('SiblingFact', { ok: true })]),
+        'event-log-unavailable',
+      );
+    }
+  });
+
+  it('maps openForAppend and malformed replay failures to sequence-conflict', () => {
+    const openFailure = createHarness();
+    openFailure.seedCreatedRun();
+    openFailure.eventLogStore.openForAppend = () => storageError('lease-unavailable', 'ok');
+    const openFailureWriter = openFailure.log.openWriter(runId, openFailure.acquireLease());
+    expect(openFailureWriter.ok).toBe(true);
+    if (openFailureWriter.ok) {
+      expectFailureCode(
+        openFailureWriter.value.append([appendIntent('SiblingFact', { ok: true })]),
+        'sequence-conflict',
+      );
+    }
+
+    const malformedReplay = createHarness();
+    malformedReplay.seedCreatedRun();
+    malformedReplay.records.push({
+      sequence: 4,
+      writerEpoch: 1,
+      leaseName: `run-writer:${runId}`,
+      payloadLength: 1,
+      payloadDigest: 'bad',
+      frameDigest: 'bad-frame',
+      byteRange: { start: 4, end: 5 },
+      payload: new TextEncoder().encode('{'),
+    });
+    const malformedWriter = malformedReplay.log.openWriter(runId, malformedReplay.acquireLease());
+    expect(malformedWriter.ok).toBe(true);
+    if (malformedWriter.ok) {
+      expectFailureCode(malformedWriter.value.append([appendIntent('SiblingFact', { ok: true })]), 'sequence-conflict');
+    }
+  });
+
+  it('rejects barrier-owned event types when requested as durable', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+    if (writer.ok) {
+      expectFailureCode(
+        writer.value.append([
+          appendIntent(
+            'RunPolicyBound',
+            {
+              policyDigest: 'sha256:policy',
+              provenanceRef: 'policy/ref',
+            },
+            { durability: 'durable' },
+          ),
+        ]),
+        'durability-insufficient',
+      );
+    }
+  });
+
+  it('renews only with a currently fenced lease', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const lease = harness.acquireLease();
+    const writer = harness.log.openWriter(runId, lease);
+    expect(writer.ok).toBe(true);
+
+    const renewed = harness.leaseStore.renew(lease.name, lease.epoch, lease.token, 60_000);
+    if ('code' in renewed) {
+      throw new Error('expected renewed lease');
+    }
+
+    if (writer.ok) {
+      expect(writer.value.renew(renewed).ok).toBe(true);
+      expectFailureCode(writer.value.renew(lease), 'stale-writer-fenced');
+    }
+  });
+});
