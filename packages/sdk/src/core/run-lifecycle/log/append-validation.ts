@@ -37,21 +37,34 @@ const legalEdgeMap: ReadonlyMap<string, (typeof LIFECYCLE_LEGAL_EDGE_CATALOG)[nu
 const isSessionLinkedPayload = (value: unknown): value is SessionLinkedPayload =>
   Boolean(value && typeof value === 'object' && 'linkOrdinal' in value && 'sessionId' in value && 'linkRole' in value);
 
-const referencedEventId = (sourceEventId: string, expectedType: string): string =>
-  sourceEventId.startsWith(`${expectedType}:`) ? sourceEventId.slice(expectedType.length + 1) : sourceEventId;
+const referencedEvent = (
+  sourceEventId: string,
+  sourceEventsById: ReadonlyMap<string, RunEventEnvelope>,
+  expectedType: string,
+): RunEventEnvelope | undefined =>
+  sourceEventsById.get(sourceEventId) ??
+  (sourceEventId.startsWith(`${expectedType}:`)
+    ? sourceEventsById.get(sourceEventId.slice(expectedType.length + 1))
+    : undefined);
+
+const isOwningSessionLink = (event: RunEventEnvelope): boolean =>
+  event.type === 'SessionLinked' &&
+  isSessionLinkedPayload(event.payload) &&
+  (event.payload.linkRole === 'primary' || event.payload.linkRole === 'recovery');
 
 const hasCommittedReference = (
   sourceEventIds: readonly string[],
   sourceEventsById: ReadonlyMap<string, RunEventEnvelope>,
   expectedType: string,
+  predicate: (event: RunEventEnvelope) => boolean = () => true,
 ): boolean =>
   sourceEventIds.some((sourceEventId) => {
-    const referenced = sourceEventsById.get(referencedEventId(sourceEventId, expectedType));
+    const referenced = referencedEvent(sourceEventId, sourceEventsById, expectedType);
     if (referenced === undefined) {
       return false;
     }
 
-    return expectedType === 'Evidence' || referenced.type === expectedType;
+    return (expectedType === 'Evidence' || referenced.type === expectedType) && predicate(referenced);
   });
 
 const hasCommittedReferenceIn = (
@@ -75,7 +88,9 @@ const hasCommittedSourceReference = (
   const hasPrimaryReference =
     edge.constraint.kind === 'recovery-retry'
       ? hasCommittedReferenceIn(payload.sourceEventIds, sourceEventsById, RECOVERY_RETRY_EVIDENCE_EVENT_TYPES)
-      : hasCommittedReference(payload.sourceEventIds, sourceEventsById, edge.constraint.requiredEventType);
+      : edge.constraint.requiredEventType === 'SessionLinked'
+        ? hasCommittedReference(payload.sourceEventIds, sourceEventsById, 'SessionLinked', isOwningSessionLink)
+        : hasCommittedReference(payload.sourceEventIds, sourceEventsById, edge.constraint.requiredEventType);
 
   if (!hasPrimaryReference) {
     return false;

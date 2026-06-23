@@ -140,6 +140,88 @@ describe('RunWriter lifecycle validation', () => {
     expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
   });
 
+  it('accepts raw source event ids before falling back to typed shorthand', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const policy = writer.value.append([
+      appendIntent(
+        'RunPolicyBound',
+        {
+          policyDigest: 'sha256:policy',
+          provenanceRef: 'artifact://policy',
+        },
+        { eventId: 'RunPolicyBound:evt-policy', durability: 'barrier' },
+      ),
+    ]);
+    expect(policy.ok).toBe(true);
+    harness.resetAppendCalls();
+
+    const result = writer.value.append([
+      appendIntent(
+        'RunLifecycleTransitioned',
+        lifecyclePayload('created', 'configured', {
+          sourceEventIds: ['RunPolicyBound:evt-policy'],
+        }),
+        {
+          durability: 'barrier',
+        },
+      ),
+    ]);
+
+    expect(result.ok).toBe(true);
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunLifecycleTransitioned');
+  });
+
+  it('rejects running transitions that cite observer-only session links', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    harness.seedLifecycle('configured', 3);
+    harness.seedLifecycle('task-snapshotted', 4);
+    harness.seedLifecycle('workspace-ready', 5);
+    harness.seedLifecycle('worker-starting', 6);
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const observer = writer.value.append([
+      appendIntent(
+        'SessionLinked',
+        {
+          linkOrdinal: 1,
+          sessionId: 'session-observer',
+          linkRole: 'observer',
+          startedAt: '2026-06-23T12:02:00.000Z',
+          sourceEventId: 'evt-observer-source',
+        },
+        { eventId: 'evt-observer-session', durability: 'barrier' },
+      ),
+    ]);
+    expect(observer.ok).toBe(true);
+    harness.resetAppendCalls();
+
+    const result = writer.value.append([
+      appendIntent(
+        'RunLifecycleTransitioned',
+        lifecyclePayload('worker-starting', 'running', {
+          sourceEventIds: ['evt-observer-session'],
+        }),
+      ),
+    ]);
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+  });
+
   it('rejects policy cancellations without a committed policy decision event', () => {
     const harness = createHarness();
     harness.seedCreatedRun();

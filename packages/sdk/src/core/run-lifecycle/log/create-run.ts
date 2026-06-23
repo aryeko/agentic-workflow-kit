@@ -1,6 +1,7 @@
 import type { CreateRunInput, Result, RunAppendFailure, RunEventEnvelope, RunWriter } from '../contracts/index.js';
 import { createRunWriter } from './append-writer.js';
 import { appendFailure } from './failures.js';
+import { recoverLostAck } from './lost-ack-recovery.js';
 import { appendEnvelopes } from './storage.js';
 import type { RunEventLogDependencies } from './types.js';
 
@@ -63,7 +64,19 @@ export const createRun = (
     return appended.failure;
   }
 
-  if (appended.kind === 'partial' || appended.kind === 'non-durable') {
+  if (appended.kind === 'partial') {
+    const recovered = recoverLostAck({ deps, runId: input.runId, lease }, [created, transitioned], 'barrier');
+    if (!recovered.ok) {
+      return recovered;
+    }
+
+    return {
+      ok: true,
+      value: createRunWriter({ deps, runId: input.runId, lease }),
+    };
+  }
+
+  if (appended.kind === 'non-durable') {
     return appendFailure('partial-ack-unknown', 'Run creation acknowledgement was not authoritative.');
   }
 
