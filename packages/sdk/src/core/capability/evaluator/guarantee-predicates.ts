@@ -58,7 +58,7 @@ export const evaluateReplayHealthGuarantee = (
 };
 
 export const evaluateEvidenceGuarantee = (request: CapabilityGateRequest, replay: RunReplay): GuaranteeResult => {
-  const recordedEvidence = collectRecordedEvidence(replay.events);
+  const recordedEvidence = collectRecordedEvidence(replay.events, request.evaluatedAt);
   const evidenceRefs = sortEvidenceRefs(request.evidenceRefs);
 
   if (
@@ -116,7 +116,7 @@ export const evaluateEvidenceGuarantee = (request: CapabilityGateRequest, replay
 
 export const evaluateAttestationGuarantee = (request: CapabilityGateRequest, replay: RunReplay): GuaranteeResult => {
   const posture = capabilityPostureCatalog[request.capability];
-  const recordedEvidence = collectRecordedEvidence(replay.events);
+  const recordedEvidence = collectRecordedEvidence(replay.events, request.evaluatedAt);
   const attestationRefs = [];
   const evidenceRefs = [];
   let failureReason: CapabilityGateFailureReason | undefined;

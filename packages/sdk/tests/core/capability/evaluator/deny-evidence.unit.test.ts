@@ -4,7 +4,7 @@ import { evaluateCapabilityGate } from '../../../../src/core/capability/evaluato
 
 import { evidenceAbsentFixture } from './fixtures/evidence-absent.fixture.js';
 import { evidenceAmbiguousFixture } from './fixtures/evidence-ambiguous.fixture.js';
-import { createAllowAutoMergeScenario } from './shared.js';
+import { createAllowAutoMergeScenario, createEvidenceEvent, defaultEvidenceRefs } from './shared.js';
 
 describe('core-02-s2 deny required evidence failures', () => {
   it('denies missing recorded evidence refs', () => {
@@ -61,5 +61,31 @@ describe('core-02-s2 deny required evidence failures', () => {
       passed: false,
       failureReason: 'required-evidence-ambiguous',
     });
+  });
+
+  it('denies evidence recorded after the gate time', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const futureEvidenceEvents = [
+      createEvidenceEvent('evt-evidence-head-future', 7, defaultEvidenceRefs[0], {
+        value: 'abc123',
+      }),
+      createEvidenceEvent('evt-evidence-verify-future', 8, defaultEvidenceRefs[1], {
+        value: 'verified',
+      }),
+    ].map((event) => ({
+      ...event,
+      occurredAt: '2026-06-23T12:00:01.000Z',
+      recordedAt: '2026-06-23T12:00:01.000Z',
+    }));
+    const payload = evaluateCapabilityGate(
+      scenario.request,
+      {
+        ...scenario.replay,
+        events: [...futureEvidenceEvents, ...scenario.replay.events.slice(2)],
+      },
+      scenario.projections,
+    );
+
+    expect(payload.failureReason).toBe('required-evidence-absent');
   });
 });

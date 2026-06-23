@@ -97,6 +97,11 @@ const prepareRecordedPayload = async (
   return buildAnalysisRecordedPayload(input, candidateRef);
 };
 
+const prepareReplayPayload = async (input: AnalysisRecordInput): Promise<AnalysisPayload> =>
+  input.outcome.kind === 'recorded'
+    ? prepareRecordedPayload(input, {})
+    : buildAnalysisFailedPayload(input, input.outcome.failure);
+
 const appendPayload = async (
   input: AnalysisRecordInput,
   writer: RunWriter,
@@ -131,13 +136,29 @@ export const recordAnalysisOutcome = async (
   writer: RunWriter,
   options: AnalysisRecordOptions = {},
 ): Promise<Result<AnalysisRecordCommit, AnalysisRecordFailure>> => {
+  const replayPayload = await prepareReplayPayload(input);
+  const replayPayloadDigest = createAnalysisPayloadDigest(replayPayload);
+  const replayEventId = createAnalysisEventId(input, replayPayload, replayPayloadDigest);
+  const replayExisting = resolveExistingAnalysisRecord(options.replay, input, replayEventId, replayPayloadDigest);
+
+  if (replayExisting.status === 'already-committed') {
+    return { ok: true, value: replayExisting };
+  }
+
+  if (replayExisting.status === 'conflict') {
+    return failureResult(replayEventId, replayPayloadDigest, { conflict: replayExisting.conflict });
+  }
+
   const payload =
     input.outcome.kind === 'recorded'
       ? await prepareRecordedPayload(input, options)
       : buildAnalysisFailedPayload(input, input.outcome.failure);
   const payloadDigest = createAnalysisPayloadDigest(payload);
   const eventId = createAnalysisEventId(input, payload, payloadDigest);
-  const existing = resolveExistingAnalysisRecord(options.replay, input, eventId, payloadDigest);
+  const existing =
+    eventId === replayEventId && payloadDigest === replayPayloadDigest
+      ? replayExisting
+      : resolveExistingAnalysisRecord(options.replay, input, eventId, payloadDigest);
 
   if (existing.status === 'already-committed') {
     return { ok: true, value: existing };

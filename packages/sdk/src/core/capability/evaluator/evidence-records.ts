@@ -25,11 +25,16 @@ const isEvidenceSupportKind = (value: unknown): value is EvidenceSupportKind =>
 
 export const collectRecordedEvidence = (
   events: readonly RunEventEnvelope[],
+  evaluatedAt?: string,
 ): ReadonlyMap<string, readonly RecordedEvidence[]> => {
   const records = new Map<string, RecordedEvidence[]>();
 
   for (const event of events) {
     if (event.type === 'CapabilityAttestation') {
+      continue;
+    }
+
+    if (evaluatedAt !== undefined && (event.occurredAt > evaluatedAt || event.recordedAt > evaluatedAt)) {
       continue;
     }
 
