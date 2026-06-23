@@ -3,11 +3,11 @@ name: plan-epic
 description: >-
   Use only in workflow-kit when asked to author the Layer-3 story DAG and
   Layer-4 story contracts for one named ready epic, run characterization review,
-  set Gate 1 (`story-dag: frozen` plus every selected story `story: ready`),
-  and stop. Refuse missing, ambiguous, or non-ready epics; non-frozen domains or
-  design seams; wrong worktree; overwrite risk; design gaps; feature code;
-  execution packages; model/effort assignment; delivery dispatch; or docs/design
-  edits.
+  run an independent read-only review of the finished planning diff, set Gate 1
+  (`story-dag: frozen` plus every selected story `story: ready`), and stop.
+  Refuse missing, ambiguous, or non-ready epics; non-frozen domains or design
+  seams; wrong worktree; overwrite risk; design gaps; feature code; execution
+  packages; model/effort assignment; delivery dispatch; or docs/design edits.
 ---
 
 # Plan Epic
@@ -50,8 +50,18 @@ Do not work from memory or prior examples alone. The current repo artifacts win.
 6. Author each story contract against the frozen DAG. Each contract must satisfy Gates 4-6: falsifiable self-contained ACs whose evidence clause names a concrete assertion (exact value, `never`-exhaustiveness switch, named negative fixture, or a runnable sweep) — not a bare test-file path; complete spec-surface manifest; predicate-input coverage showing every runtime branch value comes from declared inputs, consumed events/projections, producer-owned fields, or an in-scope resolver; failure/degraded or validation-failure table with each token mapped to one owning AC; public exposure/import path/import test where applicable; constructability; numeric file-size budget; and runnable sweeps.
 7. Run characterization review before setting `story: ready`. A spec-reviewer can assist, but the architect owns the verdict. Record each load-bearing scope decision (node boundaries, single-producer hoists, value-type seams, cross-epic deferrals) with rationale, the design line it traces to, a falsification criterion, and an escalation path; a bare checklist or "all checks passed" summary does not satisfy the gate. Findings must quote the contradicted design line or AC and classify story-defect vs design-defect.
 8. Backfill the target epic charter README's owning-story cells for covered or split signals. Do not update the global coverage rollup for story ownership.
-9. Show Gate 1 evidence: frozen DAG, all selected stories ready, coverage closed, characterization-review evidence, and verification commands/results.
-10. Stop. Report that the next stage is `plan-delivery`.
+9. Run an independent read-only review before final Gate 1 reporting. The reviewer must be anchored
+   to the exact worktree and inspect the finished planning diff, source design traceability, story
+   DAG correctness, story-contract quality, charter ownership cells, docs-nav reachability,
+   implementation-readiness, and compliance with this skill's hard boundaries. The reviewer must not
+   edit, stage, commit, push, merge, open PRs, or start `plan-delivery`. If sub-agent tooling is not
+   available, perform a separate explicit review pass yourself and state that true independent review
+   was unavailable; do not silently mark the plan reviewed.
+10. Resolve or explicitly escalate every reviewer finding. Re-run the relevant verification after any
+    fix.
+11. Show Gate 1 evidence: frozen DAG, all selected stories ready, coverage closed,
+    characterization-review evidence, independent-review verdict, and verification commands/results.
+12. Stop. Report that the next stage is `plan-delivery`.
 
 ## Hard Boundaries
 

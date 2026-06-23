@@ -33,7 +33,7 @@ consumes Epic 4 approval, liveness, and termination facts.
 ## Frozen inputs
 
 - Epic 2 Agent and Execution Host provider ports, mocks, attestations, and conformance baseline.
-- Epic 3 run event, projection, cursor, capability gate, and analysis surfaces.
+- Epic 3 run event, projection, cursor, and capability gate surfaces.
 - Epic 1 resolved approval, escalation, and capability policy shapes.
 - `docs/implementation/domains/core/core-03-approval-and-escalation.md`.
 - `docs/implementation/domains/core/core-04-supervision-and-liveness.md`.
@@ -64,20 +64,20 @@ consumes Epic 4 approval, liveness, and termination facts.
 
 ## Per-domain expectations
 
-For each included domain, the table lists the `Story Group Signals` this epic claims. Story ownership
-stays `TBD` until the Epic 4 story DAG is frozen.
+For each included domain, the table lists the `Story Group Signals` this epic claims and the frozen
+story owner from the Epic 4 DAG.
 
 ### `core-03` - Approval & Escalation
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Neutral `ApprovalRequest`, decision, outcome, and scoped-grant records. | TBD | covered |
-| Deterministic low, medium, and high risk classification signals. | TBD | covered |
-| V1 mode ladder: policy allowlist to human, with high risk always requiring a human. | TBD | covered |
-| Pending approval persistence before decision. | TBD | covered |
-| Parked approval, resumed approval, and expired approval facts. | TBD | covered |
-| Mapping from policy-level grants to Agent-provider scoped grants. | TBD | covered |
-| Fail-closed states for missing policy, missing relay, ambiguous session linkage, expired requests, or unwritable event records. | TBD | covered |
+| Neutral `ApprovalRequest`, decision, outcome, and scoped-grant records. | `core-03-s1-approval-contracts`; `split(records behavior: core-03-s2-risk-and-decision, core-03-s3-pending-park-resume, core-03-s4-grant-mapping-and-outcome)` | split(contract, behavior) |
+| Deterministic low, medium, and high risk classification signals. | `core-03-s2-risk-and-decision` | covered |
+| V1 mode ladder: policy allowlist to human, with high risk always requiring a human. | `core-03-s2-risk-and-decision` | covered |
+| Pending approval persistence before decision. | `core-03-s3-pending-park-resume` | covered |
+| Parked approval, resumed approval, and expired approval facts. | `core-03-s3-pending-park-resume` | covered |
+| Mapping from policy-level grants to Agent-provider scoped grants. | `core-03-s4-grant-mapping-and-outcome` | covered |
+| Fail-closed states for missing policy, missing relay, ambiguous session linkage, expired requests, or unwritable event records. | `core-03-s1-approval-contracts`; `split(catalog: core-03-s1-approval-contracts, policy/risk/gate behavior: core-03-s2-risk-and-decision, pending/session/expiry/log behavior: core-03-s3-pending-park-resume, relay/channel/mapping/outcome behavior: core-03-s4-grant-mapping-and-outcome)` | split(catalog, behavior) |
 
 - Evidence expectation: Epic 4 stories leave replayable approval and grant facts that completion,
   recovery, and operator surfaces can inspect without provider-specific approval protocol behavior.
@@ -86,13 +86,13 @@ stays `TBD` until the Epic 4 story DAG is frozen.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Liveness state fold over committed events and explicit clock input. | TBD | covered |
-| Current-session event classes that advance liveness. | TBD | covered |
-| Event classes that explicitly never refresh liveness. | TBD | covered |
-| Startup, idle, no-progress, per-tool, approval-SLA, and max-runtime timer signals. | TBD | covered |
-| `waitRunEvents` wrapper behavior and cursor validation. | TBD | covered |
-| Supervisor start, liveness advanced, timer expired, supervision lost, termination requested, worker terminated, and supervisor stopped facts. | TBD | covered |
-| Fail-closed signals for unavailable cursor, ambiguous session linkage, missing progress guarantee, stale workers, overdue approvals, or unproven termination. | TBD | covered |
+| Liveness state fold over committed events and explicit clock input. | `core-04-s2-liveness-fold` | covered |
+| Current-session event classes that advance liveness. | `core-04-s2-liveness-fold` | covered |
+| Event classes that explicitly never refresh liveness. | `core-04-s2-liveness-fold` | covered |
+| Startup, idle, no-progress, per-tool, approval-SLA, and max-runtime timer signals. | `core-04-s3-timers-and-wait` | covered |
+| `waitRunEvents` wrapper behavior and cursor validation. | `core-04-s3-timers-and-wait` | covered |
+| Supervisor start, liveness advanced, timer expired, supervision lost, termination requested, worker terminated, and supervisor stopped facts. | `core-04-s1-supervision-contracts`; `split(contract: core-04-s1-supervision-contracts, behavior: core-04-s4-termination-handoff)` | split(contract, behavior) |
+| Fail-closed signals for unavailable cursor, ambiguous session linkage, missing progress guarantee, stale workers, overdue approvals, or unproven termination. | `core-04-s1-supervision-contracts`; `split(catalog: core-04-s1-supervision-contracts, liveness behavior: core-04-s2-liveness-fold, timer/wait behavior: core-04-s3-timers-and-wait, termination behavior: core-04-s4-termination-handoff)` | split(catalog, behavior) |
 
 - Evidence expectation: Epic 4 stories leave liveness and termination-handoff facts that completion
   and recovery can consume without treating parent polling, process presence, or worker prose as
@@ -115,6 +115,9 @@ stays `TBD` until the Epic 4 story DAG is frozen.
   actions are deferred to Epic 5.
 - Concrete Codex and Local provider behavior is deferred to Epic 6.
 - Operator approval entry and attention rendering are deferred to Epic 7.
+- A short timer for "decision delivered but not consumed" remains deferred until the core-04 design
+  resolves whether idle/no-progress coverage is sufficient after an approval answer. Epic 4 stories must
+  not author acceptance criteria for that timer.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

@@ -54,7 +54,27 @@ interface ApprovalResumeInput {
   decisionEventId: string;
   evaluatedAt: string;
 }
+
+interface ResumeDecision {
+  schema: "kit-vnext.approval-resume-decision.v1";
+  requestId: string;
+  runId: string;
+  sessionId: string;
+  decisionEventId: string;
+  outcome: "resume" | "expired" | "blocked";
+  grant?: ScopedGrant;
+  failureState?: ApprovalFailureState;
+  sourceEventIds: string[];
+  evaluatedAt: string;
+}
 ```
+
+`ResumeDecision` is a pure decision result for parked or pending requests. `outcome = "resume"` means
+the request is non-expired, linkage is current and non-ambiguous, the session is owned or owned-remote,
+and the committed decision event carries a grant that can be pre-loaded into the Agent answer call.
+`outcome = "expired"` is used only when the request reached `decisionDeadline`. `outcome = "blocked"`
+names the missing guarantee through `failureState`. It is not itself an event; a successful resume is
+durably recorded by `ApprovalResumed`, then closed by `ApprovalOutcomeRecorded`.
 
 Operator mapping note: the Operator surface may request grant, deny, or park. `requestedScope` is the
 typed `PolicyGrantScope` enum on `ApprovalRequest`, never a free string; the recorded Operator
@@ -92,6 +112,76 @@ Emitted events use `domain = "core-03"` and the core-01 `RunEventEnvelope`.
 - `ApprovalInputJudgmentRecorded` (`barrier`, future): optional recorded input for later LLM
   judgment; not evaluated in v1 and never replayable logic.
 
+V1 event payloads are:
+
+```ts
+interface ApprovalRequestedPayload {
+  schema: "kit-vnext.approval-requested.v1";
+  request: ApprovalRequest;
+  sourceAgentEventId: string;
+  recordedAt: string;
+}
+
+interface ApprovalPendingPersistedPayload {
+  schema: "kit-vnext.approval-pending-persisted.v1";
+  requestId: string;
+  runId: string;
+  sessionId: string;
+  answerChannelRef: string;
+  answerChannelPersistable: boolean;
+  liveAnswerDeadline?: string;
+  decisionDeadline: string;
+  policyRef: string;
+  sourceRequestEventId: string;
+  recordedAt: string;
+}
+
+interface ApprovalRiskClassifiedPayload {
+  schema: "kit-vnext.approval-risk-classified.v1";
+  requestId: string;
+  risk: ApprovalRisk;
+  triggeredRuleIds: string[];
+  evidenceEventIds: string[];
+  classifiedAt: string;
+}
+
+interface ApprovalDecisionRecordedPayload {
+  schema: "kit-vnext.approval-decision-recorded.v1";
+  decision: Decision;
+  operatorDecisionEventId?: string;
+  capabilityGateEventId?: string;
+  sourceEventIds: string[];
+}
+
+interface ApprovalParkedPayload {
+  schema: "kit-vnext.approval-parked.v1";
+  requestId: string;
+  runId: string;
+  sessionId: string;
+  reason: "live-window-elapsed" | "live-only-channel" | "operator-attention";
+  decisionDeadline: string;
+  parkedAt: string;
+  sourceEventIds: string[];
+}
+
+interface ApprovalResumedPayload {
+  schema: "kit-vnext.approval-resumed.v1";
+  requestId: string;
+  runId: string;
+  sessionId: string;
+  decisionEventId: string;
+  grant: ScopedGrant;
+  resumedAt: string;
+  sourceEventIds: string[];
+}
+
+interface ApprovalOutcomeRecordedPayload {
+  schema: "kit-vnext.approval-outcome-recorded.v1";
+  outcome: Outcome;
+  sourceEventIds: string[];
+}
+```
+
 Consumed events: `AgentApprovalRequested`, `AgentApprovalAnswered`, `AgentSessionLinked`,
 `AgentObservationDegraded`, `CapabilityAttestation`, `CapabilityGateRecord`,
 `RunLifecycleTransitioned`, `SessionLinked`, `SessionLinkSuperseded`, `ConfigResolved`, and Operator
@@ -99,6 +189,40 @@ decision events from the Operator surface.
 
 Contributed projections: pending approvals by `requestId`, latest decision/outcome, current
 operator-attention reason, and approval failure state. Projections are pure folds over the Event log.
+
+```ts
+interface PendingApprovalProjection {
+  requestId: string;
+  runId: string;
+  sessionId: string;
+  state: ApprovalState;
+  requestEventId: string;
+  pendingEventId: string;
+  latestDecisionEventId?: string;
+  latestOutcomeEventId?: string;
+  parkedEventId?: string;
+  resumedEventId?: string;
+  answerChannelRef: string;
+  answerChannelPersistable: boolean;
+  liveAnswerDeadline?: string;
+  decisionDeadline: string;
+  policyRef: string;
+  failureState?: ApprovalFailureState;
+}
+
+interface ApprovalProjection {
+  runId: string;
+  pendingByRequestId: Record<string, PendingApprovalProjection>;
+  latestDecisionByRequestId: Record<string, Decision>;
+  latestOutcomeByRequestId: Record<string, Outcome>;
+  operatorAttention?: {
+    requestId: string;
+    reason: "human-required" | "parked";
+    sourceEventId: string;
+  };
+  failureStateByRequestId: Record<string, ApprovalFailureState>;
+}
+```
 
 ## Testing strategy
 
