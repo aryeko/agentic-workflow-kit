@@ -1,58 +1,76 @@
 # Reviewer Prompt Reference
 
-Write each `execution/prompts/<story-id>/reviewer.md` as a reusable review template for a later
-execution run. Keep it self-contained enough for the reviewer to judge the submitted implementation
-without guessing story scope, boundaries, or evidence requirements.
+Author `execution/prompts/<story-id>/reviewer.md` as a self-contained review contract for one later
+reviewer worker. The reviewer verifies implementation against the original story and runtime
+evidence; it does not change code or delivery state.
 
-Adjacent responsibilities live in `implementer-prompt.md`, `plan-artifact.md`,
-`tracker-artifact.md`, and `model-routing.md`.
+## Required Sections
 
-## Required Fields
+### Assigned Routing
 
-Include these sections in every reviewer prompt:
+Record:
 
-1. **Assigned model**
-   - Set model class to `frontier-reviewer`.
-   - State effort, reasoning tier, and a brief rationale for the reviewer assignment.
+- source story id;
+- source `AC-n` ids covered by this prompt;
+- model class `frontier-reviewer`;
+- effort;
+- suggested-tier floor;
+- reasoning tier;
+- routing rationale.
 
-2. **Original scope**
-   - State the story id.
-   - List the acceptance criteria.
-   - List the allowed pathset.
-   - List dependencies.
-   - List non-goals.
-   - List STOP conditions.
+Do not record provider-specific runtime model IDs.
 
-3. **Runtime slots**
-   - `{{IMPLEMENTER_SUMMARY}}`
-   - `{{CHANGED_FILES}}`
-   - `{{DIFF}}`
-   - `{{TARGETED_CHECK_OUTPUT}}`
-   - `{{PNPM_CHECK_OUTPUT}}`
-   - `{{EVIDENCE_PACK}}`
-   - `{{DEPENDENCY_COMMITS}}`
+### Original Scope
 
-4. **Review checklist**
-   - Verify acceptance-criteria coverage.
-   - Check failure and degraded outcomes.
-   - Check the evidence pack.
-   - Check public API and import paths.
-   - Check dependency boundaries.
-   - Check for stale names.
-   - Search for sibling occurrences of the same issue.
-   - Check tests.
-   - Check scope control.
-   - Check repo conventions.
+State:
 
-5. **Verdict format**
-   - Return `APPROVED` only when no blocking findings remain.
-   - Otherwise return severity-ordered findings.
-   - For each finding, include file and line reference, required fix, and the acceptance criterion or
-     boundary violated.
+- story id and epic slug;
+- acceptance criteria by original `AC-n` id;
+- allowed pathset;
+- dependencies and dependency inputs;
+- non-goals;
+- STOP conditions;
+- source story contract path.
 
-## Quality Standard
+### Runtime Slots
 
-Keep reviewer prompts focused on judging the implementation against the original story contract and
-runtime evidence. The reviewer may report findings and approval status only.
+Include these slots for execution-time evidence:
 
-Do not ask the reviewer to commit, push, edit files, close workers, or update tracker state.
+- `{{IMPLEMENTER_SUMMARY}}`
+- `{{CHANGED_FILES}}`
+- `{{DIFF}}`
+- `{{TARGETED_CHECK_OUTPUT}}`
+- `{{PNPM_CHECK_OUTPUT}}`
+- `{{EVIDENCE_PACK}}`
+- `{{DEPENDENCY_COMMITS}}`
+
+### Review Checklist
+
+Require the reviewer to check:
+
+- AC coverage by source `AC-n`;
+- failure, degraded, or validation rows;
+- evidence pack completeness;
+- public API and import paths;
+- dependency boundaries and committed dependency inputs;
+- stale names and sibling occurrences;
+- tests and sweeps;
+- scope control against allowed writes;
+- repo conventions and mutation limits.
+
+### Verdict Format
+
+Return `APPROVED` only when no blocking findings remain. Otherwise return severity-ordered findings.
+For each finding, include file and line reference, required fix, and the source `AC-n` or boundary
+violated.
+
+### Mutation Limits
+
+State explicitly: no staging, commits, pushes, PRs, merges, worker closure, tracker edits, package
+edits, source planning edits, or writes outside allowed paths. The reviewer only inspects the
+implementation against the original story and returns a verdict.
+
+## Limits
+
+Do not ask the reviewer to commit, push, edit files, close workers, update tracker state, widen the
+story, or repair source planning defects.

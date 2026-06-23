@@ -2,63 +2,65 @@
 name: plan-delivery
 description: >-
   Use after $plan-epic and before $orchestrated-delivery for workflow-kit/kit-vnext epics when a
-  frozen story DAG and `story: ready` contracts must be converted into a docs-only execution package
-  under `docs/implementation/epics/EPIC_SLUG/execution/`. Produces `plan.md`, `tracker.md`, and
-  per-story implementer/reviewer prompts with model class and effort assignments. Not for writing
-  feature code, running story implementation, or changing design/planning artifacts outside the
-  execution package.
+  frozen story DAG plus selected `story: ready` contracts must be projected into a docs-only
+  execution package under `docs/implementation/epics/EPIC_SLUG/execution/`. Produces plan,
+  tracker, and per-story implementer/reviewer prompts with abstract model class, effort, reasoning
+  tier, and routing rationale. Not for changing scope, acceptance criteria,
+  dependency order, suggested-tier floors, source planning artifacts, feature code, or runtime model
+  bindings.
 ---
 
 # Plan Delivery
 
-## Contract
+## Job
 
-You are the delivery planner. Convert one ready workflow-kit epic into a decision-complete
-execution package for later execution.
+Convert one ready workflow-kit epic into a durable execution package for a later
+`orchestrated-delivery` run. This skill is the bridge only: add dispatch how, prompt wording,
+tracker rows, abstract routing, and rationale. Carry the authored what unchanged.
 
-Write only:
+Write only the target epic package:
 
 - `docs/implementation/epics/<epic-slug>/execution/plan.md`
 - `docs/implementation/epics/<epic-slug>/execution/tracker.md`
 - `docs/implementation/epics/<epic-slug>/execution/prompts/<story-id>/implementer.md`
 - `docs/implementation/epics/<epic-slug>/execution/prompts/<story-id>/reviewer.md`
 
-Do not implement stories, edit `packages/`, dispatch workers, commit, push, open PRs, or modify the
-story DAG/contracts. If the execution package already exists, inspect it first and update only the
-target epic's package.
+Do not implement stories, dispatch workers, stage, commit, push, open PRs, edit source DAGs or
+story contracts, or bind provider-specific runtime model IDs.
+
+## Projection Rule
+
+Every package element must cite the source story id and `AC-n` ids it projects from. Do not add or
+revise scope, ACs, dependency order, owned pathsets, or suggested-tier floors. If a package element
+cannot be traced to a ready story contract without invention, stop and route the defect back to
+`$plan-epic`.
 
 ## Reference Routing
 
-Read only the reference files needed for the current step:
+Read only the references needed for the current step:
 
-- `references/source-readiness.md`: resolve the epic, read source planning files, validate
-  `story-dag: frozen` and `story: ready`, and verify the write location.
-- `references/package-layout.md`: apply execution package file-tree and per-epic boundary rules.
-- `references/model-routing.md`: assign abstract model classes, effort, tier, and routing rationale.
+- `references/source-readiness.md`: resolve the epic, validate Gate 1, inspect source planning
+  files, and verify the write location.
+- `references/package-layout.md`: apply package tree and docs-only write boundaries.
+- `references/model-routing.md`: choose abstract model class, effort, reasoning tier, and rationale
+  without runtime model IDs.
 - `references/plan-artifact.md`: author `execution/plan.md`.
 - `references/tracker-artifact.md`: author `execution/tracker.md`.
-- `references/implementer-prompt.md`: author each implementer prompt.
-- `references/reviewer-prompt.md`: author each reviewer prompt.
-- `references/closeout-validation.md`: validate package completeness, artifact compliance, quality,
-  source correctness, and implementation readiness.
-
-Each reference owns one responsibility. Do not duplicate field tables or schemas in this file, and
-do not make one reference carry another reference's domain.
+- `references/implementer-prompt.md`: author implementer prompts.
+- `references/reviewer-prompt.md`: author reviewer prompts.
+- `references/closeout-validation.md`: audit projection trace, package completeness, and
+  `ready_for_implementation` evidence.
 
 ## Workflow
 
-1. Use `source-readiness.md` first. Stop on ambiguous epic selection, missing files, non-frozen DAG,
-   non-ready stories, DAG/story conflicts, or wrong worktree.
-2. Use `package-layout.md` to create or update only the target epic's execution package files.
-3. Use `model-routing.md` before writing artifacts that record implementer/reviewer assignments. If
-   a ready story is too risky or underspecified for delivery packaging, stop and report the exact
-   story as blocked for `$plan-epic` or planning repair.
-4. Use `plan-artifact.md` and `tracker-artifact.md` to write the package plan and initial tracker.
-5. Use `implementer-prompt.md` and `reviewer-prompt.md` to write one prompt pair per story.
-6. Use `closeout-validation.md` to run deterministic package validation, deep artifact review, and
-   readiness reporting.
+1. Start with `source-readiness.md`. Refuse missing Gate 1 tokens, ambiguous epic selection,
+   source conflicts, source vagueness that would require invention, or the wrong worktree.
+2. Use `package-layout.md` to create or update only the selected epic's execution package.
+3. Use `model-routing.md` before writing plan, tracker, or prompts. Carry the DAG suggested-tier
+   floor unchanged and choose a reasoning tier at or above it.
+4. Use `plan-artifact.md`, `tracker-artifact.md`, `implementer-prompt.md`, and
+   `reviewer-prompt.md` to write self-contained package artifacts.
+5. Use `closeout-validation.md` to prove package completeness, projection trace, no runtime model
+   ID binding, and the final readiness verdict.
 
-Keep the package self-contained. Do not tell the later execution run to read another skill to
-discover required fields, routing classes, prompt expectations, or tracker semantics.
-
-Stop after package closeout. Do not run story implementation or invoke the later execution workflow.
+Stop after package closeout. The next stage owns execution.

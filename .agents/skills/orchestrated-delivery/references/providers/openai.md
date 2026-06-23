@@ -16,6 +16,11 @@ unless they are documenting this profile.
 | `frontier` | `gpt-5.5` | Use for critical implementation only, with high or xhigh effort and recorded rationale. |
 | `frontier-reviewer` | `gpt-5.5` | Use for every reviewer until evals justify reviewer downshifts. |
 
+## Route-specific notes
+
+- `general-coder` and `strong-coder` both map to `gpt-5.4`. Effort (tier) separates them: `general-coder` runs at standard effort (`medium`); `strong-coder` runs at elevated effort (`high`). The model is the same; the tier, not the model, distinguishes the two routes.
+- If the surface cannot pass a worker model override, keep the planned class and planned OpenAI model in the ledger, inherit the parent model as `actual_model`, and record `model override unavailable`.
+
 ## Fallbacks
 
 | Planned class/route | If unavailable | Ledger fallback reason |
@@ -25,5 +30,8 @@ unless they are documenting this profile.
 | `general-coder` or `strong-coder` using `gpt-5.4` | `gpt-5.5` | `GPT-5.4 unavailable; used frontier OpenAI implementer model` |
 | `frontier` or `frontier-reviewer` using `gpt-5.5` | Stop or ask | `required OpenAI frontier model unavailable` |
 
-If the surface cannot pass a worker model override, keep the planned class and planned OpenAI model in
-the ledger, inherit the parent model as `actual_model`, and record `model override unavailable`.
+## Fallback policy
+
+- Implementers may fall forward to the next stronger class and must record the reason.
+- Reviewers and critical implementers must not fall back to a weaker class. `gpt-5.5` is the sole
+  `frontier` / `frontier-reviewer` model; if it is unavailable, stop or ask rather than downgrade.

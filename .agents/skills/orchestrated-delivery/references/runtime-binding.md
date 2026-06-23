@@ -24,7 +24,7 @@ For each selected story, bind only:
 - worker alias and completion signal;
 - current dependency story commit hashes and tracker evidence commit hashes.
 
-Unknown runtime facts stay `TBD pending ...` until inspected. Do not invent them.
+Unknown runtime facts stay `unknown pending inspection` until inspected. Do not invent them.
 
 ## Provider Profiles
 

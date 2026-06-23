@@ -1,53 +1,63 @@
 # Source Readiness
 
-Use this reference to validate the source epic before `$plan-delivery` writes any delivery-planning
-output.
+Use this reference before writing any execution package artifact.
 
-## Resolve The Target Epic
+## Resolve The Epic
 
 1. Resolve the requested epic slug under `docs/implementation/epics/`.
-2. If the request is ambiguous, list the matching or available epic directories and ask the user
-   which epic to plan.
-3. Do not infer the target from partial matches when multiple plausible epic directories exist.
+2. If multiple epics match, ask for the exact slug.
+3. Do not infer a target from a partial match when more than one epic is plausible.
 
-## Read Required Sources
+## Read Sources
 
-Read only the source files needed to establish readiness:
+Read the smallest source set needed to prove the package can be projected:
 
-- Repo-local `AGENTS.md`
-- Repo-local `CLAUDE.md`
-- `docs/implementation/epics/<epic-slug>/README.md`
-- `docs/implementation/epics/<epic-slug>/story-dag.md`
-- Every non-index file under `docs/implementation/epics/<epic-slug>/stories/`
+- repo-local `AGENTS.md`;
+- repo-local `CLAUDE.md`, if present;
+- `docs/implementation/epics/<epic-slug>/README.md`;
+- `docs/implementation/epics/<epic-slug>/story-dag.md`;
+- every selected ready story contract under `docs/implementation/epics/<epic-slug>/stories/`.
 
-Use `story-dag.md` as the authority for delivery order, dependencies, owned pathsets, and suggested
-tiers.
+Use `story-dag.md` as authority for story ids, jobs, dependency order, waves, owned pathsets, and
+suggested-tier floors. Use story contracts as authority for acceptance criteria, source traces,
+required reading, quality bars, evidence packs, non-goals, STOP conditions, and allowed writes.
 
-Use story contract files as the authority for acceptance criteria, required reading, quality bar,
-evidence pack, STOP conditions, and allowed paths.
+If the DAG sets no suggested-tier floor for a story, there is no floor constraint — select the
+reasoning tier from story risk per `references/model-routing.md` and record "no DAG floor" in the
+routing rationale; do NOT invent a floor. When a floor does exist, the selected reasoning tier must
+be greater than or equal to that floor, consistent with `references/model-routing.md`.
 
-## Validate Readiness
+## Gate 1 Check
 
-1. Confirm `story-dag.md` frontmatter says `status: "story-dag: frozen"`.
-2. Confirm every story contract frontmatter says `status: "story: ready"`.
-3. If any source is missing, ambiguous, not frozen, or not ready, stop and report the exact file and
-   condition.
-4. If the DAG and a story contract conflict, stop and report the conflict instead of choosing a side.
+Refuse and route back to `$plan-epic` when any condition holds:
 
-## Verify The Write Location
+- the story DAG frontmatter is not `status: "story-dag: frozen"`;
+- any selected story contract is not `status: "story: ready"`;
+- a selected story lacks a stable story id, owned pathset, dependency data, suggested-tier floor
+  when required by the DAG, or ordered `AC-n` ids;
+- the DAG and story contract conflict on story id, dependencies, owned pathset, suggested tier, or
+  source scope;
+- a package element would require adding, weakening, reordering, or interpreting scope beyond the
+  frozen DAG and ready contracts.
 
-Follow the repo worktree policy before creating files. In workflow-kit, non-trivial docs work
-normally uses a worktree off `v-next`.
+This is a boolean gate check, not a second characterization review. Do not repair or improve the
+source artifacts here.
 
-Before writing, run `git rev-parse --show-toplevel` and verify it points at the intended worktree.
-If it points at the wrong checkout, stop and report the mismatch.
+## Projection Inventory
 
-## Related Reference
+Before writing package files, build a source inventory with:
 
-Use SRP references for downstream package details:
+- epic slug and source files read;
+- one row per story: story id, job, wave, dependencies, dependents, owned pathset, suggested-tier
+  floor, source story contract path, and all `AC-n` ids;
+- dependency contracts and public import paths named by the DAG or story contracts;
+- any package-blocking vagueness, reported with the exact source file and missing fact.
 
-- `package-layout.md` for package output boundaries.
-- `model-routing.md` for story routing and model decisions.
-- `plan-artifact.md` for `execution/plan.md`.
-- `tracker-artifact.md` for `execution/tracker.md`.
-- `implementer-prompt.md` and `reviewer-prompt.md` for worker prompt details.
+Every later package artifact must be traceable to this inventory.
+
+## Verify Write Location
+
+Before writing, run `git rev-parse --show-toplevel` and verify it is the intended worktree. In
+workflow-kit, non-trivial docs work normally happens in a worktree cut from `v-next`.
+
+Stop on a wrong checkout. Do not write into the main checkout by accident.

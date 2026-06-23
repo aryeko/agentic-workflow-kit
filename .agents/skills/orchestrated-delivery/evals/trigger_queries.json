@@ -1,0 +1,122 @@
+[
+  {
+    "id": "positive-ready-package-explicit",
+    "query": "Use $orchestrated-delivery for the ready_for_implementation package under docs/implementation/epics/E7/execution.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-execute-existing-package",
+    "query": "$orchestrated-delivery: execute the existing package for stories S1-S3 and stop after local commits.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-pr-authorized",
+    "query": "Use $orchestrated-delivery on the approved execution package, then open a PR and stop.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "positive-resume-packaged-run",
+    "query": "$orchestrated-delivery resume the ready package from the tracker evidence and continue dependency waves.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "positive-boundary-review-wait",
+    "query": "$orchestrated-delivery execute the ready package and wait for review after PR publication.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-package-refusal-check",
+    "query": "Use $orchestrated-delivery to verify whether this execution package is ready to run.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "negative-plan-epic",
+    "query": "Use $plan-epic to author the story DAG and acceptance criteria for this epic.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-plan-delivery",
+    "query": "Use $plan-delivery to turn the ready stories into an execution package.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-fix-prompt",
+    "query": "Please repair the implementer prompt and add missing acceptance criteria to the package.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-ordinary-pr-status",
+    "query": "Check whether my PR has any new review comments.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-merge-cleanup",
+    "query": "Merge the approved PR and clean up the local worktree.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-typo-fix",
+    "query": "Fix this typo in the README and commit it.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-design-review",
+    "query": "Review the delivery-pipeline design docs for contradictions.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-author-package",
+    "query": "Create the execution plan, tracker, and worker prompts for this ready story batch.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-model-routing-only",
+    "query": "Which model class should this story use in the execution package?",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-reviewer-only",
+    "query": "Act as a reviewer for this implemented story and return APPROVE or BLOCKING.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-implementer-only",
+    "query": "Implement story S2 from this prompt in the worktree.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-tracker-edit-only",
+    "query": "Update execution/tracker.md with the latest manual status notes.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-ci-fix",
+    "query": "Debug the failing GitHub check on this PR.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-skill-authoring",
+    "query": "Update the orchestrated-delivery skill docs and evals.",
+    "should_trigger": false,
+    "split": "train"
+  }
+]

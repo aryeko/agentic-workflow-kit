@@ -1,18 +1,24 @@
 # Model Routing
 
-Assign each story exactly one implementer and one reviewer. Route by story risk, not by convenience
-or worker availability.
+Use this reference to assign story routing for the future execution run. Routing is abstract until
+`orchestrated-delivery` binds runtime facts.
 
 ## Required Fields
 
-Record these routing fields in `plan.md`, `tracker.md`, and the corresponding worker prompt:
+Record these fields in `plan.md`, `tracker.md`, and the corresponding worker prompts:
 
-- provider profile
-- model class
-- concrete planned model, when known
-- effort
-- reasoning tier
-- routing rationale
+- source story id;
+- source `AC-n` ids covered by the package element;
+- model class;
+- effort;
+- suggested-tier floor from the DAG;
+- reasoning tier selected for delivery;
+- routing rationale.
+
+Do not record provider-specific runtime model IDs, aliases, or version strings. The execution stage
+selects those from current provider availability.
+
+## Model Classes
 
 Use only these abstract model classes:
 
@@ -22,34 +28,32 @@ Use only these abstract model classes:
 - `frontier`
 - `frontier-reviewer`
 
-Do not put concrete provider model IDs in this reference.
-
 ## Routing Table
 
 | story risk | reasoning tier | implementer class | implementer effort | reviewer class | reviewer effort |
 |---|---|---|---|---|---|
-| mechanical docs/config/test split, no cross-story contract risk | `light` | `cheap-coder` | `low` | `frontier-reviewer` | `medium` |
+| mechanical docs, config, or test split with no cross-story contract risk | `light` | `cheap-coder` | `low` | `frontier-reviewer` | `medium` |
 | default bounded implementation | `standard` | `general-coder` | `medium` | `frontier-reviewer` | `medium` |
 | public API, shared shape, cross-file contract, safety boundary, or conformance harness | `elevated` | `strong-coder` | `high` | `frontier-reviewer` | `high` |
 | exceptional architecture, security boundary, migration, or data-loss risk | `critical` | `frontier` | `high` or `xhigh` with rationale | `frontier-reviewer` | `high` |
 
-Use `frontier-reviewer` as the reviewer class for every story unless the package is blocked for
-planning repair.
+The selected reasoning tier must be greater than or equal to the DAG's suggested-tier floor. Carry
+the floor unchanged; do not lower, reinterpret, or delete it.
 
-## Routing Rationale
+## Rationale
 
-Write a concise rationale for each story that names the risk driver. Tie the rationale to the story's
-observable delivery risk: mechanical scope, bounded implementation, public/shared contract,
-safety/conformance boundary, architecture, security boundary, migration, or data-loss risk.
+Write a short rationale that names the source story id, the relevant `AC-n` ids, and the risk driver:
+mechanical scope, bounded implementation, public/shared contract, safety boundary, conformance
+boundary, architecture, security boundary, migration, or data-loss risk.
 
-For `critical` stories, state why `frontier` is required. Use `xhigh` implementer effort only when
-the story needs it, and state the reason.
+For `critical`, state why `frontier` is needed. Use `xhigh` implementer effort only when the ready
+story's risk justifies it.
 
 ## Stop Behavior
 
-Treat `critical` as the ceiling. If a story appears to require more than `critical`, stop and report
-the exact story as too risky or underspecified for delivery packaging. Require `$plan-epic` or
-planning repair before continuing.
+Treat `critical` as the ceiling. If a ready story appears to require more than `critical`, or if its
+risk cannot be understood from the DAG and contract without invention, stop and route the exact
+story back to `$plan-epic`.
 
-Do not invent a stronger tier. Do not split frozen ready scope inside this skill to make the package
-fit the routing table.
+Do not invent a stronger tier. Do not split or rewrite frozen scope to make the package easier to
+route.

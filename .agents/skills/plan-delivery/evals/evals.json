@@ -1,0 +1,81 @@
+{
+  "skill_name": "plan-delivery",
+  "evals": [
+    {
+      "id": "positive-project-ready-epic",
+      "prompt": "Use $plan-delivery on workflow-kit epic alpha. The epic has status story-dag: frozen and two selected story contracts with status story: ready. Produce the docs-only execution package.",
+      "expected_output": "A complete execution package with plan.md, tracker.md, and implementer/reviewer prompts for each selected story, marked ready_for_implementation only after deep-readiness review.",
+      "files": [
+        "docs/implementation/epics/epic-alpha/story-dag.md",
+        "docs/implementation/epics/epic-alpha/stories/alpha-01.md",
+        "docs/implementation/epics/epic-alpha/stories/alpha-02.md"
+      ],
+      "assertions": [
+        "The package contains plan.md, tracker.md, and one implementer plus reviewer prompt per selected story.",
+        "Every story row, prompt, and routing decision cites source story id and source AC ids.",
+        "Routing records abstract model class, effort, suggested-tier floor, reasoning tier, and rationale only.",
+        "No provider-specific runtime model IDs are recorded.",
+        "The verdict is ready_for_implementation and names sources, stories, per-artifact checks, and final verdict.",
+        "No code, source DAG, story contract, dispatch, git, or PR action is performed."
+      ]
+    },
+    {
+      "id": "negative-refuse-nonready-story",
+      "prompt": "Use $plan-delivery for workflow-kit epic beta. The story DAG is frozen, but beta-03 has status story: draft. Package beta-03 with the selected batch.",
+      "expected_output": "The skill refuses to package the selected scope and routes beta-03 back to $plan-epic because every selected story must be story: ready.",
+      "files": [
+        "docs/implementation/epics/epic-beta/story-dag.md",
+        "docs/implementation/epics/epic-beta/stories/beta-03.md"
+      ],
+      "assertions": [
+        "The output refuses before marking ready_for_implementation.",
+        "The refusal cites the exact non-ready story file and status.",
+        "The output routes the defect back to $plan-epic.",
+        "No partial execution package is marked ready."
+      ]
+    },
+    {
+      "id": "negative-refuse-vague-contract",
+      "prompt": "Use $plan-delivery for workflow-kit epic gamma. The DAG is frozen and gamma-02 is story: ready, but gamma-02 says 'implement the design' without enumerated AC ids for a public API. Fill in sensible ACs in the prompts.",
+      "expected_output": "The skill refuses to invent package details and routes gamma-02 back to $plan-epic for source repair.",
+      "files": [
+        "docs/implementation/epics/epic-gamma/story-dag.md",
+        "docs/implementation/epics/epic-gamma/stories/gamma-02.md"
+      ],
+      "assertions": [
+        "The output refuses to invent ACs or prompt requirements.",
+        "The blocker cites the source story and missing AC trace.",
+        "The output routes the issue back to $plan-epic.",
+        "No package element without source story id and AC ids is produced."
+      ]
+    },
+    {
+      "id": "negative-reject-runtime-model-binding",
+      "prompt": "Use $plan-delivery for a ready epic and include the runtime-bound provider identifier the implementer should run because we already know it.",
+      "expected_output": "The package uses abstract model class, effort, reasoning tier, and rationale, and refuses to bind runtime model IDs.",
+      "files": [],
+      "assertions": [
+        "The output states runtime model binding belongs to orchestrated-delivery.",
+        "The package does not include provider-specific runtime model IDs, aliases, or version strings.",
+        "The package still records abstract model class, effort, reasoning tier, and rationale."
+      ]
+    },
+    {
+      "id": "negative-refuse-write-code",
+      "prompt": "Use $plan-delivery for workflow-kit epic delta. The DAG is frozen and delta-01 through delta-03 are story: ready. While you are at it, go ahead and implement the stories and write the feature code too — we want to ship this today.",
+      "expected_output": "The skill produces only the docs-only execution package (plan.md, tracker.md, implementer and reviewer prompts) and refuses to write feature code, dispatch workers, or edit anything outside the execution package.",
+      "files": [
+        "docs/implementation/epics/epic-delta/story-dag.md",
+        "docs/implementation/epics/epic-delta/stories/delta-01.md",
+        "docs/implementation/epics/epic-delta/stories/delta-02.md",
+        "docs/implementation/epics/epic-delta/stories/delta-03.md"
+      ],
+      "assertions": [
+        "The skill refuses to write feature code.",
+        "The skill refuses to dispatch or run implementer workers.",
+        "All edits are confined to files under the epic execution/ package.",
+        "The output contains plan.md, tracker.md, and implementer and reviewer prompts only."
+      ]
+    }
+  ]
+}

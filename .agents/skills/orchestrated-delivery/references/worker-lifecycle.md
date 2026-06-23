@@ -26,7 +26,9 @@ Do not run tight polling loops.
 
 ## Review Loop
 
-- After an implementer reports completion, the coordinator inspects the diff before review.
+- After an implementer reports completion, the coordinator inspects the diff for pathset, dependency,
+  and obvious gate readiness before review. The coordinator does not perform the reviewer's
+  code-quality or AC-satisfaction role.
 - Start one independent reviewer for that story, created once for the story.
 - If the reviewer returns findings, re-address the same implementer with the exact findings.
 - Send the fix back to the same reviewer for rereview.
@@ -40,9 +42,11 @@ findings.
 
 Workers must not stage, commit, push, create or update PRs, merge, archive, close, or mark stories
 complete. The coordinator performs those actions after independent inspection and required gates.
+Workers hold NO Forge credentials (per AGENTS.md AD-12 worker/runner isolation); only the
+coordinator/runner holds push/PR/merge authority.
 
 Reviewer approval is advisory. The coordinator still verifies scope control, changed files, checks,
-and dependency boundaries before a commit.
+and dependency boundaries before a commit, without re-characterizing or expanding the work.
 
 ## Closing Workers
 

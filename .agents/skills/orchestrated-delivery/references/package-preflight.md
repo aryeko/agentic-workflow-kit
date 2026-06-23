@@ -12,7 +12,7 @@ For the selected epic or story batch, verify these checked-in files:
 - `execution/prompts/<story-id>/implementer.md` for every selected story
 - `execution/prompts/<story-id>/reviewer.md` for every selected story
 
-Reject placeholders, empty sections, missing selected stories, missing prompt paths, or tracker rows
+Reject scaffold text, empty sections, missing selected stories, missing prompt paths, or tracker rows
 that cannot be mapped to the selected story ids.
 
 ## Readiness Evidence
@@ -64,7 +64,7 @@ Reviewer prompts must already include original scope and acceptance criteria, re
 required checks, verdict format, and the requirement to act as the provider `frontier-reviewer`
 safeguard.
 
-If any prompt is vague, placeholder-filled, missing fields, or asks the worker to infer scope,
+If any prompt is vague, scaffold-filled, missing fields, or asks the worker to infer scope,
 acceptance criteria, files, verification, model class, effort, or delivery boundaries, refuse
 execution and hand the package back to `$plan-delivery`.
 

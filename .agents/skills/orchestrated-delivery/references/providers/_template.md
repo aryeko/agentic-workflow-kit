@@ -15,11 +15,11 @@ IDs here, not in SKILL.md or generic references.
 
 | Class | Intended use | Concrete model ID |
 |---|---|---|
-| `cheap-coder` | Low-cost bounded implementation: light, mechanical, config, docs, test-split | `<provider model>` |
-| `general-coder` | Default implementation when cheap-coder is too weak | `<provider model>` |
-| `strong-coder` | Elevated implementation touching contracts, storage, worktrees, credentials, or safety-sensitive code | `<provider model>` |
-| `frontier` | Critical implementation with architecture, migration, data-loss, or security-boundary risk | `<provider model>` |
-| `frontier-reviewer` | All reviewer workers until evals justify reviewer downshifts | `<provider model>` |
+| `cheap-coder` | Low-cost bounded implementation: light, mechanical, config, docs, test-split | provider-specific low-cost coding model |
+| `general-coder` | Default implementation when cheap-coder is too weak | provider-specific default coding model |
+| `strong-coder` | Elevated implementation touching contracts, storage, worktrees, credentials, or safety-sensitive code | provider-specific strong coding model |
+| `frontier` | Critical implementation with architecture, migration, data-loss, or security-boundary risk | provider-specific frontier implementation model |
+| `frontier-reviewer` | All reviewer workers until evals justify reviewer downshifts | provider-specific frontier reviewer model |
 
 ## Route-specific notes
 
