@@ -84,8 +84,8 @@ only where a behavior calls an upstream object such as `RunWriter`, `RunEventLog
   branch on the committed gate event/projection, not on an uncommitted evaluator return.
 - Design trace: approval design requires `escalation-auto-grant` allow after core-02 records a gate;
   Epic 3 splits evaluator payload from gate-record durability.
-- Falsification: assisted auto-grant proceeds from a pure evaluator result when the gate append failed
-  or no committed gate event id exists.
+- Falsification: assisted auto-grant proceeds from a pure evaluator result, from an explicit Epic 3
+  `core-02-s3` `gate-record-unwritable` result, or with no committed gate event id.
 - Escalation: if a caller needs speculative gate decisions, route that to a later design; Epic 4 records
   replayable facts only.
 

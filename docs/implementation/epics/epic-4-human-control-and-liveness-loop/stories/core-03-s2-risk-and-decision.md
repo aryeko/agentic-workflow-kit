@@ -55,12 +55,13 @@ records.
 - Depends on: `core-03-s1-approval-contracts`.
 - Cross-epic frozen inputs: Epic 1 `ResolvedPolicy.policy.approval` and
   `ResolvedPolicy.policy.escalationPolicy`; Epic 3 committed `CapabilityGateRecord`; Epic 3
+  `core-02-s3` gate-record durability result for append-failure evidence; Epic 3
   `RunReplay`/`RunProjections`; Epic 2 Agent attestations.
 - Decision inputs consumed: request fields `subject`, `command`, `cwd`, `host`, `filePaths`,
   `requestedScope`, `answerChannelPersistable`, `requestedAt`, `expiresAt`, `policyRef`;
   resolved policy fields `approval.mode`, `approval.decisionWindowMs`, `escalationPolicy`; replayed
-  `CapabilityGateRecord` event ids; current non-ambiguous session linkage from core-01 resolver or
-  raw linkage history.
+  `CapabilityGateRecord` event ids or explicit `core-02-s3` `gate-record-unwritable` result; current
+  non-ambiguous session linkage from core-01 resolver or raw linkage history.
 
 ## Acceptance criteria
 
@@ -85,10 +86,11 @@ records.
   `decidedBy === "system"`.
 - **AC-5** Assisted low-risk allowlisted requests produce a grant decision only when a committed
   `CapabilityGateRecord` for `escalation-auto-grant` exists with allow decision and matching request
-  scope; denied or unwritable gate records return `approval-gate-denied` or
-  `approval-gate-unwritable` - evidence: `assisted-gate-record.unit.test.ts` asserts fixture
-  `committed-gate-allow.fixture.ts` returns `decision === "grant"`, while
-  `gate-denied.fixture.ts` and `gate-unwritable.fixture.ts` set the exact failure states.
+  scope; committed deny records return `approval-gate-denied`, and an explicit Epic 3 `core-02-s3`
+  `gate-record-unwritable` result returns `approval-gate-unwritable` - evidence:
+  `assisted-gate-record.unit.test.ts` asserts fixture `committed-gate-allow.fixture.ts` returns
+  `decision === "grant"`, while `gate-denied.fixture.ts` and
+  `gate-append-unwritable-result.fixture.ts` set the exact failure states.
 - **AC-6** Tightest policy-level grant selection chooses the first satisfiable scope in order
   `per-command`, `per-command-prefix`, `per-host`, `session`, never broader than request or policy -
   evidence: `policy-grant-plan.unit.test.ts` asserts a fixture with both command and session options
@@ -118,7 +120,7 @@ records.
 | AC or failure row | Predicate / branch value | Declared source value | Producer / resolver | Verdict |
 |---|---|---|---|---|
 | AC-2, AC-3 | risk rules | `ApprovalRequest` fields, resolved policy, replay evidence, linkage | `core-03-s1`, Epic 1, Epic 3 linkage resolver | decidable |
-| AC-4, AC-5 | mode and gate allow | `ApprovalDecisionInput.mode`, committed `CapabilityGateRecord` | `core-03-s1`, Epic 3 `core-02-s3` | decidable |
+| AC-4, AC-5 | mode and gate allow/unwritable branch | `ApprovalDecisionInput.mode`, committed `CapabilityGateRecord`, or explicit `core-02-s3` gate-record durability failure result | `core-03-s1`, Epic 3 `core-02-s3` | decidable |
 | AC-6 | grant scope choice | request `requestedScope`, policy grant rules, request command/host/session | `core-03-s1`, Epic 1 | decidable |
 | AC-7 | v1 deferral | requested capability id / action | Epic 3 capability registry | decidable |
 
@@ -129,7 +131,7 @@ records.
 | `approval-policy-unavailable` | missing resolved policy/provenance before classification | block before risk or decision | AC-2 negative fixture variant |
 | `approval-risk-high` | high-risk rule fires in assisted path | require human; no auto grant | AC-4 |
 | `approval-gate-denied` | committed gate denies | require human or deny per policy | AC-5 |
-| `approval-gate-unwritable` | no committed gate record because append failed | no autonomous grant; blocked if no human path | AC-5 |
+| `approval-gate-unwritable` | Epic 3 `core-02-s3` returned explicit `gate-record-unwritable` while trying to durably append the gate record | no autonomous grant; blocked if no human path | AC-5 |
 | `approval-session-ambiguous` | linkage resolver/raw events cannot prove current session | block decision | AC-2 |
 | `approval-relay-missing` | fresh positive Agent relay attestation absent | no low-risk auto grant | AC-3 |
 
@@ -147,7 +149,8 @@ records.
 ## Evidence pack
 
 - Unit tests and fixtures named in ACs.
-- Negative fixtures for high-risk branches, unavailable policy, gate-denied/unwritable, and scope widening.
+- Negative fixtures for high-risk branches, unavailable policy, gate-denied/gate-append-unwritable,
+  and scope widening.
 - `pnpm check` after implementation.
 - Boundary sweep: `rg -n "provider-codex|provider-local|testkit|child_process|Date\\.now|new Date|Math\\.random" packages/sdk/src/core/approval/decision packages/sdk/tests/core/approval/decision` returns zero source matches.
 
