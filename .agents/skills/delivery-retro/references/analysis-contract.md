@@ -18,10 +18,33 @@ session JSONL records, and current repo conventions. If any handle remains unres
 for exactly that missing handle. A partial retro is allowed only when the user explicitly asks for a
 partial diagnostic.
 
+## Normalized Observability
+
+Prefer `execution/observability/events.jsonl` over raw session JSONL. Future delivery runs should
+record this file incrementally with `scripts/observe-delivery-run.mjs`; older runs may be backfilled
+once with `scripts/import-session-observability.mjs`. After backfill, analyze the normalized events
+instead of repeatedly parsing raw session transcripts.
+
+Supported normalized event types:
+
+- `run_started`;
+- `turn_observed`;
+- `worker_spawned`;
+- `worker_completed`;
+- `review_completed`;
+- `story_committed`;
+- `pr_opened`, `pr_reviewed`, `pr_fixed`, `pr_merged`;
+- `token_usage_observed`.
+
+Turn counts are first-class observability. Count `turn_observed` events by role and include totals in
+cross-run summaries. Do not infer turn counts from prose summaries.
+
 ## Source Rules
 
 - Treat `execution/tracker.md`, `execution/plan.md`, session JSONL, PR data supplied by the user, and
   git commits as source evidence.
+- Treat normalized observability events as the preferred source for worker aliases, review rounds,
+  findings, token usage, elapsed time, and turn counts.
 - Resolve worker aliases from session JSONL with `scripts/find-worker-aliases.mjs` before asking the
   user for worker ids. The scanner is deterministic and should be preferred over manually searching
   large JSONL transcripts.
@@ -34,10 +57,11 @@ partial diagnostic.
 ## Report Shape
 
 Per story, report status, story/tracker commits when present, gate evidence, blockers, review rounds,
-finding classes, elapsed time, token usage, and missing observability fields.
+finding classes, elapsed time, token usage, turn counts when attributable, and missing observability
+fields.
 
 Across the run, report highest-churn stories, common finding classes, slowest phases, worker count,
-reviewer/implementer rework indicators, and missing observability gaps.
+turn count, reviewer/implementer rework indicators, and missing observability gaps.
 
 Recommendations must be separate from facts. Candidate lessons-ledger entries are appropriate only
 for recurring defect classes. One-off implementation bugs against a clear spec remain Bucket-2 review
