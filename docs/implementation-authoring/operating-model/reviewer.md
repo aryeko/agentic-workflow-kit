@@ -72,6 +72,6 @@ structured APPROVE / BLOCKING that drives the loop to APPROVE.
 
 ---
 
-**↑ Up:** [Operating model — delivery system spec](./README.md) · **← Prev:** [Role — implementer](./implementer.md) · **Next →:** [implementation lessons ledger](../lessons-ledger.md)
+**↑ Up:** [Operating model — delivery system spec](./README.md) · **← Prev:** [Role — implementer](./implementer.md) · **Next →:** [Delivery pipeline — the skill spec](../delivery-pipeline/README.md)
 
 <!-- /DOCS-NAV -->

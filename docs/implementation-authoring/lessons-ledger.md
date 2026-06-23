@@ -82,6 +82,6 @@ precondition holds — a tightening is pending) · `OPEN` (no cover yet).
 
 ---
 
-**↑ Up:** [Implementation planning — authoring standard](./README.md) · **← Prev:** [Role — reviewer](./operating-model/reviewer.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
+**↑ Up:** [Implementation planning — authoring standard](./README.md) · **← Prev:** [orchestrated-delivery — charter and evals](./delivery-pipeline/40-orchestrated-delivery.md) · **Next →:** [Engineering Policy Index](../engineering/README.md)
 
 <!-- /DOCS-NAV -->
