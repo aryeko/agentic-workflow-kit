@@ -1,7 +1,7 @@
 # plan-delivery Evals
 
 **Skill under test:** `plan-delivery`
-**Version pin (combined skill hash):** `ec80fc2fac260e1b`
+**Version pin (combined skill hash):** `9ba0fccb252e7476`
 **Status:** active
 
 Recompute with:
@@ -25,7 +25,7 @@ These evals operationalize PD-1 through PD-7 from
 | PD-3: complete plan, tracker, implementer prompts, reviewer prompts; prompts are decision-complete | `positive-project-ready-epic` |
 | PD-4: abstract model class, effort, reasoning tier >= floor; no runtime model IDs | `positive-project-ready-epic`, `negative-reject-runtime-model-binding` |
 | PD-5: `ready_for_implementation` only with deep-readiness verdict | `positive-project-ready-epic`, `negative-refuse-vague-contract` |
-| PD-6: no code writes, worker dispatch, or edits outside package | `positive-project-ready-epic`, trigger near-miss negatives |
+| PD-6: no code writes, worker dispatch, or edits outside package | `positive-project-ready-epic`, `negative-refuse-write-code`, trigger near-miss negatives |
 | PD-7: package durable and resumable from artifacts, not session prose | `positive-project-ready-epic` |
 
 ## Expected Evidence

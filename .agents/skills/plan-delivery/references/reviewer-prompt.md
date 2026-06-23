@@ -64,6 +64,12 @@ Return `APPROVED` only when no blocking findings remain. Otherwise return severi
 For each finding, include file and line reference, required fix, and the source `AC-n` or boundary
 violated.
 
+### Mutation Limits
+
+State explicitly: no staging, commits, pushes, PRs, merges, worker closure, tracker edits, package
+edits, source planning edits, or writes outside allowed paths. The reviewer only inspects the
+implementation against the original story and returns a verdict.
+
 ## Limits
 
 Do not ask the reviewer to commit, push, edit files, close workers, update tracker state, widen the

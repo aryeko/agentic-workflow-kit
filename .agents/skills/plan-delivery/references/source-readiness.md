@@ -22,6 +22,11 @@ Use `story-dag.md` as authority for story ids, jobs, dependency order, waves, ow
 suggested-tier floors. Use story contracts as authority for acceptance criteria, source traces,
 required reading, quality bars, evidence packs, non-goals, STOP conditions, and allowed writes.
 
+If the DAG sets no suggested-tier floor for a story, there is no floor constraint — select the
+reasoning tier from story risk per `references/model-routing.md` and record "no DAG floor" in the
+routing rationale; do NOT invent a floor. When a floor does exist, the selected reasoning tier must
+be greater than or equal to that floor, consistent with `references/model-routing.md`.
+
 ## Gate 1 Check
 
 Refuse and route back to `$plan-epic` when any condition holds:

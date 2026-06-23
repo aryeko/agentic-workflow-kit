@@ -42,6 +42,8 @@ findings.
 
 Workers must not stage, commit, push, create or update PRs, merge, archive, close, or mark stories
 complete. The coordinator performs those actions after independent inspection and required gates.
+Workers hold NO Forge credentials (per AGENTS.md AD-12 worker/runner isolation); only the
+coordinator/runner holds push/PR/merge authority.
 
 Reviewer approval is advisory. The coordinator still verifies scope control, changed files, checks,
 and dependency boundaries before a commit, without re-characterizing or expanding the work.

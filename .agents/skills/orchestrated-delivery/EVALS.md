@@ -1,14 +1,14 @@
 # Orchestrated Delivery — Shared Eval / Test Specification
 
 **Skill under test:** `orchestrated-delivery`
-**Version pin (combined skill hash):** `e3ecd8a3fd064a76`
+**Version pin (combined skill hash):** `6248b4ec0a7dde6c`
 **Per-file hashes:** `SKILL.md` 228ae90a2297 · `references/commit-tracker.md` ca70c1728cca ·
 `references/communication.md` c063301c3e48 · `references/package-preflight.md` 7757d529bb0b ·
 `references/pr-merge.md` 44e309e4cc4d · `references/runtime-binding.md` ece55b92f31d ·
-`references/surface-map.md` 4d510e2a0223 · `references/worker-lifecycle.md` 85f5f9d585f3 ·
+`references/surface-map.md` 4d510e2a0223 · `references/worker-lifecycle.md` 56f2308997ef ·
 `references/providers/_template.md` d1c0556f9d2a · `references/providers/claude.md` 120394d2d317 ·
-`references/providers/openai.md` 2ef044c45b70 · `agents/openai.yaml` 77cbd6df2637 ·
-`evals/evals.json` f2d0782efde3 · `evals/trigger_queries.json` dc780a503aa4
+`references/providers/openai.md` 8f062df0eda6 · `agents/openai.yaml` 77cbd6df2637 ·
+`evals/evals.json` 28337fa7d045 · `evals/trigger_queries.json` dc780a503aa4
 **Status:** active
 
 Recompute with:
@@ -50,7 +50,7 @@ The delivery-pipeline charter requirements map to the detailed R/TC suite this w
 
 | OD | Charter requirement | Detailed coverage |
 |---|---|---|
-| OD-1 | Trigger only for an existing `ready_for_implementation` package; refuse missing, incomplete, underspecified, over-risk, or non-ready packages; author nothing. | R1, R3, R4, R5, R6, R7, R8; TC-01 through TC-07 |
+| OD-1 | Trigger only for an existing `ready_for_implementation` package; refuse missing, incomplete, underspecified, over-risk, or non-ready packages; author nothing. | R1, R2, R3, R4, R5, R6, R7, R8; TC-01 through TC-07 |
 | OD-2 | Bind runtime/provider facts only; change no package-owned decision. | R5, R9, R10, R11, R12; TC-08 through TC-10, TC-20 |
 | OD-3 | Dispatch only `ready` stories in dependency waves; dependents wait for producer story commit, tracker evidence commit, and worker closure. | R13, R19; TC-11, TC-16 |
 | OD-4 | Reuse one implementer and one reviewer context per story; workers never stage, commit, push, PR, merge, or close. | R14, R15, R20; TC-12, TC-13, TC-17 |

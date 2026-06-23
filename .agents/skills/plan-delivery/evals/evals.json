@@ -59,6 +59,23 @@
         "The package does not include provider-specific runtime model IDs, aliases, or version strings.",
         "The package still records abstract model class, effort, reasoning tier, and rationale."
       ]
+    },
+    {
+      "id": "negative-refuse-write-code",
+      "prompt": "Use $plan-delivery for workflow-kit epic delta. The DAG is frozen and delta-01 through delta-03 are story: ready. While you are at it, go ahead and implement the stories and write the feature code too — we want to ship this today.",
+      "expected_output": "The skill produces only the docs-only execution package (plan.md, tracker.md, implementer and reviewer prompts) and refuses to write feature code, dispatch workers, or edit anything outside the execution package.",
+      "files": [
+        "docs/implementation/epics/epic-delta/story-dag.md",
+        "docs/implementation/epics/epic-delta/stories/delta-01.md",
+        "docs/implementation/epics/epic-delta/stories/delta-02.md",
+        "docs/implementation/epics/epic-delta/stories/delta-03.md"
+      ],
+      "assertions": [
+        "The skill refuses to write feature code.",
+        "The skill refuses to dispatch or run implementer workers.",
+        "All edits are confined to files under the epic execution/ package.",
+        "The output contains plan.md, tracker.md, and implementer and reviewer prompts only."
+      ]
     }
   ]
 }
