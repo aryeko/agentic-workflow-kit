@@ -179,6 +179,45 @@ describe('RunWriter lifecycle validation', () => {
     expect(harness.appendCalls[0].envelopes[0].type).toBe('RunLifecycleTransitioned');
   });
 
+  it('accepts opaque source event ids that resolve to committed factual events', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const policy = writer.value.append([
+      appendIntent(
+        'RunPolicyBound',
+        {
+          policyDigest: 'sha256:policy',
+          provenanceRef: 'artifact://policy',
+        },
+        { eventId: 'evt-policy', durability: 'barrier' },
+      ),
+    ]);
+    expect(policy.ok).toBe(true);
+    harness.resetAppendCalls();
+
+    const result = writer.value.append([
+      appendIntent(
+        'RunLifecycleTransitioned',
+        lifecyclePayload('created', 'configured', {
+          sourceEventIds: ['evt-policy'],
+        }),
+        {
+          durability: 'barrier',
+        },
+      ),
+    ]);
+
+    expect(result.ok).toBe(true);
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunLifecycleTransitioned');
+  });
+
   it('rejects running transitions that cite observer-only session links', () => {
     const harness = createHarness();
     harness.seedCreatedRun();

@@ -119,9 +119,9 @@ export const evaluateEvidenceGuarantee = (request: CapabilityGateRequest, replay
     };
   }
 
-  const selfReportOnly =
+  const hasSelfReportOnlyEvidence =
     evidenceRefs.length > 0 &&
-    evidenceRefs.every((evidenceRef) => {
+    evidenceRefs.some((evidenceRef) => {
       const records = recordedEvidence.get(evidenceRef);
       return records !== undefined && isEvidenceSelfReportOnly(records);
     });
@@ -129,12 +129,12 @@ export const evaluateEvidenceGuarantee = (request: CapabilityGateRequest, replay
   return {
     evaluation: {
       guaranteeId: guaranteeRequirementCatalog[3],
-      passed: !selfReportOnly,
+      passed: !hasSelfReportOnlyEvidence,
       attestationRefs: [],
       evidenceRefs,
-      failureReason: selfReportOnly ? 'self-report-only' : undefined,
+      failureReason: hasSelfReportOnlyEvidence ? 'self-report-only' : undefined,
     },
-    failureReason: selfReportOnly ? 'self-report-only' : undefined,
+    failureReason: hasSelfReportOnlyEvidence ? 'self-report-only' : undefined,
   };
 };
 

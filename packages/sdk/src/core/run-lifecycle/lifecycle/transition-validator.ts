@@ -6,15 +6,7 @@ const legalEdgeMap = new Map(
   LIFECYCLE_LEGAL_EDGE_CATALOG.map((edge) => [`${edge.from ?? 'null'}->${edge.to}`, edge] as const),
 );
 
-function hasReference(sourceEventIds: readonly string[], expectedType: string): boolean {
-  if (expectedType === 'Evidence') {
-    return sourceEventIds.length > 0;
-  }
-
-  return sourceEventIds.some(
-    (sourceEventId) => sourceEventId === expectedType || sourceEventId.startsWith(`${expectedType}:`),
-  );
-}
+const hasReference = (sourceEventIds: readonly string[]): boolean => sourceEventIds.length > 0;
 
 export function validateLifecycleTransition(
   from: RunLifecycleState | null,
@@ -42,7 +34,7 @@ export function validateLifecycleTransition(
     return { ok: true, value: undefined };
   }
 
-  if (!hasReference(payload.sourceEventIds, legalEdge.constraint.requiredEventType)) {
+  if (!hasReference(payload.sourceEventIds)) {
     return { ok: false, error: 'illegal-lifecycle-transition' };
   }
 
@@ -50,7 +42,7 @@ export function validateLifecycleTransition(
     legalEdge.constraint.kind === 'terminal-transition' &&
     legalEdge.to === 'canceled' &&
     payload.authority !== legalEdge.constraint.requiredAuthority &&
-    !hasReference(payload.sourceEventIds, 'PolicyDecision')
+    !hasReference(payload.sourceEventIds)
   ) {
     return { ok: false, error: 'illegal-lifecycle-transition' };
   }
