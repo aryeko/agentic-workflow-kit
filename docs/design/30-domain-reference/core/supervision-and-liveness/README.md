@@ -146,6 +146,10 @@ interface SupervisionWaitRequest { runId: string; cursor: RunEventCursor; timeou
   maxEvents?: number; }
 ```
 
+`Clock` is the SDK boundary clock: an injected `() => string` returning the current ISO-8601 timestamp
+string. Supervision samples it at explicit decision points and passes the sampled value into liveness
+folds and timer evaluation. No core-04 reducer reads ambient time.
+
 `waitRunEvents(request)` is a thin wrapper over core-01 `RunEventLog.waitRunEvents`. It validates that
 `cursor.runId` matches the request, delegates to core-01, and returns committed events after
 `cursor.afterSequence` or `timedOut = true`. It never renews leases, appends events, reads
@@ -166,6 +170,102 @@ Core-04 emits through `RunWriter`:
 | `SupervisorTerminationRequested` | `barrier` | Termination handed to Execution Host for an owned worker. |
 | `WorkerTerminated` | `barrier` | Agent/Host terminal observation or Host termination proof recorded before terminal lifecycle closure. |
 | `SupervisorStopped` | `barrier` | Single terminal-summary fact for core-04, allowed post-terminal only as a non-lifecycle summary under core-01's ratified terminal-epoch reuse semantics. |
+
+V1 event payloads are:
+
+```ts
+type SupervisionTimerName =
+  | "startup" | "idle" | "no-progress" | "per-tool" | "approval-SLA" | "max-runtime";
+
+type LivenessAdvanceClass =
+  | "startup-linkage" | "worker-progress" | "tool-completion"
+  | "approval-request" | "terminal-observation";
+
+interface SupervisorStartedPayload {
+  schema: "kit-vnext.supervisor-started.v1";
+  runId: string;
+  cursor: RunEventCursor;
+  expectedSessionId?: string;
+  expectedWorkerHandleId?: string;
+  timerPolicy: SupervisionTimerPolicy;
+  startedAt: string;
+  sourceEventIds: string[];
+}
+
+interface LivenessAdvancedPayload {
+  schema: "kit-vnext.liveness-advanced.v1";
+  runId: string;
+  sessionId: string;
+  workerHandleId?: string;
+  sourceEventId: string;
+  sourceSequence: number;
+  advanceClass: LivenessAdvanceClass;
+  refreshedTimers: SupervisionTimerName[];
+  advancedAt: string;
+}
+
+interface LivenessTimerExpiredPayload {
+  schema: "kit-vnext.liveness-timer-expired.v1";
+  runId: string;
+  timer: SupervisionTimerName;
+  reason: LivenessReason;
+  deadline: string;
+  observedAt: string;
+  sessionId?: string;
+  workerHandleId?: string;
+  lastWorkerEventSequence?: number;
+  lastProgressSequence?: number;
+  sourceEventIds: string[];
+}
+
+interface LivenessStateChangedPayload {
+  schema: "kit-vnext.liveness-state-changed.v1";
+  runId: string;
+  from: LivenessState;
+  to: LivenessState;
+  reason?: LivenessReason;
+  changedAt: string;
+  sourceEventIds: string[];
+}
+
+interface SupervisionLostPayload {
+  schema: "kit-vnext.supervision-lost.v1";
+  runId: string;
+  reason: LivenessReason;
+  lostAt: string;
+  sourceEventIds: string[];
+}
+
+interface SupervisorTerminationRequestedPayload {
+  schema: "kit-vnext.supervisor-termination-requested.v1";
+  runId: string;
+  workerHandleId: string;
+  reason: LivenessReason;
+  requestedAt: string;
+  timerEventId: string;
+  sourceEventIds: string[];
+}
+
+interface WorkerTerminatedPayload {
+  schema: "kit-vnext.worker-terminated.v1";
+  runId: string;
+  workerHandleId: string;
+  observedBy: "agent" | "execution-host";
+  proofRef?: string;
+  containmentEmpty?: boolean;
+  terminatedAt: string;
+  sourceEventIds: string[];
+}
+
+interface SupervisorStoppedPayload {
+  schema: "kit-vnext.supervisor-stopped.v1";
+  runId: string;
+  outcome: "terminated" | "terminal-lifecycle-observed" | "supervision-lost";
+  stoppedAt: string;
+  terminalSourceEventIds: string[];
+  summarizedEventIds: string[];
+}
+```
 
 Consumed events include current-session Agent events, core-01 lifecycle/linkage events, and Execution
 Host termination proof or failure events. Core-04 contributes the `liveness` projection; core-01

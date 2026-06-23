@@ -75,6 +75,8 @@ The `createWorkflowKit` factory is how callers supply concrete providers and sto
 The SDK receives them at construction time and never discovers or imports them directly.
 
 ```ts
+type Clock = () => string;
+
 export function createWorkflowKit(input: {
   providers: {
     agent: AgentProvider;
@@ -93,8 +95,13 @@ export function createWorkflowKit(input: {
 }): WorkflowKit;
 ```
 
-All time, identity, randomness, storage, and provider behavior is injected. The SDK contains no
-ambient `Date.now`, `Math.random`, or `crypto.randomUUID` in deterministic logic.
+`Clock` is an injected zero-argument function returning the current ISO-8601 timestamp string. Core
+logic samples time only through explicit request fields or this injected clock; tests use fixed or
+scripted clocks. Timer reducers receive the sampled timestamp as data and never call ambient time
+directly.
+
+All time, identity, randomness, storage, and provider behavior is injected. The SDK contains no ambient
+`Date.now`, `Math.random`, or `crypto.randomUUID` in deterministic logic.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

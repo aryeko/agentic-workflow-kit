@@ -39,6 +39,10 @@ Done means all are true:
 - Every owned Story Group Signal maps exactly once to a story id or named `split`.
 - The target epic charter README, not the global coverage rollup, has the owning-story cells backfilled.
 - No design requirements were invented, and every AC traces to frozen design.
+- An independent read-only review inspected the finished planning diff for source traceability, DAG
+  correctness, story-contract quality, charter ownership, docs-nav reachability,
+  implementation-readiness, and hard-boundary compliance; every reviewer finding is fixed or
+  explicitly escalated.
 - No execution package, dispatch prompt, feature code, or delivery run was created.
 
 ## DAG gates (Gate 3) — structure and seams
