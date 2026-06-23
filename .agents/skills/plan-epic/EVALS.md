@@ -1,7 +1,7 @@
 # plan-epic Evals
 
 **Skill under test:** `plan-epic`
-**Version pin (combined skill hash):** `496ee37087b45c35`
+**Version pin (combined skill hash):** `71c8557bbc4dab9c`
 **Status:** active
 
 Recompute with:

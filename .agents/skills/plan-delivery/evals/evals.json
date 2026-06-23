@@ -21,7 +21,7 @@
     },
     {
       "id": "negative-refuse-nonready-story",
-      "prompt": "Use $plan-delivery for workflow-kit epic beta. The story DAG is frozen, but beta-03 has status story: draft. Package the other stories and leave beta-03 for later.",
+      "prompt": "Use $plan-delivery for workflow-kit epic beta. The story DAG is frozen, but beta-03 has status story: draft. Package beta-03 with the selected batch.",
       "expected_output": "The skill refuses to package the selected scope and routes beta-03 back to $plan-epic because every selected story must be story: ready.",
       "files": [
         "docs/implementation/epics/epic-beta/story-dag.md",

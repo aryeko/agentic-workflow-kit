@@ -65,5 +65,6 @@ Never:
 At minimum, run the repository's documented planning verification that is safe for the task scope. If this skill itself is being edited, validate it with:
 
 ```bash
-python3 /Users/aryekogan/.agents/skills/open-skill-creator/scripts/validate_skill.py .agents/skills/plan-epic
+OPEN_SKILL_CREATOR_ROOT="${OPEN_SKILL_CREATOR_ROOT:-$HOME/.agents/skills/open-skill-creator}"
+python3 "$OPEN_SKILL_CREATOR_ROOT/scripts/validate_skill.py" .agents/skills/plan-epic
 ```
