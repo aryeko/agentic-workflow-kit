@@ -112,6 +112,9 @@ const sortEvidenceRefs = (evidenceRefs: readonly string[]): string[] =>
 const isFreshAt = (candidate: ValidAttestationCandidate, evaluatedAt: string): boolean =>
   candidate.attestation.at <= evaluatedAt && evaluatedAt < candidate.attestation.expiry;
 
+const isCommittedBy = (candidate: ValidAttestationCandidate, evaluatedAt: string): boolean =>
+  candidate.envelope.occurredAt <= evaluatedAt && candidate.envelope.recordedAt <= evaluatedAt;
+
 const hasPositiveConflict = (candidates: readonly ValidAttestationCandidate[]): boolean => {
   const signatures = new Set(
     candidates.map(
@@ -178,7 +181,18 @@ export const evaluateAttestationRequirement = (
     };
   }
 
-  const scopedCandidates = validCandidates.filter(
+  const committedCandidates = validCandidates.filter((candidate) => isCommittedBy(candidate, evaluatedAt));
+
+  if (committedCandidates.length === 0) {
+    return {
+      passed: false,
+      failureReason: 'attestation-absent',
+      attestationRefs: [],
+      evidenceRefs: [],
+    };
+  }
+
+  const scopedCandidates = committedCandidates.filter(
     (candidate) =>
       findMatchingProviderScope(
         scope.providerScopes,

@@ -45,11 +45,13 @@ const buildAppendIntent = (
   input: AnalysisRecordInput,
   payload: AnalysisPayload,
   eventId: string,
+  payloadDigest: string,
 ): AppendIntent<AnalysisPayload> => ({
   domain: 'core-07',
   type: payload.schema === 'kit-vnext.analysis-recorded.v1' ? 'AnalysisRecorded' : 'AnalysisFailed',
   durability: 'barrier',
   payload,
+  payloadDigest,
   eventId,
   occurredAt: input.request.analyzedAt,
   causationId: input.request.trigger.eventRef.eventId,
@@ -102,7 +104,9 @@ const appendPayload = async (
   eventId: string,
   payloadDigest: string,
 ): Promise<Result<AnalysisRecordCommit, AnalysisRecordFailure>> => {
-  const appendResult = await Promise.resolve(writer.append([buildAppendIntent(input, payload, eventId)]));
+  const appendResult = await Promise.resolve(
+    writer.append([buildAppendIntent(input, payload, eventId, payloadDigest)]),
+  );
   if (!appendResult.ok) {
     return failureResult(eventId, payloadDigest, { appendFailure: appendResult.error });
   }

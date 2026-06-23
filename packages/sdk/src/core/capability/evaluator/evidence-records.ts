@@ -37,12 +37,16 @@ export const collectRecordedEvidence = (
       continue;
     }
 
+    if (!isEvidenceSupportKind(event.payload.supportKind)) {
+      continue;
+    }
+
     const evidenceRef = event.payload.evidenceRef;
     const record: RecordedEvidence = {
       eventId: event.eventId,
       evidenceRef,
       payloadDigest: event.payloadDigest,
-      supportKind: isEvidenceSupportKind(event.payload.supportKind) ? event.payload.supportKind : 'probe',
+      supportKind: event.payload.supportKind,
       value:
         typeof event.payload.value === 'string'
           ? event.payload.value

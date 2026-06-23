@@ -67,4 +67,28 @@ describe('RunWriter lifecycle validation', () => {
       expect(harness.records.map((record) => harness.decode(record.payload).type)).not.toContain('RunAppendRejected');
     }
   });
+
+  it('rejects lifecycle source refs that do not name a committed event', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    const result = writer.ok
+      ? writer.value.append([
+          appendIntent(
+            'RunLifecycleTransitioned',
+            lifecyclePayload('created', 'configured', {
+              sourceEventIds: ['RunPolicyBound:missing'],
+            }),
+            {
+              durability: 'barrier',
+            },
+          ),
+        ])
+      : writer;
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+  });
 });

@@ -4,11 +4,13 @@ import type {
   RunAppendReceipt,
   RunEventEnvelope,
   RunLifecycleState,
+  RunLifecycleTransitionPayload,
   RunReplay,
   SessionLinkedPayload,
 } from '../contracts/index.js';
 import {
   hasContiguousSessionLinkOrdinals,
+  LIFECYCLE_LEGAL_EDGE_CATALOG,
   TERMINAL_LIFECYCLE_STATE_SET,
   validateLifecycleTransition,
 } from '../lifecycle/index.js';
@@ -27,9 +29,38 @@ type WriterContext = {
 };
 
 const TERMINAL_STATES = new Set<RunLifecycleState>(TERMINAL_LIFECYCLE_STATE_SET);
+const legalEdgeMap: ReadonlyMap<string, (typeof LIFECYCLE_LEGAL_EDGE_CATALOG)[number]> = new Map(
+  LIFECYCLE_LEGAL_EDGE_CATALOG.map((edge) => [`${edge.from ?? 'null'}->${edge.to}`, edge] as const),
+);
 
 const isSessionLinkedPayload = (value: unknown): value is SessionLinkedPayload =>
   Boolean(value && typeof value === 'object' && 'linkOrdinal' in value && 'sessionId' in value && 'linkRole' in value);
+
+const referencedEventId = (sourceEventId: string, expectedType: string): string =>
+  sourceEventId.startsWith(`${expectedType}:`) ? sourceEventId.slice(expectedType.length + 1) : sourceEventId;
+
+const hasCommittedSourceReference = (
+  from: RunLifecycleState | null,
+  payload: RunLifecycleTransitionPayload,
+  sourceEvents: readonly RunEventEnvelope[],
+): boolean => {
+  const edge = legalEdgeMap.get(`${from ?? 'null'}->${payload.to}`);
+  if (!edge) {
+    return false;
+  }
+
+  const expectedType = edge.constraint.requiredEventType;
+  const byId = new Map(sourceEvents.map((event) => [event.eventId, event] as const));
+
+  return payload.sourceEventIds.some((sourceEventId) => {
+    const referenced = byId.get(referencedEventId(sourceEventId, expectedType));
+    if (referenced === undefined) {
+      return false;
+    }
+
+    return expectedType === 'Evidence' || referenced.type === expectedType;
+  });
+};
 
 export const terminalIdempotentReceipt = (
   context: Pick<WriterContext, 'runId'>,
@@ -113,7 +144,7 @@ export const validateLifecycleAndLinkage = (
 ): Result<void, RunAppendFailure> => {
   let lifecycle = reduceRunLifecycle(replayed.events).lifecycle;
 
-  for (const envelope of envelopes) {
+  for (const [index, envelope] of envelopes.entries()) {
     if (envelope.type !== 'RunLifecycleTransitioned' || !isLifecyclePayload(envelope.payload)) {
       continue;
     }
@@ -124,6 +155,10 @@ export const validateLifecycleAndLinkage = (
 
     const result = validateLifecycleTransition(lifecycle, envelope.payload);
     if (!result.ok) {
+      return lifecycleFailure(context, replayed, envelope);
+    }
+
+    if (!hasCommittedSourceReference(lifecycle, envelope.payload, [...replayed.events, ...envelopes.slice(0, index)])) {
       return lifecycleFailure(context, replayed, envelope);
     }
 

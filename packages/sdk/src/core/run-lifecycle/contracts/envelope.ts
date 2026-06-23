@@ -43,6 +43,7 @@ export type AppendIntent<TPayload = unknown> = {
   type: string;
   durability: RunDurabilityClass;
   payload: TPayload;
+  payloadDigest?: string;
   eventId?: string;
   occurredAt: string;
   causationId?: string;

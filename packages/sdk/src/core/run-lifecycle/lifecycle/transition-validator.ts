@@ -12,10 +12,7 @@ function hasReference(sourceEventIds: readonly string[], expectedType: string): 
   }
 
   return sourceEventIds.some(
-    (sourceEventId) =>
-      sourceEventId === expectedType ||
-      sourceEventId.startsWith(`${expectedType}:`) ||
-      sourceEventId.includes(expectedType),
+    (sourceEventId) => sourceEventId === expectedType || sourceEventId.startsWith(`${expectedType}:`),
   );
 }
 

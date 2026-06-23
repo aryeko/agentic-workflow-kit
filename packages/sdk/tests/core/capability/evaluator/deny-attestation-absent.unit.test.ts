@@ -4,6 +4,7 @@ import { evaluateCapabilityGate } from '../../../../src/core/capability/evaluato
 
 import { noAttestationFixture } from './fixtures/no-attestation.fixture.js';
 import { wrongProviderAttestationFixture } from './fixtures/wrong-provider-attestation.fixture.js';
+import { createAllowAutoMergeScenario } from './shared.js';
 
 describe('core-02-s2 deny attestation absent', () => {
   it('denies when no committed matching attestation exists', () => {
@@ -22,6 +23,29 @@ describe('core-02-s2 deny attestation absent', () => {
       wrongProviderAttestationFixture.request,
       wrongProviderAttestationFixture.replay,
       wrongProviderAttestationFixture.projections,
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('attestation-absent');
+  });
+
+  it('denies when the only matching attestation was recorded after the gate time', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      scenario.request,
+      {
+        ...scenario.replay,
+        events: scenario.replay.events.map((event) =>
+          event.eventId === 'evt-forge-inspect'
+            ? {
+                ...event,
+                occurredAt: '2026-06-23T12:00:01.000Z',
+                recordedAt: '2026-06-23T12:00:01.000Z',
+              }
+            : event,
+        ),
+      },
+      scenario.projections,
     );
 
     expect(payload.decision).toBe('deny');
