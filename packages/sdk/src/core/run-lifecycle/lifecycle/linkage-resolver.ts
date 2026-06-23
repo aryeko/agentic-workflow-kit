@@ -52,6 +52,10 @@ export function resolveSessionLinkage(events: readonly RunEventEnvelope[]): Reso
 
   for (const event of events) {
     if (event.type === 'SessionLinked' && isSessionLinkedPayload(event.payload)) {
+      if (event.payload.supersedesOrdinal !== undefined) {
+        supersededOrdinals.add(event.payload.supersedesOrdinal);
+      }
+
       linkHistory.push(event.payload);
       continue;
     }
@@ -74,7 +78,7 @@ export function resolveSessionLinkage(events: readonly RunEventEnvelope[]): Reso
     currentSession,
     linkHistory,
     launch: {
-      linkage: classification === 'known' ? 'known' : 'unknown',
+      linkage: classification,
       currentSession,
       linkHistory,
     },

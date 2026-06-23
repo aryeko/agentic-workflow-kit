@@ -74,7 +74,10 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
       effectiveDurability,
     );
     if (appended.kind === 'receipt') {
-      return { ok: true, value: toRunReceipt(context.runId, appended.receipt, effectiveDurability, envelopes) };
+      return {
+        ok: true,
+        value: toRunReceipt(context.runId, appended.receipt, effectiveDurability, envelopes, replayed.value.health),
+      };
     }
 
     if (appended.kind === 'non-durable') {

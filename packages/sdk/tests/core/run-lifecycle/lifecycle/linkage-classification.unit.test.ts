@@ -4,7 +4,7 @@ import { resolveSessionLinkage } from '../../../../src/core/run-lifecycle/lifecy
 import { makeEventEnvelope, makeSessionLinkedPayload } from './fixtures.js';
 
 describe('core-01-s3 linkage classification', () => {
-  it('classifies known, unknown, and ambiguous link ownership and folds ambiguous launch linkage to unknown', () => {
+  it('classifies known, unknown, and ambiguous link ownership', () => {
     const known = resolveSessionLinkage([
       makeEventEnvelope(
         'SessionLinked',
@@ -29,6 +29,6 @@ describe('core-01-s3 linkage classification', () => {
     expect(known.launch.linkage).toBe('known');
     expect(unknown.launch.linkage).toBe('unknown');
     expect(ambiguous.classification).toBe('ambiguous');
-    expect(ambiguous.launch.linkage).toBe('unknown');
+    expect(ambiguous.launch.linkage).toBe('ambiguous');
   });
 });

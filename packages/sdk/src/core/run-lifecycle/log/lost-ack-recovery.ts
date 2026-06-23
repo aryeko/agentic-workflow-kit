@@ -69,7 +69,10 @@ export const recoverLostAck = (
       durability,
     );
     if (freshAppend.kind === 'receipt') {
-      return { ok: true, value: toRunReceipt(context.runId, freshAppend.receipt, durability, envelopes) };
+      return {
+        ok: true,
+        value: toRunReceipt(context.runId, freshAppend.receipt, durability, envelopes, replayed.value.health),
+      };
     }
 
     return freshAppend.kind === 'partial' || freshAppend.kind === 'non-durable'

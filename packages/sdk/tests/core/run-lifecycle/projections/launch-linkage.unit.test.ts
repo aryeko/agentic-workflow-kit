@@ -5,7 +5,7 @@ import { project } from '../../../../src/core/run-lifecycle/projections/index.js
 import { makeEnvelope, makeReplay, makeReplayDependency, makeSessionLinkedPayload, runId } from './test-support.js';
 
 describe('core-01-s5 launch linkage classification', () => {
-  it('reports unknown, known, and ambiguous linkage with ambiguous folded to unknown', () => {
+  it('reports unknown, known, and ambiguous linkage', () => {
     const noLinks = project(runId, makeReplayDependency({ ok: true, value: makeReplay([]) }));
     const oneLink = project(
       runId,
@@ -59,7 +59,7 @@ describe('core-01-s5 launch linkage classification', () => {
       ok: true,
       value: expect.objectContaining({
         launch: expect.objectContaining({
-          linkage: 'unknown',
+          linkage: 'ambiguous',
         }),
       }),
     });

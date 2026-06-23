@@ -10,6 +10,7 @@ import type {
   Result,
   RunAppendFailure,
   RunAppendReceipt,
+  RunDegradedHealth,
   RunDurabilityClass,
   RunEventEnvelope,
 } from '../contracts/index.js';
@@ -93,6 +94,7 @@ export const toRunReceipt = (
   receipt: Pick<AppendReceipt, 'firstSequence' | 'lastSequence' | 'writerEpoch' | 'frameDigest'>,
   durability: RunDurabilityClass,
   envelopes: readonly RunEventEnvelope[],
+  health: RunDegradedHealth,
 ): RunAppendReceipt => ({
   runId,
   firstSequence: receipt.firstSequence,
@@ -102,5 +104,5 @@ export const toRunReceipt = (
   eventIds: envelopes.map((event) => event.eventId),
   payloadDigests: envelopes.map((event) => event.payloadDigest),
   frameDigest: receipt.frameDigest,
-  health: 'ok',
+  health,
 });

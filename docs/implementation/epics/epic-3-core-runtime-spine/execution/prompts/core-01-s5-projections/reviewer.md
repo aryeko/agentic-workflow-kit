@@ -82,13 +82,11 @@
   and two `SessionLinked` envelopes and asserts all three fields (pass).
 
 - **AC-10** `launch.linkage` is `"known"` when exactly one latest non-superseded session link is
-  resolvable (an unambiguous owner), and `"unknown"` when no non-superseded link exists **or** when
-  multiple conflicting non-superseded links make the owner ambiguous — ambiguous linkage folds to
-  `"unknown"` for the launch projection per the design (`projections-lifecycle-and-tests.md`
-  §Session linkage: "Missing or ambiguous linkage projects to `launch.linkage = "unknown"`") and the
-  `core-01-s3-lifecycle-and-linkage` resolution rules — evidence: `launch-linkage.unit.test.ts`
-  provides three fixtures (no links, one link, two conflicting non-superseded links) and asserts
-  `linkage` is `"unknown"`, `"known"`, and `"unknown"` respectively (pass on all three).
+  resolvable (an unambiguous owner), `"unknown"` when no non-superseded link exists, and `"ambiguous"`
+  when multiple conflicting non-superseded links make the owner ambiguous — evidence:
+  `launch-linkage.unit.test.ts` provides three fixtures (no links, one link, two conflicting
+  non-superseded links) and asserts `linkage` is `"unknown"`, `"known"`, and `"ambiguous"` respectively
+  (pass on all three).
 
 - **AC-11** When a `SessionLinkSuperseded` event supersedes link ordinal N, that link's
   `SessionLinkedPayload` is excluded from `launch.currentSession` and contributes to

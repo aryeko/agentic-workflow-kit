@@ -24,4 +24,18 @@ describe('RunWriter durability normalization', () => {
       expect(result.value.durability).toBe('barrier');
     }
   });
+
+  it('returns the replayed log health in successful append receipts', () => {
+    const harness = createHarness({ replayHealth: 'log-tail-repaired' });
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    const result = writer.ok ? writer.value.append([appendIntent('SiblingFact', { ok: true })]) : writer;
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.health).toBe('tail-repaired');
+    }
+  });
 });

@@ -130,13 +130,11 @@ Source story: `docs/implementation/epics/epic-3-core-runtime-spine/stories/core-
   and two `SessionLinked` envelopes and asserts all three fields (pass).
 
 - **AC-10** `launch.linkage` is `"known"` when exactly one latest non-superseded session link is
-  resolvable (an unambiguous owner), and `"unknown"` when no non-superseded link exists **or** when
-  multiple conflicting non-superseded links make the owner ambiguous — ambiguous linkage folds to
-  `"unknown"` for the launch projection per the design (`projections-lifecycle-and-tests.md`
-  §Session linkage: "Missing or ambiguous linkage projects to `launch.linkage = "unknown"`") and the
-  `core-01-s3-lifecycle-and-linkage` resolution rules — evidence: `launch-linkage.unit.test.ts`
-  provides three fixtures (no links, one link, two conflicting non-superseded links) and asserts
-  `linkage` is `"unknown"`, `"known"`, and `"unknown"` respectively (pass on all three).
+  resolvable (an unambiguous owner), `"unknown"` when no non-superseded link exists, and `"ambiguous"`
+  when multiple conflicting non-superseded links make the owner ambiguous — evidence:
+  `launch-linkage.unit.test.ts` provides three fixtures (no links, one link, two conflicting
+  non-superseded links) and asserts `linkage` is `"unknown"`, `"known"`, and `"ambiguous"` respectively
+  (pass on all three).
 
 - **AC-11** When a `SessionLinkSuperseded` event supersedes link ordinal N, that link's
   `SessionLinkedPayload` is excluded from `launch.currentSession` and contributes to
@@ -257,10 +255,9 @@ Also stop and report if dependency inputs are missing, required writes fall outs
   `lastRecordedAt?` (latest `recordedAt` in stream).
 - `launch` reducer: extract `policyDigest?` (from `RunPolicyBoundPayload`),
   `taskSnapshotDigest?` (from `TaskSnapshotRecordedPayload`), `linkage` (`"known"` when exactly one
-  latest non-superseded link is resolvable, `"unknown"` when no non-superseded link exists **or** when
-  multiple conflicting non-superseded links make the owner ambiguous — ambiguous folds to `"unknown"`
-  for the launch projection per the design and the `core-01-s3-lifecycle-and-linkage` resolution
-  rules), `currentSession?` (the latest
+  latest non-superseded link is resolvable, `"unknown"` when no non-superseded link exists, and
+  `"ambiguous"` when multiple conflicting non-superseded links make the owner ambiguous),
+  `currentSession?` (the latest
   non-superseded `SessionLinkedPayload`), and `linkHistory[]` (all `SessionLinkedPayload`s in
   ordinal order, unfiltered).
 - Enforce projection purity: reducers do not call append APIs, do not write projection files, do not
