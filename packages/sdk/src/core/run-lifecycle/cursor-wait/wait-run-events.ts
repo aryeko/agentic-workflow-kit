@@ -1,4 +1,11 @@
-import type { Result, RunEventEnvelope, RunReplay, RunReplayFailure, WaitRunEventsRequest, WaitRunEventsResult } from '../contracts/index.js';
+import type {
+  Result,
+  RunEventEnvelope,
+  RunReplay,
+  RunReplayFailure,
+  WaitRunEventsRequest,
+  WaitRunEventsResult,
+} from '../contracts/index.js';
 
 export type ReplayRun = (runId: string) => Result<RunReplay, RunReplayFailure>;
 export type CursorWaitClock = () => number;

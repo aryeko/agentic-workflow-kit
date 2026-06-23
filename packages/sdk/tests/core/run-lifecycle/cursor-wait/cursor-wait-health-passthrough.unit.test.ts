@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
-import type { RunLogHealthRecord } from '../../../../src/index.js';
 import { waitRunEvents } from '../../../../src/core/run-lifecycle/cursor-wait/index.js';
+import type { RunLogHealthRecord } from '../../../../src/index.js';
 
 import { makeEnvelope, makeReplaySuccess, textRunId } from './test-support.js';
 

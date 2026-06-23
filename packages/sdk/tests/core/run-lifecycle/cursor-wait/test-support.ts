@@ -10,10 +10,7 @@ const baseRunId = 'run-cursor-wait-123';
 
 export const textRunId = baseRunId;
 
-export const makeEnvelope = (
-  sequence: number,
-  overrides: Partial<RunEventEnvelope> = {},
-): RunEventEnvelope => ({
+export const makeEnvelope = (sequence: number, overrides: Partial<RunEventEnvelope> = {}): RunEventEnvelope => ({
   schema: 'kit-vnext.run-event.v1',
   runId: baseRunId,
   eventId: `evt-${sequence}`,

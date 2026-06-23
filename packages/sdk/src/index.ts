@@ -4,6 +4,7 @@ export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
 export { waitRunEvents } from './core/run-lifecycle/cursor-wait/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
+export { project } from './core/run-lifecycle/projections/index.js';
 export { replay } from './core/run-lifecycle/replay/index.js';
 export type {
   DeferredExternalTriggerActorRef,
