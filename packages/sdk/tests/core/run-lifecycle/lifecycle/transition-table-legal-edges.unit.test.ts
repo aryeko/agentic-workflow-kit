@@ -16,11 +16,10 @@ describe('core-01-s3 legal lifecycle edges', () => {
         to: edge.to,
         authority:
           edge.constraint.kind === 'recovery-retry' ? 'recovery' : edge.to === 'canceled' ? 'operator' : 'system',
-        sourceEventIds: edge.constraint.requiredEventType
-          ? [makeReference(edge.constraint.requiredEventType, `${edge.to}-1`)]
-          : edge.constraint.kind === 'recovery-retry'
-            ? [makeReference('RecoveryRetry', `${edge.to}-1`)]
-            : [makeReference('Evidence', `${edge.to}-1`)],
+        sourceEventIds:
+          edge.constraint.kind === 'recovery-retry'
+            ? [makeReference(edge.constraint.requiredEventTypes[0], `${edge.to}-1`)]
+            : [makeReference(edge.constraint.requiredEventType, `${edge.to}-1`)],
       });
 
       const result = validateLifecycleTransition(edge.from, payload);

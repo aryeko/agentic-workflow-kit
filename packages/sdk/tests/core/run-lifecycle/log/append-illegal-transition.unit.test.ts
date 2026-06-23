@@ -91,4 +91,39 @@ describe('RunWriter lifecycle validation', () => {
     expectFailureCode(result, 'illegal-lifecycle-transition');
     expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
   });
+
+  it('rejects policy cancellations without a committed policy decision event', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    harness.seedLifecycle('running', 3);
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const evidence = writer.value.append([
+      appendIntent('CancellationEvidence', { reason: 'policy-cancel-requested' }, { eventId: 'evt-cancel-evidence' }),
+    ]);
+    expect(evidence.ok).toBe(true);
+    harness.resetAppendCalls();
+
+    const result = writer.value.append([
+      appendIntent(
+        'RunLifecycleTransitioned',
+        lifecyclePayload('running', 'canceled', {
+          authority: 'policy',
+          sourceEventIds: ['evt-cancel-evidence', 'PolicyDecision:missing'],
+          terminal: true,
+        }),
+        {
+          durability: 'barrier',
+        },
+      ),
+    ]);
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+  });
 });

@@ -6,6 +6,7 @@ export type { LifecycleLegalEdge, LifecycleTransitionConstraint } from './transi
 export {
   LIFECYCLE_LEGAL_EDGE_CATALOG,
   NON_TERMINAL_LIFECYCLE_STATE_SET,
+  RECOVERY_RETRY_EVIDENCE_EVENT_TYPES,
   TERMINAL_LIFECYCLE_STATE_SET,
 } from './transition-table.js';
 export { validateLifecycleTransition } from './transition-validator.js';

@@ -11,6 +11,7 @@ import type {
 import {
   hasContiguousSessionLinkOrdinals,
   LIFECYCLE_LEGAL_EDGE_CATALOG,
+  RECOVERY_RETRY_EVIDENCE_EVENT_TYPES,
   TERMINAL_LIFECYCLE_STATE_SET,
   validateLifecycleTransition,
 } from '../lifecycle/index.js';
@@ -39,6 +40,27 @@ const isSessionLinkedPayload = (value: unknown): value is SessionLinkedPayload =
 const referencedEventId = (sourceEventId: string, expectedType: string): string =>
   sourceEventId.startsWith(`${expectedType}:`) ? sourceEventId.slice(expectedType.length + 1) : sourceEventId;
 
+const hasCommittedReference = (
+  sourceEventIds: readonly string[],
+  sourceEventsById: ReadonlyMap<string, RunEventEnvelope>,
+  expectedType: string,
+): boolean =>
+  sourceEventIds.some((sourceEventId) => {
+    const referenced = sourceEventsById.get(referencedEventId(sourceEventId, expectedType));
+    if (referenced === undefined) {
+      return false;
+    }
+
+    return expectedType === 'Evidence' || referenced.type === expectedType;
+  });
+
+const hasCommittedReferenceIn = (
+  sourceEventIds: readonly string[],
+  sourceEventsById: ReadonlyMap<string, RunEventEnvelope>,
+  expectedTypes: readonly string[],
+): boolean =>
+  expectedTypes.some((expectedType) => hasCommittedReference(sourceEventIds, sourceEventsById, expectedType));
+
 const hasCommittedSourceReference = (
   from: RunLifecycleState | null,
   payload: RunLifecycleTransitionPayload,
@@ -49,17 +71,21 @@ const hasCommittedSourceReference = (
     return false;
   }
 
-  const expectedType = edge.constraint.requiredEventType;
-  const byId = new Map(sourceEvents.map((event) => [event.eventId, event] as const));
+  const sourceEventsById = new Map(sourceEvents.map((event) => [event.eventId, event] as const));
+  const hasPrimaryReference =
+    edge.constraint.kind === 'recovery-retry'
+      ? hasCommittedReferenceIn(payload.sourceEventIds, sourceEventsById, RECOVERY_RETRY_EVIDENCE_EVENT_TYPES)
+      : hasCommittedReference(payload.sourceEventIds, sourceEventsById, edge.constraint.requiredEventType);
 
-  return payload.sourceEventIds.some((sourceEventId) => {
-    const referenced = byId.get(referencedEventId(sourceEventId, expectedType));
-    if (referenced === undefined) {
-      return false;
-    }
+  if (!hasPrimaryReference) {
+    return false;
+  }
 
-    return expectedType === 'Evidence' || referenced.type === expectedType;
-  });
+  if (edge.constraint.kind !== 'terminal-transition' || edge.to !== 'canceled' || payload.authority === 'operator') {
+    return true;
+  }
+
+  return hasCommittedReference(payload.sourceEventIds, sourceEventsById, 'PolicyDecision');
 };
 
 export const terminalIdempotentReceipt = (

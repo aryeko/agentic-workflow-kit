@@ -200,6 +200,46 @@ describe('RunEventLog and RunWriter edge failures', () => {
     }
   });
 
+  it('accepts recovery retries backed by a committed core-06 recovery event', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    harness.seedLifecycle('runner-verifying', 3);
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const recovery = writer.value.append([
+      appendIntent(
+        'RecoveryClassified',
+        {
+          classification: 'evidence-refresh-retryable',
+          recommendedAction: 'retry-evidence-refresh',
+        },
+        { eventId: 'evt-recovery-classified', domain: 'core-06', durability: 'barrier' },
+      ),
+    ]);
+    expect(recovery.ok).toBe(true);
+
+    const transition = writer.value.append([
+      appendIntent(
+        'RunLifecycleTransitioned',
+        {
+          from: 'runner-verifying',
+          to: 'running',
+          reason: 'retry evidence refresh',
+          authority: 'recovery',
+          sourceEventIds: ['evt-recovery-classified'],
+        },
+        { durability: 'durable' },
+      ),
+    ]);
+
+    expect(transition.ok).toBe(true);
+  });
+
   it('renews only with a currently fenced lease', () => {
     const harness = createHarness();
     harness.seedCreatedRun();

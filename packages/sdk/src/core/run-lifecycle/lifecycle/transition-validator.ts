@@ -35,7 +35,7 @@ export function validateLifecycleTransition(
   }
 
   if (legalEdge.constraint.kind === 'recovery-retry') {
-    if (payload.authority !== 'recovery' || !hasReference(payload.sourceEventIds, 'RecoveryRetry')) {
+    if (payload.authority !== 'recovery' || payload.sourceEventIds.length === 0) {
       return { ok: false, error: 'illegal-lifecycle-transition' };
     }
 

@@ -30,8 +30,14 @@ type RequiredReferenceEventType =
   | 'RunPolicyBound'
   | 'TaskSnapshotRecorded'
   | 'SessionLinked'
-  | 'Evidence'
-  | 'RecoveryRetry';
+  | 'Evidence';
+
+export const RECOVERY_RETRY_EVIDENCE_EVENT_TYPES = [
+  'RecoveryClassified',
+  'RecoveryActionPlanned',
+  'RecoveryActionApplied',
+  'ReconciliationBlocked',
+] as const;
 
 export type LifecycleTransitionConstraint =
   | {
@@ -41,7 +47,7 @@ export type LifecycleTransitionConstraint =
     }
   | {
       kind: 'recovery-retry';
-      requiredEventType: 'RecoveryRetry';
+      requiredEventTypes: typeof RECOVERY_RETRY_EVIDENCE_EVENT_TYPES;
       requiresBarrier: false;
     }
   | {
@@ -137,22 +143,38 @@ const recoveryEdges: LifecycleLegalEdge[] = [
   {
     from: 'runner-verifying',
     to: 'running',
-    constraint: { kind: 'recovery-retry', requiredEventType: 'RecoveryRetry', requiresBarrier: false },
+    constraint: {
+      kind: 'recovery-retry',
+      requiredEventTypes: RECOVERY_RETRY_EVIDENCE_EVENT_TYPES,
+      requiresBarrier: false,
+    },
   },
   {
     from: 'forge-waiting',
     to: 'runner-verifying',
-    constraint: { kind: 'recovery-retry', requiredEventType: 'RecoveryRetry', requiresBarrier: false },
+    constraint: {
+      kind: 'recovery-retry',
+      requiredEventTypes: RECOVERY_RETRY_EVIDENCE_EVENT_TYPES,
+      requiresBarrier: false,
+    },
   },
   {
     from: 'merge-waiting',
     to: 'forge-waiting',
-    constraint: { kind: 'recovery-retry', requiredEventType: 'RecoveryRetry', requiresBarrier: false },
+    constraint: {
+      kind: 'recovery-retry',
+      requiredEventTypes: RECOVERY_RETRY_EVIDENCE_EVENT_TYPES,
+      requiresBarrier: false,
+    },
   },
   {
     from: 'settling',
     to: 'merge-waiting',
-    constraint: { kind: 'recovery-retry', requiredEventType: 'RecoveryRetry', requiresBarrier: false },
+    constraint: {
+      kind: 'recovery-retry',
+      requiredEventTypes: RECOVERY_RETRY_EVIDENCE_EVENT_TYPES,
+      requiresBarrier: false,
+    },
   },
 ];
 
