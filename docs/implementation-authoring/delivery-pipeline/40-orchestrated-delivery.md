@@ -61,7 +61,7 @@ decisions about the work.
 | OD-1 | Triggers only for an existing `ready` package; refuses missing/incomplete/underspecified/over-risk/non-ready; authors nothing. | P1 | P/T |
 | OD-2 | Binds runtime/provider facts only (model from class, effort, cap, completion signal, dependency hashes); changes no package decision. | P1 | P |
 | OD-3 | Dispatches only `ready` stories in dependency waves; a dependent waits for its producer's story commit + tracker-evidence commit + worker closure. | P1 | E/T |
-| OD-4 | Reuses one implementer + one reviewer context per story; workers never stage, commit, push, PR, merge, or close. | P1 | E/T |
+| OD-4 | Reuses one implementer + one reviewer context per story; all fix/rereview rounds message that persistent pair incrementally; workers never stage, commit, push, PR, merge, or close. | P1 | E/T |
 | OD-5 | Reviewer approval is advisory; the coordinator inspects diff, scope, and gate, and commits only the approved pathset. | P1 | E/T |
 | OD-6 | Durable two-commit sequence (story commit, then tracker-evidence commit); downstream readiness needs both. | P1 | E/T |
 | OD-7 | PR/merge boundary respected: detect-only review waiting; merge and cleanup only on explicit instruction; stop at the asked boundary. | P1 | E |

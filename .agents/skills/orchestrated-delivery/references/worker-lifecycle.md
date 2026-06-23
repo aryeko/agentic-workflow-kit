@@ -24,15 +24,24 @@ a notification only; confirm real state from worker output, git diff, gates, or 
 
 Do not run tight polling loops.
 
-## Review Loop
+## Persistent Pair / Incremental Review Loop
 
 - After an implementer reports completion, the coordinator inspects the diff for pathset, dependency,
   and obvious gate readiness before review. The coordinator does not perform the reviewer's
   code-quality or AC-satisfaction role.
-- Start one independent reviewer for that story, created once for the story.
-- If the reviewer returns findings, re-address the same implementer with the exact findings.
-- Send the fix back to the same reviewer for rereview.
+- Start one independent reviewer for that story, created once for the story. The story now has exactly
+  one implementer context and one reviewer context.
+- For every fix round, message the existing implementer context. Do not spawn a replacement implementer
+  with copied context. Include the exact reviewer findings, the allowed pathset, and the required
+  response packet.
+- After the implementer reports a fix, inspect the latest diff and gate evidence, then message the
+  existing reviewer context for rereview. Do not spawn a replacement reviewer or restart the original
+  review prompt. Include the original scope/ACs by reference, the latest diff/evidence, and the specific
+  findings being rechecked.
 - Repeat until explicit `APPROVED`, a real blocker, or the review cap is reached.
+- If a worker context is lost, corrupted, or technically impossible to message, stop that story, record
+  the exception in the ledger/tracker notes, and ask for explicit coordinator action before replacing the
+  worker pair.
 
 ## Source-Contract Blockers
 

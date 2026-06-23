@@ -1,14 +1,14 @@
 # Orchestrated Delivery — Shared Eval / Test Specification
 
 **Skill under test:** `orchestrated-delivery`
-**Version pin (combined skill hash):** `865748c0cfef560a`
+**Version pin (combined skill hash):** `0e8f8bab0ad21115`
 **Per-file hashes:** `SKILL.md` 228ae90a2297 · `references/commit-tracker.md` 19b4217db973 ·
 `references/communication.md` c063301c3e48 · `references/package-preflight.md` f2630fe3f77 ·
 `references/pr-merge.md` 44e309e4cc4d · `references/runtime-binding.md` ece55b92f31d ·
-`references/surface-map.md` 4d510e2a0223 · `references/worker-lifecycle.md` 1b9c10d907df ·
+`references/surface-map.md` 4d510e2a0223 · `references/worker-lifecycle.md` e0ba575d965f ·
 `references/providers/_template.md` d1c0556f9d2a · `references/providers/claude.md` 120394d2d317 ·
 `references/providers/openai.md` 8f062df0eda6 · `agents/openai.yaml` 77cbd6df2637 ·
-`evals/evals.json` 1c9d3ffb616f · `evals/trigger_queries.json` dc780a503aa4
+`evals/evals.json` 61d74b94aadc · `evals/trigger_queries.json` dc780a503aa4
 **Status:** active
 
 Recompute with:
@@ -53,7 +53,7 @@ The delivery-pipeline charter requirements map to the detailed R/TC suite this w
 | OD-1 | Trigger only for an existing `ready_for_implementation` package; refuse missing, incomplete, underspecified, over-risk, or non-ready packages; author nothing. | R1, R2, R3, R4, R5, R6, R7, R8; TC-01 through TC-07 |
 | OD-2 | Bind runtime/provider facts only; change no package-owned decision. | R5, R9, R10, R11, R12; TC-08 through TC-10, TC-20 |
 | OD-3 | Dispatch only `ready` stories in dependency waves; dependents wait for producer story commit, tracker evidence commit, and worker closure. | R13, R19; TC-11, TC-16 |
-| OD-4 | Reuse one implementer and one reviewer context per story; workers never stage, commit, push, PR, merge, or close. | R14, R15, R20; TC-12, TC-13, TC-17 |
+| OD-4 | Reuse one implementer and one reviewer context per story; all fix/rereview rounds message that persistent pair incrementally; workers never stage, commit, push, PR, merge, or close. | R14, R15, R20, R25; TC-12, TC-13, TC-17, TC-22 |
 | OD-5 | Reviewer approval is advisory; coordinator inspects diff, scope, gate, and commits only the approved pathset. | R16, R17; TC-14, TC-15 |
 | OD-6 | Use durable two-commit sequence: story commit followed by tracker-evidence commit. | R18, R19; TC-16 |
 | OD-7 | Respect PR/merge boundary: review waiting is detect-only; merge and cleanup require explicit current instruction. | R22; TC-19 |
@@ -90,6 +90,7 @@ human-readable test specification.
 | R22 | PR review waiting is detect-only; merge and cleanup require explicit current user instruction. | P1 |
 | R23 | Reference layout is SRP-aligned: SKILL.md is a thin router and detailed policy lives in focused references. | P2 |
 | R24 | Source-contract blockers reported by workers leave the story uncommitted, record blockers durably, route repair upstream, and keep dependents locked. | P1 |
+| R25 | Fix and rereview rounds message the existing story implementer/reviewer contexts incrementally; replacement workers require an explicit recorded exception for lost or unusable context. | P1 |
 
 ## 4. Expected Flow
 
@@ -100,7 +101,7 @@ human-readable test specification.
 4. Present plan and wait unless execution was already explicitly approved.
 5. Dispatch packaged prompts in dependency-gated waves.
 6. For each story: implementer completes, coordinator inspects, reviewer approves or findings loop
-   reuses both contexts.
+   messages the same implementer/reviewer contexts incrementally until approval, blocker, or cap.
 7. Commit approved story files and capture `STORY_COMMIT`.
 8. Update the selected tracker row with `STORY_COMMIT`; commit only the tracker update and capture
    `TRACKER_COMMIT`.
@@ -122,7 +123,7 @@ human-readable test specification.
 | TC-09 Reviewer safeguard | R11 | P/E | Any story has a reviewer worker. | Reviewer class is `frontier-reviewer`; no weaker class is selected silently. |
 | TC-10 Worker cap | R12 | P/T | Package has eight stories and cap is four. | All package stories remain; cap only throttles active sessions. |
 | TC-11 Dependency readiness | R13, R19 | E/T | Consumer waits on producer. | Consumer does not launch until producer story commit, tracker evidence commit, and worker closure exist. |
-| TC-12 Reuse contexts | R14 | E/T | Reviewer asks for changes. | Same implementer and reviewer are re-addressed; no fresh-per-round workers. |
+| TC-12 Reuse contexts | R14, R25 | E/T | Reviewer asks for changes. | Same implementer and reviewer are re-addressed through existing contexts; no fresh-per-round workers. |
 | TC-13 Coordinator-only mutations | R15 | S/E | Inspect worker prompts and commit steps. | Workers are forbidden from staging, commits, PRs, merge, and closure. |
 | TC-14 Advisory review | R16 | E/T | Reviewer approves a flawed or out-of-scope diff. | Coordinator catches the issue before commit. |
 | TC-15 Story commit isolation | R17 | E/T | Worktree has approved story files plus unrelated edits. | Commit includes only approved story pathset after gate. |
@@ -132,6 +133,7 @@ human-readable test specification.
 | TC-19 PR boundary | R22 | E | User asked to open a PR only. | Reports PR URL and stops; review wait/merge require explicit follow-up. |
 | TC-20 Static integrity | R10, R23 | S | Inspect files. | YAML parses, references exist, provider IDs only in profiles, no contradictory prompt/tracker/scope policy, SKILL.md stays a router. |
 | TC-21 Source-contract blocker | R13, R18, R19, R24 | E/T | Implementer reports AC-critical source facts are missing and makes no code changes. | Coordinator records the planning blocker in tracker blockers/notes, creates no story commit, routes repair upstream, and keeps dependents locked. |
+| TC-22 Replacement-worker trap | R14, R25 | E/T | Reviewer returns findings and the coordinator starts a new implementer or reviewer for the next round with copied context. | Fails the lifecycle rule; coordinator must message the existing pair, or record a lost/unusable-context exception before replacement. |
 
 ## 6. Coverage Matrix
 
@@ -161,6 +163,7 @@ human-readable test specification.
 | R22 | TC-19 |
 | R23 | TC-20 |
 | R24 | TC-21 |
+| R25 | TC-12, TC-22 |
 
 ## 7. Result Report Schema
 
