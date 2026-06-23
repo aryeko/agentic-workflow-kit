@@ -562,7 +562,7 @@ export const createMockExecutionHostProvider = (
       }
     },
     terminateWorker: (handle, policy) => {
-      const forceKillSent = policy.forceKill && options.terminationProof?.containmentEmpty === false;
+      const forceKillSent = policy.forceKill;
       const result: TerminationResult = {
         handleId: handle.handleId,
         terminalExitCode: options.terminationProof?.containmentEmpty === false ? undefined : 0,
