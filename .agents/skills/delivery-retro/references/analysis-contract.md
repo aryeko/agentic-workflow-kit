@@ -1,0 +1,46 @@
+# Delivery Retro Analysis Contract
+
+Use this reference for every post-run retro. The analyzer exists to reconstruct facts from an already
+completed run; it is not an execution or planning skill.
+
+## Required Handles
+
+A final retro requires all five handles:
+
+- execution package path;
+- Codex/agent session JSONL path;
+- PR URL or number;
+- worker thread ids or aliases;
+- git commit range.
+
+The script resolves handles from explicit CLI flags first, then from package text, tracker rows,
+session JSONL records, and current repo conventions. If any handle remains unresolved, stop and ask
+for exactly that missing handle. A partial retro is allowed only when the user explicitly asks for a
+partial diagnostic.
+
+## Source Rules
+
+- Treat `execution/tracker.md`, `execution/plan.md`, session JSONL, PR data supplied by the user, and
+  git commits as source evidence.
+- Mark each metric as `observed`, `reconstructed`, `partial`, or `unavailable`.
+- Token usage may be reported only when a source exposes usage fields. If no inspected source exposes
+  tokens, report `unavailable`; never estimate from transcript size, elapsed time, or message count.
+- Do not dump raw worker transcripts, whole diffs, or full session JSONL into the report. Summarize
+  fields and cite sources.
+
+## Report Shape
+
+Per story, report status, story/tracker commits when present, gate evidence, blockers, review rounds,
+finding classes, elapsed time, token usage, and missing observability fields.
+
+Across the run, report highest-churn stories, common finding classes, slowest phases, worker count,
+reviewer/implementer rework indicators, and missing observability gaps.
+
+Recommendations must be separate from facts. Candidate lessons-ledger entries are appropriate only
+for recurring defect classes. One-off implementation bugs against a clear spec remain Bucket-2 review
+findings.
+
+## Non-Mutation Boundary
+
+Do not edit package files, trackers, lessons, delivery skills, source files, PRs, or docs while using
+this skill. A retro may recommend changes, but implementation is a separate user-approved task.
