@@ -1,38 +1,35 @@
+import type { OperatorActorRef } from './actor.js';
+import type { OperatorCommandEnvelope, OperatorCommandTarget, OperatorEnvelopeError } from './envelope.js';
 import type {
   InspectRunParams,
-  OperatorActionKind,
-  OperatorActorRef,
-  OperatorCommandEnvelope,
-  OperatorCommandResult,
-  OperatorCommandTarget,
-  OperatorEnvelopeError,
-  OperatorSurface,
   PreviewRunParams,
   PreviewRunView,
   RunInspectionView,
   RunStartedView,
   StartRunParams,
-} from 'sdk';
+} from './params-views.js';
+import type { OperatorCommandResult } from './result.js';
+import type { OperatorActionKind, OperatorSurface } from './unions.js';
 
-export type Clock = () => string;
-export type IdGenerator = () => string;
-export type OsIdentityResolver = (surface: Extract<OperatorSurface, 'cli' | 'mcp'>) => OperatorActorRef;
+export type OperatorCommandClock = () => string;
+export type OperatorCommandIdGenerator = () => string;
+export type OperatorCommandIdentityResolver = (surface: Extract<OperatorSurface, 'cli' | 'mcp'>) => OperatorActorRef;
 
-export type OperatorSmokeControlSurface = {
+export type OperatorCommandControlSurface = {
   previewRun: (envelope: OperatorCommandEnvelope<PreviewRunParams>) => OperatorCommandResult<PreviewRunView>;
   startRun: (envelope: OperatorCommandEnvelope<StartRunParams>) => OperatorCommandResult<RunStartedView>;
   inspectRun: (envelope: OperatorCommandEnvelope<InspectRunParams>) => OperatorCommandResult<RunInspectionView>;
 };
 
-type BuildEnvelopeInput<TParams> = {
+export type BuildOperatorCommandEnvelopeInput<TParams> = {
   actionKind: OperatorActionKind;
   commandName: string;
   surface: Extract<OperatorSurface, 'cli' | 'mcp'>;
   actor: OperatorActorRef;
   target: OperatorCommandTarget;
   params: TParams;
-  clock: Clock;
-  ids: IdGenerator;
+  clock: OperatorCommandClock;
+  ids: OperatorCommandIdGenerator;
   envelopeErrors?: readonly OperatorEnvelopeError[];
 };
 
@@ -118,7 +115,7 @@ export const buildOperatorCommandEnvelope = <TParams>({
   clock,
   ids,
   envelopeErrors = [],
-}: BuildEnvelopeInput<TParams>): OperatorCommandEnvelope<TParams> => {
+}: BuildOperatorCommandEnvelopeInput<TParams>): OperatorCommandEnvelope<TParams> => {
   const requestedAt = clock();
   const actionId = ids();
   const dryRun = extractDryRun(params);

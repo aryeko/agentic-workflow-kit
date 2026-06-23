@@ -15,6 +15,14 @@ export type {
   StartRunParams,
 } from './params-views.js';
 export type { OperatorCommandError, OperatorCommandResult, OperatorEventRef } from './result.js';
+export {
+  type BuildOperatorCommandEnvelopeInput,
+  buildOperatorCommandEnvelope,
+  type OperatorCommandClock,
+  type OperatorCommandControlSurface,
+  type OperatorCommandIdentityResolver,
+  type OperatorCommandIdGenerator,
+} from './smoke.js';
 export type {
   OperatorActionKind,
   OperatorCommandStatus,

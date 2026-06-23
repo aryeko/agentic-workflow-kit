@@ -10,28 +10,28 @@ import type {
 
 import {
   buildOperatorCommandEnvelope,
-  type Clock,
-  type IdGenerator,
-  type OperatorSmokeControlSurface,
-  type OsIdentityResolver,
-} from './shared.js';
+  type OperatorCommandClock,
+  type OperatorCommandControlSurface,
+  type OperatorCommandIdentityResolver,
+  type OperatorCommandIdGenerator,
+} from 'sdk';
 
 const actionKind = 'inspect-run';
 const commandName = 'workflow run inspect';
 
 type InspectRunDependencies = {
-  controlSurface: OperatorSmokeControlSurface;
-  resolveIdentity: OsIdentityResolver;
-  clock: Clock;
-  ids: IdGenerator;
+  controlSurface: OperatorCommandControlSurface;
+  resolveIdentity: OperatorCommandIdentityResolver;
+  clock: OperatorCommandClock;
+  ids: OperatorCommandIdGenerator;
 };
 
 export const buildInspectRunEnvelope = (
   params: InspectRunParams,
   actor: OperatorActorRef,
   target: OperatorCommandTarget,
-  clock: Clock,
-  ids: IdGenerator,
+  clock: OperatorCommandClock,
+  ids: OperatorCommandIdGenerator,
   envelopeErrors: readonly OperatorEnvelopeError[] = [],
 ): OperatorCommandEnvelope<InspectRunParams> =>
   buildOperatorCommandEnvelope({

@@ -13,7 +13,7 @@ import {
 } from './support.js';
 
 describe('edge-01-s2 CLI/MCP preview parity', () => {
-  it('produces byte-identical preview envelopes after stripping surface-specific fields', () => {
+  it('produces parity envelopes from distinct CLI and MCP wrappers after stripping surface-specific fields', () => {
     const cliEnvelope = buildCliPreviewRunEnvelope(
       previewParamsFixture,
       sharedActorFixture,
@@ -31,6 +31,9 @@ describe('edge-01-s2 CLI/MCP preview parity', () => {
 
     expect(cliEnvelope.surface).toBe('cli');
     expect(mcpEnvelope.surface).toBe('mcp');
+    expect(buildCliPreviewRunEnvelope).not.toBe(buildMcpPreviewRunEnvelope);
+    expect(cliEnvelope.actor).toMatchObject({ surfaceClient: 'cli' });
+    expect(mcpEnvelope.actor).toMatchObject({ surfaceClient: 'mcp' });
     expect(serialize(stripParityFields(cliEnvelope))).toBe(serialize(stripParityFields(mcpEnvelope)));
   });
 });

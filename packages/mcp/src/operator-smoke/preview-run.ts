@@ -10,28 +10,28 @@ import type {
 
 import {
   buildOperatorCommandEnvelope,
-  type Clock,
-  type IdGenerator,
-  type OperatorSmokeControlSurface,
-  type OsIdentityResolver,
-} from './shared.js';
+  type OperatorCommandClock,
+  type OperatorCommandControlSurface,
+  type OperatorCommandIdentityResolver,
+  type OperatorCommandIdGenerator,
+} from 'sdk';
 
 const actionKind = 'preview-run';
 const commandName = 'workflow run preview';
 
 type PreviewRunDependencies = {
-  controlSurface: OperatorSmokeControlSurface;
-  resolveIdentity: OsIdentityResolver;
-  clock: Clock;
-  ids: IdGenerator;
+  controlSurface: OperatorCommandControlSurface;
+  resolveIdentity: OperatorCommandIdentityResolver;
+  clock: OperatorCommandClock;
+  ids: OperatorCommandIdGenerator;
 };
 
 export const buildPreviewRunEnvelope = (
   params: PreviewRunParams,
   actor: OperatorActorRef,
   target: OperatorCommandTarget,
-  clock: Clock,
-  ids: IdGenerator,
+  clock: OperatorCommandClock,
+  ids: OperatorCommandIdGenerator,
   envelopeErrors: readonly OperatorEnvelopeError[] = [],
 ): OperatorCommandEnvelope<PreviewRunParams> =>
   buildOperatorCommandEnvelope({

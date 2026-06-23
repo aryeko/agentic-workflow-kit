@@ -62,8 +62,12 @@ export type {
   OperatorActionKind,
   OperatorActionRecordedPayload,
   OperatorActorRef,
+  OperatorCommandClock,
+  OperatorCommandControlSurface,
   OperatorCommandEnvelope,
   OperatorCommandError,
+  OperatorCommandIdentityResolver,
+  OperatorCommandIdGenerator,
   OperatorCommandResult,
   OperatorCommandStatus,
   OperatorCommandTarget,
@@ -79,6 +83,7 @@ export type {
   StartRunParams,
   UnavailableOsUserOperatorActorRef,
 } from './edge/operator-command/index.js';
+export { buildOperatorCommandEnvelope } from './edge/operator-command/index.js';
 export * from './foundation/configuration-policy/index.js';
 export * from './foundation/credentials-secrets/index.js';
 export * from './foundation/storage/artifacts/index.js';

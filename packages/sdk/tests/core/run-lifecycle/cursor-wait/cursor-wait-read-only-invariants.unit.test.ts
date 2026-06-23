@@ -16,15 +16,13 @@ describe('cursor-wait', () => {
       replayResult: makeReplaySuccess([]),
       clockValues: [0, 1_001],
     },
-  ])('read-only: no lease/projection/append side effects (%s)', ({ replayResult, clockValues }) => {
-    const context = {
-      replay: vi.fn(() => replayResult),
-      acquire: vi.fn(),
-      renew: vi.fn(),
-      append: vi.fn(),
-      writeProjection: vi.fn(),
-      mutateLiveness: vi.fn(),
-    };
+  ])('read-only: returns replay-derived data without mutating the replay result (%s)', ({
+    replayResult,
+    clockValues,
+  }) => {
+    const before = structuredClone(replayResult);
+    const replay = vi.fn(() => replayResult);
+    const clock = vi.fn(() => clockValues.shift() ?? 1_001);
 
     const result = waitRunEvents(
       {
@@ -35,15 +33,16 @@ describe('cursor-wait', () => {
         },
         timeoutMs: 1_000,
       },
-      context.replay,
-      vi.fn(() => clockValues.shift() ?? 1_001),
+      replay,
+      clock,
     );
 
     expect(result.ok).toBe(true);
-    expect(context.acquire).not.toHaveBeenCalled();
-    expect(context.renew).not.toHaveBeenCalled();
-    expect(context.append).not.toHaveBeenCalled();
-    expect(context.writeProjection).not.toHaveBeenCalled();
-    expect(context.mutateLiveness).not.toHaveBeenCalled();
+    expect(replay).toHaveBeenCalledWith(textRunId);
+    expect(replayResult).toEqual(before);
+    if (result.ok && result.value.events.length > 0) {
+      expect(result.value.events).toEqual(replayResult.ok ? replayResult.value.events : []);
+      expect(result.value.events).not.toBe(replayResult.ok ? replayResult.value.events : []);
+    }
   });
 });
