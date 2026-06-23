@@ -71,8 +71,12 @@ validation failure mode must have a negative fixture or equivalent failing asser
 - Depends on: <producer stories, by id>.
 - Depended on by: <consumer stories, by id>.
 - Shared shapes consumed: <`<producer-story>/<type>`, cited verbatim, not redeclared>.
+- Decision inputs consumed: <request fields, consumed events/projections, producer-owned fields, or
+  resolvers that supply every runtime branch value used by the ACs and failure rows>.
 
-Name exact producer/consumer shapes. Do not write "the fields supplied by X."
+Name exact producer/consumer shapes and fields. Do not write "the fields supplied by X." A ref, hash,
+citation, or story id is provenance only; it is not the value being evaluated unless this story owns or
+consumes the resolver that turns it into values.
 
 ## Acceptance criteria
 
@@ -80,7 +84,9 @@ Each AC is a single assertion that is true or false against a test or artifact. 
 specified." A happy-path command proves only successful acceptance; every rejection or negative-outcome
 AC names the failing fixture or artifact that proves it. The `evidence` names the exact test id or command
 and the result it produces, so a reviewer can re-run it — a prose category like "schema tests" is not
-evidence.
+evidence. If an AC branches on policy, scope, approval, capability state, authority, or another runtime
+condition, it must name the declared input, consumed event/projection, producer-owned field, or resolver
+that supplies that value.
 
 - **AC-1** <Falsifiable assertion> - evidence: <exact test id or command, and the result it produces>.
 - **AC-2** <Falsifiable assertion> - evidence: <exact test id or command, and the result it produces>.
@@ -93,6 +99,16 @@ responsibility crosses this story's assigned signal.
 | Responsibility / spec-surface item | Proven by |
 |---|---|
 | <responsibility or manifest item> | AC-<n> |
+
+## Predicate-input matrix
+
+Every behavioral AC and every failure/degraded trigger is decidable from declared inputs, consumed
+events/projections, producer-owned fields, or an in-scope resolver. Do not count refs, hashes,
+citations, or story ids as values unless the resolver is in scope.
+
+| AC or failure row | Predicate / branch value | Declared source value | Producer / resolver | Verdict |
+|---|---|---|---|---|
+| AC-<n> | <condition evaluated> | <request field, event field, projection field, producer field, or resolver output> | <producer story/type or resolver owned here> | decidable |
 
 ## Failure and degraded outcomes
 
@@ -146,6 +162,8 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
   the intended path, not a private module).
 - Boundary/forbidden-symbol sweep: exact command, path roots, forbidden-token set, and zero-match output,
   for any cross-corpus or cross-package change.
+- Predicate-input evidence for every behavior AC and failure row, proving each runtime branch value comes
+  from a declared input, consumed event/projection, producer-owned field, or in-scope resolver.
 - Conformance evidence for every provider port/mocking surface involved; runtime / production
   attestation evidence only when the story claims a real driver capability or live production power.
   Core stories may use recorded/mock attestations to prove gate predicates, but must not require real

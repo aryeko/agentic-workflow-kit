@@ -1,14 +1,14 @@
 # Orchestrated Delivery — Shared Eval / Test Specification
 
 **Skill under test:** `orchestrated-delivery`
-**Version pin (combined skill hash):** `6248b4ec0a7dde6c`
-**Per-file hashes:** `SKILL.md` 228ae90a2297 · `references/commit-tracker.md` ca70c1728cca ·
-`references/communication.md` c063301c3e48 · `references/package-preflight.md` 7757d529bb0b ·
+**Version pin (combined skill hash):** `865748c0cfef560a`
+**Per-file hashes:** `SKILL.md` 228ae90a2297 · `references/commit-tracker.md` 19b4217db973 ·
+`references/communication.md` c063301c3e48 · `references/package-preflight.md` f2630fe3f77 ·
 `references/pr-merge.md` 44e309e4cc4d · `references/runtime-binding.md` ece55b92f31d ·
-`references/surface-map.md` 4d510e2a0223 · `references/worker-lifecycle.md` 56f2308997ef ·
+`references/surface-map.md` 4d510e2a0223 · `references/worker-lifecycle.md` 1b9c10d907df ·
 `references/providers/_template.md` d1c0556f9d2a · `references/providers/claude.md` 120394d2d317 ·
 `references/providers/openai.md` 8f062df0eda6 · `agents/openai.yaml` 77cbd6df2637 ·
-`evals/evals.json` 28337fa7d045 · `evals/trigger_queries.json` dc780a503aa4
+`evals/evals.json` 1c9d3ffb616f · `evals/trigger_queries.json` dc780a503aa4
 **Status:** active
 
 Recompute with:
@@ -58,6 +58,7 @@ The delivery-pipeline charter requirements map to the detailed R/TC suite this w
 | OD-6 | Use durable two-commit sequence: story commit followed by tracker-evidence commit. | R18, R19; TC-16 |
 | OD-7 | Respect PR/merge boundary: review waiting is detect-only; merge and cleanup require explicit current instruction. | R22; TC-19 |
 | OD-8 | Sparse communication; no tight polling or transcript/diff dumps. | R21; TC-18 |
+| OD-9 | Worker-reported source-contract blockers are recorded as planning blockers, not committed as story work or bypassed. | R24; TC-21 |
 
 The companion open-format eval files live in `evals/evals.json` and
 `evals/trigger_queries.json`. They mirror this OD mapping while `EVALS.md` remains the detailed
@@ -88,6 +89,7 @@ human-readable test specification.
 | R21 | Communicate sparse evidence transitions only; avoid fixed sub-minute polling and transcript/diff dumps. | P2 |
 | R22 | PR review waiting is detect-only; merge and cleanup require explicit current user instruction. | P1 |
 | R23 | Reference layout is SRP-aligned: SKILL.md is a thin router and detailed policy lives in focused references. | P2 |
+| R24 | Source-contract blockers reported by workers leave the story uncommitted, record blockers durably, route repair upstream, and keep dependents locked. | P1 |
 
 ## 4. Expected Flow
 
@@ -129,6 +131,7 @@ human-readable test specification.
 | TC-18 Sparse communication | R21 | E | Long worker wait. | No filler wait narration, no fixed short polling, no transcript/diff dump. |
 | TC-19 PR boundary | R22 | E | User asked to open a PR only. | Reports PR URL and stops; review wait/merge require explicit follow-up. |
 | TC-20 Static integrity | R10, R23 | S | Inspect files. | YAML parses, references exist, provider IDs only in profiles, no contradictory prompt/tracker/scope policy, SKILL.md stays a router. |
+| TC-21 Source-contract blocker | R13, R18, R19, R24 | E/T | Implementer reports AC-critical source facts are missing and makes no code changes. | Coordinator records the planning blocker in tracker blockers/notes, creates no story commit, routes repair upstream, and keeps dependents locked. |
 
 ## 6. Coverage Matrix
 
@@ -157,6 +160,7 @@ human-readable test specification.
 | R21 | TC-18 |
 | R22 | TC-19 |
 | R23 | TC-20 |
+| R24 | TC-21 |
 
 ## 7. Result Report Schema
 

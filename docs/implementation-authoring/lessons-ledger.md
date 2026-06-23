@@ -67,6 +67,7 @@ precondition holds — a tightening is pending) · `OPEN` (no cover yet).
 | LSN-18 | Phase 1 | Reviewing stashed trees produced false "file absent" findings. | Orchestrator "review isolated drafts, never stashed trees" — [operating-model/orchestrator.md](operating-model/orchestrator.md) | covered |
 | LSN-19 | Epic 1 | A public-producer story ran on the cheap model tier. | Gate 3 requires a suggested tier on every public-exposure node + orchestrator honors it as the floor ([authoring-standard/40-story-dag.md](authoring-standard/40-story-dag.md), [operating-model/orchestrator.md](operating-model/orchestrator.md)) | covered |
 | LSN-20 | Epic 1 | Greedy dispatch starved reviewer/readdress slots → close/resume churn. | Orchestrator capacity planning — [operating-model/orchestrator.md](operating-model/orchestrator.md) | conditional — role requirement only; the `orchestrated-delivery` skill change that reserves slots is deferred |
+| LSN-21 | Epic 3 / `core-02-s2` | A ready story required policy and scope decisions that were not evaluable from its declared inputs (`policyRef` without resolved policy values; approved-parent scope with no approved-parent source). | R6 predicate-input coverage + Gate 4 predicate-input box — [authoring-standard/50-story-contract.md](authoring-standard/50-story-contract.md); plan-delivery self-blocking contract preflight — [delivery-pipeline/30-plan-delivery.md](delivery-pipeline/30-plan-delivery.md) | covered |
 
 ## Open items
 

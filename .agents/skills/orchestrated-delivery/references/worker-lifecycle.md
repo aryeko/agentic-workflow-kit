@@ -34,6 +34,23 @@ Do not run tight polling loops.
 - Send the fix back to the same reviewer for rereview.
 - Repeat until explicit `APPROVED`, a real blocker, or the review cap is reached.
 
+## Source-Contract Blockers
+
+If an implementer or reviewer reports that a packaged story cannot be implemented or reviewed because
+the frozen contract is missing a required source fact, contradicts itself, or names a STOP condition
+that overlaps an AC or failure trigger, treat it as a planning blocker rather than a worker defect.
+
+Required coordinator behavior:
+
+- inspect the report against the packaged story contract and prompt;
+- do not ask the worker to invent the missing source fact or continue with a guessed interpretation;
+- leave the story uncommitted and do not start or unlock dependents;
+- update the tracker blocker/notes fields with the affected AC or failure row, missing fact, worker
+  alias, and route-back target (`$plan-epic` for frozen story defects, `$plan-delivery` for package-only
+  projection defects);
+- make a tracker-only evidence commit when the repo workflow allows tracker commits for blocked
+  stories, otherwise report the uncommitted tracker blocker explicitly.
+
 Default review cap is five rounds unless the package, repo instruction, or user sets a stricter cap.
 If the cap is reached without approval, stop that story, leave it uncommitted, and report the open
 findings.

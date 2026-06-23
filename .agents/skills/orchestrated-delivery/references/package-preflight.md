@@ -76,3 +76,8 @@ execution. Require planning repair through `$plan-epic` when the frozen story sc
 criteria are wrong; require a corrected execution package when only package artifacts are wrong.
 
 Do not split, merge, shrink, reorder, or reinterpret ready story scope inside this skill.
+
+If the package explicitly records an unresolved source-contract blocker, or a prompt asks a worker to
+continue past a source STOP condition by inventing missing AC inputs, refuse before dispatch. Require
+planning repair through `$plan-epic` for frozen-scope defects or `$plan-delivery` for package-only
+projection defects.
