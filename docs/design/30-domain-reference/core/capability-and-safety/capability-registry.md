@@ -23,7 +23,8 @@ type CapabilityId =
 Every predicate receives:
 
 - `mode`: `manual` or `assisted`;
-- `policyRef`: resolved policy evidence supplied by the caller;
+- `policyDecision`: normalized Configuration & Policy result supplied by the caller, with `policyRef`
+  and a boolean `permits` value for this capability, requested action, and gate scope;
 - `scope`: Run, operation, provider, workspace/session, PR head, and egress-policy scope;
 - `replay` and `projections` from core-01;
 - recorded evidence refs supplied by the caller;
@@ -33,7 +34,7 @@ Every predicate receives:
 Shared guarantees for every non-deferred capability:
 
 1. Mode is `assisted`; `manual` denies autonomous powers.
-2. Resolved policy permits the capability for this scope.
+2. `policyDecision.permits === true` for this capability, requested action, and scope.
 3. Core-01 replay/projection health is usable.
 4. Required evidence is recorded, unambiguous, and not self-report-only.
 5. Required attestations are fresh, positive, in scope, non-contradictory, and replayable.

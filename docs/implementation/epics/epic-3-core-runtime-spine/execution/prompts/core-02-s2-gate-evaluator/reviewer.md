@@ -19,6 +19,21 @@
 - Direct dependencies: `core-02-s1-capability-registry`, `core-01-s1-event-contracts`.
 - Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes and public import paths named in the source contract and DAG.
 
+## Contract Repair Note
+
+The source story has been repaired after this prompt was generated. The source story is authoritative
+where this prompt's embedded excerpts still mention an undefined policy-permits shape or an undefined
+provider-contract-approved parent-scope rule:
+
+- `CapabilityGateRequest` includes `policyDecision: CapabilityGatePolicyDecision`; the evaluator checks
+  `request.policyDecision.permits` and does not parse raw policy documents.
+- `CapabilityGateScope.providerScopes[]` includes optional `approvedParentScopes`; an attestation parent
+  scope is valid only when it is listed there for the same provider/freshness key and is a lexical parent
+  of the exact scope using `/`, `:`, or `#` as the next separator.
+
+Do not reject or stop on the old policy-shape or approved-parent-scope gap; review against the repaired
+source story and matching design docs.
+
 ### Acceptance Criteria
 
 Each AC is a single assertion that is true or false against a hermetic test over fixture `RunReplay` /
@@ -68,9 +83,10 @@ test id and the result it produces.
   `deny-run-log-degraded.unit.test.ts` (`degraded-replay.fixture.ts` with `health:"interior-corrupt"`
   and `ambiguous-linkage.fixture.ts`) asserts `decision==="deny"` and `failureReason==="run-log-degraded"`.
 - **AC-7** When `request.mode === "manual"` the evaluator denies with
-  `failureReason="mode-disallows-capability"`; when resolved policy does not permit the capability for the
-  scope it denies with `failureReason="policy-disallows-capability"`; and when the capability is
-  `orchestrator-decide` (AD-14 deferred) it denies with `failureReason="capability-deferred"` — each
+  `failureReason="mode-disallows-capability"`; when `request.policyDecision.permits === false` for the
+  already-resolved capability/action/scope decision it denies with
+  `failureReason="policy-disallows-capability"`; and when the capability is `orchestrator-decide`
+  (AD-14 deferred) it denies with `failureReason="capability-deferred"` — each
   raised before any provider attestation is inspected, reusing the
   `core-02-s1-capability-registry` tokens - evidence: `deny-mode-policy-deferred.unit.test.ts`
   (`manual-mode.fixture.ts`, `policy-denies.fixture.ts`, `orchestrator-decide.fixture.ts`) asserts each
@@ -97,8 +113,9 @@ test id and the result it produces.
   `failureReason="attestation-contradictory"` - evidence: `deny-attestation-negative-contradictory.unit.test.ts`
   (`negative-attestation.fixture.ts`, `contradictory-attestations.fixture.ts`) asserts the two distinct
   `failureReason` values.
-- **AC-12** An attestation whose `scope` is neither the exact gate scope nor a provider-contract-approved
-  parent scope denies with `failureReason="attestation-out-of-scope"` - evidence:
+- **AC-12** An attestation whose `scope` is neither the exact gate scope nor an approved parent scope
+  listed in `providerScopes[].approvedParentScopes` for the same provider/freshness key denies with
+  `failureReason="attestation-out-of-scope"` - evidence:
   `deny-attestation-out-of-scope.unit.test.ts` (`wrong-scope-attestation.fixture.ts` whose
   `scope`/`freshnessKey` does not match the gate `providerScopes`) asserts
   `failureReason==="attestation-out-of-scope"`.
@@ -171,8 +188,8 @@ Name exact producer/consumer shapes. Do not write "the fields supplied by X."
   `RunDegradedHealth`, `EvidenceEventRef`) and the `replay()`/`project()` behaviors that build them —
   owned by `core-01-s1`/`s2`/`s5`; referenced as value types, never redeclared, and not depended on as
   runtime behaviors (the evaluator takes them as values built from fixtures).
-- Resolved policy schema (what makes `policyRef` permit a capability) — owned by Configuration & Policy
-  (`fnd-01`); consumed as a resolved input.
+- Full policy document schema — owned by Configuration & Policy (`fnd-01`); consumed here only as the
+  normalized `CapabilityGatePolicyDecision` input.
 - The lifecycle consequence of a deny (park/block/fail) — chosen by the caller via core-01 legal
   transitions, not by this evaluator.
 
@@ -190,9 +207,9 @@ Name exact producer/consumer shapes. Do not write "the fields supplied by X."
   `gate-record-unwritable` (owned by `core-02-s3-gate-record-durability`); declaring the registry catalog
   or the `CapabilityId`/posture shapes (`core-02-s1-capability-registry`); declaring the
   `CapabilityAttestation` payload (Epic 2 `prov-00-s1`); declaring the core-01 run-log value types
-  (`core-01-s1-event-contracts`); or any provider/driver behavior. If the design does not answer a
-  contract question (e.g. the precise approved-parent-scope rule or the policy-permits shape), report it
-  as a design gap — do not invent it.
+  (`core-01-s1-event-contracts`); parsing raw policy documents; inferring parent scopes not listed in
+  `approvedParentScopes`; or any provider/driver behavior. If another design contract question blocks an
+  AC, report it as a design gap — do not invent it.
 
 ## Runtime Slots
 
