@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Delivery"
+  short_description: "Package ready stories for delivery"
+  default_prompt: "Use $plan-delivery to turn a ready workflow-kit epic into an execution package."

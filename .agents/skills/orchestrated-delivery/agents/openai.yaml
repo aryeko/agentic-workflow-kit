@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestrated Delivery"
+  short_description: "Execute a ready package with dependency-gated workers and durable tracker commits"
+  default_prompt: "Use $orchestrated-delivery only for an existing execution package that $plan-delivery marked ready_for_implementation. Verify package readiness, tracker rows, and packaged prompts first; refuse missing, incomplete, vague, or over-risk packages instead of repairing them. Bind only runtime/provider details, dispatch the packaged implementer/reviewer prompts in dependency-gated waves, reuse each worker pair through fixes, make a story commit followed by a tracker evidence commit at every story boundary, and stop after PR publication unless I explicitly ask for review wait, merge, or cleanup."
