@@ -25,8 +25,10 @@ Write only the target epic package:
 - `docs/implementation/epics/<epic-slug>/execution/prompts/<story-id>/implementer.md`
 - `docs/implementation/epics/<epic-slug>/execution/prompts/<story-id>/reviewer.md`
 
-Do not implement stories, dispatch workers, stage, commit, push, open PRs, edit source DAGs or
-story contracts, or bind provider-specific runtime model IDs.
+Do not implement stories, dispatch implementation workers, stage, commit, push, open PRs, edit
+source DAGs or story contracts, or bind provider-specific runtime model IDs. After package closeout,
+dispatch exactly one independent read-only reviewer to assess package quality, correctness,
+compliance, and readiness for implementation.
 
 ## Projection Rule
 
@@ -48,8 +50,8 @@ Read only the references needed for the current step:
 - `references/tracker-artifact.md`: author `execution/tracker.md`.
 - `references/implementer-prompt.md`: author implementer prompts.
 - `references/reviewer-prompt.md`: author reviewer prompts.
-- `references/closeout-validation.md`: audit projection trace, package completeness, and
-  `ready_for_implementation` evidence.
+- `references/closeout-validation.md`: audit projection trace, package completeness, independent
+  reviewer requirements, and `ready_for_implementation` evidence.
 
 ## Workflow
 
@@ -62,5 +64,9 @@ Read only the references needed for the current step:
    `reviewer-prompt.md` to write self-contained package artifacts.
 5. Use `closeout-validation.md` to prove package completeness, projection trace, no runtime model
    ID binding, and the final readiness verdict.
+6. After local closeout validation is complete, dispatch one independent read-only reviewer. The
+   reviewer must inspect the target package and relevant skill/source references, assess quality,
+   correctness, compliance, and readiness for implementation, and return severity-ordered findings or
+   an explicit no-findings verdict. Do not let the reviewer edit files or execute implementation.
 
-Stop after package closeout. The next stage owns execution.
+Stop after package closeout and independent reviewer verdict. The next stage owns execution.
