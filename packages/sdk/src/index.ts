@@ -1,6 +1,7 @@
 export * from './core/capability/registry/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
+export { replay } from './core/run-lifecycle/replay/index.js';
 export * from './foundation/configuration-policy/index.js';
 export * from './foundation/credentials-secrets/index.js';
 export * from './foundation/storage/artifacts/index.js';
