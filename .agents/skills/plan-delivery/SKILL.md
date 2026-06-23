@@ -4,8 +4,8 @@ description: >-
   Use after $plan-epic and before $orchestrated-delivery for workflow-kit/kit-vnext epics when a
   frozen story DAG plus selected `story: ready` contracts must be projected into a docs-only
   execution package under `docs/implementation/epics/EPIC_SLUG/execution/`. Produces plan,
-  tracker, and per-story implementer/reviewer prompts with provider profile, abstract model class,
-  effort, reasoning tier, and routing rationale. Not for changing scope, acceptance criteria,
+  tracker, and per-story implementer/reviewer prompts with abstract model class, effort, reasoning
+  tier, and routing rationale. Not for changing scope, acceptance criteria,
   dependency order, suggested-tier floors, source planning artifacts, feature code, or runtime model
   bindings.
 ---
@@ -42,8 +42,8 @@ Read only the references needed for the current step:
 - `references/source-readiness.md`: resolve the epic, validate Gate 1, inspect source planning
   files, and verify the write location.
 - `references/package-layout.md`: apply package tree and docs-only write boundaries.
-- `references/model-routing.md`: choose provider profile, abstract model class, effort, reasoning
-  tier, and rationale without runtime model IDs.
+- `references/model-routing.md`: choose abstract model class, effort, reasoning tier, and rationale
+  without runtime model IDs.
 - `references/plan-artifact.md`: author `execution/plan.md`.
 - `references/tracker-artifact.md`: author `execution/tracker.md`.
 - `references/implementer-prompt.md`: author implementer prompts.

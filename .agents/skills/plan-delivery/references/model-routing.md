@@ -9,7 +9,6 @@ Record these fields in `plan.md`, `tracker.md`, and the corresponding worker pro
 
 - source story id;
 - source `AC-n` ids covered by the package element;
-- provider profile;
 - model class;
 - effort;
 - suggested-tier floor from the DAG;
@@ -18,18 +17,6 @@ Record these fields in `plan.md`, `tracker.md`, and the corresponding worker pro
 
 Do not record provider-specific runtime model IDs, aliases, or version strings. The execution stage
 selects those from current provider availability.
-
-## Provider Profiles
-
-Use profile labels that describe the intended capability lane, not a provider product:
-
-- `cost-efficient-code`
-- `default-code`
-- `high-capability-code`
-- `frontier-code`
-- `high-capability-review`
-
-Use `high-capability-review` for reviewer prompts unless the package is blocked.
 
 ## Model Classes
 
@@ -43,12 +30,12 @@ Use only these abstract model classes:
 
 ## Routing Table
 
-| story risk | reasoning tier | implementer profile/class | implementer effort | reviewer profile/class | reviewer effort |
+| story risk | reasoning tier | implementer class | implementer effort | reviewer class | reviewer effort |
 |---|---|---|---|---|---|
-| mechanical docs, config, or test split with no cross-story contract risk | `light` | `cost-efficient-code` / `cheap-coder` | `low` | `high-capability-review` / `frontier-reviewer` | `medium` |
-| default bounded implementation | `standard` | `default-code` / `general-coder` | `medium` | `high-capability-review` / `frontier-reviewer` | `medium` |
-| public API, shared shape, cross-file contract, safety boundary, or conformance harness | `elevated` | `high-capability-code` / `strong-coder` | `high` | `high-capability-review` / `frontier-reviewer` | `high` |
-| exceptional architecture, security boundary, migration, or data-loss risk | `critical` | `frontier-code` / `frontier` | `high` or `xhigh` with rationale | `high-capability-review` / `frontier-reviewer` | `high` |
+| mechanical docs, config, or test split with no cross-story contract risk | `light` | `cheap-coder` | `low` | `frontier-reviewer` | `medium` |
+| default bounded implementation | `standard` | `general-coder` | `medium` | `frontier-reviewer` | `medium` |
+| public API, shared shape, cross-file contract, safety boundary, or conformance harness | `elevated` | `strong-coder` | `high` | `frontier-reviewer` | `high` |
+| exceptional architecture, security boundary, migration, or data-loss risk | `critical` | `frontier` | `high` or `xhigh` with rationale | `frontier-reviewer` | `high` |
 
 The selected reasoning tier must be greater than or equal to the DAG's suggested-tier floor. Carry
 the floor unchanged; do not lower, reinterpret, or delete it.

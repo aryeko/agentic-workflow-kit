@@ -19,7 +19,7 @@
   },
   {
     "id": "positive-abstract-routing-package",
-    "query": "Package the ready stories with provider profiles, model classes, effort, tiers, and routing rationale but no runtime model names.",
+    "query": "Package the ready stories with model classes, effort, tiers, and routing rationale but no runtime model names.",
     "should_trigger": true,
     "split": "validation"
   },

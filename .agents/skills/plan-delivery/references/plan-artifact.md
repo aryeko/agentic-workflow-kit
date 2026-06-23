@@ -24,8 +24,8 @@ Include one row per selected story:
 | story id | source AC ids | job | wave | dependencies | dependents | owned pathset | suggested-tier floor | routing |
 |---|---|---|---|---|---|---|---|---|
 
-The `routing` cell records provider profile, abstract model class, effort, reasoning tier, and
-rationale for implementer and reviewer. Do not record runtime model IDs.
+The `routing` cell records abstract model class, effort, reasoning tier, and rationale for
+implementer and reviewer. Do not record runtime model IDs.
 
 ### Execution Waves
 
@@ -45,8 +45,7 @@ from the story contracts. Do not add checks that change the accepted story bar.
 
 Record what the execution stage must honor:
 
-- provider profile, model class, effort, reasoning tier, and routing rationale are abstract plan
-  decisions;
+- model class, effort, reasoning tier, and routing rationale are abstract plan decisions;
 - provider-specific runtime model IDs are selected later;
 - dependency validity comes from tracker `done` state and committed dependency inputs;
 - tracker update authority belongs to the execution stage;

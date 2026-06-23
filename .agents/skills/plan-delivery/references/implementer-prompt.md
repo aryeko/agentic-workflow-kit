@@ -11,7 +11,6 @@ Record:
 
 - source story id;
 - source `AC-n` ids covered by this prompt;
-- provider profile;
 - model class;
 - effort;
 - suggested-tier floor;

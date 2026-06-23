@@ -12,7 +12,6 @@ Record:
 
 - source story id;
 - source `AC-n` ids covered by this prompt;
-- provider profile `high-capability-review`;
 - model class `frontier-reviewer`;
 - effort;
 - suggested-tier floor;

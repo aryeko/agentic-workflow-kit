@@ -17,8 +17,8 @@ Column meaning:
 - `wave`: topological wave from the DAG.
 - `dependencies`: direct dependency story ids, empty when none.
 - `status`: one valid tracker status.
-- `implementer routing`: provider profile, model class, effort, reasoning tier, rationale.
-- `reviewer routing`: provider profile, model class, effort, reasoning tier, rationale.
+- `implementer routing`: model class, effort, reasoning tier, rationale.
+- `reviewer routing`: model class, effort, reasoning tier, rationale.
 - `prompt paths`: implementer and reviewer prompt paths for this story.
 - `reviewer verdict`: empty until the later execution run records a verdict.
 - `gate evidence`: empty until the later execution run records verification evidence.

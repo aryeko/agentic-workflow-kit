@@ -26,7 +26,7 @@ Audit every package artifact against the source inventory:
 - source-vague elements stop with a `$plan-epic` route-back instead of invention;
 - provider-specific runtime model IDs are absent;
 - reasoning tier is greater than or equal to the carried suggested-tier floor;
-- reviewer routing uses `frontier-reviewer` with `high-capability-review`.
+- reviewer routing uses `frontier-reviewer`.
 
 ## Artifact Compliance
 
