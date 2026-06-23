@@ -9,7 +9,8 @@ Read `surface-map.md`, detect the current surface, and record the concrete mecha
 
 `plan-mode`, `exec-checklist`, `worker-spawn`, `worker-completion`, `worker-readdress`,
 `worker-naming`, `worker-isolation`, `worker-close`, `reasoning-tier`, `model-routing`,
-`prompt-contract`, `worker-cap`, `pr-review-wait`, `pr-thread-followup`, and `merge-cleanup`.
+`prompt-contract`, `story-worktree`, `worker-cap`, `pr-review-wait`, `pr-thread-followup`, and
+`merge-cleanup`.
 
 On Plan-capable surfaces, enforce Plan Mode or an explicitly authorized read-only fallback before
 repo discovery, edits, dispatch, commits, pushes, PRs, or merges.
@@ -18,11 +19,12 @@ repo discovery, edits, dispatch, commits, pushes, PRs, or merges.
 
 For each selected story, bind only:
 
-- repo root, worktree path, branch, base, and cleanliness;
+- repo root, delivery worktree path, delivery branch, base, and cleanliness;
+- story worktree path, temporary story branch, story branch base, and cleanliness;
 - provider profile and resolved concrete model for the package-declared model class;
 - actual effort supported by the worker surface for the package-declared tier;
 - worker alias and completion signal;
-- current dependency story commit hashes and tracker evidence commit hashes.
+- current dependency approved-story commit hashes that are present in the delivery worktree.
 
 Unknown runtime facts stay `unknown pending inspection` until inspected. Do not invent them.
 

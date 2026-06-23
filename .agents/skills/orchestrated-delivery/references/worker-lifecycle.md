@@ -9,15 +9,15 @@ report evidence; the coordinator owns all mutations and lifecycle decisions.
   the surface supports them.
 - Name each worker before launch with a short role alias, and record the alias in the ledger.
 - Launch implementers only for dependency-ready stories. A dependency is ready for dispatch only when
-  both its story commit and tracker evidence commit exist, and its implementer/reviewer pair is
+  its approved-story commit is present in the delivery worktree, and its implementer/reviewer pair is
   closed or marked terminal.
 - Independent package stories may run concurrently from the first wave when pathsets do not conflict
   and the launch keeps both total active worker sessions at or below `worker-cap` and active
   implementers at or below `implementer-cap`.
 - Keep `review-reserve` available for reviewers, rereviews, and fix-loop progress. Do not spend
   reviewer reserve on speculative implementer launches, even when more dependency-ready stories exist.
-- Send each worker the packaged prompt plus a narrow runtime envelope. Do not alter the packaged
-  prompt body.
+- Send each worker the packaged prompt plus a narrow runtime envelope for that story worktree. Do not
+  alter the packaged prompt body.
 
 ## Completion
 
@@ -31,7 +31,7 @@ Do not run tight polling loops.
 
 - After an implementer reports completion, the coordinator inspects the diff for pathset, dependency,
   and obvious gate readiness before review. The coordinator does not perform the reviewer's
-  code-quality or AC-satisfaction role.
+  code-quality or AC-satisfaction role and does not patch implementation findings.
 - Start one independent reviewer for that story, created once for the story. The story now has exactly
   one implementer context and one reviewer context.
 - For every fix round, message the existing implementer context. Do not spawn a replacement implementer
@@ -56,7 +56,7 @@ Required coordinator behavior:
 
 - inspect the report against the packaged story contract and prompt;
 - do not ask the worker to invent the missing source fact or continue with a guessed interpretation;
-- leave the story uncommitted and do not start or unlock dependents;
+- leave the story implementation uncommitted and do not start or unlock dependents;
 - update the tracker blocker/notes fields with the affected AC or failure row, missing fact, worker
   alias, and route-back target (`$plan-epic` for frozen story defects, `$plan-delivery` for package-only
   projection defects);
@@ -77,10 +77,15 @@ coordinator/runner holds push/PR/merge authority.
 Reviewer approval is advisory. The coordinator still verifies scope control, changed files, checks,
 and dependency boundaries before a commit, without re-characterizing or expanding the work.
 
+The coordinator may edit `execution/tracker.md` at the approved-story or blocked-story boundary and
+may resolve mechanical commit/tracker issues inside the story worktree. The coordinator must not
+directly implement story code, patch reviewer findings, or make opportunistic tooling fixes inside a
+story branch. Repo tooling fixes outside story pathsets require an explicit separate repair step.
+
 ## Closing Workers
 
 Keep a story's implementer and reviewer open through every fix/rereview round and through the
-coordinator commit sequence. Close or archive only that story's pair after its story commit and
-tracker evidence commit are complete. Leave unrelated worker pairs untouched.
+coordinator commit and merge-back sequence. Close or archive only that story's pair after its
+approved-story commit is present in the delivery worktree. Leave unrelated worker pairs untouched.
 
 If the surface cannot close or archive contexts, mark only that story's pair terminal in the ledger.

@@ -4,7 +4,7 @@
     {
       "id": "execute-ready-package",
       "prompt": "Use $orchestrated-delivery to execute the existing package at docs/implementation/epics/E7/execution. It is marked ready_for_implementation. Stop after local commits unless I explicitly ask for PR publication.",
-      "expected_output": "The agent validates the package, binds runtime/provider facts, presents or follows an approved execution plan, dispatches packaged implementer and reviewer prompts in dependency waves, commits approved pathsets, creates tracker evidence commits, and stops before PR publication.",
+      "expected_output": "The agent validates the package, binds runtime/provider facts, presents or follows an approved execution plan, creates per-story worktrees, dispatches packaged implementer and reviewer prompts in dependency waves, lands approved-story commits that include tracker row updates, merges them back into the delivery worktree, and stops before PR publication.",
       "files": [
         "docs/implementation/epics/E7/execution/plan.md",
         "docs/implementation/epics/E7/execution/tracker.md",
@@ -16,10 +16,10 @@
       "assertions": [
         "OD-1: The run starts only after finding an existing package marked ready_for_implementation.",
         "OD-2: The agent records runtime/provider facts without editing package-owned scope, prompts, ACs, dependency order, model class, or effort.",
-        "OD-3: Dependency waves launch only when prerequisite story and tracker evidence commits exist.",
+        "OD-3: Dependency waves launch only when prerequisite approved-story commits are present in the delivery worktree.",
         "OD-4: Each story reuses one implementer and one reviewer context, and workers do not stage, commit, push, PR, merge, or close contexts.",
         "OD-5: Coordinator treats reviewer approval as advisory and commits only the approved pathset after its own scope/gate inspection.",
-        "OD-6: Each completed story has a story commit followed by a tracker-only evidence commit.",
+        "OD-6: Each completed story has one approved-story commit containing the approved story pathset and selected tracker row update, with a durable story-id trailer for resume.",
         "OD-7: The agent stops at the requested local-commit boundary.",
         "OD-8: Updates are sparse and evidence-based."
       ]
@@ -80,7 +80,7 @@
     {
       "id": "negative-source-contract-blocker",
       "prompt": "An implementer stops on story core-02-s2 and reports a source-contract blocker: ACs require policy-deny and approved-parent scope decisions, but the package exposes only policyRef and no approved-parent source. No code changes were made.",
-      "expected_output": "The coordinator treats the report as a planning blocker, records the affected ACs and missing facts in the tracker blockers/notes, does not create a story commit, does not unlock dependents, and routes repair to plan-epic or plan-delivery as appropriate.",
+      "expected_output": "The coordinator treats the report as a planning blocker, records the affected ACs and missing facts in the tracker blockers/notes, lands blocked tracker evidence in delivery history when allowed, does not create an approved-story commit, does not unlock dependents, and routes repair to plan-epic or plan-delivery as appropriate.",
       "files": [
         "execution/tracker.md",
         "execution/prompts/core-02-s2/implementer.md",
@@ -91,8 +91,8 @@
         "OD-9: Source-contract blockers are treated as planning blockers rather than implementer failures.",
         "OD-9: The coordinator does not ask the worker to invent missing policy or scope semantics.",
         "OD-9: The affected tracker row records status/blockers/notes with affected ACs, missing facts, worker alias, and route-back target.",
-        "OD-3: No dependent story is dispatched or unlocked because no valid story commit and tracker evidence commit exist.",
-        "OD-6: No story commit is created for a blocked story with no approved pathset."
+        "OD-3: No dependent story is dispatched or unlocked because no valid approved-story commit exists in the delivery worktree.",
+        "OD-6: No approved-story commit is created for a blocked story with no approved pathset; blocked tracker evidence is stop evidence only."
       ]
     },
     {
@@ -110,10 +110,10 @@
     {
       "id": "pr-boundary-and-review-wait",
       "prompt": "Use $orchestrated-delivery on the ready package and open a PR when all stories land. Do not wait for review, merge, or clean up.",
-      "expected_output": "The agent completes local story and tracker commits, opens or updates the PR only after authorization, reports the PR URL, and stops without review waiting, merge, cleanup, or worker-context overreach.",
+      "expected_output": "The agent completes local approved-story commits, opens or updates the PR only after authorization, reports the PR URL, and stops without review waiting, merge, cleanup, or worker-context overreach.",
       "files": ["execution/plan.md", "execution/tracker.md"],
       "assertions": [
-        "OD-6: Story commits and tracker evidence commits exist before publication.",
+        "OD-6: Approved-story commits exist in the delivery worktree before publication.",
         "OD-7: PR publication respects the requested boundary and stops after reporting the URL.",
         "OD-7: Review waiting is not started without explicit request.",
         "OD-8: The closeout reports evidence rather than dumping transcripts or diffs."

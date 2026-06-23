@@ -1,14 +1,15 @@
 # Orchestrated Delivery — Shared Eval / Test Specification
 
 **Skill under test:** `orchestrated-delivery`
-**Version pin (combined skill hash):** `24af0e4fe95b134f`
-**Per-file hashes:** `SKILL.md` faf2d5f76e83 · `references/commit-tracker.md` 19b4217db973 ·
-`references/communication.md` c063301c3e48 · `references/package-preflight.md` f2630fe3f77 ·
-`references/pr-merge.md` 44e309e4cc4d · `references/runtime-binding.md` ece55b92f31d ·
-`references/surface-map.md` 4d510e2a0223 · `references/worker-lifecycle.md` e0ba575d965f ·
+**Version pin (combined skill hash):** `89ee3d2f0da35170`
+**Per-file hashes:** `SKILL.md` 0a74c64f3348 · `references/commit-tracker.md` 6891a139299c ·
+`references/communication.md` 8524247dfbc5 · `references/package-preflight.md` 978ee53302be ·
+`references/pr-merge.md` b028c5ab1469 · `references/runtime-binding.md` 0101014865d8 ·
+`references/story-worktrees.md` 82efa54a2c62 · `references/surface-map.md` 20008b9b06bc ·
+`references/worker-lifecycle.md` d658d972fd36 ·
 `references/providers/_template.md` d1c0556f9d2a · `references/providers/claude.md` 120394d2d317 ·
-`references/providers/openai.md` 8f062df0eda6 · `agents/openai.yaml` 77cbd6df2637 ·
-`evals/evals.json` 61d74b94aadc · `evals/trigger_queries.json` dc780a503aa4
+`references/providers/openai.md` 8f062df0eda6 · `agents/openai.yaml` 4edb3051a949 ·
+`evals/evals.json` a5235a936892 · `evals/trigger_queries.json` cd490f8042c4
 **Status:** active
 
 Recompute with:
@@ -26,8 +27,9 @@ Per-file hashes use `shasum -a 256 <file> | cut -c1-12`.
 
 Verify that `$orchestrated-delivery` executes only from an existing `$plan-delivery` execution
 package with deep readiness evidence, binds runtime/provider facts without changing package-owned
-decisions, dispatches dependency-gated worker pairs, commits each approved story, commits tracker
-evidence durably after the story commit hash is known, and stops at the requested PR/merge boundary.
+decisions, dispatches dependency-gated worker pairs in temporary per-story worktrees, lands each
+approved story as one approved-story commit that includes the selected tracker row update, and stops at
+the requested PR/merge boundary.
 
 A run fails if it authors or repairs scope, prompts, acceptance criteria, dependency order, model
 class, effort, or tracker structure inside this skill.
@@ -52,10 +54,10 @@ The delivery-pipeline charter requirements map to the detailed R/TC suite this w
 |---|---|---|
 | OD-1 | Trigger only for an existing `ready_for_implementation` package; refuse missing, incomplete, underspecified, over-risk, or non-ready packages; author nothing. | R1, R2, R3, R4, R5, R6, R7, R8; TC-01 through TC-07 |
 | OD-2 | Bind runtime/provider facts only; change no package-owned decision. | R5, R9, R10, R11, R12; TC-08 through TC-10, TC-20 |
-| OD-3 | Dispatch only `ready` stories in dependency waves; dependents wait for producer story commit, tracker evidence commit, and worker closure. | R13, R19; TC-11, TC-16 |
+| OD-3 | Dispatch only `ready` stories in dependency waves; dependents wait for producer approved-story commit and worker closure. | R13, R19; TC-11, TC-16 |
 | OD-4 | Reuse one implementer and one reviewer context per story; all fix/rereview rounds message that persistent pair incrementally; workers never stage, commit, push, PR, merge, or close. | R14, R15, R20, R25; TC-12, TC-13, TC-17, TC-22 |
 | OD-5 | Reviewer approval is advisory; coordinator inspects diff, scope, gate, and commits only the approved pathset. | R16, R17; TC-14, TC-15 |
-| OD-6 | Use durable two-commit sequence: story commit followed by tracker-evidence commit. | R18, R19; TC-16 |
+| OD-6 | Use per-story worktrees and one approved-story commit that contains the approved story pathset plus selected tracker row update. | R18, R19; TC-16 |
 | OD-7 | Respect PR/merge boundary: review waiting is detect-only; merge and cleanup require explicit current instruction. | R22; TC-19 |
 | OD-8 | Sparse communication; no tight polling or transcript/diff dumps. | R21; TC-18 |
 | OD-9 | Worker-reported source-contract blockers are recorded as planning blockers, not committed as story work or bypassed. | R24; TC-21 |
@@ -73,23 +75,23 @@ human-readable test specification.
 | R5 | Treat the package as owner of scope, prompts, ACs, dependency order, model class, and effort. Coordinator binds runtime/provider facts only. | P1 |
 | R6 | Verify packaged prompts only; incomplete prompts cause refusal back to `$plan-delivery`. The coordinator must not rewrite or fill them. | P1 |
 | R7 | Refuse items above `critical`, underspecified items, or conflicts with frozen story scope. Route frozen-scope repair to `$plan-epic`; route package artifact repair to a corrected execution package. | P1 |
-| R8 | Tracker rows expose story id, wave, dependencies, status, implementer/reviewer model class and effort, prompt paths, reviewer verdict, gate evidence, commit hash, blockers, and notes. | P1 |
-| R9 | Bind surface capabilities, provider profile, actual model, effort, worker cap, completion signal, and dependency commit hashes before dispatch. | P1 |
+| R8 | Tracker rows expose story id, wave, dependencies, status, implementer/reviewer model class and effort, prompt paths, reviewer verdict, gate evidence, blockers, and notes. | P1 |
+| R9 | Bind surface capabilities, provider profile, actual model, effort, worker cap, completion signal, story worktree fields, and dependency approved-story commit hashes before dispatch. | P1 |
 | R10 | Keep concrete provider model IDs only in provider profile files. | P1 |
 | R11 | Reviewer workers use the provider `frontier-reviewer` class until evals justify a lower class. | P1 |
 | R12 | Worker cap limits active sessions only; it never changes package item count, order, or boundaries. | P1 |
-| R13 | Dispatch dependents only after every direct dependency has both story and tracker evidence commits, and its worker pair is closed or terminal. | P1 |
+| R13 | Dispatch dependents only after every direct dependency has an approved-story commit present in the delivery worktree and its worker pair is closed or terminal. | P1 |
 | R14 | Reuse one implementer and one reviewer context per story across all fix/rereview rounds. | P1 |
 | R15 | Workers never stage, commit, push, PR, merge, close contexts, or mark stories complete. | P1 |
 | R16 | Coordinator treats reviewer approval as advisory and inspects diff, scope, checks, and dependency boundaries before commit. | P1 |
-| R17 | Commit only the approved story pathset after quiescence and the required gate. | P1 |
-| R18 | After each story commit, update the tracker with the story commit hash and make a tracker-only evidence commit. | P1 |
-| R19 | Downstream readiness depends on both the story commit and the tracker evidence commit. | P1 |
+| R17 | Commit only the approved story pathset and selected tracker row update after quiescence and the required gate. | P1 |
+| R18 | For approved stories, make one approved-story commit in the story worktree with a durable `Story: <story-id>` trailer, then merge it back into the delivery worktree. | P1 |
+| R19 | Downstream readiness depends on the approved-story commit being present in the delivery worktree and reconstructable from delivery git history. | P1 |
 | R20 | Use native completion for subagents; use wake files only for explicitly requested visible-thread workers without native completion. | P1 |
 | R21 | Communicate sparse evidence transitions only; avoid fixed sub-minute polling and transcript/diff dumps. | P2 |
 | R22 | PR review waiting is detect-only; merge and cleanup require explicit current user instruction. | P1 |
 | R23 | Reference layout is SRP-aligned: SKILL.md is a thin router and detailed policy lives in focused references. | P2 |
-| R24 | Source-contract blockers reported by workers leave the story uncommitted, record blockers durably, route repair upstream, and keep dependents locked. | P1 |
+| R24 | Source-contract blockers reported by workers leave the story uncommitted, land blocked tracker evidence in delivery history when allowed, route repair upstream, and keep dependents locked. | P1 |
 | R25 | Fix and rereview rounds message the existing story implementer/reviewer contexts incrementally; replacement workers require an explicit recorded exception for lost or unusable context. | P1 |
 
 ## 4. Expected Flow
@@ -99,13 +101,14 @@ human-readable test specification.
    prompts are incomplete.
 3. Bind surface/provider/runtime facts without editing package-owned decisions.
 4. Present plan and wait unless execution was already explicitly approved.
-5. Dispatch packaged prompts in dependency-gated waves.
+5. Create temporary per-story worktrees and dispatch packaged prompts in dependency-gated waves.
 6. For each story: implementer completes, coordinator inspects, reviewer approves or findings loop
    messages the same implementer/reviewer contexts incrementally until approval, blocker, or cap.
-7. Commit approved story files and capture `STORY_COMMIT`.
-8. Update the selected tracker row with `STORY_COMMIT`; commit only the tracker update and capture
-   `TRACKER_COMMIT`.
-9. Mark dependents ready only after both commits and worker closure.
+7. Update the selected tracker row, commit approved story files plus that tracker row update with a
+   `Story: <story-id>` trailer, and capture `APPROVED_STORY_COMMIT`.
+8. Fast-forward the delivery worktree to the story branch and remove the disposable story worktree.
+9. Mark dependents ready only after the approved-story commit is present in the delivery worktree and
+   worker closure is complete.
 10. Publish PR only when authorized; stop after URL unless review wait or merge was explicitly asked.
 
 ## 5. Test Cases
@@ -118,21 +121,21 @@ human-readable test specification.
 | TC-04 Missing readiness verdict | R4 | P/T | Package files exist but contain no deep review and readiness verdict. | Refuse; structural files alone do not pass. |
 | TC-05 Incomplete prompt | R5, R6 | P/T | Implementer prompt lacks ACs, paths, verification, or mutation limits. | Refuse back to `$plan-delivery`; do not rewrite. |
 | TC-06 Over-risk or underspecified item | R7 | P/T | Package item appears above `critical` or conflicts with frozen scope. | Refuse execution and name the required planning repair path. |
-| TC-07 Tracker row completeness | R8 | S/P | Tracker row lacks reviewer verdict, gate evidence, commit hash, blockers, or model effort. | Package preflight fails. |
-| TC-08 Runtime binding | R9, R10 | P | Complete package on a known surface. | Plan records surface mechanisms, provider profile, model class, planned/actual model, effort, cap, completion signal, and dependency commits without concrete IDs in generic files. |
+| TC-07 Tracker row completeness | R8 | S/P | Tracker row lacks reviewer verdict, gate evidence, blockers, or model effort. | Package preflight fails. |
+| TC-08 Runtime binding | R9, R10 | P | Complete package on a known surface. | Plan records surface mechanisms, provider profile, model class, planned/actual model, effort, cap, completion signal, story worktree fields, and dependency approved-story commits without concrete IDs in generic files. |
 | TC-09 Reviewer safeguard | R11 | P/E | Any story has a reviewer worker. | Reviewer class is `frontier-reviewer`; no weaker class is selected silently. |
 | TC-10 Worker cap | R12 | P/T | Package has eight stories and cap is four. | All package stories remain; cap only throttles active sessions. |
-| TC-11 Dependency readiness | R13, R19 | E/T | Consumer waits on producer. | Consumer does not launch until producer story commit, tracker evidence commit, and worker closure exist. |
+| TC-11 Dependency readiness | R13, R19 | E/T | Consumer waits on producer. | Consumer does not launch until the producer approved-story commit is present in the delivery worktree and worker closure exists. |
 | TC-12 Reuse contexts | R14, R25 | E/T | Reviewer asks for changes. | Same implementer and reviewer are re-addressed through existing contexts; no fresh-per-round workers. |
 | TC-13 Coordinator-only mutations | R15 | S/E | Inspect worker prompts and commit steps. | Workers are forbidden from staging, commits, PRs, merge, and closure. |
 | TC-14 Advisory review | R16 | E/T | Reviewer approves a flawed or out-of-scope diff. | Coordinator catches the issue before commit. |
 | TC-15 Story commit isolation | R17 | E/T | Worktree has approved story files plus unrelated edits. | Commit includes only approved story pathset after gate. |
-| TC-16 Durable tracker commit | R18, R19 | E/T | Story is approved and committed. | Tracker records `STORY_COMMIT`, then a tracker-only commit exists before dependents unlock. |
+| TC-16 Approved-story commit | R18, R19 | E/T | Story is approved and committed. | One approved-story commit includes approved story files plus the selected tracker row update, carries a durable story-id trailer, is merged into the delivery worktree, and exists before dependents unlock. |
 | TC-17 Completion signal | R20 | E | Run subagent mode and visible-thread mode. | Subagents use native completion; visible-thread fallback treats filesystem events as wake only. |
 | TC-18 Sparse communication | R21 | E | Long worker wait. | No filler wait narration, no fixed short polling, no transcript/diff dump. |
 | TC-19 PR boundary | R22 | E | User asked to open a PR only. | Reports PR URL and stops; review wait/merge require explicit follow-up. |
 | TC-20 Static integrity | R10, R23 | S | Inspect files. | YAML parses, references exist, provider IDs only in profiles, no contradictory prompt/tracker/scope policy, SKILL.md stays a router. |
-| TC-21 Source-contract blocker | R13, R18, R19, R24 | E/T | Implementer reports AC-critical source facts are missing and makes no code changes. | Coordinator records the planning blocker in tracker blockers/notes, creates no story commit, routes repair upstream, and keeps dependents locked. |
+| TC-21 Source-contract blocker | R13, R18, R19, R24 | E/T | Implementer reports AC-critical source facts are missing and makes no code changes. | Coordinator records the planning blocker in tracker blockers/notes, lands blocked tracker evidence in delivery history when allowed, creates no approved-story commit, routes repair upstream, and keeps dependents locked. |
 | TC-22 Replacement-worker trap | R14, R25 | E/T | Reviewer returns findings and the coordinator starts a new implementer or reviewer for the next round with copied context. | Fails the lifecycle rule; coordinator must message the existing pair, or record a lost/unusable-context exception before replacement. |
 
 ## 6. Coverage Matrix
