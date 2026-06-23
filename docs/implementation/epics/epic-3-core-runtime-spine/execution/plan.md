@@ -36,6 +36,55 @@ Source files read:
 
 Ready. Gate 1 passed for `epic-3-core-runtime-spine`: `docs/implementation/epics/epic-3-core-runtime-spine/story-dag.md` frontmatter is `status: "story-dag: frozen"`, `docs/implementation/epics/epic-3-core-runtime-spine/stories/README.md` records 14 of 14 stories as `story: ready`, and every selected source contract frontmatter is `status: "story: ready"`. The package is projectable without adding scope, changing ACs, reordering dependencies, changing owned pathsets, lowering suggested-tier floors, or binding provider-specific runtime model ids.
 
+## Implementation-Readiness Evidence
+
+`$plan-delivery` performed deep artifact review for this execution package and marks it `ready_for_implementation`.
+
+Sources reviewed:
+- `docs/implementation/epics/epic-3-core-runtime-spine/story-dag.md`
+- `docs/implementation/epics/epic-3-core-runtime-spine/stories/README.md`
+- the 14 selected ready story contracts listed in `Source files read`
+- `.agents/skills/plan-delivery/references/source-readiness.md`
+- `.agents/skills/plan-delivery/references/package-layout.md`
+- `.agents/skills/plan-delivery/references/model-routing.md`
+- `.agents/skills/plan-delivery/references/plan-artifact.md`
+- `.agents/skills/plan-delivery/references/tracker-artifact.md`
+- `.agents/skills/plan-delivery/references/implementer-prompt.md`
+- `.agents/skills/plan-delivery/references/reviewer-prompt.md`
+- `.agents/skills/plan-delivery/references/closeout-validation.md`
+
+Selected stories covered:
+- `core-01-s1-event-contracts`
+- `core-02-s1-capability-registry`
+- `core-01-s2-replay-and-corruption`
+- `core-01-s3-lifecycle-and-linkage`
+- `core-02-s2-gate-evaluator`
+- `core-07-s1-telemetry-and-metrics`
+- `edge-01-s1-operator-command-contract`
+- `core-01-s5-projections`
+- `core-01-s6-cursor-wait`
+- `core-02-s3-gate-record-durability`
+- `core-07-s2-analyzer`
+- `edge-01-s2-cli-mcp-parity-smoke`
+- `core-01-s4-run-event-log-and-writer`
+- `core-07-s3-analysis-records-and-reports`
+
+Artifact checks performed:
+- `plan.md`: confirmed the source baseline, source file inventory, readiness verdict, projection summary, wave order, prompt inventory, verification policy, downstream execution metadata, resume semantics, and stop point are present and project only from the frozen DAG plus selected ready story contracts.
+- `tracker.md`: confirmed every selected story has exactly one row with story id, source AC ids, wave, dependencies, pending status, implementer routing, reviewer routing, prompt paths, reviewer verdict, gate evidence, commit hash, blockers, and notes columns; initial execution-only evidence cells remain blank by design.
+- implementer prompts: confirmed all 14 selected stories have exactly one `execution/prompts/<story-id>/implementer.md`, each carrying exact task, ACs, reason, source material, allowed paths, dependency inputs, non-goals, implementation instructions, verification commands, delivery format, and mutation limits.
+- reviewer prompts: confirmed all 14 selected stories have exactly one `execution/prompts/<story-id>/reviewer.md`, each carrying original scope and ACs, review boundaries, required checks, verdict format, and `frontier-reviewer` safeguard requirements.
+- package layout: confirmed package artifacts live under `docs/implementation/epics/epic-3-core-runtime-spine/execution/` and no extra prompt directory exists outside the selected source set.
+- static checks: confirmed no scaffold marker text, provider-specific runtime model ids, runtime model aliases or versions, fake commit hashes, stale tracker statuses, missing selected story prompt pairs, or prompt truncation/parity mismatches remain.
+
+Independent reviewer verdict:
+- Reviewer: Rawls (`019ef54a-c376-7413-bb7e-d7d735958c0f`), read-only.
+- Scope: quality, correctness, compliance, and readiness for implementation against the plan-delivery references, closeout checklist, frozen DAG, selected ready story contracts, and generated execution package.
+- Final reviewer result: `READY_FOR_IMPLEMENTATION`; no blocking findings remained after prompt regeneration and deterministic package checks.
+
+Final verdict:
+- `ready_for_implementation`
+
 ## Projection Summary
 
 | story id | source AC ids | job | wave | dependencies | dependents | owned pathset | suggested-tier floor | routing |
