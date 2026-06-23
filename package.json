@@ -39,7 +39,9 @@
     "coverage:baseline": "vitest run --project unit --project integration --project conformance-mock --coverage --passWithNoTests",
     "docs:nav": "node tooling/docs-nav/generate-nav.mjs",
     "docs:nav:check": "node tooling/docs-nav/generate-nav.mjs --check",
-    "check": "pnpm docs:nav:check && pnpm format:check && pnpm lint && pnpm deps && pnpm typecheck && pnpm test:unit && pnpm test:int && pnpm test:conf && pnpm coverage:baseline",
+    "check": "turbo run //#check:gate",
+    "check:ci": "turbo run //#check:gate --force",
+    "check:gate": "node -e \"\"",
     "pack:dry-run": "pnpm -r pack --dry-run"
   },
   "devDependencies": {
@@ -47,6 +49,7 @@
     "@types/node": "^25.9.3",
     "@vitest/coverage-v8": "^4.1.9",
     "dependency-cruiser": "^17.4.3",
+    "turbo": "^2.9.18",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }

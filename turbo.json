@@ -1,0 +1,78 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalDependencies": [
+    "pnpm-lock.yaml",
+    "tsconfig.base.json",
+    "tsconfig.infra.json",
+    "tsconfig.json",
+    "biome.json",
+    ".dependency-cruiser.cjs",
+    "vitest.config.ts"
+  ],
+  "globalEnv": ["CI"],
+  "tasks": {
+    "//#check:gate": {
+      "dependsOn": [
+        "//#docs:nav:check",
+        "//#format:check",
+        "//#lint",
+        "//#deps",
+        "//#typecheck",
+        "//#coverage:baseline"
+      ],
+      "outputs": []
+    },
+    "//#docs:nav:check": {
+      "inputs": ["docs/**", "tooling/docs-nav/**", "**/README.md"],
+      "outputs": []
+    },
+    "//#format:check": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#lint": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#deps": {
+      "inputs": [
+        "packages/**",
+        "tooling/**",
+        "tests/**",
+        ".dependency-cruiser.cjs",
+        "!**/dist/**",
+        "!**/*.tsbuildinfo",
+        "!**/coverage/**"
+      ],
+      "outputs": []
+    },
+    "//#typecheck": {
+      "inputs": [
+        "packages/**/*.ts",
+        "packages/**/*.tsx",
+        "packages/**/package.json",
+        "tooling/**/*.ts",
+        "tooling/**/*.tsx",
+        "tests/**/*.ts",
+        "tests/**/*.tsx",
+        "**/tsconfig*.json",
+        "!**/dist/**",
+        "!**/node_modules/**"
+      ],
+      "outputs": ["packages/*/dist/**", "packages/*/*.tsbuildinfo", "*.tsbuildinfo"]
+    },
+    "//#coverage:baseline": {
+      "dependsOn": ["//#typecheck"],
+      "inputs": [
+        "packages/**",
+        "tests/**",
+        "tooling/**",
+        "vitest.config.ts",
+        "!**/dist/**",
+        "!**/*.tsbuildinfo",
+        "!**/coverage/**"
+      ],
+      "outputs": ["coverage/**"]
+    }
+  }
+}

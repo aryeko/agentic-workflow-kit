@@ -3,6 +3,7 @@ dist/
 .tsbuild/
 *.tsbuildinfo
 coverage/
+.turbo/
 .worktrees/
 .claude/
 *.log

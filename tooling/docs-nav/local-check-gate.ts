@@ -4,9 +4,6 @@ export type LocalCheckGateFailureToken =
   | 'lint-failed'
   | 'deps-failed'
   | 'typecheck-failed'
-  | 'unit-failed'
-  | 'integration-failed'
-  | 'conformance-failed'
   | 'coverage-baseline-failed';
 
 export type LocalCheckGateStep = {
@@ -22,6 +19,14 @@ export type LocalCheckGate = {
   readonly excludedFromLocalGate: readonly ['test:smoke'];
 };
 
+/**
+ * The six leaf scripts that Turbo orchestrates under //#check:gate.
+ * Ordering is cheapest-first for documentation and audit purposes only —
+ * Turbo runs all six in parallel and caches each by its declared inputs.
+ * The duplicate unit/int/conf pass has been collapsed: coverage:baseline
+ * already runs those three suites under V8 coverage, so the plain test
+ * runs are not part of the gate.
+ */
 export const LOCAL_CHECK_GATE: LocalCheckGate = {
   contractName: 'LocalCheckGate',
   steps: [
@@ -57,24 +62,6 @@ export const LOCAL_CHECK_GATE: LocalCheckGate = {
     },
     {
       ordinal: 6,
-      script: 'test:unit',
-      command: 'vitest run --project unit --passWithNoTests',
-      failureToken: 'unit-failed',
-    },
-    {
-      ordinal: 7,
-      script: 'test:int',
-      command: 'vitest run --project integration --passWithNoTests',
-      failureToken: 'integration-failed',
-    },
-    {
-      ordinal: 8,
-      script: 'test:conf',
-      command: 'vitest run --project conformance-mock --passWithNoTests',
-      failureToken: 'conformance-failed',
-    },
-    {
-      ordinal: 9,
       script: 'coverage:baseline',
       command:
         'vitest run --project unit --project integration --project conformance-mock --coverage --passWithNoTests',
@@ -84,5 +71,10 @@ export const LOCAL_CHECK_GATE: LocalCheckGate = {
   excludedFromLocalGate: ['test:smoke'],
 };
 
-export const localCheckGateScript = (gate: LocalCheckGate = LOCAL_CHECK_GATE): string =>
-  gate.steps.map((step) => `pnpm ${step.script}`).join(' && ');
+/**
+ * Returns the Turbo invocation that runs //#check:gate.
+ * The aggregate no-op root task depends on all six leaf tasks declared in
+ * LOCAL_CHECK_GATE.steps. The gate script is fixed — the steps array is
+ * used for audit/documentation, not for building the shell command.
+ */
+export const localCheckGateScript = (): string => 'turbo run //#check:gate';

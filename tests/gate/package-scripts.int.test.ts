@@ -27,15 +27,20 @@ describe('pnpm check package scripts', () => {
     expect(packageJson.scripts.check).toBe(localCheckGateScript());
   });
 
-  it('consumes the S2 deps command, S3 typecheck command, and S4 template tests through the gate', async () => {
+  it('preserves leaf scripts and delegates the gate to Turbo', async () => {
     const packageJson = await readPackageJson();
 
+    // Leaf scripts stay intact for targeted local runs.
     expect(packageJson.scripts.deps).toBe('depcruise --config .dependency-cruiser.cjs packages tooling tests');
     expect(packageJson.scripts.typecheck).toBe('tsc -b');
     expect(packageJson.scripts['test:unit']).toBe('vitest run --project unit --passWithNoTests');
     expect(packageJson.scripts['test:int']).toBe('vitest run --project integration --passWithNoTests');
-    expect(packageJson.scripts.check).toContain('pnpm deps && pnpm typecheck');
-    expect(packageJson.scripts.check).toContain('pnpm test:unit && pnpm test:int && pnpm test:conf');
+    // The aggregate gate is now a Turbo root-task invocation, not a plain && chain.
+    expect(packageJson.scripts.check).toBe('turbo run //#check:gate');
+    // The no-op leaf that Turbo drives must be present.
+    expect(packageJson.scripts['check:gate']).toBe('node -e ""');
+    // A force-run variant is available for CI cold runs.
+    expect(packageJson.scripts['check:ci']).toBe('turbo run //#check:gate --force');
   });
 
   it('keeps smoke-real out of pnpm check while preserving a separate smoke command', async () => {

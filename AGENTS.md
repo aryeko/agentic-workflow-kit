@@ -102,15 +102,24 @@ See `docs/design/10-architecture/architecture.md` and `docs/design/40-decisions/
 ## The verify gate — never claim done without it
 
 ```
-pnpm install   # once
+pnpm install   # once (or: bash scripts/setup-worktree.sh for a fresh worktree)
 pnpm check     # before every commit and PR
 ```
 
-`pnpm check` runs fail-fast: `format:check` → `lint` → `deps` → `typecheck` →
-`test:unit` → `test:int` → `test:conf`. CI additionally runs `pnpm pack:dry-run` and a
-gated `smoke` job (the only lane allowed real processes and network; excluded from the
-local loop). Full detail: `docs/engineering/check-gate.md`. Show the gate output as
-evidence; do not assert success.
+For a fresh linked git worktree, run `bash scripts/setup-worktree.sh` instead of a plain
+`pnpm install` — it links the shared `.turbo/` Turbo cache from the primary checkout
+(`v-next`) into the worktree and installs dependencies.
+
+`pnpm check` runs via Turbo (`turbo run //#check:gate`) with per-task input-hash caching.
+Turbo runs the six leaf tasks concurrently and skips any whose inputs are unchanged:
+`docs:nav:check`, `format:check`, `lint`, `deps`, `typecheck`, `coverage:baseline` (the
+single coverage pass covers unit, integration, and conformance; it replaces the former
+separate `test:unit` / `test:int` / `test:conf` runs plus a duplicate coverage run).
+`coverage:baseline` depends on `typecheck` because the test lanes import built (`dist/`)
+package entry points. CI
+additionally runs `pnpm pack:dry-run` and a gated `smoke` job (the only lane allowed real
+processes and network; excluded from the local loop). Full detail:
+`docs/engineering/check-gate.md`. Show the gate output as evidence; do not assert success.
 
 ---
 
