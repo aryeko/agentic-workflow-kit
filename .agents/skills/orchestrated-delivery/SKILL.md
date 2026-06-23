@@ -22,10 +22,10 @@ surface bindings, provider profile, concrete model resolved from the declared cl
 effort, completion signal, and current dependency commit hashes.
 
 Do not create, repair, or improve package-owned planning artifacts during preflight. The only package
-file this skill edits is `execution/tracker.md`, and only at the committed-story boundary defined in
-`commit-tracker.md`. If package evidence is missing, stale, incomplete, vague, or above the supported
-risk ceiling, refuse execution and route repair to the owning planning step named in the relevant
-reference.
+file this skill edits is `execution/tracker.md`, and only at the approved-story or blocked-story tracker
+boundary defined in `commit-tracker.md`. If package evidence is missing, stale, incomplete, vague, or
+above the supported risk ceiling, refuse execution and route repair to the owning planning step named in
+the relevant reference.
 
 ## Reference Routing
 
@@ -39,8 +39,8 @@ Read only the reference files needed for the current step:
   analogue for another surface.
 - `references/worker-lifecycle.md`: dispatch workers, reuse implementer/reviewer contexts, handle
   completion, enforce review caps, and close only terminal worker pairs.
-- `references/commit-tracker.md`: run the commit lock, make the story commit, make the durable
-  tracker-only commit, and decide downstream readiness.
+- `references/commit-tracker.md`: run the commit lock, make approved story commits, make durable
+  tracker-only commits for approved or blocked story boundaries, and decide downstream readiness.
 - `references/pr-merge.md`: publish PRs, wait for reviews only when requested, handle review
   follow-up, and merge/cleanup only on explicit instruction.
 - `references/communication.md`: keep status sparse, preserve coordinator context, and report the
@@ -62,8 +62,9 @@ tracker policy, or lifecycle rules across files.
 4. Present the execution plan and wait for approval unless the user already gave explicit execution
    authorization.
 5. During execution, use `worker-lifecycle.md` for dependency-gated worker waves and review loops.
-6. At each approved story boundary, use `commit-tracker.md`; downstream stories are ready only after
-   both the story commit and the tracker evidence commit exist.
+6. At each approved or blocked story boundary, use `commit-tracker.md`; downstream stories are ready only
+   after both the story commit and the tracker evidence commit exist, so blocked-story tracker evidence
+   never unlocks dependents.
 7. Use `pr-merge.md` for publication and follow-up boundaries.
 8. Use `communication.md` throughout for user updates and final closeout.
 

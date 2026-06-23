@@ -42,8 +42,9 @@ stop and route it back to `plan-epic`; do not paper over it.
 
 - `story-dag: frozen`, and every selected story `story: ready`.
 
-Refuse, and route back to `plan-epic`, on a non-frozen DAG, any non-ready selected story, or a contract
-too underspecified to project without inventing.
+Refuse, and route back to `plan-epic`, on a non-frozen DAG, any non-ready selected story, a contract too
+underspecified to project without inventing, or a self-blocking ready contract whose STOP conditions name
+a missing fact needed by one of its ACs or failure/degraded triggers.
 
 ## Output gate (done means)
 
@@ -75,8 +76,9 @@ too underspecified to project without inventing.
 | PD-5 | Marks `ready_for_implementation` only with a deep-readiness verdict (sources, stories, per-artifact checks, final verdict). | P1 | S/P |
 | PD-6 | Never writes code, dispatches workers, or edits artifacts outside the package. | P1 | S |
 | PD-7 | The package is durable — self-contained and resumable from recorded evidence, not session prose. | P2 | S |
+| PD-8 | Refuses a `story: ready` contract whose STOP conditions, unresolved predicate inputs, or package-blocking vagueness overlap selected ACs; routes the source repair to `plan-epic` before packaging. | P1 | S/T |
 
-The skill's own `EVALS.md` (when authored) operationalizes PD-1…PD-7 as test cases with a version pin.
+The skill's own `EVALS.md` (when authored) operationalizes PD-1…PD-8 as test cases with a version pin.
 PD-2 is the load-bearing one: it is what keeps the bridge from bypassing the characterization gate.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

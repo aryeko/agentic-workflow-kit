@@ -37,6 +37,10 @@ Refuse and route back to `$plan-epic` when any condition holds:
   when required by the DAG, or ordered `AC-n` ids;
 - the DAG and story contract conflict on story id, dependencies, owned pathset, suggested tier, or
   source scope;
+- a selected ready story is self-blocking: its STOP conditions name a missing source fact needed by one
+  of its ACs or failure/degraded triggers, or its ACs/failure rows require a runtime branch value that is
+  not supplied by a declared request field, consumed event/projection, producer-owned field, or in-scope
+  resolver;
 - a package element would require adding, weakening, reordering, or interpreting scope beyond the
   frozen DAG and ready contracts.
 
@@ -52,6 +56,8 @@ Before writing package files, build a source inventory with:
   floor, source story contract path, and all `AC-n` ids;
 - dependency contracts and public import paths named by the DAG or story contracts;
 - any package-blocking vagueness, reported with the exact source file and missing fact.
+- any self-blocking STOP condition or unresolved predicate input, reported with the exact source file,
+  affected AC/failure row, missing value source, and `$plan-epic` route-back.
 
 Every later package artifact must be traceable to this inventory.
 

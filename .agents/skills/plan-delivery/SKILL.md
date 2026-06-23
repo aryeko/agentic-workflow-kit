@@ -34,8 +34,9 @@ compliance, and readiness for implementation.
 
 Every package element must cite the source story id and `AC-n` ids it projects from. Do not add or
 revise scope, ACs, dependency order, owned pathsets, or suggested-tier floors. If a package element
-cannot be traced to a ready story contract without invention, stop and route the defect back to
-`$plan-epic`.
+cannot be traced to a ready story contract without invention, or a ready contract's STOP conditions
+or unresolved predicate inputs overlap selected ACs or failure/degraded triggers, stop and route the
+defect back to `$plan-epic`.
 
 ## Reference Routing
 
@@ -56,7 +57,8 @@ Read only the references needed for the current step:
 ## Workflow
 
 1. Start with `source-readiness.md`. Refuse missing Gate 1 tokens, ambiguous epic selection,
-   source conflicts, source vagueness that would require invention, or the wrong worktree.
+   source conflicts, self-blocking ready contracts, source vagueness that would require invention,
+   or the wrong worktree.
 2. Use `package-layout.md` to create or update only the selected epic's execution package.
 3. Use `model-routing.md` before writing plan, tracker, or prompts. Carry the DAG suggested-tier
    floor unchanged and choose a reasoning tier at or above it.

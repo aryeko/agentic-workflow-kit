@@ -61,5 +61,14 @@ and fallback or override reason before treating a worker as launched.
 Bind `worker-cap` from tool metadata first, then project or repo config, then global config. If no
 source exists, assume `6` and record that assumption.
 
-The cap limits concurrently active worker sessions only. It never changes the package item count,
-story order, or story boundaries.
+Before dispatch, derive and record:
+
+- `implementer-cap = floor(worker-cap / 2)`
+- `review-reserve = worker-cap - implementer-cap`
+
+Record `worker-cap`, `implementer-cap`, `review-reserve`, and the source of `worker-cap` in the
+execution ledger before launching the first worker. The reviewer reserve is for reviewer, rereview,
+and fix-loop progress; do not consume it with speculative implementer launches.
+
+The cap and derived limits constrain execution scheduling only. They never change the package item
+count, story order, story boundaries, dependency readiness, model class, or effort.

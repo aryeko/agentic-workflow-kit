@@ -37,6 +37,8 @@ non-ready package. Structural file presence alone is not readiness.
 
 - Each approved story's pathset committed after its gate; a durable tracker-evidence commit after each
   story commit; downstream stories unlock only after both commits exist.
+- Source-contract blockers reported by workers are recorded durably in the affected tracker row, with no
+  story commit, no dependent unlock, and an upstream route-back to the owning planning step.
 - PRs opened or updated only when authorized; review waiting is detect-only; merge and cleanup only on
   explicit current instruction. Stop at the requested boundary.
 
@@ -59,15 +61,16 @@ decisions about the work.
 | OD-1 | Triggers only for an existing `ready` package; refuses missing/incomplete/underspecified/over-risk/non-ready; authors nothing. | P1 | P/T |
 | OD-2 | Binds runtime/provider facts only (model from class, effort, cap, completion signal, dependency hashes); changes no package decision. | P1 | P |
 | OD-3 | Dispatches only `ready` stories in dependency waves; a dependent waits for its producer's story commit + tracker-evidence commit + worker closure. | P1 | E/T |
-| OD-4 | Reuses one implementer + one reviewer context per story; workers never stage, commit, push, PR, merge, or close. | P1 | E/T |
+| OD-4 | Reuses one implementer + one reviewer context per story; all fix/rereview rounds message that persistent pair incrementally; workers never stage, commit, push, PR, merge, or close. | P1 | E/T |
 | OD-5 | Reviewer approval is advisory; the coordinator inspects diff, scope, and gate, and commits only the approved pathset. | P1 | E/T |
 | OD-6 | Durable two-commit sequence (story commit, then tracker-evidence commit); downstream readiness needs both. | P1 | E/T |
 | OD-7 | PR/merge boundary respected: detect-only review waiting; merge and cleanup only on explicit instruction; stop at the asked boundary. | P1 | E |
 | OD-8 | Sparse communication; no tight polling or transcript/diff dumps. | P2 | E |
+| OD-9 | Worker-reported source-contract blockers are recorded as planning blockers, not committed as story work or bypassed; dependents remain locked until planning repair. | P1 | E/T |
 
 This skill already ships an `EVALS.md` (at `.agents/skills/orchestrated-delivery/EVALS.md`) that
-operationalizes these as test cases R1–R23 with a version-pinned combined hash; that file must satisfy
-OD-1…OD-8.
+operationalizes these as test cases R1–R24 with a version-pinned combined hash; that file must satisfy
+OD-1…OD-9.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

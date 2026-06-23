@@ -86,6 +86,11 @@ directory not traceable to the design package decomposition.
   or a runnable sweep (path + forbidden token + expected exit). An AC whose only evidence is "see test
   file X" fails Gate 4.
 - Each failure/degraded/validation token maps to exactly one owning AC; the failure table cites that AC.
+- Every behavioral AC and every failure/degraded trigger has predicate-input coverage. The contract must
+  name the request field, consumed event/projection, producer-owned field, or in-scope resolver that
+  supplies each runtime branch value. A ref, hash, citation, or story id is provenance only. If an AC
+  says "policy permits/denies" while the contract exposes only `policyRef`, or says "approved parent"
+  without a defined approved-parent source, Gate 4 fails and the story must not become `ready`.
 - Public-exposure AC + import path + public-import test for every exported shape.
 - A numeric per-file size budget within the repo cap (200–400 typical, 800 hard).
 - Runnable sweeps for forbidden symbols and re-exports.
@@ -96,7 +101,7 @@ Review the authored DAG and contracts before setting readiness:
 
 - Gate 3 for the DAG, **including the seam pass above**: value-type seam, single-producer / no-collapse,
   cross-epic forward-reference, pathset convention.
-- Gates 4-6 for every story contract, including AC depth above.
+- Gates 4-6 for every story contract, including AC depth and predicate-input coverage above.
 - Record each **load-bearing scope decision** (node boundaries, single-producer hoists, value-type seams,
   cross-epic deferrals) as a named entry carrying: the rationale, the design line it traces to, the
   falsification criterion, and the escalation path if violated. A bare `[x]` checklist or a post-hoc

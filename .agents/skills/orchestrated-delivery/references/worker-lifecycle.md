@@ -12,7 +12,10 @@ report evidence; the coordinator owns all mutations and lifecycle decisions.
   both its story commit and tracker evidence commit exist, and its implementer/reviewer pair is
   closed or marked terminal.
 - Independent package stories may run concurrently from the first wave when pathsets do not conflict
-  and active sessions remain below `worker-cap`.
+  and the launch keeps both total active worker sessions at or below `worker-cap` and active
+  implementers at or below `implementer-cap`.
+- Keep `review-reserve` available for reviewers, rereviews, and fix-loop progress. Do not spend
+  reviewer reserve on speculative implementer launches, even when more dependency-ready stories exist.
 - Send each worker the packaged prompt plus a narrow runtime envelope. Do not alter the packaged
   prompt body.
 
@@ -24,15 +27,41 @@ a notification only; confirm real state from worker output, git diff, gates, or 
 
 Do not run tight polling loops.
 
-## Review Loop
+## Persistent Pair / Incremental Review Loop
 
 - After an implementer reports completion, the coordinator inspects the diff for pathset, dependency,
   and obvious gate readiness before review. The coordinator does not perform the reviewer's
   code-quality or AC-satisfaction role.
-- Start one independent reviewer for that story, created once for the story.
-- If the reviewer returns findings, re-address the same implementer with the exact findings.
-- Send the fix back to the same reviewer for rereview.
+- Start one independent reviewer for that story, created once for the story. The story now has exactly
+  one implementer context and one reviewer context.
+- For every fix round, message the existing implementer context. Do not spawn a replacement implementer
+  with copied context. Include the exact reviewer findings, the allowed pathset, and the required
+  response packet.
+- After the implementer reports a fix, inspect the latest diff and gate evidence, then message the
+  existing reviewer context for rereview. Do not spawn a replacement reviewer or restart the original
+  review prompt. Include the original scope/ACs by reference, the latest diff/evidence, and the specific
+  findings being rechecked.
 - Repeat until explicit `APPROVED`, a real blocker, or the review cap is reached.
+- If a worker context is lost, corrupted, or technically impossible to message, stop that story, record
+  the exception in the ledger/tracker notes, and ask for explicit coordinator action before replacing the
+  worker pair.
+
+## Source-Contract Blockers
+
+If an implementer or reviewer reports that a packaged story cannot be implemented or reviewed because
+the frozen contract is missing a required source fact, contradicts itself, or names a STOP condition
+that overlaps an AC or failure trigger, treat it as a planning blocker rather than a worker defect.
+
+Required coordinator behavior:
+
+- inspect the report against the packaged story contract and prompt;
+- do not ask the worker to invent the missing source fact or continue with a guessed interpretation;
+- leave the story uncommitted and do not start or unlock dependents;
+- update the tracker blocker/notes fields with the affected AC or failure row, missing fact, worker
+  alias, and route-back target (`$plan-epic` for frozen story defects, `$plan-delivery` for package-only
+  projection defects);
+- make a tracker-only evidence commit when the repo workflow allows tracker commits for blocked
+  stories, otherwise report the uncommitted tracker blocker explicitly.
 
 Default review cap is five rounds unless the package, repo instruction, or user sets a stricter cap.
 If the cap is reached without approval, stop that story, leave it uncommitted, and report the open

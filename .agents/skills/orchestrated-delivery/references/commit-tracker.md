@@ -17,6 +17,23 @@ Before staging:
 Do not commit worker self-reports, reviewer approval alone, gate output alone, unapproved diffs,
 unrelated user edits, downstream experiments, or another story's changes.
 
+## Blocked Story Tracker Evidence
+
+When a story stops on a source-contract blocker before any story commit, do not create a story commit.
+Update only the affected tracker row with:
+
+- status `blocked`;
+- reviewer verdict unchanged or `not-run` when review never started;
+- gate evidence naming the worker report and coordinator inspection;
+- commit hash empty or `none`;
+- blockers naming the source-contract defect, affected AC/failure row, missing fact, and route-back
+  target;
+- notes naming the worker alias and why dependents remain locked.
+
+Commit only the tracker update when the repo workflow allows tracker evidence commits for blocked
+stories. This blocked tracker commit is evidence of the stop; it is not a substitute for the missing
+story commit and must not unlock dependents.
+
 ## Durable Sequence
 
 Use this default two-commit sequence for every story:

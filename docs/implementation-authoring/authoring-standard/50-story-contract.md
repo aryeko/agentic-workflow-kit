@@ -10,12 +10,12 @@ last-reviewed: "2026-06-22"
 > **Job** — the dispatch surface. One story owns **DONE, not HOW**: a builder implements it and a
 > reviewer grades it from the *same* written contract.
 > **To author one** — copy [`_templates/story-contract.md`](_templates/story-contract.md), satisfy the
-> five rules, then tick every box in [Gate 4](#gate-4--authoring-ready).
+> six rules, then tick every box in [Gate 4](#gate-4--authoring-ready).
 
 Each rule fixes a recurring defect class from early-epic delivery; the
 [lessons ledger](../lessons-ledger.md) maps each lesson to the box that catches it.
 
-## The five rules
+## The six rules
 
 | | Rule | Demands | Trap it closes |
 |---|---|---|---|
@@ -24,6 +24,7 @@ Each rule fixes a recurring defect class from early-epic delivery; the
 | **R3** | Quantify the quality bar | test lanes + exact commands; coverage scope/threshold (≥90% of the meaningful area) on an **instrumented** lane; required tests catalogued not exampled; public **import path + import test**; **numeric** file-size budget; determinism; dependency edges; domain non-negotiables | adjectival quality ("stay focused", "schema tests, e.g. …") |
 | **R4** | Subset of design | every AC traces to design; make design *countable*, never add to it; design vagueness → **amend design**, don't copy it down; freeze a command's *behavior*, not a brittle flag spelling | grading code against a stronger-than-approved bar |
 | **R5** | No unresolved branches | resolve every "A or B" to the design-backed outcome (escalate if design truly leaves it open); name exact outputs; cite `<producer-story>/<type>` **verbatim**; sweeps are runnable recipes | handing a design choice to the implementer |
+| **R6** | Predicate inputs are evaluable | for every behavioral AC and failure row, name the concrete request field, consumed event, projection, producer-owned shape field, or resolver that supplies the value being tested; a ref, hash, citation, or token is not a decision input unless this story owns or consumes the resolver that turns it into values | a story says "deny when policy disallows" while its contract exposes only `policyRef`, or "approved parent scope" with no approved-parent source |
 
 **Internal coverage — both ways.** Carry a matrix mapping every responsibility and manifest item to a
 proving `AC-n`, and every `AC-n` back to one. A manifest item with no AC is an orphaned obligation; an
@@ -33,6 +34,12 @@ ownership leak — move it to the owning story.
 **Negative claims need negative fixtures.** A green happy-path tool exit (`tsc -b`, `pnpm deps`,
 `pnpm check`) proves only *acceptance*. Every rejection / fail-fast / degraded / validation-failure AC
 names its own failing fixture or artifact.
+
+**Decision predicates need decision values.** If an AC says the implementation must branch on policy,
+scope, capability state, approval state, authority, or any other runtime condition, the contract must
+name where the branch value comes from. `policyRef`, `configHash`, `leaseId`, "design says", or a story
+id can be provenance, but not the value being evaluated. If the value lives behind another system, the
+contract consumes an already-frozen producer shape/resolver verbatim or stops as a source gap.
 
 **Substrate/config variant.** A story whose deliverable is declarative substrate (`tsconfig`,
 `package.json`, workspace, dependency rules, CI, linters) must **not** invent a runtime type or token.
@@ -49,6 +56,10 @@ Tick every box; an empty box means not ready.
       stories use `Validated artifacts` + `Validation failure modes`, not invented types.
 - [ ] Covers its story-DAG node's signal(s); shared shapes cited by producer story, not redeclared.
 - [ ] Internal coverage holds both ways; no responsibility crosses the assigned signal.
+- [ ] Predicate-input coverage holds: every behavioral AC and every failure/degraded trigger names the
+      concrete declared input, consumed event/projection, producer-owned field, or resolver that makes
+      the predicate decidable; refs/hashes/citations are not accepted as values unless a resolver is in
+      scope.
 - [ ] Failure/degraded (or validation-failure) table present; **each row's cited AC actually asserts
       that row** — not the happy path, not a different condition.
 - [ ] Every negative AC has a failing fixture; no green tool exit cited for a rejection.
@@ -82,9 +93,10 @@ Author-time gates are self-checks; close out a batch of contracts before the nex
 **Gate 5 — evidence pack complete.** A claim is gradable only when the pack holds: a test/artifact per
 AC; one per failure/validation row; a negative fixture per rejection; gate output (or a named unrelated
 blocker); coverage command + lane + number for the stated scope; a public-import test per exposed shape;
-sweep output for any cross-package change; conformance evidence for provider ports/mocks (real-runtime
-attestation only for a real driver capability). No manifest item missing; no requirement invented
-beyond design.
+sweep output for any cross-package change; predicate-input evidence showing each branch value comes from
+a declared input/event/projection/producer shape/resolver; conformance evidence for provider ports/mocks
+(real-runtime attestation only for a real driver capability). No manifest item missing; no requirement
+invented beyond design.
 
 **Gate 6 — readiness matrix.** An implementation axis moves to `yes` only with cited executable
 evidence. Design approval, prose, migrated code, fixtures, or worker self-report justify `partial` only.

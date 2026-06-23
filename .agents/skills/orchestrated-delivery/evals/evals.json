@@ -59,6 +59,43 @@
       ]
     },
     {
+      "id": "negative-replacement-worker-rereview",
+      "prompt": "During $orchestrated-delivery, reviewer R1 returns blocking findings for story S1. The coordinator starts a new implementer I2 with the findings and then starts a new reviewer R2 to rereview the fix, because the copied context should be enough.",
+      "expected_output": "The skill rejects the replacement-worker loop. The coordinator must message the existing implementer context with the exact findings, then message the existing reviewer context with the latest diff/evidence for rereview. Replacement is allowed only after a recorded lost or unusable context exception and explicit coordinator action.",
+      "files": [
+        "execution/plan.md",
+        "execution/tracker.md",
+        "execution/prompts/S1/implementer.md",
+        "execution/prompts/S1/reviewer.md",
+        ".agents/skills/orchestrated-delivery/references/worker-lifecycle.md"
+      ],
+      "assertions": [
+        "OD-4: A story keeps exactly one implementer context and one reviewer context across fix/rereview rounds.",
+        "OD-4: Reviewer findings are sent to the existing implementer context rather than a fresh implementer.",
+        "OD-4: The fix is sent to the existing reviewer context for rereview rather than a fresh reviewer.",
+        "OD-4: Replacement requires a recorded lost/unusable-context exception before any new worker is created.",
+        "OD-5: The coordinator still inspects the latest diff and gate evidence before rereview or commit."
+      ]
+    },
+    {
+      "id": "negative-source-contract-blocker",
+      "prompt": "An implementer stops on story core-02-s2 and reports a source-contract blocker: ACs require policy-deny and approved-parent scope decisions, but the package exposes only policyRef and no approved-parent source. No code changes were made.",
+      "expected_output": "The coordinator treats the report as a planning blocker, records the affected ACs and missing facts in the tracker blockers/notes, does not create a story commit, does not unlock dependents, and routes repair to plan-epic or plan-delivery as appropriate.",
+      "files": [
+        "execution/tracker.md",
+        "execution/prompts/core-02-s2/implementer.md",
+        ".agents/skills/orchestrated-delivery/references/worker-lifecycle.md",
+        ".agents/skills/orchestrated-delivery/references/commit-tracker.md"
+      ],
+      "assertions": [
+        "OD-9: Source-contract blockers are treated as planning blockers rather than implementer failures.",
+        "OD-9: The coordinator does not ask the worker to invent missing policy or scope semantics.",
+        "OD-9: The affected tracker row records status/blockers/notes with affected ACs, missing facts, worker alias, and route-back target.",
+        "OD-3: No dependent story is dispatched or unlocked because no valid story commit and tracker evidence commit exist.",
+        "OD-6: No story commit is created for a blocked story with no approved pathset."
+      ]
+    },
+    {
       "id": "negative-auto-merge-without-instruction",
       "prompt": "After all stories committed locally and a PR is open, a reviewer has approved the PR. The user has not issued any current merge instruction.",
       "expected_output": "The skill refuses to merge, push, or perform any cleanup. It treats the PR review approval as detect-only, stops at the requested boundary, and waits for an explicit current merge instruction from the user before taking any further action.",

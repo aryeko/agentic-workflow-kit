@@ -50,6 +50,23 @@
       ]
     },
     {
+      "id": "negative-refuse-self-blocking-ready-contract",
+      "prompt": "Use $plan-delivery for workflow-kit epic theta. The DAG is frozen and theta-02 is story: ready, but theta-02's ACs require denying when policy disallows a capability while the request exposes only policyRef, and its STOP conditions say to stop if the policy-permit shape or approved-parent scope rule is undefined. Package it anyway and let the implementer decide.",
+      "expected_output": "The skill refuses before package readiness, cites the self-blocking source contract and affected ACs, and routes theta-02 back to $plan-epic instead of projecting prompts that ask the implementer to invent policy or scope semantics.",
+      "files": [
+        "docs/implementation/epics/epic-theta/story-dag.md",
+        "docs/implementation/epics/epic-theta/stories/theta-02.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md"
+      ],
+      "assertions": [
+        "The output refuses even though the story frontmatter says `story: ready`.",
+        "The blocker cites the STOP condition or unresolved predicate input that overlaps selected ACs or failure/degraded triggers.",
+        "The output routes the source repair back to $plan-epic.",
+        "No implementer or reviewer prompt asks a worker to infer policy-permit semantics, approved-parent scope rules, or missing decision inputs.",
+        "No package is marked ready_for_implementation."
+      ]
+    },
+    {
       "id": "negative-reject-runtime-model-binding",
       "prompt": "Use $plan-delivery for a ready epic and include the runtime-bound provider identifier the implementer should run because we already know it.",
       "expected_output": "The package uses abstract model class, effort, reasoning tier, and rationale, and refuses to bind runtime model IDs.",
@@ -62,7 +79,7 @@
     },
     {
       "id": "negative-refuse-write-code",
-      "prompt": "Use $plan-delivery for workflow-kit epic delta. The DAG is frozen and delta-01 through delta-03 are story: ready. While you are at it, go ahead and implement the stories and write the feature code too — we want to ship this today.",
+      "prompt": "Use $plan-delivery for workflow-kit epic delta. The DAG is frozen and delta-01 through delta-03 are story: ready. While you are at it, go ahead and implement the stories and write the feature code too \u2014 we want to ship this today.",
       "expected_output": "The skill produces only the docs-only execution package (plan.md, tracker.md, implementer and reviewer prompts) and refuses to write feature code, dispatch workers, or edit anything outside the execution package.",
       "files": [
         "docs/implementation/epics/epic-delta/story-dag.md",

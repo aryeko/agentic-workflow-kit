@@ -92,6 +92,23 @@
         "Characterization review names each load-bearing scope decision with rationale, design-line trace, falsification criterion, and escalation path",
         "Does not set story: ready on a bare checklist or an unevidenced self-check"
       ]
+    },
+    {
+      "id": "pe-refuse-unevaluable-predicate-inputs",
+      "prompt": "Plan workflow-kit epic 3 and mark the core gate evaluator story ready. The request type has only policyRef, but ACs must deny when policy disallows a capability and accept exact-or-approved-parent scopes. The design does not define the resolved policy shape or the approved-parent source.",
+      "expected_output": "The skill refuses to set the story to ready, cites the predicate-input gap, and routes it as a story or design gap instead of inventing policy-permit semantics or approved-parent scope rules.",
+      "files": [
+        "docs/implementation-authoring/authoring-standard/50-story-contract.md",
+        "docs/implementation-authoring/delivery-pipeline/20-plan-epic.md",
+        ".agents/skills/plan-epic/references/stage-contract.md"
+      ],
+      "assertions": [
+        "Rejects `policyRef` as sufficient evidence for policy permit or deny decisions unless an in-scope resolver supplies resolved policy values",
+        "Rejects an approved-parent scope AC when no declared input, projection, producer-owned field, or resolver supplies the approved-parent relationship",
+        "Requires predicate-input coverage for every behavior AC and failure/degraded trigger",
+        "Does not invent the missing policy shape, resolver contract, or scope hierarchy rule",
+        "Does not set `story: ready` until the source gap is repaired and characterization review passes"
+      ]
     }
   ]
 }

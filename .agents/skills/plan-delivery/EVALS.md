@@ -1,7 +1,7 @@
 # plan-delivery Evals
 
 **Skill under test:** `plan-delivery`
-**Version pin (combined skill hash):** `9ba0fccb252e7476`
+**Version pin (combined skill hash):** `d91e78fb66f5fcfb`
 **Status:** active
 
 Recompute with:
@@ -13,7 +13,7 @@ find SKILL.md references agents evals -type f 2>/dev/null | sort |
   shasum -a 256 | cut -c1-16
 ```
 
-These evals operationalize PD-1 through PD-7 from
+These evals operationalize PD-1 through PD-8 from
 `docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md`.
 
 ## Coverage Matrix
@@ -27,12 +27,15 @@ These evals operationalize PD-1 through PD-7 from
 | PD-5: `ready_for_implementation` only with deep-readiness verdict | `positive-project-ready-epic`, `negative-refuse-vague-contract` |
 | PD-6: no code writes, worker dispatch, or edits outside package | `positive-project-ready-epic`, `negative-refuse-write-code`, trigger near-miss negatives |
 | PD-7: package durable and resumable from artifacts, not session prose | `positive-project-ready-epic` |
+| PD-8: self-blocking ready contracts route back before packaging | `negative-refuse-self-blocking-ready-contract` |
 
 ## Expected Evidence
 
 For a passing positive run, inspect the generated package and require:
 
 - Gate 1 evidence names the frozen DAG and every ready story contract read.
+- Source readiness refuses any selected ready story whose STOP conditions or unresolved predicate inputs
+  overlap selected ACs or failure/degraded triggers.
 - `plan.md`, `tracker.md`, and every prompt contain source story id and source `AC-n` ids.
 - Routing uses abstract model class, effort, suggested-tier floor, reasoning tier, and rationale only.
 - No provider-specific runtime model IDs appear.

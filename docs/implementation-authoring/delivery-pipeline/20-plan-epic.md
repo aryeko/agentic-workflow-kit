@@ -41,7 +41,9 @@ inputs, or the wrong worktree.
   the global rollup.
 - Each contract passes Gates 4–6: enumerated, falsifiable, self-contained ACs each with an evidence
   clause; a failure/degraded table whose cited ACs assert the row; a public-exposure AC + import path +
-  public-import test for every exported shape; a numeric file-size budget; runnable sweeps.
+  public-import test for every exported shape; predicate-input coverage proving every runtime branch is
+  decidable from declared inputs/events/projections/producer fields/resolvers; a numeric file-size
+  budget; runnable sweeps.
 
 Then stop and hand off to `plan-delivery`.
 
@@ -62,13 +64,14 @@ Then stop and hand off to `plan-delivery`.
 | PE-3 | A story reaches `ready` only after characterization review passes; the `ready` flag is evidence-backed, not asserted. | P1 | P |
 | PE-4 | Coverage closes exactly-once and backfills the epic charter README's owning-story cells, not the domain rollup. | P1 | S/P |
 | PE-5 | The DAG is frozen before any contract is authored; contracts are authored only against the frozen DAG. | P1 | P |
-| PE-6 | Every contract passes Gates 4–6 (falsifiable ACs + evidence clause, failure table, public-exposure AC + import path, file-size budget, sweeps). | P1 | S |
+| PE-6 | Every contract passes Gates 4–6 (falsifiable ACs + evidence clause, failure table, predicate-input coverage, public-exposure AC + import path, file-size budget, sweeps). | P1 | S |
 | PE-7 | Every AC traces to a frozen design line; a missing requirement is escalated as a design gap, never invented. | P1 | S/P |
 | PE-8 | Output is the gate-1 handoff (`story-dag: frozen` + all `story: ready`); the skill stops without building the package. | P1 | P |
 | PE-9 | Never edits `docs/design/` (frozen); a design gap is escalated, not edited around. | P1 | S/T |
 | PE-10 | Never edits other epics' charters, DAGs, or contracts, or the included domain charters. | P1 | S/T |
+| PE-11 | Refuses `story: ready` when an AC or failure trigger cannot be evaluated from declared request fields, consumed events/projections, producer-owned fields, or an in-scope resolver. | P1 | S/T |
 
-The skill's own `EVALS.md` (when authored) operationalizes PE-1…PE-8 as test cases with a version pin.
+The skill's own `EVALS.md` (when authored) operationalizes PE-1…PE-11 as test cases with a version pin.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
