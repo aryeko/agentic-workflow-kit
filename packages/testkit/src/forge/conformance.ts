@@ -34,7 +34,11 @@ export const forgeConformanceSuite = (subject: ForgeConformanceSubject): ForgeCo
   const evidence = subject.provider.collectEvidence(fixtures.evidenceRequest);
   const readCheck =
     'kind' in evidence
-      ? passCheck<ForgeFailureToken>('forge-read-degraded')
+      ? failCheck<ForgeFailureToken>(
+          'forge-read-degraded',
+          evidence.token,
+          'Provider returned degraded Forge evidence instead of an authoritative snapshot.',
+        )
       : evidence.expectedHeadSha === fixtures.evidenceRequest.expectedHeadSha &&
           evidence.prState.headRefOid === fixtures.evidenceRequest.expectedHeadSha &&
           evidence.statusChecks.contexts.length > 0 &&

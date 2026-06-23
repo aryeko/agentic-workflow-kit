@@ -23,6 +23,9 @@ describe('forge conformance helper', () => {
       driftedProvider: brokenForgeFixtures.writesOnHeadMismatch,
     });
     const brokenRead = forgeConformanceSuite({ provider: brokenForgeFixtures.degradedAsAuthoritative });
+    const degradedRead = forgeConformanceSuite({
+      provider: createMockForgeProvider({ degradeEvidence: 'forge-state-unknown' }),
+    });
 
     expect(brokenWrite.passed).toBe(false);
     expect(brokenWrite.checks).toEqual(
@@ -31,6 +34,10 @@ describe('forge conformance helper', () => {
     expect(brokenRead.passed).toBe(false);
     expect(brokenRead.checks).toEqual(
       expect.arrayContaining([expect.objectContaining({ token: 'forge-state-unknown' })]),
+    );
+    expect(degradedRead.passed).toBe(false);
+    expect(degradedRead.checks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ check: 'forge-read-degraded', token: 'forge-state-unknown' })]),
     );
   });
 

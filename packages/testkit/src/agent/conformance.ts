@@ -29,12 +29,29 @@ const requiredCapabilities: readonly AgentCapability[] = [
   'preservesHostProcessParentage',
 ];
 
-const collectEvents = async (events: AsyncIterable<AgentEvent>): Promise<readonly AgentEvent[]> => {
+interface CollectedAgentEvents {
+  readonly events: readonly AgentEvent[];
+  readonly approvalResult?: ReturnType<AgentProvider['answerApproval']>;
+}
+
+const collectEvents = async (
+  subject: AgentConformanceSubject,
+  session: Exclude<ReturnType<AgentProvider['startWorker']>, { readonly reason: AgentFailureReason }>,
+): Promise<CollectedAgentEvents> => {
   const collected: AgentEvent[] = [];
-  for await (const event of events) {
+  let approvalResult: ReturnType<AgentProvider['answerApproval']> | undefined;
+  for await (const event of subject.provider.observe(session)) {
     collected.push(event);
+    if (
+      event.type === 'approval-requested' &&
+      approvalResult === undefined &&
+      event.request.requestId === subject.approvalAnswer.requestId
+    ) {
+      approvalResult = subject.provider.answerApproval(session, subject.approvalAnswer);
+    }
   }
-  return collected;
+
+  return approvalResult === undefined ? { events: collected } : { events: collected, approvalResult };
 };
 
 const isFreshPositive = (
@@ -88,10 +105,10 @@ export const agentConformance = async (subject: AgentConformanceSubject): Promis
     ]);
   }
 
-  const events = await collectEvents(subject.provider.observe(session));
+  const collected = await collectEvents(subject, session);
+  const events = collected.events;
   const failures = eventFailureReasons(events);
   const approvalEvent = events.find((event) => event.type === 'approval-requested');
-  const approvalResult = subject.provider.answerApproval(session, subject.approvalAnswer);
   const resumeRequest: AgentResumeRequest = {
     providerSessionId: session.providerSessionId,
     runId: subject.startRequest.runId,
@@ -117,7 +134,7 @@ export const agentConformance = async (subject: AgentConformanceSubject): Promis
     approvalEvent === undefined
       ? failCheck('approval-relay', 'approval-relay-unattested', 'No approval request was relayed.')
       : passCheck('approval-relay'),
-    approvalResult.delivered && approvalResult.persisted
+    collected.approvalResult?.delivered === true && collected.approvalResult.persisted
       ? passCheck('approval-answer-channel')
       : failCheck('approval-answer-channel', 'approval-answer-channel-lost', 'Approval answer was not persisted.'),
     'reason' in resumed

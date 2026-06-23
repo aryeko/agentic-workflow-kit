@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { AgentProvider } from 'sdk';
+
 import {
   agentApprovalAnswerFixture,
   agentApprovalRequestFixture,
@@ -36,6 +38,74 @@ const conformantProvider = () =>
       ],
     }),
   });
+
+const approvalBlockingProvider = (): AgentProvider => {
+  const provider = conformantProvider();
+  let answered = false;
+
+  return {
+    ...provider,
+    answerApproval: (session, _answer) => {
+      answered = true;
+      return {
+        delivered: true,
+        persisted: true,
+        channelRef: approvalRequest.answerChannel.channelRef,
+        evidenceRef: approvalRequest.answerChannel.evidenceRef,
+        at: session.startedAt,
+      };
+    },
+    observe: async function* observe(session) {
+      yield { type: 'linked', session, at: session.startedAt };
+      yield {
+        type: 'approval-requested',
+        sessionId: session.sessionId,
+        request: approvalRequest,
+        at: session.startedAt,
+      };
+      if (!answered) {
+        yield {
+          type: 'degraded',
+          sessionId: session.sessionId,
+          failure: {
+            reason: 'approval-answer-channel-lost',
+            message: 'Approval was not answered before observation continued.',
+            retryable: false,
+          },
+          at: session.startedAt,
+        };
+        yield { type: 'terminal', sessionId: session.sessionId, reason: 'failed', at: session.startedAt };
+        return;
+      }
+      yield {
+        type: 'tool-observed',
+        sessionId: session.sessionId,
+        tool: {
+          observationId: 'tool-approval-gated',
+          command: 'pnpm check',
+          exitCode: 0,
+          outputRef: 'artifact://testkit/agent/approval-gated/tool-output',
+          outputDigest: 'sha256:approval-gated',
+          source: 'agent',
+        },
+        at: session.startedAt,
+      };
+      yield {
+        type: 'guardian-review',
+        sessionId: session.sessionId,
+        review: {
+          reviewId: 'guardian-approval-gated',
+          targetItemId: 'tool-approval-gated',
+          actionType: 'command',
+          status: 'approved',
+          stable: true,
+        },
+        at: session.startedAt,
+      };
+      yield { type: 'terminal', sessionId: session.sessionId, reason: 'completed', exitCode: 0, at: session.startedAt };
+    },
+  };
+};
 
 describe('agent conformance helper', () => {
   it('passes a conformant mock and enumerates behavior checks', async () => {
@@ -91,6 +161,29 @@ describe('agent conformance helper', () => {
     );
     expect(staleCapabilities.checks).toEqual(
       expect.arrayContaining([expect.objectContaining({ token: 'agent-capability-unattested' })]),
+    );
+  });
+
+  it('answers approval requests while the observation stream is still active', async () => {
+    const result = await agentConformance({
+      provider: approvalBlockingProvider(),
+      probeScope: agentProbeScopeFixture({
+        capabilities: [
+          'emitsStructuredToolExit',
+          'emitsGuardianReview',
+          'canRelayApproval',
+          'canPersistApprovalAnswerChannel',
+          'canResumeOwned',
+          'preservesHostProcessParentage',
+        ],
+      }),
+      startRequest: agentStartRequestFixture(),
+      approvalAnswer: agentApprovalAnswerFixture({ requestId: approvalRequest.requestId }),
+    });
+
+    expect(result.passed).toBe(true);
+    expect(result.checks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ check: 'approval-answer-channel' })]),
     );
   });
 
