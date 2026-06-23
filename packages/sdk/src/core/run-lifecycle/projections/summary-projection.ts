@@ -58,7 +58,7 @@ export function projectSummary(
     runId: replay.runId,
     taskId: findTaskId(replay.events),
     status: state.lifecycle,
-    ownerSessionId: launch.currentSession?.sessionId,
+    ownerSessionId: launch.linkage === 'known' ? launch.currentSession?.sessionId : undefined,
     artifactRefs: collectArtifactRefs(replay.events),
     unknownEvents: collectUnknownEvents(replay.events),
   };

@@ -33,7 +33,7 @@ describe('core-07-s3 record idempotency property', () => {
             payloadDigest: 'sha256:conflict',
           }),
         ]),
-        expectedStatus: 'event-id-digest-mismatch',
+        expectedStatus: 'already-committed',
       },
     ];
 

@@ -55,6 +55,41 @@ describe('core-07-s3 record idempotent retry', () => {
     expect(writer.appendCalls).toHaveLength(0);
   });
 
+  it('returns already-committed when the writer committed a different digest for the same analysis payload', async () => {
+    const input = createRecordInput();
+    const payload = buildAnalysisRecordedPayload(input, redactedReportRef);
+    const payloadDigest = createAnalysisPayloadDigest(payload);
+    const writerPayloadDigest = 'digest:writer-canonical-json';
+    const eventId = createAnalysisEventId(input, payload, payloadDigest);
+    const replay = createReplay([
+      createEvent({
+        eventId,
+        sequence: 22,
+        type: 'AnalysisRecorded',
+        payload,
+        payloadDigest: writerPayloadDigest,
+      }),
+    ]);
+    const writer = createWriter();
+
+    const result = await recordAnalysisOutcome(input, writer, { replay });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.error.reason);
+    }
+    expect(result.value).toEqual({
+      status: 'already-committed',
+      eventRef: {
+        eventId,
+        sequence: 22,
+        payloadDigest: writerPayloadDigest,
+        type: 'AnalysisRecorded',
+      },
+    });
+    expect(writer.appendCalls).toHaveLength(0);
+  });
+
   it('checks replay before preparing analysis artifacts on retry', async () => {
     const input = createRecordInput();
     const payload = buildAnalysisRecordedPayload(input, redactedReportRef);

@@ -32,4 +32,23 @@ describe('core-01-s3 linkage resolution', () => {
     expect(resolved.linkHistory).toHaveLength(2);
     expect(resolved.linkHistory.some((link) => link.linkOrdinal === 1)).toBe(true);
   });
+
+  it('returns the latest non-superseded owning link as the current session', () => {
+    const resolved = resolveSessionLinkage([
+      makeEventEnvelope(
+        'SessionLinked',
+        1,
+        makeSessionLinkedPayload({ linkOrdinal: 1, sessionId: 'session-primary', linkRole: 'primary' }),
+      ),
+      makeEventEnvelope(
+        'SessionLinked',
+        2,
+        makeSessionLinkedPayload({ linkOrdinal: 2, sessionId: 'session-observer', linkRole: 'observer' }),
+      ),
+    ]);
+
+    expect(resolved.classification).toBe('known');
+    expect(resolved.currentSession?.sessionId).toBe('session-primary');
+    expect(resolved.launch.currentSession?.sessionId).toBe('session-primary');
+  });
 });

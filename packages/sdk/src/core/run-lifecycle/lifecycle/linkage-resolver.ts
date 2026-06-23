@@ -65,7 +65,9 @@ export function resolveSessionLinkage(events: readonly RunEventEnvelope[]): Reso
     }
   }
 
-  const currentSession = [...linkHistory].reverse().find((link) => !supersededOrdinals.has(link.linkOrdinal));
+  const currentSession = [...linkHistory]
+    .reverse()
+    .find((link) => isOwningLink(link) && !supersededOrdinals.has(link.linkOrdinal));
   const nonSupersededOwningLinks = linkHistory.filter(
     (link) => isOwningLink(link) && !supersededOrdinals.has(link.linkOrdinal),
   );

@@ -201,7 +201,13 @@ export const recordAnalysisOutcome = async (
   const replayPayload = await prepareReplayPayload(input, options.replay);
   const replayPayloadDigest = createAnalysisPayloadDigest(replayPayload);
   const replayEventId = createAnalysisEventId(input, replayPayload, replayPayloadDigest);
-  const replayExisting = resolveExistingAnalysisRecord(options.replay, input, replayEventId, replayPayloadDigest);
+  const replayExisting = resolveExistingAnalysisRecord(
+    options.replay,
+    input,
+    replayEventId,
+    replayPayloadDigest,
+    replayPayload,
+  );
 
   if (replayExisting.status === 'already-committed') {
     return { ok: true, value: replayExisting };
@@ -220,7 +226,7 @@ export const recordAnalysisOutcome = async (
   const existing =
     eventId === replayEventId && payloadDigest === replayPayloadDigest
       ? replayExisting
-      : resolveExistingAnalysisRecord(options.replay, input, eventId, payloadDigest);
+      : resolveExistingAnalysisRecord(options.replay, input, eventId, payloadDigest, payload);
 
   if (existing.status === 'already-committed') {
     return { ok: true, value: existing };

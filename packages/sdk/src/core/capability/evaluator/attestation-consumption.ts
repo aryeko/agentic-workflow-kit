@@ -111,11 +111,38 @@ const sortAttestationRefs = (refs: readonly AttestationRef[]): AttestationRef[] 
 const sortEvidenceRefs = (evidenceRefs: readonly string[]): string[] =>
   [...evidenceRefs].sort((left, right) => left.localeCompare(right));
 
-const isFreshAt = (candidate: ValidAttestationCandidate, evaluatedAt: string): boolean =>
-  candidate.attestation.at <= evaluatedAt && evaluatedAt < candidate.attestation.expiry;
+const toEpochMs = (timestamp: string): number | undefined => {
+  const parsed = Date.parse(timestamp);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
 
-const isCommittedBy = (candidate: ValidAttestationCandidate, evaluatedAt: string): boolean =>
-  candidate.envelope.occurredAt <= evaluatedAt && candidate.envelope.recordedAt <= evaluatedAt;
+const isFreshAt = (candidate: ValidAttestationCandidate, evaluatedAt: string): boolean => {
+  const attestedAt = toEpochMs(candidate.attestation.at);
+  const expiresAt = toEpochMs(candidate.attestation.expiry);
+  const gateTime = toEpochMs(evaluatedAt);
+
+  return (
+    attestedAt !== undefined &&
+    expiresAt !== undefined &&
+    gateTime !== undefined &&
+    attestedAt <= gateTime &&
+    gateTime < expiresAt
+  );
+};
+
+const isCommittedBy = (candidate: ValidAttestationCandidate, evaluatedAt: string): boolean => {
+  const occurredAt = toEpochMs(candidate.envelope.occurredAt);
+  const recordedAt = toEpochMs(candidate.envelope.recordedAt);
+  const gateTime = toEpochMs(evaluatedAt);
+
+  return (
+    occurredAt !== undefined &&
+    recordedAt !== undefined &&
+    gateTime !== undefined &&
+    occurredAt <= gateTime &&
+    recordedAt <= gateTime
+  );
+};
 
 const hasPositiveConflict = (candidates: readonly ValidAttestationCandidate[]): boolean => {
   const signatures = new Set(

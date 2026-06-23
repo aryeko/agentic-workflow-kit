@@ -40,6 +40,11 @@ describe('core-01-s5 summary projection', () => {
           makeEnvelope(5, 'SessionLinkSuperseded', makeSupersededPayload()),
           makeEnvelope(
             6,
+            'SessionLinked',
+            makeSessionLinkedPayload({ linkOrdinal: 3, sessionId: 'session-observer', linkRole: 'observer' }),
+          ),
+          makeEnvelope(
+            7,
             'RunLifecycleTransitioned',
             makeLifecyclePayload({ from: null, to: 'running', sourceEventIds: ['evt-4'] }),
           ),

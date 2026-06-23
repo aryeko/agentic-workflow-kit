@@ -13,6 +13,20 @@ describe('core-07-s3 record conflict handling', () => {
   it('fails closed on same event id with a different payload digest', async () => {
     const input = createRecordInput();
     const payload = buildAnalysisRecordedPayload(input, redactedReportRef);
+    const conflictingPayload = buildAnalysisRecordedPayload(
+      createRecordInput({
+        outcome: {
+          kind: 'recorded',
+          result: {
+            issues: [],
+            metrics: {},
+            evidenceRefs: [],
+            reportArtifactRef: redactedReportRef,
+          },
+        },
+      }),
+      redactedReportRef,
+    );
     const payloadDigest = createAnalysisPayloadDigest(payload);
     const eventId = createAnalysisEventId(input, payload, payloadDigest);
     const replay = createReplay([
@@ -20,7 +34,7 @@ describe('core-07-s3 record conflict handling', () => {
         eventId,
         sequence: 20,
         type: 'AnalysisRecorded',
-        payload,
+        payload: conflictingPayload,
         payloadDigest: 'sha256:different',
       }),
     ]);

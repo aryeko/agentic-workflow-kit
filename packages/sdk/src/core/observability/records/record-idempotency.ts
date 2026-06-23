@@ -1,6 +1,6 @@
 import type { EvidenceEventRef, RunEventEnvelope, RunReplay } from '../../run-lifecycle/contracts/index.js';
 
-import { createAnalysisKey } from './analysis-keying.js';
+import { canonicalJson, createAnalysisKey } from './analysis-keying.js';
 import type { AnalysisPayload, AnalysisRecordInput } from './types.js';
 
 export type AnalysisRecordConflict = 'event-id-digest-mismatch' | 'current-analysis-conflict';
@@ -60,6 +60,7 @@ export const resolveExistingAnalysisRecord = (
   input: AnalysisRecordInput,
   attemptedEventId: string,
   attemptedPayloadDigest: string,
+  attemptedPayload?: AnalysisPayload,
 ): ExistingAnalysisRecord => {
   if (replay === undefined) {
     return { status: 'absent' };
@@ -72,6 +73,14 @@ export const resolveExistingAnalysisRecord = (
 
     if (event.eventId === attemptedEventId) {
       if (event.payloadDigest === attemptedPayloadDigest) {
+        return { status: 'already-committed', eventRef: toEventRef(event) };
+      }
+
+      if (
+        attemptedPayload !== undefined &&
+        isAnalysisPayload(event.payload) &&
+        canonicalJson(event.payload) === canonicalJson(attemptedPayload)
+      ) {
         return { status: 'already-committed', eventRef: toEventRef(event) };
       }
 
