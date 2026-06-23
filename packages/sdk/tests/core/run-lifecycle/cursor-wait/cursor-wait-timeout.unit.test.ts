@@ -5,12 +5,12 @@ import { waitRunEvents } from '../../../../src/core/run-lifecycle/cursor-wait/in
 import { makeReplaySuccess, textRunId } from './test-support.js';
 
 describe('cursor-wait', () => {
-  it('timedOut on no new events', () => {
+  it('timedOut on no new events', async () => {
     const replay = vi.fn(() => makeReplaySuccess([]));
     const clockValues = [0, 1_001];
     const clock = vi.fn(() => clockValues.shift() ?? 1_001);
 
-    const result = waitRunEvents(
+    const result = await waitRunEvents(
       {
         runId: textRunId,
         cursor: {

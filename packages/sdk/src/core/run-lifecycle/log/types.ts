@@ -11,6 +11,7 @@ export type RunEventLogDependencies = {
   eventLogStore: EventLogStore;
   now: () => string;
   waitClock: () => number;
+  waitSleep?: (delayMs: number) => Promise<void>;
   createEventId: (input: RunEventIdInput) => string;
   digestPayload: (payload: unknown) => string;
 };

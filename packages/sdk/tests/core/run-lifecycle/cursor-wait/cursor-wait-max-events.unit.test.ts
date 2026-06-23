@@ -5,10 +5,10 @@ import { waitRunEvents } from '../../../../src/core/run-lifecycle/cursor-wait/in
 import { makeEnvelope, makeReplaySuccess, textRunId } from './test-support.js';
 
 describe('cursor-wait', () => {
-  it('respects maxEvents', () => {
+  it('respects maxEvents when returning events after the cursor', async () => {
     const events = [1, 2, 3, 4, 5].map((sequence) => makeEnvelope(sequence));
 
-    const result = waitRunEvents(
+    const result = await waitRunEvents(
       {
         runId: textRunId,
         cursor: {

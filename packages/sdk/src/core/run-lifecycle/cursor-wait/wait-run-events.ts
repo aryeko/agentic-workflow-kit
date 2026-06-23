@@ -9,6 +9,11 @@ import type {
 
 export type ReplayRun = (runId: string) => Result<RunReplay, RunReplayFailure>;
 export type CursorWaitClock = () => number;
+export type CursorWaitSleep = (delayMs: number) => Promise<void>;
+
+const DEFAULT_POLL_INTERVAL_MS = 25;
+
+const sleep: CursorWaitSleep = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs));
 
 const takeEventsAfterCursor = (
   events: RunEventEnvelope[],
@@ -62,11 +67,12 @@ const toTimedOutResult = (
   },
 });
 
-export const waitRunEvents = (
+export const waitRunEvents = async (
   request: WaitRunEventsRequest,
   replayRun: ReplayRun,
   now: CursorWaitClock,
-): Result<WaitRunEventsResult, RunReplayFailure> => {
+  pause: CursorWaitSleep = sleep,
+): Promise<Result<WaitRunEventsResult, RunReplayFailure>> => {
   const startedAt = now();
 
   while (true) {
@@ -83,5 +89,8 @@ export const waitRunEvents = (
     if (now() - startedAt >= request.timeoutMs) {
       return toTimedOutResult(request, replayed.value);
     }
+
+    const remainingMs = request.timeoutMs - (now() - startedAt);
+    await pause(Math.max(0, Math.min(DEFAULT_POLL_INTERVAL_MS, remainingMs)));
   }
 };

@@ -10,8 +10,8 @@ describe('cursor-wait', () => {
     'interior-corrupt',
     'event-log-unavailable',
     'malformed-declared-payload',
-  ] as const)('surfaces replay failure verbatim for %s', (code) => {
-    const result = waitRunEvents(
+  ] as const)('surfaces replay failure verbatim for %s', async (code) => {
+    const result = await waitRunEvents(
       {
         runId: textRunId,
         cursor: {

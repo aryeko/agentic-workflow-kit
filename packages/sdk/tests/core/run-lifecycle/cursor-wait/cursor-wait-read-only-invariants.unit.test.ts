@@ -16,7 +16,7 @@ describe('cursor-wait', () => {
       replayResult: makeReplaySuccess([]),
       clockValues: [0, 1_001],
     },
-  ])('read-only: returns replay-derived data without mutating the replay result (%s)', ({
+  ])('read-only: returns replay-derived data without mutating the replay result (%s)', async ({
     replayResult,
     clockValues,
   }) => {
@@ -24,7 +24,7 @@ describe('cursor-wait', () => {
     const replay = vi.fn(() => replayResult);
     const clock = vi.fn(() => clockValues.shift() ?? 1_001);
 
-    const result = waitRunEvents(
+    const result = await waitRunEvents(
       {
         runId: textRunId,
         cursor: {

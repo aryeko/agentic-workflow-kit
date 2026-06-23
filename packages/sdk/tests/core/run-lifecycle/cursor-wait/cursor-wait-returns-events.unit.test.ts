@@ -5,12 +5,12 @@ import { waitRunEvents } from '../../../../src/core/run-lifecycle/cursor-wait/in
 import { makeEnvelope, makeReplaySuccess, textRunId } from './test-support.js';
 
 describe('cursor-wait', () => {
-  it('returns events after cursor', () => {
+  it('returns events after cursor', async () => {
     const events = [makeEnvelope(1), makeEnvelope(2), makeEnvelope(3)];
     const replay = vi.fn(() => makeReplaySuccess(events));
     const clock = vi.fn(() => 0);
 
-    const result = waitRunEvents(
+    const result = await waitRunEvents(
       {
         runId: textRunId,
         cursor: {

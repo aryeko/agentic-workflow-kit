@@ -1,7 +1,7 @@
 import type { AppendIntent, Result, RunWriter } from '../../run-lifecycle/contracts/index.js';
 import type { AnalysisFailure } from '../analyzer/index.js';
 
-import { createAnalysisEventId, createAnalysisPayloadDigest } from './analysis-keying.js';
+import { canonicalJson, createAnalysisEventId, createAnalysisPayloadDigest } from './analysis-keying.js';
 import { isRedactedWriteOnceArtifactRef, isStorageError } from './artifact-ref-guard.js';
 import { buildAnalysisFailedPayload, buildAnalysisRecordedPayload } from './payload-builders.js';
 import { resolveExistingAnalysisRecord } from './record-idempotency.js';
@@ -64,6 +64,57 @@ const buildAppendIntent = (
         : undefined,
 });
 
+const isAnalysisRecordedPayload = (payload: unknown): payload is AnalysisRecordedPayload =>
+  typeof payload === 'object' &&
+  payload !== null &&
+  'schema' in payload &&
+  payload.schema === 'kit-vnext.analysis-recorded.v1';
+
+const recordedPayloadWithoutReportRef = (
+  payload: AnalysisRecordedPayload,
+): Omit<AnalysisRecordedPayload, 'reportArtifactRef'> => {
+  const { reportArtifactRef: _reportArtifactRef, ...rest } = payload;
+  return rest;
+};
+
+const recordedReplayShape = (input: AnalysisRecordInput): Omit<AnalysisRecordedPayload, 'reportArtifactRef'> => {
+  if (input.outcome.kind !== 'recorded') {
+    throw new Error('recorded replay shape requires a recorded outcome.');
+  }
+
+  return {
+    schema: 'kit-vnext.analysis-recorded.v1',
+    request: input.request,
+    inputHealth: input.inputHealth,
+    issues: input.outcome.result.issues,
+    metrics: input.outcome.result.metrics,
+    evidenceRefs: input.outcome.result.evidenceRefs,
+    ...(input.supersedesEventId === undefined ? {} : { supersedesEventId: input.supersedesEventId }),
+  };
+};
+
+const replayReportArtifactRef = (
+  input: AnalysisRecordInput,
+  replay: AnalysisRecordOptions['replay'],
+): AnalysisRecordedPayload['reportArtifactRef'] => {
+  if (input.outcome.kind !== 'recorded' || replay === undefined) {
+    return undefined;
+  }
+
+  const expectedShape = canonicalJson(recordedReplayShape(input));
+  for (const event of replay.events) {
+    if (event.type !== 'AnalysisRecorded' || !isAnalysisRecordedPayload(event.payload)) {
+      continue;
+    }
+
+    if (canonicalJson(recordedPayloadWithoutReportRef(event.payload)) === expectedShape) {
+      return event.payload.reportArtifactRef;
+    }
+  }
+
+  return undefined;
+};
+
 const prepareRecordedPayload = async (
   input: AnalysisRecordInput,
   options: AnalysisRecordOptions,
@@ -97,10 +148,21 @@ const prepareRecordedPayload = async (
   return buildAnalysisRecordedPayload(input, candidateRef);
 };
 
-const prepareReplayPayload = async (input: AnalysisRecordInput): Promise<AnalysisPayload> =>
-  input.outcome.kind === 'recorded'
-    ? prepareRecordedPayload(input, {})
-    : buildAnalysisFailedPayload(input, input.outcome.failure);
+const prepareReplayPayload = async (
+  input: AnalysisRecordInput,
+  replay: AnalysisRecordOptions['replay'],
+): Promise<AnalysisPayload> => {
+  if (input.outcome.kind !== 'recorded') {
+    return buildAnalysisFailedPayload(input, input.outcome.failure);
+  }
+
+  const committedReportRef = replayReportArtifactRef(input, replay);
+  if (committedReportRef !== undefined && isRedactedWriteOnceArtifactRef(committedReportRef)) {
+    return buildAnalysisRecordedPayload(input, committedReportRef);
+  }
+
+  return prepareRecordedPayload(input, {});
+};
 
 const appendPayload = async (
   input: AnalysisRecordInput,
@@ -136,7 +198,7 @@ export const recordAnalysisOutcome = async (
   writer: RunWriter,
   options: AnalysisRecordOptions = {},
 ): Promise<Result<AnalysisRecordCommit, AnalysisRecordFailure>> => {
-  const replayPayload = await prepareReplayPayload(input);
+  const replayPayload = await prepareReplayPayload(input, options.replay);
   const replayPayloadDigest = createAnalysisPayloadDigest(replayPayload);
   const replayEventId = createAnalysisEventId(input, replayPayload, replayPayloadDigest);
   const replayExisting = resolveExistingAnalysisRecord(options.replay, input, replayEventId, replayPayloadDigest);

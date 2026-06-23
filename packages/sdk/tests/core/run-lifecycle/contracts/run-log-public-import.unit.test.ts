@@ -101,7 +101,7 @@ describe('core-01-s1 public sdk imports', () => {
       createRun: () => result,
       openWriter: () => result,
       replay: () => ({ ok: true, value: replay }),
-      waitRunEvents: () => ({ ok: true, value: waitResult }),
+      waitRunEvents: async () => ({ ok: true, value: waitResult }),
       project: () => ({ ok: true, value: projections }),
     };
 

@@ -5,10 +5,10 @@ import { waitRunEvents } from '../../../../src/core/run-lifecycle/cursor-wait/in
 import { makeEnvelope, makeReplaySuccess, textRunId } from './test-support.js';
 
 describe('cursor-wait', () => {
-  it('cursor advances to last delivered sequence', () => {
+  it('cursor advances to last delivered sequence', async () => {
     const events = [makeEnvelope(5), makeEnvelope(7), makeEnvelope(9)];
 
-    const result = waitRunEvents(
+    const result = await waitRunEvents(
       {
         runId: textRunId,
         cursor: {

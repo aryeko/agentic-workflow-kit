@@ -43,8 +43,8 @@ export const createRunEventLog = (deps: RunEventLogDependencies): RunEventLog =>
     return replay(runId, deps.eventLogStore);
   },
 
-  waitRunEvents(request: WaitRunEventsRequest): Result<WaitRunEventsResult, RunReplayFailure> {
-    return waitRunEvents(request, (runId) => replay(runId, deps.eventLogStore), deps.waitClock);
+  waitRunEvents(request: WaitRunEventsRequest): Promise<Result<WaitRunEventsResult, RunReplayFailure>> {
+    return waitRunEvents(request, (runId) => replay(runId, deps.eventLogStore), deps.waitClock, deps.waitSleep);
   },
 
   project(runId: string): Result<RunProjections, RunReplayFailure> {

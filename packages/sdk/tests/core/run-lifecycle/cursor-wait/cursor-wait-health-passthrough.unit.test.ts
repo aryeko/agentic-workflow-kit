@@ -5,7 +5,7 @@ import type { RunLogHealthRecord } from '../../../../src/index.js';
 import { makeEnvelope, makeReplaySuccess, textRunId } from './test-support.js';
 
 describe('cursor-wait', () => {
-  it('health passthrough', () => {
+  it('carries replay health and health records into wait results', async () => {
     const healthRecords: RunLogHealthRecord[] = [
       {
         kind: 'tail-repaired',
@@ -16,7 +16,7 @@ describe('cursor-wait', () => {
       },
     ];
 
-    const result = waitRunEvents(
+    const result = await waitRunEvents(
       {
         runId: textRunId,
         cursor: {

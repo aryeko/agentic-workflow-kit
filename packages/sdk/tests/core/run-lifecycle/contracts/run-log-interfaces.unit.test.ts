@@ -15,7 +15,7 @@ import {
 } from './fixtures.js';
 
 describe('core-01-s1 run log interfaces', () => {
-  it('constructs conforming RunWriter and RunEventLog fixtures', () => {
+  it('constructs a complete run log and writer interface', async () => {
     const writer: RunWriter = {
       append: () => ({ ok: true, value: runAppendReceiptFixture }),
       renew: () => ({ ok: true, value: writer }),
@@ -25,7 +25,7 @@ describe('core-01-s1 run log interfaces', () => {
       createRun: () => ({ ok: true, value: writer }),
       openWriter: () => ({ ok: true, value: writer }),
       replay: () => ({ ok: true, value: runReplayFixture }),
-      waitRunEvents: () => ({ ok: true, value: waitRunEventsResultFixture }),
+      waitRunEvents: async () => ({ ok: true, value: waitRunEventsResultFixture }),
       project: () => ({ ok: true, value: runProjectionsFixture }),
     };
 
@@ -35,7 +35,7 @@ describe('core-01-s1 run log interfaces', () => {
       value: writer,
     });
     expect(log.replay(createRunInputFixture.runId)).toEqual({ ok: true, value: runReplayFixture });
-    expect(log.waitRunEvents(waitRunEventsRequestFixture)).toEqual({
+    await expect(log.waitRunEvents(waitRunEventsRequestFixture)).resolves.toEqual({
       ok: true,
       value: waitRunEventsResultFixture,
     });

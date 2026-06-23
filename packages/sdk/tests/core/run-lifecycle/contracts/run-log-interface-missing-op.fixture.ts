@@ -26,7 +26,7 @@ const invalidLog: RunEventLog = {
   replay: (_runId: string): { ok: true; value: RunReplay } => {
     throw new Error('not reached');
   },
-  waitRunEvents: (_request: WaitRunEventsRequest): { ok: true; value: WaitRunEventsResult } => {
+  waitRunEvents: async (_request: WaitRunEventsRequest): Promise<{ ok: true; value: WaitRunEventsResult }> => {
     throw new Error('not reached');
   },
   project: (_runId: string): { ok: false; error: RunReplayFailure } => {

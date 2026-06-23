@@ -5,8 +5,8 @@ import { waitRunEvents } from '../../../../src/index.js';
 import { makeEnvelope, makeReplaySuccess, textRunId } from './test-support.js';
 
 describe('cursor-wait', () => {
-  it('public import', () => {
-    const result = waitRunEvents(
+  it('is importable from the public sdk entrypoint', async () => {
+    const result = await waitRunEvents(
       {
         runId: textRunId,
         cursor: {

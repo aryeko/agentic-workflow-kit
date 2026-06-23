@@ -93,4 +93,52 @@ describe('core-07-s3 record idempotent retry', () => {
     expect(put).not.toHaveBeenCalled();
     expect(writer.appendCalls).toHaveLength(0);
   });
+
+  it('uses replayed report artifact refs before preparing retry artifacts', async () => {
+    const originalInput = createRecordInput();
+    const retryInput = createRecordInput({
+      outcome: {
+        kind: 'recorded',
+        result: {
+          ...originalInput.outcome.result,
+          reportArtifactRef: undefined,
+        },
+      },
+    });
+    const payload = buildAnalysisRecordedPayload(originalInput, redactedReportRef);
+    const payloadDigest = createAnalysisPayloadDigest(payload);
+    const eventId = createAnalysisEventId(originalInput, payload, payloadDigest);
+    const replay = createReplay([
+      createEvent({
+        eventId,
+        sequence: 22,
+        type: 'AnalysisRecorded',
+        payload,
+        payloadDigest,
+      }),
+    ]);
+    const writer = createWriter();
+    const put = vi.fn(async () => storageError);
+
+    const result = await recordAnalysisOutcome(retryInput, writer, {
+      replay,
+      reportArtifact: reportArtifactInput,
+      artifactStore: {
+        put,
+        putScratch: vi.fn(async () => scratchReportRef),
+        resolve: vi.fn(() => rawReportRef),
+        get: vi.fn(() => storageError),
+        redact: vi.fn(() => rawReportRef),
+        export: vi.fn(() => storageError),
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.error.reason);
+    }
+    expect(result.value.status).toBe('already-committed');
+    expect(put).not.toHaveBeenCalled();
+    expect(writer.appendCalls).toHaveLength(0);
+  });
 });

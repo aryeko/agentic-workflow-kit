@@ -171,14 +171,14 @@ Also stop and report if dependency inputs are missing, required writes fall outs
 
 ### Source Responsibilities
 
-- Implement the `waitRunEvents(request: WaitRunEventsRequest): Result<WaitRunEventsResult, RunReplayFailure>` behavior: poll `core-01-s2-replay-and-corruption/replay()` in a bounded loop until events after `cursor.afterSequence` are found or `timeoutMs` elapses.
+- Implement the `waitRunEvents(request: WaitRunEventsRequest): Promise<Result<WaitRunEventsResult, RunReplayFailure>>` behavior: poll `core-01-s2-replay-and-corruption/replay()` in a bounded async loop until events after `cursor.afterSequence` are found or `timeoutMs` elapses.
 - Return events after `cursor.afterSequence` in the result's `events` array, respecting `maxEvents` when set; advance `cursor.afterSequence` to the last delivered event's sequence in the returned `WaitRunEventsResult.cursor`.
 - When `timeoutMs` elapses with no new events, return `timedOut: true` and an empty `events` array with the cursor unchanged.
 - Carry `health` and `healthRecords` from the final replay pass into `WaitRunEventsResult`.
 - Set `lastSequence` in the result to the log's current last sequence from the most recent replay pass.
 - Surface any `RunReplayFailure` from the underlying replay as the `waitRunEvents` error, without wrapping or re-interpreting the failure codes.
 - Never acquire or renew a lease, append any event or health record, write a projection, or mutate liveness state — `waitRunEvents` is strictly read-only over replay.
-- Accept a clock injection for the timeout boundary so that tests are deterministic without real wall time.
+- Accept clock and sleep/backoff injection for the timeout boundary so that tests are deterministic without real wall time and empty polls yield instead of hot-spinning.
 - Export `waitRunEvents` (the stand-alone behavior function, not the `RunEventLog` interface) from the `sdk` public entrypoint per `epic0-s4-export-templates/PackageExportConvention`.
 
 ### Source Spec Surface
@@ -190,7 +190,7 @@ variant):
   `core-01-s1-event-contracts`; `waitRunEvents` is a method on `RunEventLog` declared there — this
   story implements the behavior, not a new declaration).
 - Events / append intents: none — `waitRunEvents` is read-only; it appends no events.
-- Provider operations / commands: `waitRunEvents(request: WaitRunEventsRequest): Result<WaitRunEventsResult, RunReplayFailure>` — the bounded poll over `core-01-s2-replay-and-corruption/replay()`.
+- Provider operations / commands: `waitRunEvents(request: WaitRunEventsRequest): Promise<Result<WaitRunEventsResult, RunReplayFailure>>` — the bounded async poll over `core-01-s2-replay-and-corruption/replay()`.
 - Failure and degraded tokens: surfaces `core-01-s1-event-contracts/RunReplayFailure` codes
   `"malformed-envelope"`, `"interior-corrupt"`, `"event-log-unavailable"`, `"malformed-declared-payload"`
   verbatim from the underlying replay; no new failure token is introduced by this story.

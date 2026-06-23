@@ -10,7 +10,7 @@ export interface RunEventLog {
   createRun(input: CreateRunInput): Result<RunWriter, RunAppendFailure>;
   openWriter(runId: string, lease: LeaseCapability): Result<RunWriter, RunAppendFailure>;
   replay(runId: string): Result<RunReplay, RunReplayFailure>;
-  waitRunEvents(request: WaitRunEventsRequest): Result<WaitRunEventsResult, RunReplayFailure>;
+  waitRunEvents(request: WaitRunEventsRequest): Promise<Result<WaitRunEventsResult, RunReplayFailure>>;
   project(runId: string): Result<RunProjections, RunReplayFailure>;
 }
 

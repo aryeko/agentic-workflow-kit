@@ -5,7 +5,7 @@ import { project, replay, waitRunEvents } from '../../../../src/index.js';
 import { createHarness, runId } from './test-support.js';
 
 describe('RunEventLog read-method delegation', () => {
-  it('returns replay, projection, and cursor-wait results equivalent to direct owning-module calls', () => {
+  it('returns replay, projection, and cursor-wait results equivalent to direct owning-module calls', async () => {
     const harness = createHarness();
     harness.seedCreatedRun();
 
@@ -24,8 +24,8 @@ describe('RunEventLog read-method delegation', () => {
       timeoutMs: 0,
       maxEvents: 1,
     };
-    const directWait = waitRunEvents(request, replayDependency, () => 0);
-    const facadeWait = harness.log.waitRunEvents(request);
+    const directWait = await waitRunEvents(request, replayDependency, () => 0);
+    const facadeWait = await harness.log.waitRunEvents(request);
     expect(facadeWait).toEqual(directWait);
   });
 });
