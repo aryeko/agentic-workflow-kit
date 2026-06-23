@@ -34,6 +34,8 @@ const allowedTypes = new Set([
   'token_usage_observed',
 ]);
 
+const reservedPayloadKeys = new Set(['version', 'sequence', 'runId', 'timestamp', 'type', 'source']);
+
 const parseArgs = (argv) => {
   const options = {};
 
@@ -86,6 +88,12 @@ const parsePayload = (value) => {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new Error('payload must be a JSON object');
     }
+
+    const reservedKeys = Object.keys(payload).filter((key) => reservedPayloadKeys.has(key));
+    if (reservedKeys.length > 0) {
+      throw new Error(`payload contains reserved event field(s): ${reservedKeys.join(', ')}`);
+    }
+
     return payload;
   } catch (error) {
     throw new Error(`Invalid --payload JSON: ${error instanceof Error ? error.message : String(error)}`);
@@ -116,7 +124,7 @@ export const appendObservabilityEvent = async (options) => {
   const event = {
     version: 1,
     sequence,
-    runId: options.runId ?? payload.runId ?? null,
+    runId: options.runId ?? null,
     timestamp: options.timestamp ?? new Date().toISOString(),
     type: options.type,
     source: {

@@ -261,4 +261,24 @@ describe('delivery observability import and summary', () => {
       });
     });
   });
+
+  it('rejects payloads that attempt to override reserved event fields', async () => {
+    await withFixture(async (fixtureRoot) => {
+      const eventsPath = path.join(fixtureRoot, 'events.jsonl');
+
+      const result = await runScript(observeScriptPath, [
+        '--events',
+        eventsPath,
+        '--type',
+        'turn_observed',
+        '--payload',
+        JSON.stringify({ role: 'user', type: 'token_usage_observed' }),
+        '--run-id',
+        'run-demo',
+      ]);
+
+      expect(result.code).toBe(1);
+      expect(result.stderr).toContain('reserved event field');
+    });
+  });
 });

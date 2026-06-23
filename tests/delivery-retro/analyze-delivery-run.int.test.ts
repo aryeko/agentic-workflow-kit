@@ -84,6 +84,11 @@ const writeSession = async (sessionPath: string, records: unknown[]): Promise<vo
   await writeFile(sessionPath, `${records.map((record) => JSON.stringify(record)).join('\n')}\n`);
 };
 
+const writeEvents = async (eventsPath: string, records: unknown[]): Promise<void> => {
+  await mkdir(path.dirname(eventsPath), { recursive: true });
+  await writeFile(eventsPath, `${records.map((record) => JSON.stringify(record)).join('\n')}\n`);
+};
+
 describe('delivery retro analyzer', () => {
   it('resolves required handles and reports unavailable token usage without estimating', async () => {
     await withFixture(async (fixtureRoot) => {
@@ -139,6 +144,122 @@ describe('delivery retro analyzer', () => {
         tokenUsage: { status: 'unavailable', source: 'session-jsonl', confidence: 'observed' },
       });
       expect(parsed.report.summary.findingClasses).toEqual({ 'ac-miss': 1 });
+    });
+  });
+
+  it('prefers normalized observability events for turns, workers, reviews, findings, and tokens', async () => {
+    await withFixture(async (fixtureRoot) => {
+      const { packagePath, sessionPath } = await writePackage(fixtureRoot, {
+        planExtras: 'Workers: stale-session-worker',
+      });
+      const eventsPath = path.join(packagePath, 'observability/events.jsonl');
+      await writeSession(sessionPath, [
+        { timestamp: '2026-06-23T10:00:00.000Z', story_id: 'S1', worker_alias: 'stale-session-worker' },
+      ]);
+      await writeEvents(eventsPath, [
+        {
+          timestamp: '2026-06-23T10:00:00.000Z',
+          type: 'turn_observed',
+          role: 'user',
+          turnIndex: 1,
+        },
+        {
+          timestamp: '2026-06-23T10:00:05.000Z',
+          type: 'turn_observed',
+          role: 'assistant',
+          turnIndex: 2,
+        },
+        {
+          timestamp: '2026-06-23T10:01:00.000Z',
+          type: 'worker_spawned',
+          worker: { alias: 'impl-s1', agentId: 'agent-impl-s1', storyId: 'S1', role: 'implementer' },
+        },
+        {
+          timestamp: '2026-06-23T10:04:00.000Z',
+          type: 'review_completed',
+          storyId: 'S1',
+          worker: { alias: 'rev-s1', role: 'reviewer' },
+          verdict: 'changes_requested',
+          findings: [{ class: 'ac-miss', summary: 'AC-1 evidence missing' }],
+        },
+        {
+          timestamp: '2026-06-23T10:06:00.000Z',
+          type: 'review_completed',
+          storyId: 'S1',
+          worker: { alias: 'rev-s1', role: 'reviewer' },
+          verdict: 'approved',
+        },
+        {
+          timestamp: '2026-06-23T10:07:00.000Z',
+          type: 'token_usage_observed',
+          usage: { input: 30, cachedInput: 5, output: 15, reasoning: 4, total: 49 },
+        },
+        {
+          timestamp: '2026-06-23T10:08:00.000Z',
+          type: 'token_usage_observed',
+          usage: { input: 60, cachedInput: 10, output: 30, reasoning: 9, total: 99 },
+        },
+        {
+          timestamp: '2026-06-23T10:09:00.000Z',
+          type: 'run_started',
+          usage: { input: 900, cachedInput: 0, output: 90, reasoning: 9, total: 999 },
+        },
+      ]);
+
+      const result = await runScript(['--package', packagePath, '--events', eventsPath, '--format', 'json']);
+      expect(result).toMatchObject({ code: 0 });
+      const parsed = JSON.parse(result.stdout);
+
+      expect(parsed.handles.workerIds.sort()).toEqual(['impl-s1', 'rev-s1']);
+      expect(parsed.handles.observabilityEvents).toBe(eventsPath);
+      expect(parsed.report.stories[0]).toMatchObject({
+        storyId: 'S1',
+        reviewRounds: { value: 2, source: 'observability-events', confidence: 'observed' },
+        tokenUsage: {
+          status: 'unavailable',
+          source: 'observability-events',
+          confidence: 'observed',
+        },
+      });
+      expect(parsed.report.summary.turns).toMatchObject({
+        total: 2,
+        byRole: { user: 1, assistant: 1 },
+        source: 'observability-events',
+        confidence: 'observed',
+      });
+      expect(parsed.report.summary.findingClasses).toEqual({ 'ac-miss': 1 });
+      expect(parsed.report.summary.workerCount).toBe(2);
+      expect(parsed.report.summary.tokens).toMatchObject({
+        status: 'observed',
+        source: 'observability-events',
+        confidence: 'observed',
+        total: 99,
+        cachedInput: 10,
+      });
+      expect(parsed.report.summary.missingObservabilityFields).toContain('S1:token-usage');
+    });
+  });
+
+  it('falls back to resolved worker handles when normalized events have no worker ids', async () => {
+    await withFixture(async (fixtureRoot) => {
+      const { packagePath, sessionPath } = await writePackage(fixtureRoot);
+      const eventsPath = path.join(packagePath, 'observability/events.jsonl');
+      await writeSession(sessionPath, []);
+      await writeEvents(eventsPath, [
+        {
+          timestamp: '2026-06-23T10:00:00.000Z',
+          type: 'turn_observed',
+          role: 'user',
+          turnIndex: 1,
+        },
+      ]);
+
+      const result = await runScript(['--package', packagePath, '--events', eventsPath, '--format', 'json']);
+      expect(result).toMatchObject({ code: 0 });
+      const parsed = JSON.parse(result.stdout);
+
+      expect(parsed.handles.workerIds.sort()).toEqual(['impl-s1', 'rev-s1']);
+      expect(parsed.report.summary.workerCount).toBe(2);
     });
   });
 
