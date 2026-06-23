@@ -9,3 +9,4 @@ export {
   type MockAgentStep,
   type MockAgentToolObserved,
 } from './mock-agent-provider.js';
+export { agentConformance, type AgentConformanceResult, type AgentConformanceSubject } from './conformance.js';

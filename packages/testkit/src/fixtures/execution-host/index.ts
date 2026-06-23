@@ -7,6 +7,7 @@ import type {
   TerminationPolicy,
   WorkspaceAttachment,
 } from 'sdk';
+export { executionHostIncidentFixtures, type ExecutionHostIncidentFixture } from './incidents.js';
 
 const at = '2026-06-22T10:00:00.000Z';
 const expiresAt = '2026-06-22T11:00:00.000Z';

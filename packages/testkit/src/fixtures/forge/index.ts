@@ -19,6 +19,7 @@ import type {
   PullRequestUpsertRequest,
   PushBranchRequest,
 } from 'sdk';
+export { forgeIncidentFixtures, type ForgeIncidentFixture } from './incidents.js';
 
 export interface ForgeTestkitFixtures {
   readonly credentialScope: CredentialScope;
