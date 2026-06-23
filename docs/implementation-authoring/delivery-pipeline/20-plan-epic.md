@@ -65,6 +65,8 @@ Then stop and hand off to `plan-delivery`.
 | PE-6 | Every contract passes Gates 4–6 (falsifiable ACs + evidence clause, failure table, public-exposure AC + import path, file-size budget, sweeps). | P1 | S |
 | PE-7 | Every AC traces to a frozen design line; a missing requirement is escalated as a design gap, never invented. | P1 | S/P |
 | PE-8 | Output is the gate-1 handoff (`story-dag: frozen` + all `story: ready`); the skill stops without building the package. | P1 | P |
+| PE-9 | Never edits `docs/design/` (frozen); a design gap is escalated, not edited around. | P1 | S/T |
+| PE-10 | Never edits other epics' charters, DAGs, or contracts, or the included domain charters. | P1 | S/T |
 
 The skill's own `EVALS.md` (when authored) operationalizes PE-1…PE-8 as test cases with a version pin.
 

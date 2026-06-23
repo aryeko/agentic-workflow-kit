@@ -27,9 +27,11 @@ The package is a faithful 1:1 projection of the `ready` contracts (invariant I4 
 [10-pipeline-and-invariants.md](./10-pipeline-and-invariants.md)). Every prompt, tracker row, and routing
 decision traces to a contract the architect already froze. `plan-delivery` may decide *how to say it to a
 worker* and *what class of model and effort to spend*; it may not decide scope, acceptance criteria,
-dependency order, or the tier floor — those are the architect's, already fixed. If a contract is too vague
-to project without inventing, that is a planning defect: stop and route it back to `plan-epic`; do not
-paper over it.
+dependency order, or the suggested-tier floor — those are the architect's, already fixed. To keep the
+projection mechanically auditable, every prompt and tracker row records the story id and acceptance-
+criteria ids it projects from; an element that cites no source contract is exactly the defect this
+invariant catches. If a contract is too vague to project without inventing, that is a planning defect:
+stop and route it back to `plan-epic`; do not paper over it.
 
 ## Embodies / operates on
 
@@ -47,8 +49,11 @@ too underspecified to project without inventing.
 
 - A complete package: a plan, a tracker, and per-story implementer + reviewer prompts; the prompts are
   decision-complete — a low-tier worker needs no other document to act.
-- Each story carries an abstract model class, an effort, and the contract's tier floor, with rationale;
-  no concrete provider IDs (those bind at runtime).
+- Every prompt and tracker row cites the story id and AC ids it realizes — the projection trace that
+  makes the invariant auditable.
+- Each story carries an abstract model class and effort, and a reasoning tier at or above the contract's
+  suggested-tier floor (the floor is carried unchanged; the reasoning ladder adds `critical` above the
+  DAG's `elevated`), with rationale; no concrete provider IDs (those bind at runtime).
 - A deep-readiness verdict marks the package `ready_for_implementation`, naming the sources reviewed, the
   stories covered, the per-artifact checks performed, and the final verdict.
 
@@ -64,9 +69,9 @@ too underspecified to project without inventing.
 | ID | Requirement | Sev | Modality |
 |---|---|---|---|
 | PD-1 | Triggers only on a frozen DAG with `ready` selected stories; refuses and routes back otherwise. | P1 | P/T |
-| PD-2 | Projection invariant holds: every package element traces 1:1 to a `ready` contract; introduces no new scope, AC, dependency order, or tier. | P1 | S/T |
+| PD-2 | Projection invariant holds: every package element cites the source story id + AC ids it projects from and traces 1:1 to a `ready` contract; introduces no new scope, AC, dependency order, or tier. | P1 | S/T |
 | PD-3 | Produces a complete package (plan, tracker, per-story implementer + reviewer prompts); the prompts are decision-complete. | P1 | S/P |
-| PD-4 | Assigns abstract model class + effort + tier floor per story with rationale; no concrete provider IDs. | P1 | S |
+| PD-4 | Assigns abstract model class + effort per story with rationale, and a reasoning tier ≥ the contract's suggested-tier floor (floor carried unchanged); no concrete provider IDs. | P1 | S |
 | PD-5 | Marks `ready_for_implementation` only with a deep-readiness verdict (sources, stories, per-artifact checks, final verdict). | P1 | S/P |
 | PD-6 | Never writes code, dispatches workers, or edits artifacts outside the package. | P1 | S |
 | PD-7 | The package is durable — self-contained and resumable from recorded evidence, not session prose. | P2 | S |

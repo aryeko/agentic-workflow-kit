@@ -59,12 +59,14 @@ upstream gate already vouched for quality.
 
 **I4 — The package is a projection (pinned).** The execution package `plan-delivery` produces is a
 faithful, traceable projection of the `ready` story contracts: it may add *how* — dispatch prompts, model
-class, effort, tier binding, tracker rows — and nothing else. It must not introduce or alter scope,
-acceptance criteria, dependency order, or the suggested tier floor; every package element traces 1:1 to a
-`ready` contract. **Why it is pinned:** the operating model routes the orchestrator straight to the
-authored artifacts, so inserting a package step is only safe if the package cannot smuggle in new *what*.
-If it ever does, the Bucket-1 characterization gate has been bypassed and the churn the operating model
-exists to prevent returns. A package element with no contract to trace to is a defect, not an enhancement.
+class, effort, a reasoning tier at or above the suggested-tier floor, tracker rows — and nothing else. It
+must not introduce or alter scope, acceptance criteria, dependency order, or the suggested-tier floor;
+every package element traces 1:1 to a `ready` contract. **Why it is pinned:** the operating model routes
+the orchestrator straight to the authored artifacts, so inserting a package step is only safe if the
+package cannot smuggle in new *what*. If it ever does, the Bucket-1 characterization gate has been
+bypassed and the churn the operating model exists to prevent returns. **The trace makes it auditable:**
+every package element records the story id and acceptance-criteria ids it projects from; an element that
+cites no source contract is exactly the defect this invariant catches.
 
 **I5 — Durability over narration.** Pipeline state must be reconstructable from committed artifacts
 (contracts, package, tracker, git history), never from a session transcript. Every stage records evidence
@@ -80,9 +82,11 @@ and routing tokens.
 |---|---|---|
 | `domain-charter / epic / story-dag / story: draft → ready → frozen` | the layer lifecycle | architect (`plan-epic` owns story-dag + story) |
 | `story: ready` | the dispatch gate — characterization review passed | `plan-epic` |
-| coverage `covered` / `deferred` / `split` | exactly-once signal ownership | `plan-epic` (charter + DAG) |
+| coverage `covered` / `deferred` | which epic owns or defers a signal (epic-level) | epic charter — Layer 2, architect, before `plan-epic` |
+| coverage `split` + owning-story backfill | a signal split across stories; the story that owns a signal | `plan-epic` (Layer 3 DAG) |
+| suggested tier `light` / `standard` / `elevated` | the orchestrator's tier floor for a public-exposure story | `plan-epic` (Layer 3 DAG) |
 | `ready_for_implementation` | the package passed deep-readiness review | `plan-delivery` |
-| model class · effort · tier | routing, abstract until execution | `plan-delivery` (abstract), `orchestrated-delivery` (concrete) |
+| model class · effort · reasoning tier | routing; abstract until execution; reasoning tier ≥ the suggested-tier floor (adds `critical` above `elevated`) | `plan-delivery` (abstract), `orchestrated-delivery` (concrete) |
 
 ## The eval method
 
