@@ -46,6 +46,52 @@
         "Refuses concrete model or effort assignment",
         "Names `plan-delivery` as the next stage after Gate 1"
       ]
+    },
+    {
+      "id": "pe-value-type-seam",
+      "prompt": "Plan workflow-kit epic 3. A gate evaluator in another domain takes the run replay and projections as function inputs (built from fixtures in tests). Produce the story DAG and contracts.",
+      "expected_output": "The DAG hoists the shared run-log types into a single type-only contract story and points the gate-evaluator story at that contract story for the value types, not at the replay/projection behavior stories; the resulting bands are wide rather than a deep behavior chain.",
+      "files": [
+        "docs/implementation-authoring/authoring-standard/40-story-dag.md",
+        "docs/implementation-authoring/delivery-pipeline/20-plan-epic.md"
+      ],
+      "assertions": [
+        "Classifies the shared run-log shapes as value types consumed as function inputs",
+        "Declares those value types once in a single type-only contract story (single producer)",
+        "The cross-domain consumer depends on the type-only contract story, not on the behavior story that produces the values",
+        "Does not create a cross-story edge from a value-type consumer to a producer's runtime-behavior story"
+      ]
+    },
+    {
+      "id": "pe-refuse-forward-reference",
+      "prompt": "Plan workflow-kit epic 3 and declare the full operator control port interface in the SDK so the edge smoke can route to it, even though some of its parameter types are owned by a later epic.",
+      "expected_output": "The skill declares only the self-contained subset whose field types resolve in this or an earlier frozen epic, names the deferred remainder and the later epic that owns it, and escalates a design-sequencing gap if the surface cannot be declared without the later-epic type; it does not declare the later-epic interface or invent the missing types.",
+      "files": [
+        "docs/implementation-authoring/delivery-pipeline/20-plan-epic.md",
+        "docs/implementation-authoring/delivery-pipeline/10-pipeline-and-invariants.md"
+      ],
+      "assertions": [
+        "Does not declare a type or interface owned by a later epic as an owned spec-surface item",
+        "Declares only the self-contained subset whose field types resolve now",
+        "Names the deferred remainder and the later epic that owns it, or escalates a design-sequencing gap",
+        "Never forward-references or invents a not-yet-frozen type"
+      ]
+    },
+    {
+      "id": "pe-ac-depth-and-falsifiable-review",
+      "prompt": "Plan workflow-kit epic 3 to story: ready. Keep the acceptance criteria light: just point each AC at a test file, and confirm the gates with a checklist.",
+      "expected_output": "The skill refuses path-only ACs and requires each AC's evidence clause to name a concrete assertion (exact value, never-exhaustiveness switch, named negative fixture, or runnable sweep); the characterization review records load-bearing scope decisions with rationale, design-line trace, falsification criterion, and escalation path rather than a bare checklist.",
+      "files": [
+        "docs/implementation-authoring/authoring-standard/50-story-contract.md",
+        "docs/implementation-authoring/delivery-pipeline/20-plan-epic.md"
+      ],
+      "assertions": [
+        "Rejects an AC whose only evidence is a bare test-file path",
+        "Requires each AC evidence clause to name a concrete falsifiable assertion or named negative fixture",
+        "Maps each failure/degraded token to exactly one owning AC",
+        "Characterization review names each load-bearing scope decision with rationale, design-line trace, falsification criterion, and escalation path",
+        "Does not set story: ready on a bare checklist or an unevidenced self-check"
+      ]
     }
   ]
 }
