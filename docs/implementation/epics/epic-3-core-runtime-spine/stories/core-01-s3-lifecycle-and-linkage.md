@@ -465,6 +465,33 @@ evidence pack.
   assembly or corruption classification is needed (`core-01-s2-replay-and-corruption`); or a
   lifecycle/linkage type declaration needs to be authored (`core-01-s1-event-contracts`).
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: transition-table-owned-here
+
+- Rationale: the legal lifecycle transition table is the pure catalog consumed by append enforcement and
+  projection folding, so it has one producer outside both consumers.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/projections-lifecycle-and-tests.md`
+  (legal transitions table); `story-dag.md` catalog/behavior ownership rule.
+- Falsification: `core-01-s4` or `core-01-s5` re-declares the legal transition table or adds a
+  behavior-local transition rule.
+- Escalation: if append or projection needs a transition not in this table, raise a contract/design
+  defect against this story before changing consumers.
+
+### Decision: session-linkage-ordinal-predicate-owned-here
+
+- Rationale: session linkage ordering is a pure append-only invariant shared by writer validation and
+  launch projections, so the ordinal predicate must remain in the lifecycle/linkage catalog.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/projections-lifecycle-and-tests.md`
+  (session linkage is append-only and ordinals are monotonic).
+- Falsification: writer or projection modules define their own monotonicity predicate, or accept a
+  linkage sequence this story rejects.
+- Escalation: if a handoff scenario needs a different ordinal rule, update the lifecycle/linkage
+  contract first; do not fork the predicate in consumers.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

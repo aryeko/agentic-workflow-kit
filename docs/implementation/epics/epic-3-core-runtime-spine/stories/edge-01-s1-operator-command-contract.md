@@ -470,6 +470,44 @@ declared type-only, split into focused files, exposed on the `sdk` public entryp
   `paramsDigest`/`idempotencyKey` computation (the smoke / Epic 7 production); or an operator-surface
   shape the `command-surface-and-envelopes.md` design does not name.
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: operator-control-port-deferred-to-epic-7
+
+- Rationale: the full named port references later-epic approval, recovery, attention, and explanation
+  types, so Epic 3 can only declare the self-contained envelope substrate and preview/start/inspect
+  subset.
+- Design trace: `story-dag.md` scope decision `edge-01-command-substrate-only`;
+  `docs/design/30-domain-reference/edge/operator-surface/command-surface-and-envelopes.md` (full
+  `OperatorControlPort` surface).
+- Falsification: this story declares `OperatorControlPort` or any later-epic param/view type.
+- Escalation: if the subset cannot be declared without a later-epic type, raise a design-sequencing gap
+  instead of inventing placeholders.
+
+### Decision: eight-param-view-pairs-deferred
+
+- Rationale: only preview/start/inspect are needed for Epic 3 parity; the remaining operator actions
+  require later core domains and are therefore named deferrals.
+- Design trace: `docs/design/30-domain-reference/edge/operator-surface/command-surface-and-envelopes.md`
+  (11-method command table and later-epic param/view surfaces).
+- Falsification: wait/approval/stop/handoff/override/recovery/explain/attention param or view types are
+  declared here.
+- Escalation: if parity smoke needs one of the deferred actions, move it to Epic 7 sequencing; do not
+  expand this type-only substrate.
+
+### Decision: operator-event-ref-distinct-from-evidence-event-ref
+
+- Rationale: `OperatorEventRef` points to operator audit events, while core-01 `EvidenceEventRef` cites
+  arbitrary recorded evidence; conflating them would erase provenance boundaries.
+- Design trace: `docs/design/30-domain-reference/edge/operator-surface/command-surface-and-envelopes.md`
+  (`OperatorEventRef` is distinct from core-01 `EvidenceEventRef`).
+- Falsification: `OperatorEventRef` aliases `EvidenceEventRef`, or operator audit references are stored
+  as generic evidence refs without the operator-event shape.
+- Escalation: if a consumer needs both refs, carry both fields explicitly; do not collapse the types.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

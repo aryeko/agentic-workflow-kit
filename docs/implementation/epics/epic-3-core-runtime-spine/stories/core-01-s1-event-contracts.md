@@ -433,6 +433,48 @@ without redeclaring them, plus the evidence pack.
   (`core-01-s5-projections`); the bounded cursor-wait behavior (`core-01-s6-cursor-wait`); or a run-log
   shape the `contracts.md` design does not name.
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: contracts-as-single-producer
+
+- Rationale: every consumer imports the run-log shapes from one stable surface, so type consumers do not
+  couple to behavior delivery.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/contracts.md` (the
+  host-neutral contract surface); `story-dag.md` scope decision `contracts-as-single-producer`.
+- Falsification: any core-01 type declared or re-declared outside this story, or a behavior story
+  re-declaring a contract type.
+- Escalation: if a type cannot be declared here without behavior detail, stop and raise it against
+  `story-dag.md` scope decision `contracts-as-single-producer`.
+
+### Decision: value-type-vs-runtime-object-seam
+
+- Rationale: core-02, core-07, and edge consumers can build `RunReplay`, `RunProjections`, and
+  `RunEventCursor` from fixtures, so they depend on the contract story rather than the runtime
+  behavior stories.
+- Design trace: `docs/design/30-domain-reference/core/capability-and-safety/gate-evaluation-and-records.md`
+  (`evaluateCapabilityGate(request, replay, projections)`);
+  `docs/design/30-domain-reference/core/observability-and-analysis/analysis-contract.md`
+  (`AnalysisSnapshot` value input); `story-dag.md` value-type seam.
+- Falsification: a value-type consumer test constructs a live `RunEventLog`, or the DAG adds an edge
+  from a value-type consumer to `core-01` behavior stories.
+- Escalation: if a consumer genuinely needs runtime behavior, raise a DAG dependency correction before
+  implementation.
+
+### Decision: run-durability-class-excludes-buffered
+
+- Rationale: core-01 records only durable/barrier run events, preserving the record-before-act boundary
+  and keeping fnd-02 `buffered` out of the canonical run log.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/contracts.md`
+  (`RunDurabilityClass`); `docs/design/30-domain-reference/core/run-lifecycle-and-state/event-log-writer-and-corruption.md`
+  (`buffered` is rejected before storage append).
+- Falsification: `RunDurabilityClass` includes `buffered`, or a run event envelope can be authored with
+  buffered durability.
+- Escalation: if a future UI progress stream needs buffered behavior, route it to a non-authoritative
+  stream design; do not widen the run-log durability subset here.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

@@ -334,6 +334,50 @@ the evidence pack.
   declarations for `RunReplay` / `RunReplayFailure` / `RunLogHealthRecord` need to be authored (those
   belong to core-01-s1-event-contracts).
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: tail-repaired-is-usable
+
+- Rationale: a repaired tail preserves a usable committed history while carrying degraded health
+  evidence for projections and downstream gates.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/contracts.md`
+  (`RunDegradedHealth` includes `tail-repaired`);
+  `docs/design/30-domain-reference/core/run-lifecycle-and-state/projections-lifecycle-and-tests.md`
+  (`tail-repaired` state is usable after `RunLogTailRepaired`).
+- Falsification: replay returns `RunReplayFailure` for `tail-repaired`, drops the health record, or
+  treats tail repair as an authoritative append failure.
+- Escalation: if a repaired tail cannot be safely replayed, raise a design defect against the
+  corruption protocol rather than reclassifying it locally.
+
+### Decision: interior-corrupt-fails-closed
+
+- Rationale: incoherent committed history cannot authorize replay-derived state or future appends, so
+  replay must surface a hard failure.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/contracts.md`
+  (`RunReplayFailure` includes `interior-corrupt`);
+  `docs/design/30-domain-reference/core/run-lifecycle-and-state/projections-lifecycle-and-tests.md`
+  (`interior-corrupt` committed history is incoherent and authoritative appends fail closed).
+- Falsification: replay returns usable events for an interior-corrupt log, or a downstream story treats
+  interior corruption as a repaired/partial health state.
+- Escalation: if storage health cannot distinguish tail from interior corruption, escalate to fnd-02 /
+  core-01 design; do not silently downgrade the failure.
+
+### Decision: declared-payload-validation-scoped-to-core-01
+
+- Rationale: replay validates only the payloads core-01 declares relevant, preserving sibling-domain
+  ownership while still rejecting malformed core-01 state-authoring payloads.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/event-log-writer-and-corruption.md`
+  (declared relevant payload for lifecycle state);
+  `docs/design/30-domain-reference/core/run-lifecycle-and-state/projections-lifecycle-and-tests.md`
+  (malformed payloads for core-01 declared-relevant event types).
+- Falsification: replay parses or rejects sibling-domain payloads beyond core-01's declared catalog, or
+  accepts malformed core-01 lifecycle/linkage/corruption payloads.
+- Escalation: if a sibling-domain payload must affect core-01 replay, require that domain to declare the
+  contract and add a DAG edge; do not broaden replay parsing ad hoc.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

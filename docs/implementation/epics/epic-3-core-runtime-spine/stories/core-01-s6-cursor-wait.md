@@ -284,6 +284,32 @@ behavior, exported via the `sdk` public entrypoint, plus the evidence pack.
   state mutation, supervision timers, or operator blocking to this module — those belong to
   `core-01-s4-run-event-log-and-writer` (lease/append) or Epic 4 `core-04` (liveness wrap).
 
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: cursor-wait-is-read-only
+
+- Rationale: `waitRunEvents` is the low-level cursor primitive later wrapped by liveness/operator flows,
+  so it cannot acquire leases, append events, write projections, or mutate liveness state.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md` (`waitRunEvents`
+  paragraph); `docs/design/30-domain-reference/core/run-lifecycle-and-state/contracts.md`
+  (`WaitRunEventsRequest` / `WaitRunEventsResult` / `RunEventLog.waitRunEvents`).
+- Falsification: production code imports lease, append, projection-write, or liveness mutation surfaces.
+- Escalation: if a caller needs liveness or operator blocking behavior, defer to the Epic 4 wrapper; do
+  not add mutation to the cursor primitive.
+
+### Decision: timeout-clock-is-injected
+
+- Rationale: deterministic timeout behavior requires a supplied timing source instead of ambient wall
+  time.
+- Design trace: `docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md`
+  (`timedOut = true` when `timeoutMs` elapses); this story's AC-3/AC-7 clock-injection evidence.
+- Falsification: production code calls `Date.now()` or `new Date()` directly for timeout decisions.
+- Escalation: if the design needs a richer time source, add an explicit port before implementation; do
+  not introduce ambient time.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---

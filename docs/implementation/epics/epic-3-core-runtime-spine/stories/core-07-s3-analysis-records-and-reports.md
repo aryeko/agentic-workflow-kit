@@ -314,9 +314,13 @@ responsibility crosses this story's assigned signal.
   concrete storage backend, no concrete `RunEventLog`, and no `testkit` in production source (test files
   only). It never opens provider clients, reads the filesystem directly, writes projections, or changes
   lifecycle state.
-- File-size budget: soft cap ~200 lines/file; split the payload builders, the keying/digest helper, the
-  artifact-ref guard, the retry/idempotency resolver, and the terminal-invariant check into separate
-  files to stay under the cap.
+- File-size budget (lines per named file):
+  - `payload-builders.ts` (`AnalysisRecorded` / `AnalysisFailed` payload builders) <= 200.
+  - `analysis-keying.ts` (analysis attempt key, event id, and payload digest helpers) <= 160.
+  - `artifact-ref-guard.ts` (redacted write-once report-ref validation) <= 140.
+  - `record-idempotency.ts` (retry and already-committed resolver) <= 180.
+  - `terminal-invariant.ts` (terminal-analysis invariant check) <= 140.
+  - `record-analysis-outcome.ts` (orchestrator that wires the helpers to `RunWriter.append`) <= 200.
 - Domain non-negotiables: every recorded/failed outcome is appended at `barrier`; reports are redacted
   write-once `ArtifactRef`s only (scratch/raw/tombstoned never substitute); `analysis-record-unwritable`
   is fail-closed-by-construction as `AnalysisRecordFailure` and is excluded from
@@ -402,6 +406,22 @@ evidence pack.
   `MetricValue` wrapper (`core-07-s1`), concrete provider behavior, the live `RunWriter`/`RunEventLog`
   append protocol, or fnd-02 artifact write-once/redaction internals are reached — those belong to
   `core-07-s2`, `core-07-s1`, Epic 6, `core-01-s4`, and `fnd-02-s4` respectively.
+
+## Characterization Review
+
+Architect-recorded review of this contract's load-bearing scope decisions. Each entry records
+rationale, the design line it traces to, the falsification criterion, and the escalation path.
+
+### Decision: analysis-record-unwritable-is-not-recordable
+
+- Rationale: when the analysis record itself cannot be written, the system must fail closed by returning
+  `AnalysisRecordFailure` instead of trying to self-record an `AnalysisFailed` event.
+- Design trace: `docs/design/30-domain-reference/core/observability-and-analysis/analysis-contract.md`
+  (`RecordableAnalysisFailureReason` excludes `analysis-record-unwritable` by construction).
+- Falsification: `analysis-record-unwritable` is included in `RecordableAnalysisFailureReason`, or the
+  code attempts to append `AnalysisFailed` for an unwritable record path.
+- Escalation: if operators need durable evidence for an unwritable record, route it through a different
+  writable authority; do not self-record the unwritable failure.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
