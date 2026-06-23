@@ -71,19 +71,19 @@ production Edge composition available.
 ## Per-domain expectations
 
 For each included domain, the table lists the `Story Group Signals` this epic claims. Story ownership
-stays `TBD` until the Epic 3 story DAG is frozen.
+is backfilled from the frozen Epic 3 [story DAG](./story-dag.md).
 
 ### `core-01` - Run Lifecycle & Event State
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Run event envelope and append receipt vocabulary. | TBD | covered |
-| Single leased writer, writer epoch fencing, monotonic sequence, and stale-writer rejection. | TBD | covered |
-| Lifecycle transition records and terminal-state guardrails. | TBD | covered |
-| Session link and supersession records. | TBD | covered |
-| Replay health, tail/interior corruption classes, and partial-write handling. | TBD | covered |
-| Pure `state`, `summary`, `metrics`, and `launch` projections. | TBD | covered |
-| Low-level cursor wait primitive as the substrate later wrapped by supervision. | TBD | covered |
+| Run event envelope and append receipt vocabulary. | `core-01-s1-event-contracts` | covered |
+| Single leased writer, writer epoch fencing, monotonic sequence, and stale-writer rejection. | `core-01-s4-run-event-log-and-writer` | covered |
+| Lifecycle transition records and terminal-state guardrails. | `core-01-s3-lifecycle-and-linkage` | covered |
+| Session link and supersession records. | `core-01-s3-lifecycle-and-linkage` | covered |
+| Replay health, tail/interior corruption classes, and partial-write handling. | `core-01-s2-replay-and-corruption` | covered |
+| Pure `state`, `summary`, `metrics`, and `launch` projections. | `core-01-s5-projections` | covered |
+| Low-level cursor wait primitive as the substrate later wrapped by supervision. | `core-01-s6-cursor-wait` | covered |
 
 - Evidence expectation: Epic 3 stories leave replayable run-state evidence that sibling core domains
   can consume without writing projections or depending on drivers.
@@ -92,12 +92,12 @@ stays `TBD` until the Epic 3 story DAG is frozen.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Capability registry and v1 capability posture. | TBD | covered |
-| Mode handling for `manual` and `assisted`, with deferred capabilities represented explicitly. | TBD | covered |
-| Guarantee predicates over committed evidence and attestations. | TBD | covered |
-| Freshness, expiry, scope, negative, contradictory, and absent attestation handling. | TBD | covered |
-| `CapabilityGateRecord` payloads, denial reasons, and barrier durability. | TBD | covered |
-| Fail-closed behavior for degraded run logs, missing projections, self-report-only evidence, or unwritable gate records. | TBD | covered |
+| Capability registry and v1 capability posture. | `core-02-s1-capability-registry` | covered |
+| Mode handling for `manual` and `assisted`, with deferred capabilities represented explicitly. | `core-02-s1-capability-registry` | covered |
+| Guarantee predicates over committed evidence and attestations. | `core-02-s2-gate-evaluator` | covered |
+| Freshness, expiry, scope, negative, contradictory, and absent attestation handling. | `core-02-s2-gate-evaluator` | covered |
+| `CapabilityGateRecord` payloads, denial reasons, and barrier durability. | `core-02-s2-gate-evaluator` (payloads + denial reasons) + `core-02-s3-gate-record-durability` (barrier durability) | split |
+| Fail-closed behavior for degraded run logs, missing projections, self-report-only evidence, or unwritable gate records. | `core-02-s2-gate-evaluator` (degraded logs, missing projections, self-report-only) + `core-02-s3-gate-record-durability` (unwritable gate records) | split |
 
 - Evidence expectation: Epic 3 stories prove capability decisions are deterministic over recorded
   evidence, resolved policy, and provider attestations, with absent or degraded evidence denied.
@@ -106,13 +106,13 @@ stays `TBD` until the Epic 3 story DAG is frozen.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Telemetry topic taxonomy over committed run events. | TBD | covered |
-| Honest metric value wrapper: available, partial, or unavailable. | TBD | covered |
-| Pure analyzer snapshot, rule-set digest, analyzer version, and explicit `analyzedAt` inputs. | TBD | covered |
-| Auto-fire triggers for terminal, blocked, supervision-lost, recovery-decision, and stale-progress evidence. | TBD | covered |
-| `AnalysisRecorded` and `AnalysisFailed` event payloads and terminal-analysis invariant. | TBD | covered |
-| Redacted write-once analysis report artifact refs. | TBD | covered |
-| Failure signals for degraded input, artifact unavailability, redaction gaps, rule errors, unwritable analysis records, or missing invariant evidence. | TBD | covered |
+| Telemetry topic taxonomy over committed run events. | `core-07-s1-telemetry-and-metrics` | covered |
+| Honest metric value wrapper: available, partial, or unavailable. | `core-07-s1-telemetry-and-metrics` | covered |
+| Pure analyzer snapshot, rule-set digest, analyzer version, and explicit `analyzedAt` inputs. | `core-07-s2-analyzer` | covered |
+| Auto-fire triggers for terminal, blocked, supervision-lost, recovery-decision, and stale-progress evidence. | `core-07-s2-analyzer` | covered |
+| `AnalysisRecorded` and `AnalysisFailed` event payloads and terminal-analysis invariant. | `core-07-s3-analysis-records-and-reports` | covered |
+| Redacted write-once analysis report artifact refs. | `core-07-s3-analysis-records-and-reports` | covered |
+| Failure signals for degraded input, artifact unavailability, redaction gaps, rule errors, unwritable analysis records, or missing invariant evidence. | `core-07-s2-analyzer` (degraded input, rule errors) + `core-07-s3-analysis-records-and-reports` (artifact unavailability, redaction gaps, unwritable records, missing invariant) | split |
 
 - Evidence expectation: Epic 3 stories leave analysis records and redacted report refs that later
   completion, recovery, and operator surfaces can cite without raw unredacted artifacts.
@@ -121,7 +121,7 @@ stays `TBD` until the Epic 3 story DAG is frozen.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| CLI and MCP command parity over the shared operator command envelope. | TBD | covered |
+| CLI and MCP command parity over the shared operator command envelope. | `edge-01-s1-operator-command-contract` (contract surface) + `edge-01-s2-cli-mcp-parity-smoke` (executable smoke) | split |
 
 - Evidence expectation: Epic 3 stories may prove only the mock-backed executable smoke path allowed
   by `epic-dag.md`; production provider/storage composition and full operator behavior remain Epic 7.
@@ -147,8 +147,8 @@ stays `TBD` until the Epic 3 story DAG is frozen.
 
 ---
 
-**↑ Up:** [epic charters](../README.md) · **← Prev:** [Epic 2 - story DAG](../epic-2-provider-contract-layer-and-test-harness/story-dag.md) · **Next →:** [Epic 3 - stories](./stories/README.md)
+**↑ Up:** [epic charters](../README.md) · **← Prev:** [Epic 2 - story DAG](../epic-2-provider-contract-layer-and-test-harness/story-dag.md) · **Next →:** [Epic 3 - story DAG](./story-dag.md)
 
-**Children:** [Epic 3 - stories](./stories/README.md) · [Epic 3 - story DAG](./story-dag.md)
+**Children:** [Epic 3 - story DAG](./story-dag.md) · [Epic 3 - stories](./stories/README.md)
 
 <!-- /DOCS-NAV -->
