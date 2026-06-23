@@ -6,6 +6,40 @@ export * from './foundation/storage/evidence-bundles/index.js';
 export * from './foundation/storage/filesystem/index.js';
 export * from './foundation/storage/leases/index.js';
 export * from './foundation/workspace-repository/index.js';
+export * from './providers/attestation/index.js';
+export * from './providers/agent/index.js';
+export * from './providers/execution-host/index.js';
+export type {
+  EvidenceRequest,
+  ExpectedHeadActionRequest,
+  ForgeActionResult,
+  ForgeBranchProtectionRule,
+  ForgeBranchRef,
+  ForgeCapability,
+  ForgeCredentialPhase,
+  ForgeDegraded,
+  ForgeEvidenceSnapshot,
+  ForgeFailureToken,
+  ForgeMergeQueueEntry,
+  ForgeMergeQueueFacts,
+  ForgeObservedFacts,
+  ForgePrStateFacts,
+  ForgeProtectionFacts,
+  ForgeProvider,
+  ForgeRepoRef,
+  ForgeReviewThread,
+  ForgeReviewThreadComment,
+  ForgeReviewThreadFacts,
+  ForgeRuleset,
+  ForgeScope,
+  ForgeStatusCheckContext,
+  ForgeStatusCheckFacts,
+  PullRequestCommentRequest,
+  PullRequestRef,
+  PullRequestUpsertRequest,
+  PushBranchRequest,
+} from './providers/forge/index.js';
+export * from './providers/work-source/index.js';
 export {
   AUTHORITATIVE_STORAGE_OPERATIONS,
   getStorageCapabilityMatrix,
