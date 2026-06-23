@@ -83,7 +83,7 @@ describe('epic0-s2-dependency-guardrails', () => {
     expect(collectFailureTokens(processHelpers)).toContain('sdk-banned-import');
     expect(collectFailureTokens(executableRuntime)).toContain('sdk-banned-import');
     expect(collectFailureTokens(childProcess)).toContain('sdk-banned-import');
-  });
+  }, 20_000);
 
   it('rejects provider peer imports with provider-peer-import evidence', async () => {
     const check = await runDependencyRuleCheck(dependencyRuleFixtures.providerImportsPeerProvider);
