@@ -120,7 +120,7 @@ stays `TBD` until the Epic 4 story DAG is frozen.
 
 ---
 
-**↑ Up:** [epic charters](../README.md) · **← Prev:** [Epic 3 - story DAG](../epic-3-core-runtime-spine/story-dag.md) · **Next →:** [Epic 4 - stories](./stories/README.md)
+**↑ Up:** [epic charters](../README.md) · **← Prev:** [edge-01-s2-cli-mcp-parity-smoke - CLI and MCP parity smoke implementation story](../epic-3-core-runtime-spine/stories/edge-01-s2-cli-mcp-parity-smoke.md) · **Next →:** [Epic 4 - stories](./stories/README.md)
 
 **Children:** [Epic 4 - stories](./stories/README.md) · [Epic 4 - story DAG](./story-dag.md)
 
