@@ -22,6 +22,9 @@ partial diagnostic.
 
 - Treat `execution/tracker.md`, `execution/plan.md`, session JSONL, PR data supplied by the user, and
   git commits as source evidence.
+- Resolve worker aliases from session JSONL with `scripts/find-worker-aliases.mjs` before asking the
+  user for worker ids. The scanner is deterministic and should be preferred over manually searching
+  large JSONL transcripts.
 - Mark each metric as `observed`, `reconstructed`, `partial`, or `unavailable`.
 - Token usage may be reported only when a source exposes usage fields. If no inspected source exposes
   tokens, report `unavailable`; never estimate from transcript size, elapsed time, or message count.
