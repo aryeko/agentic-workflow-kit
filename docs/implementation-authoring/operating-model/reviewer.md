@@ -17,6 +17,10 @@ defects a clear spec cannot prevent.
 
 - Confirm **each AC is met** and **its evidence is present and genuine** — **spot-re-run** the
   pasted commands rather than trusting the paste.
+- For **each AC, name the `pnpm check` step that re-proves it** (e.g. `type:fixtures`,
+  `coverage:baseline`, `deps`, `typecheck`). Treat any AC whose only proof is a manual / one-off
+  command — or a fixture that lives outside the `tsc -b` build graph and the standing gate — as
+  **unproven / BLOCKING**: a spot-run is not a durable proof.
 - Run the **Bucket-2 hunt** — concurrency, resource leaks, code-level fail-open, boundary leaks.
   **This is its real value**, not AC box-ticking.
 - Run the **incremental loop:** **re-review each fix** the implementer returns, until **APPROVE**.
