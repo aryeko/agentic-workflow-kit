@@ -53,18 +53,20 @@ const hasExpectedProviderDomain = (capability: string): capability is keyof type
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
+const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+
 const isCapabilityAttestationPayload = (value: unknown): value is CapabilityAttestation<string> =>
   isRecord(value) &&
-  typeof value.capability === 'string' &&
-  typeof value.probeMethod === 'string' &&
+  isNonEmptyString(value.capability) &&
+  isNonEmptyString(value.probeMethod) &&
   (value.result === 'positive' || value.result === 'negative') &&
-  typeof value.evidenceRef === 'string' &&
-  typeof value.scope === 'string' &&
-  typeof value.expiry === 'string' &&
-  typeof value.driverVersion === 'string' &&
-  typeof value.platform === 'string' &&
-  typeof value.freshnessKey === 'string' &&
-  typeof value.at === 'string';
+  isNonEmptyString(value.evidenceRef) &&
+  isNonEmptyString(value.scope) &&
+  isNonEmptyString(value.expiry) &&
+  isNonEmptyString(value.driverVersion) &&
+  isNonEmptyString(value.platform) &&
+  isNonEmptyString(value.freshnessKey) &&
+  isNonEmptyString(value.at);
 
 const isLexicalParent = (parent: string, child: string): boolean => {
   if (!child.startsWith(parent)) {

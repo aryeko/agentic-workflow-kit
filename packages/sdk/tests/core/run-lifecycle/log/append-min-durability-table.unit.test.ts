@@ -52,6 +52,12 @@ describe('RunWriter minimum durability validation', () => {
       : writer;
 
     expectFailureCode(result, 'durability-insufficient');
-    expect(harness.appendCalls).toHaveLength(0);
+    expect(harness.appendCalls).toHaveLength(1);
+    expect(harness.appendCalls[0].batch.durability).toBe('durable');
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+    expect(harness.appendCalls[0].envelopes[0].payload).toMatchObject({
+      attemptedType: 'RunLifecycleTransitioned',
+      failureCode: 'durability-insufficient',
+    });
   });
 });

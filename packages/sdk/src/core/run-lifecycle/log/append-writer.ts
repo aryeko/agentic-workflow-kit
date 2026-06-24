@@ -1,8 +1,21 @@
 import type { LeaseCapability } from '../../../foundation/storage/index.js';
-import type { AppendIntent, Result, RunAppendFailure, RunAppendReceipt, RunWriter } from '../contracts/index.js';
+import type {
+  AppendIntent,
+  Result,
+  RunAppendFailure,
+  RunAppendReceipt,
+  RunEventEnvelope,
+  RunReplay,
+  RunWriter,
+} from '../contracts/index.js';
 import { replay } from '../replay/index.js';
 
-import { buildAppendEnvelopes, hasContiguousSequence, hasValidRequestedDurability } from './append-envelopes.js';
+import {
+  buildAppendEnvelopes,
+  findInvalidRequestedDurabilityIndex,
+  hasContiguousSequence,
+} from './append-envelopes.js';
+import { buildRunAppendRejected } from './append-rejected.js';
 import { terminalIdempotentReceipt, validateLifecycleAndLinkage } from './append-validation.js';
 import { appendFailure, replayFailureToAppendFailure } from './failures.js';
 import { recoverLostAck } from './lost-ack-recovery.js';
@@ -16,6 +29,32 @@ type WriterContext = {
 };
 
 const runWriterLeaseName = (runId: string): string => `run-writer:${runId}`;
+
+const durabilityFailure = (
+  context: WriterContext,
+  replayed: RunReplay,
+  attempted: RunEventEnvelope,
+): Result<never, RunAppendFailure> => {
+  const reason = 'Requested durability is weaker than the event minimum.';
+  const rejection = buildRunAppendRejected(context.deps, {
+    runId: context.runId,
+    writerEpoch: context.lease.epoch,
+    sequence: replayed.lastSequence + 1,
+    attempted,
+    failureCode: 'durability-insufficient',
+    reason,
+  });
+  const authored = appendEnvelopes(context.deps.eventLogStore, context.runId, context.lease, [rejection], 'durable');
+  if (authored.kind === 'failure') {
+    return authored.failure;
+  }
+
+  if (authored.kind === 'partial' || authored.kind === 'non-durable') {
+    return appendFailure('partial-ack-unknown', 'RunAppendRejected acknowledgement was not authoritative.');
+  }
+
+  return appendFailure('durability-insufficient', reason, rejection.payload);
+};
 
 export const createRunWriter = (context: WriterContext): RunWriter => ({
   append(batch: AppendIntent[]): Result<RunAppendReceipt, RunAppendFailure> {
@@ -32,15 +71,16 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
       return replayFailureToAppendFailure(replayed.error);
     }
 
-    if (!hasValidRequestedDurability(batch)) {
-      return appendFailure('durability-insufficient', 'Requested durability is weaker than the event minimum.');
-    }
-
     const { envelopes, effectiveDurability } = buildAppendEnvelopes(
       { deps: context.deps, runId: context.runId, writerEpoch: context.lease.epoch },
       batch,
       replayed.value,
     );
+    const invalidDurabilityIndex = findInvalidRequestedDurabilityIndex(batch);
+    if (invalidDurabilityIndex !== undefined) {
+      return durabilityFailure(context, replayed.value, envelopes[invalidDurabilityIndex] ?? envelopes[0]);
+    }
+
     if (envelopes.some((event) => event.writerEpoch !== context.lease.epoch)) {
       return appendFailure('stale-writer-fenced', 'Envelope writer epoch does not match the bound lease epoch.');
     }

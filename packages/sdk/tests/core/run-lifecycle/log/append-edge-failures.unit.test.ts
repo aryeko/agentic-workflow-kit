@@ -178,6 +178,12 @@ describe('RunEventLog and RunWriter edge failures', () => {
         ]),
         'durability-insufficient',
       );
+      expect(harness.appendCalls).toHaveLength(1);
+      expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+      expect(harness.appendCalls[0].envelopes[0].payload).toMatchObject({
+        attemptedType: 'RunPolicyBound',
+        failureCode: 'durability-insufficient',
+      });
     }
   });
 

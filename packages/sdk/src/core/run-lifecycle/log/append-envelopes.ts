@@ -63,13 +63,19 @@ const requiresBarrier = (intent: AppendIntent): boolean => {
 };
 
 export const hasValidRequestedDurability = (batch: readonly AppendIntent[]): boolean =>
-  batch.every((intent) => {
+  findInvalidRequestedDurabilityIndex(batch) === undefined;
+
+export const findInvalidRequestedDurabilityIndex = (batch: readonly AppendIntent[]): number | undefined => {
+  const invalidIndex = batch.findIndex((intent) => {
     if (intent.durability !== 'durable' && intent.durability !== 'barrier') {
-      return false;
+      return true;
     }
 
-    return !requiresBarrier(intent) || intent.durability === 'barrier';
+    return requiresBarrier(intent) && intent.durability !== 'barrier';
   });
+
+  return invalidIndex === -1 ? undefined : invalidIndex;
+};
 
 const makeEnvelope = (
   binding: WriterBinding,
