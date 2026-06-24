@@ -25,6 +25,7 @@ const taskCompletingActions = new Set([
 ]);
 const knownLinkageCapabilities = new Set(['auto-recover', 'unattended-run']);
 const terminalLifecycleStates = new Set<string>(TERMINAL_LIFECYCLE_STATE_SET);
+const usableReplayHealth = new Set(['ok', 'tail-repaired']);
 
 const requiredAttestationsForRequest = (request: CapabilityGateRequest): readonly string[] => {
   const posture = capabilityPostureCatalog[request.capability];
@@ -81,7 +82,7 @@ export const evaluateReplayHealthGuarantee = (
     replay.runId !== request.runId ||
     (projections !== undefined && projections.summary.runId !== request.runId);
   const degraded =
-    replay.health !== 'ok' ||
+    !usableReplayHealth.has(replay.health) ||
     projections === undefined ||
     runMismatch ||
     projections.launch.linkage === 'ambiguous' ||

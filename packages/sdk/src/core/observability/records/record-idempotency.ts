@@ -97,10 +97,19 @@ export const resolveExistingAnalysisRecord = (
   );
 
   if (input.supersedesEventId !== undefined) {
-    const supersededCurrentEvent = currentAnalysisEvents.find((event) => event.eventId === input.supersedesEventId);
-    return supersededCurrentEvent === undefined && currentAnalysisEvents.length > 0
-      ? { status: 'conflict', conflict: 'current-analysis-conflict' }
-      : { status: 'absent' };
+    const supersededEventIds = new Set(
+      currentAnalysisEvents.flatMap((event) =>
+        isAnalysisPayload(event.payload) && event.payload.supersedesEventId !== undefined
+          ? [event.payload.supersedesEventId]
+          : [],
+      ),
+    );
+    const currentHeads = currentAnalysisEvents.filter((event) => !supersededEventIds.has(event.eventId));
+    return currentHeads.length === 1 && currentHeads[0]?.eventId === input.supersedesEventId
+      ? { status: 'absent' }
+      : currentAnalysisEvents.length > 0
+        ? { status: 'conflict', conflict: 'current-analysis-conflict' }
+        : { status: 'absent' };
   }
 
   return currentAnalysisEvents.length > 0

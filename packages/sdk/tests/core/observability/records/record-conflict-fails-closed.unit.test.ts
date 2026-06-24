@@ -128,4 +128,39 @@ describe('core-07-s3 record conflict handling', () => {
     expect(result.ok).toBe(true);
     expect(writer.appendCalls).toHaveLength(1);
   });
+
+  it('fails closed when supersedesEventId cites an older superseded analysis record', async () => {
+    const supersededEventId = 'analysis:old-current';
+    const currentEventId = 'analysis:new-current';
+    const input = createRecordInput({ supersedesEventId: supersededEventId });
+    const supersededPayload = buildAnalysisRecordedPayload(createRecordInput(), redactedReportRef);
+    const currentPayload = buildAnalysisRecordedPayload(
+      createRecordInput({ supersedesEventId: supersededEventId }),
+      redactedReportRef,
+    );
+    const replay = createReplay([
+      createEvent({
+        eventId: supersededEventId,
+        sequence: 20,
+        type: 'AnalysisRecorded',
+        payload: supersededPayload,
+      }),
+      createEvent({
+        eventId: currentEventId,
+        sequence: 21,
+        type: 'AnalysisRecorded',
+        payload: currentPayload,
+      }),
+    ]);
+    const writer = createWriter();
+
+    const result = await recordAnalysisOutcome(input, writer, { replay });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected conflict');
+    }
+    expect(result.error.conflict).toBe('current-analysis-conflict');
+    expect(writer.appendCalls).toHaveLength(0);
+  });
 });

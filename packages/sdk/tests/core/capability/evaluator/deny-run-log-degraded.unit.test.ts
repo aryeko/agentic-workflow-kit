@@ -26,7 +26,7 @@ describe('core-02-s2 deny run-log-degraded', () => {
     expect(payload.failureReason).toBe('run-log-degraded');
   });
 
-  it('denies tail-repaired replay health as degraded run-log input', () => {
+  it('allows tail-repaired replay health as usable run-log input', () => {
     const scenario = createAllowAutoMergeScenario();
     const payload = evaluateCapabilityGate(
       scenario.request,
@@ -47,8 +47,8 @@ describe('core-02-s2 deny run-log-degraded', () => {
       scenario.projections,
     );
 
-    expect(payload.decision).toBe('deny');
-    expect(payload.failureReason).toBe('run-log-degraded');
+    expect(payload.decision).toBe('allow');
+    expect(payload.failureReason).toBeUndefined();
   });
 
   it('denies ambiguous linkage as degraded run-log input', () => {
