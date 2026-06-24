@@ -58,4 +58,43 @@ describe('core-01-s5 metrics projection', () => {
       }),
     });
   });
+
+  it('compares recordedAt boundaries chronologically when offsets differ', () => {
+    const result = project(
+      runId,
+      makeReplayDependency({
+        ok: true,
+        value: makeReplay([
+          makeEnvelope(
+            1,
+            'RunLifecycleTransitioned',
+            makeLifecyclePayload({ from: null, to: 'created', sourceEventIds: ['evt-1'] }),
+            { recordedAt: '2026-06-23T09:00:00.000Z' },
+          ),
+          makeEnvelope(
+            2,
+            'RunCreated',
+            { requestedBy: 'operator', idempotencyKey: 'idem-1' },
+            { recordedAt: '2026-06-23T10:00:00.000+02:00' },
+          ),
+          makeEnvelope(
+            3,
+            'RunPolicyBound',
+            { policyDigest: 'sha256:policy', provenanceRef: 'prov:1' },
+            { recordedAt: '2026-06-23T12:00:00.000+02:00' },
+          ),
+        ]),
+      }),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      value: expect.objectContaining({
+        metrics: expect.objectContaining({
+          firstRecordedAt: '2026-06-23T10:00:00.000+02:00',
+          lastRecordedAt: '2026-06-23T12:00:00.000+02:00',
+        }),
+      }),
+    });
+  });
 });

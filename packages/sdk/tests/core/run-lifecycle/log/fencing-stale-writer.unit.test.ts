@@ -3,18 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { appendIntent, createHarness, expectFailureCode, runId } from './test-support.js';
 
 describe('RunWriter fencing', () => {
-  it('rejects a writer whose bound lease no longer fences current without appending', () => {
+  it('rejects opening a writer whose bound lease no longer fences current', () => {
     const harness = createHarness();
     harness.seedCreatedRun();
     const staleLease = harness.acquireLease();
     harness.supersedeLease();
     const writer = harness.log.openWriter(runId, staleLease);
-    expect(writer.ok).toBe(true);
-    harness.resetAppendCalls();
 
-    const result = writer.ok ? writer.value.append([appendIntent('SiblingFact', { ok: true })]) : writer;
-
-    expectFailureCode(result, 'stale-writer-fenced');
+    expectFailureCode(writer, 'stale-writer-fenced');
     expect(harness.appendCalls).toHaveLength(0);
   });
 

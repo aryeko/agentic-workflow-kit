@@ -33,6 +33,10 @@ export const createRunEventLog = (deps: RunEventLogDependencies): RunEventLog =>
       return appendFailure('stale-writer-fenced', 'Writer lease is not scoped to the requested run.');
     }
 
+    if (!deps.leaseStore.fence(lease.name, lease.epoch, lease.token)) {
+      return appendFailure('stale-writer-fenced', 'Writer lease no longer fences current.');
+    }
+
     return {
       ok: true,
       value: createRunWriter({ deps, runId, lease }),

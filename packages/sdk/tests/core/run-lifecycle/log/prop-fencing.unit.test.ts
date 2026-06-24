@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { appendIntent, createHarness, expectFailureCode, runId } from './test-support.js';
+import { createHarness, expectFailureCode, runId } from './test-support.js';
 
 describe('RunWriter fencing property', () => {
   it('never appends from superseded writer epochs', () => {
@@ -12,11 +12,8 @@ describe('RunWriter fencing property', () => {
         harness.supersedeLease();
       }
       const writer = harness.log.openWriter(runId, staleLease);
-      expect(writer.ok).toBe(true);
 
-      const result = writer.ok ? writer.value.append([appendIntent('SiblingFact', { supersedeCount })]) : writer;
-
-      expectFailureCode(result, 'stale-writer-fenced');
+      expectFailureCode(writer, 'stale-writer-fenced');
       expect(harness.appendCalls).toHaveLength(0);
     }
   });

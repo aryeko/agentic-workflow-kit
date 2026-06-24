@@ -79,7 +79,18 @@ function findRecordedAtBoundary(events: readonly RunEventEnvelope[], direction: 
       continue;
     }
 
-    if (direction === 'first' ? event.recordedAt < boundary : event.recordedAt > boundary) {
+    const eventEpochMs = toEpochMs(event.recordedAt);
+    const boundaryEpochMs = toEpochMs(boundary);
+    const isNewBoundary =
+      eventEpochMs !== undefined && boundaryEpochMs !== undefined
+        ? direction === 'first'
+          ? eventEpochMs < boundaryEpochMs
+          : eventEpochMs > boundaryEpochMs
+        : direction === 'first'
+          ? event.recordedAt < boundary
+          : event.recordedAt > boundary;
+
+    if (isNewBoundary) {
       boundary = event.recordedAt;
     }
   }
