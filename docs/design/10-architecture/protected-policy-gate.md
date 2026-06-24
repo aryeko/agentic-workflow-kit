@@ -64,9 +64,15 @@ reference from the `ProtectedPolicySnapshotRecorded` named by `protectedPolicySn
 and the **concrete changed protected paths** by reference from Workspace `LocalGitEvidence` — those
 remain authoritative on the snapshot and the workspace evidence, not on the approval event.
 
-Without a committed binding, or when the referenced `ProtectedPolicySnapshotRecorded` is missing
-or the candidate head and snapshot do not match, the gate returns
-`protected-policy-change-unapproved` and fails closed.
+The `candidateHeadSha` is the post-change candidate head, so it is validated against the **current
+Workspace `LocalGitEvidence` head**, not compared to the snapshot. `ProtectedPolicySnapshotRecorded`
+is a launch-time record validated only for matching run / policy / base identity (it supplies the old
+policy digest and base SHA, not the candidate head).
+
+Without a committed binding, or when the referenced `ProtectedPolicySnapshotRecorded` is missing,
+its run/policy/base identity does not match, or `candidateHeadSha` does not match the current
+Workspace `LocalGitEvidence` head, the gate returns `protected-policy-change-unapproved` and fails
+closed.
 
 ## Authoritative references
 

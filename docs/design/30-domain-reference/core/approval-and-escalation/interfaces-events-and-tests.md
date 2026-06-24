@@ -32,6 +32,11 @@ interface ApprovalContext {
   // the orchestration before `normalize` (mirrors `AgentOutputSink.putToolOutput -> outputRef`).
   requestedAt: string;
   promptRef: string;
+  // The Agent `kind` cannot express `protected-policy-change` or `network` (it arrives as a normal
+  // `file-change`/`apply-patch`/command). When the orchestration's changed-path/policy evaluation
+  // determines the request touches a protected policy file (or is a network-egress request), it sets
+  // `subjectOverride`; `normalize` uses it in preference to the `kind` mapping. Absent → map from `kind`.
+  subjectOverride?: ApprovalSubject;
 }
 
 interface ApprovalDecisionInput {

@@ -167,7 +167,7 @@ interface CompletionDecisionPayload {
   schema: "kit-vnext.completion-decision-recorded.v1";
   runId: string;
   state: CompletionDecisionState;
-  headSha: string;
+  headSha?: string;   // absent for fail-closed states with no single usable head (e.g. head-ambiguous)
   cursor: RunEventCursor;
   evidenceRefs: EvidenceEventRef[];
   failureReason?: string;
