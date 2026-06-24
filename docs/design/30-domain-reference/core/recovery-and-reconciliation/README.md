@@ -146,6 +146,7 @@ interface RecoveryPlanInput {
   policyRef: string;
   requestedAction: RecoveryAction;
   scope: CapabilityGateScope;
+  evaluatedThrough: RunEventCursor;   // replay cursor; also feeds the deterministic planId hash
 }
 interface RecoveryRecordInput {
   runId: string;
