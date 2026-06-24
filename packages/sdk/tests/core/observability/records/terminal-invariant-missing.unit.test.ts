@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { checkTerminalAnalysisInvariant } from '../../../../src/core/observability/records/index.js';
 
-import { createEvent, createRecordInput, createReplay, createTerminalEvent, redactedReportRef } from './shared.js';
+import {
+  createEvent,
+  createRecordInput,
+  createReplay,
+  createTerminalEvent,
+  redactedReportRef,
+  scratchReportRef,
+} from './shared.js';
 
 describe('core-07-s3 terminal analysis invariant', () => {
   it('reports terminal usable replay with no analysis fact as analysis-invariant-missing', () => {
@@ -93,5 +100,41 @@ describe('core-07-s3 terminal analysis invariant', () => {
     );
 
     expect(result.status).toBe('satisfied');
+  });
+
+  it('ignores malformed and scratch analysis payloads after the terminal sequence', () => {
+    const input = createRecordInput();
+    const result = checkTerminalAnalysisInvariant(
+      createReplay([
+        createTerminalEvent(10),
+        createEvent({
+          eventId: 'analysis:malformed',
+          sequence: 11,
+          type: 'AnalysisFailed',
+          payload: {
+            schema: 'kit-vnext.analysis-failed.v1',
+          },
+        }),
+        createEvent({
+          eventId: 'analysis:scratch',
+          sequence: 12,
+          type: 'AnalysisRecorded',
+          payload: {
+            schema: 'kit-vnext.analysis-recorded.v1' as const,
+            request: input.request,
+            inputHealth: input.inputHealth,
+            issues: [],
+            metrics: {},
+            evidenceRefs: [],
+            reportArtifactRef: scratchReportRef,
+          },
+        }),
+      ]),
+    );
+
+    expect(result).toMatchObject({
+      status: 'unmet',
+      reason: 'analysis-invariant-missing',
+    });
   });
 });

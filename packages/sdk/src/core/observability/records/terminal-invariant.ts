@@ -1,10 +1,10 @@
 import type { EvidenceEventRef, RunEventEnvelope, RunReplay } from '../../run-lifecycle/contracts/index.js';
 
-import type { TerminalAnalysisInvariantResult } from './types.js';
+import { isRedactedWriteOnceArtifactRef } from './artifact-ref-guard.js';
+import type { AnalysisReportRefCandidate, TerminalAnalysisInvariantResult } from './types.js';
 
 const TERMINAL_STATES = new Set(['completed', 'blocked', 'failed', 'canceled']);
 const USABLE_REPLAY_HEALTH = new Set(['ok', 'tail-repaired']);
-const ANALYSIS_EVENT_TYPES = new Set(['AnalysisRecorded', 'AnalysisFailed']);
 
 const toEventRef = (event: RunEventEnvelope): EvidenceEventRef => ({
   eventId: event.eventId,
@@ -21,6 +21,43 @@ const isTerminalLifecycleEvent = (event: RunEventEnvelope): boolean => {
   const payload = event.payload as { readonly to?: string };
   return payload.to !== undefined && TERMINAL_STATES.has(payload.to);
 };
+
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isAnalysisReportRefCandidate = (value: unknown): value is AnalysisReportRefCandidate =>
+  isObjectRecord(value) &&
+  typeof value.id === 'string' &&
+  typeof value.digest === 'string' &&
+  typeof value.size === 'number' &&
+  typeof value.mediaType === 'string' &&
+  typeof value.classification === 'string' &&
+  typeof value.redactionState === 'string';
+
+const isValidAnalysisRecordedPayload = (payload: unknown): boolean =>
+  isObjectRecord(payload) &&
+  payload.schema === 'kit-vnext.analysis-recorded.v1' &&
+  isObjectRecord(payload.request) &&
+  isObjectRecord(payload.inputHealth) &&
+  Array.isArray(payload.issues) &&
+  isObjectRecord(payload.metrics) &&
+  Array.isArray(payload.evidenceRefs) &&
+  payload.reportArtifactRef !== undefined &&
+  isAnalysisReportRefCandidate(payload.reportArtifactRef) &&
+  isRedactedWriteOnceArtifactRef(payload.reportArtifactRef);
+
+const isValidAnalysisFailedPayload = (payload: unknown): boolean =>
+  isObjectRecord(payload) &&
+  payload.schema === 'kit-vnext.analysis-failed.v1' &&
+  isObjectRecord(payload.request) &&
+  isObjectRecord(payload.inputHealth) &&
+  typeof payload.reason === 'string' &&
+  Array.isArray(payload.evidenceRefs) &&
+  Array.isArray(payload.artifactRefs);
+
+const isValidAnalysisEvent = (event: RunEventEnvelope): boolean =>
+  (event.type === 'AnalysisRecorded' && isValidAnalysisRecordedPayload(event.payload)) ||
+  (event.type === 'AnalysisFailed' && isValidAnalysisFailedPayload(event.payload));
 
 export const checkTerminalAnalysisInvariant = (
   replay: RunReplay,
@@ -40,7 +77,7 @@ export const checkTerminalAnalysisInvariant = (
   }
 
   const analysisEvent = replay.events.find(
-    (event) => event.sequence >= terminalEvent.sequence && ANALYSIS_EVENT_TYPES.has(event.type),
+    (event) => event.sequence >= terminalEvent.sequence && isValidAnalysisEvent(event),
   );
 
   if (analysisEvent === undefined) {
