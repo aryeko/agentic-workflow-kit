@@ -5,6 +5,7 @@ import { evaluateCapabilityGate } from '../../../../src/core/capability/evaluato
 import { manualModeFixture } from './fixtures/manual-mode.fixture.js';
 import { orchestratorDecideFixture } from './fixtures/orchestrator-decide.fixture.js';
 import { policyDeniesFixture } from './fixtures/policy-denies.fixture.js';
+import { createAllowAutoMergeScenario, createPolicyDecision, createRequest } from './shared.js';
 
 describe('core-02-s2 deny pre-evidence gates', () => {
   it('denies manual mode', () => {
@@ -23,6 +24,25 @@ describe('core-02-s2 deny pre-evidence gates', () => {
       policyDeniesFixture.request,
       policyDeniesFixture.replay,
       policyDeniesFixture.projections,
+    );
+
+    expect(payload.failureReason).toBe('policy-disallows-capability');
+    expect(payload.attestationRefs).toEqual([]);
+  });
+
+  it('denies policy permits bound to a different policy ref', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      createRequest({
+        ...scenario.request,
+        policyRef: 'policy:auto-merge:requested',
+        policyDecision: createPolicyDecision({
+          policyRef: 'policy:auto-merge:cached-other',
+          permits: true,
+        }),
+      }),
+      scenario.replay,
+      scenario.projections,
     );
 
     expect(payload.failureReason).toBe('policy-disallows-capability');

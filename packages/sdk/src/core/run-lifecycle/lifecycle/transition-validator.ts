@@ -42,7 +42,7 @@ export function validateLifecycleTransition(
     legalEdge.constraint.kind === 'terminal-transition' &&
     legalEdge.to === 'canceled' &&
     payload.authority !== legalEdge.constraint.requiredAuthority &&
-    !hasReference(payload.sourceEventIds)
+    payload.authority !== 'policy'
   ) {
     return { ok: false, error: 'illegal-lifecycle-transition' };
   }

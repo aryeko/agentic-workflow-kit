@@ -48,16 +48,21 @@ export const evaluateModeGuarantee = (request: CapabilityGateRequest): Guarantee
   failureReason: request.mode === 'assisted' ? undefined : 'mode-disallows-capability',
 });
 
-export const evaluatePolicyGuarantee = (request: CapabilityGateRequest): GuaranteeResult => ({
-  evaluation: {
-    guaranteeId: guaranteeRequirementCatalog[1],
-    passed: request.policyDecision.permits,
-    attestationRefs: [],
-    evidenceRefs: [],
-    failureReason: request.policyDecision.permits ? undefined : 'policy-disallows-capability',
-  },
-  failureReason: request.policyDecision.permits ? undefined : 'policy-disallows-capability',
-});
+export const evaluatePolicyGuarantee = (request: CapabilityGateRequest): GuaranteeResult => {
+  const permitsRequestedPolicy =
+    request.policyDecision.permits && request.policyDecision.policyRef === request.policyRef;
+
+  return {
+    evaluation: {
+      guaranteeId: guaranteeRequirementCatalog[1],
+      passed: permitsRequestedPolicy,
+      attestationRefs: [],
+      evidenceRefs: [],
+      failureReason: permitsRequestedPolicy ? undefined : 'policy-disallows-capability',
+    },
+    failureReason: permitsRequestedPolicy ? undefined : 'policy-disallows-capability',
+  };
+};
 
 export const evaluateReplayHealthGuarantee = (
   replay: RunReplay,

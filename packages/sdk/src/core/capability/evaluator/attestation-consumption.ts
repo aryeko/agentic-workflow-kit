@@ -146,6 +146,20 @@ const isCommittedBy = (candidate: ValidAttestationCandidate, evaluatedAt: string
   );
 };
 
+const isEnvelopeCommittedBy = (event: RunEventEnvelope, evaluatedAt: string): boolean => {
+  const occurredAt = toEpochMs(event.occurredAt);
+  const recordedAt = toEpochMs(event.recordedAt);
+  const gateTime = toEpochMs(evaluatedAt);
+
+  return (
+    occurredAt !== undefined &&
+    recordedAt !== undefined &&
+    gateTime !== undefined &&
+    occurredAt <= gateTime &&
+    recordedAt <= gateTime
+  );
+};
+
 const hasPositiveConflict = (candidates: readonly ValidAttestationCandidate[]): boolean => {
   const signatures = new Set(
     candidates.map(
@@ -203,7 +217,7 @@ export const evaluateAttestationRequirement = (
     }
   }
 
-  if (malformedCandidates.length > 0) {
+  if (malformedCandidates.some((event) => isEnvelopeCommittedBy(event, evaluatedAt))) {
     return {
       passed: false,
       failureReason: 'attestation-non-replayable',

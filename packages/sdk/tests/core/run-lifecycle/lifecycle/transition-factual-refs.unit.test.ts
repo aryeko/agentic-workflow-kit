@@ -27,4 +27,38 @@ describe('core-01-s3 factual transition references', () => {
       error: 'illegal-lifecycle-transition',
     });
   });
+
+  it('rejects non-operator canceled transitions unless policy-authored', () => {
+    expect(
+      validateLifecycleTransition(
+        'running',
+        makeTransitionPayload({
+          from: 'running',
+          to: 'canceled',
+          authority: 'system',
+          sourceEventIds: ['Evidence:evt-cancel', 'PolicyDecision:evt-policy'],
+          terminal: true,
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      error: 'illegal-lifecycle-transition',
+    });
+
+    expect(
+      validateLifecycleTransition(
+        'running',
+        makeTransitionPayload({
+          from: 'running',
+          to: 'canceled',
+          authority: 'policy',
+          sourceEventIds: ['Evidence:evt-cancel', 'PolicyDecision:evt-policy'],
+          terminal: true,
+        }),
+      ),
+    ).toEqual({
+      ok: true,
+      value: undefined,
+    });
+  });
 });
