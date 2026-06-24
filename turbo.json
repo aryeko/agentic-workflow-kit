@@ -64,10 +64,13 @@
     },
     "//#type:fixtures": {
       "inputs": [
-        "packages/**/tests/**/tsconfig.negative.json",
-        "packages/**/tests/**/tsconfig.public.json",
-        "packages/**/tests/**/*.fixture.ts",
-        "tooling/type-fixtures/**"
+        "packages/**/*.ts",
+        "packages/**/*.tsx",
+        "packages/**/package.json",
+        "**/tsconfig*.json",
+        "tooling/type-fixtures/**",
+        "!**/dist/**",
+        "!**/node_modules/**"
       ],
       "outputs": []
     },
