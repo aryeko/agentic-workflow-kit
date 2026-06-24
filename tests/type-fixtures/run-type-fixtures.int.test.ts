@@ -118,6 +118,41 @@ describe('runTypeFixtures', () => {
     });
   });
 
+  it('discovers a fixture-including tests tsconfig.json as a public check', async () => {
+    await writeFile2('packages/sdk/tests/providers/agent/agent-unions.typecheck.ts', 'export const ok: number = 1;\n');
+    await writeFile2(
+      'packages/sdk/tests/providers/agent/tsconfig.json',
+      JSON.stringify({
+        extends: '../../tsconfig.json',
+        compilerOptions: { noEmit: true, composite: false },
+        include: ['./*.typecheck.ts'],
+      }),
+    );
+
+    const result = await runTypeFixtures({ packagesRoot: join(fixtureRoot, 'packages') });
+
+    expect(result.ok).toBe(true);
+    expect(result.checked).toBe(1);
+    expect(result.publicCount).toBe(1);
+  });
+
+  it('skips plain tsconfig.json files that are not fixture configs', async () => {
+    // baseTsconfig (no include) is written by beforeEach. Add a config whose
+    // include references no fixture/typecheck source, and one that is not valid
+    // JSON — none of the three should be discovered.
+    await writeFile2('packages/sdk/tests/feature/index.ts', 'export const value: number = 1;\n');
+    await writeFile2(
+      'packages/sdk/tests/feature/tsconfig.json',
+      JSON.stringify({ compilerOptions: { noEmit: true }, include: ['./index.ts'] }),
+    );
+    await writeFile2('packages/sdk/tests/broken/tsconfig.json', '{ not valid json');
+
+    const result = await runTypeFixtures({ packagesRoot: join(fixtureRoot, 'packages') });
+
+    expect(result.ok).toBe(true);
+    expect(result.checked).toBe(0);
+  });
+
   it('checks negative and public fixtures together and aggregates counts', async () => {
     await writeFile2('packages/sdk/tests/a/a.fixture.ts', 'const a: "x" = "y";\nexport { a };\n');
     await writeFile2('packages/sdk/tests/a/tsconfig.negative.json', negativeTsconfig('./a.fixture.ts'));

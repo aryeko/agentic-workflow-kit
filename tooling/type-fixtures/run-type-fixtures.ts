@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,6 +18,14 @@ import { fileURLToPath } from 'node:url';
  * negative (it must fail to compile) and a zero exit for every public (it must
  * compile clean). Finding zero fixtures is a clean pass, but the checked count
  * is logged so an empty run never reads as "all good" silently.
+ *
+ * Three fixture sources are discovered, all under `packages/**\/tests/**`:
+ *   - `tsconfig.negative.json` — must fail to compile (negative).
+ *   - `tsconfig.public.json` — must compile clean (public).
+ *   - a plain `tsconfig.json` whose `include` references a `*.fixture.ts` or
+ *     `*.typecheck.ts` source — the `@ts-expect-error`/contract type-tests that
+ *     must compile clean (public). Plain test tsconfigs without such includes
+ *     are ordinary build configs and are skipped.
  */
 
 export type TypeFixtureKind = 'negative' | 'public';
@@ -54,6 +62,8 @@ const tscBin = join(repositoryRoot, 'node_modules/typescript/bin/tsc');
 
 const NEGATIVE_FILE = 'tsconfig.negative.json';
 const PUBLIC_FILE = 'tsconfig.public.json';
+const PLAIN_TSCONFIG_FILE = 'tsconfig.json';
+const FIXTURE_INCLUDE_PATTERN = /fixture|\.typecheck\./;
 
 export const runTypeFixtures = async (options: RunTypeFixturesOptions = {}): Promise<TypeFixturesResult> => {
   const packagesRoot = options.packagesRoot ?? join(repositoryRoot, 'packages');
@@ -127,11 +137,33 @@ const walkForFixtureTsconfigs = async (directory: string): Promise<readonly Disc
         matches.push({ kind: 'negative', tsconfig: entryPath });
       } else if (entry.name === PUBLIC_FILE) {
         matches.push({ kind: 'public', tsconfig: entryPath });
+      } else if (entry.name === PLAIN_TSCONFIG_FILE && (await includesFixtureSources(entryPath))) {
+        matches.push({ kind: 'public', tsconfig: entryPath });
       }
     }),
   );
 
   return matches;
+};
+
+/**
+ * A plain `tsconfig.json` counts as a public fixture config only when its
+ * `include` references a fixture or `*.typecheck.ts` source. A config that is
+ * not readable as JSON (e.g. JSONC with comments) is not one of these generated
+ * fixture configs, so it is deliberately skipped rather than failing the lane.
+ */
+const includesFixtureSources = async (tsconfigPath: string): Promise<boolean> => {
+  try {
+    const parsed = JSON.parse(await readFile(tsconfigPath, 'utf8')) as { readonly include?: unknown };
+
+    if (!Array.isArray(parsed.include)) {
+      return false;
+    }
+
+    return parsed.include.some((entry) => typeof entry === 'string' && FIXTURE_INCLUDE_PATTERN.test(entry));
+  } catch {
+    return false;
+  }
 };
 
 const safeReaddir = async (directory: string) => {
