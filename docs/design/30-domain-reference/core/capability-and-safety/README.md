@@ -128,7 +128,7 @@ deterministic policy-enabled capabilities whose guarantees hold. `auto` mode and
 deferred by AD-14, so `orchestrator-decide` always denies with `capability-deferred` in v1. Every
 capability is default-off, and a missing fresh positive attestation is equivalent to absent
 capability. Gate evaluation is a pure function of recorded Event log evidence, provider attestations,
-projections, policy refs, and caller-supplied `evaluatedAt`. An `allow` decision is usable only after
+projections, a caller-resolved policy decision, and caller-supplied `evaluatedAt`. An `allow` decision is usable only after
 `CapabilityGateRecord` is appended; if the record is unwritable, the caller must deny. The v1
 containment floor for `unattended-run` and kill-dependent `auto-recover` is `process-group` or
 stronger unless policy requires a stricter floor.
@@ -145,7 +145,8 @@ evaluateCapabilityGate(
 
 The complete types are in [Gate evaluation and records](gate-evaluation-and-records.md). The
 record includes `allow`/`deny`, evaluated guarantees, attestation refs, mode, scope, evidence refs,
-requested action, policy ref, and failure reason. Provider capability names remain contract-owned by
+requested action, policy ref, and failure reason. The request includes a normalized `policyDecision`
+whose `permits` boolean is resolved by Configuration & Policy before evaluation. Provider capability names remain contract-owned by
 Agent, Forge, Work Source, and Execution Host.
 
 Consumed interfaces: core-01 `RunEventLog`, `RunWriter`, `RunReplay`, `RunProjections`,
@@ -227,8 +228,9 @@ NFR-TEST by using mocks only for core tests.
   boundary.
 - Whether the v1 unattended containment floor should be stricter than `process-group` on platforms
   where stronger `kernel-tree` or `job-object` containment is available.
-- The exact policy shape that enables assisted capabilities belongs to Configuration & Policy; this
-  design assumes a resolved `policyRef` and does not define that schema.
+- The full policy document schema that enables assisted capabilities belongs to Configuration & Policy;
+  this design consumes only the normalized `CapabilityGatePolicyDecision` result supplied by that
+  domain.
 
 ## 11. Definition of done
 

@@ -98,8 +98,9 @@ There is no `SessionLinkUpdated`; corrections append `SessionLinkSuperseded` wit
 reference to the new ordinal.
 
 The `launch` projection exposes the latest non-superseded session link plus full link history. Missing
-or ambiguous linkage projects to `launch.linkage = "unknown"` and forces supervised degraded operation
-for domains that require ownership.
+linkage projects to `launch.linkage = "unknown"`; ambiguous ownership projects to
+`launch.linkage = "ambiguous"` and forces supervised degraded operation for domains that require
+ownership.
 
 ## Event roles
 

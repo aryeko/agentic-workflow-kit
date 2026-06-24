@@ -1,14 +1,19 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runTypeFixtures } from '../../tooling/type-fixtures/run-type-fixtures.js';
 
 /**
  * Integration lane: this spawns `tsc`, so it lives in the `*.int.test.ts` suite.
  * It proves the lane logic against temp-dir fixtures rather than the real
  * (unmerged) Epic 3 fixtures, so it works on `v-next` where none exist yet.
+ *
+ * Each case cold-starts `tsc` once or twice (~3s per spawn); under CI CPU
+ * contention a two-spawn case crept past Vitest's 5s default and timed out, so
+ * this suite raises the per-test timeout well clear of real spawn cost.
  */
+vi.setConfig({ testTimeout: 30_000 });
 
 let fixtureRoot: string;
 
@@ -116,6 +121,41 @@ describe('runTypeFixtures', () => {
       kind: 'public',
       reason: 'public-fixture-failed-compile',
     });
+  });
+
+  it('discovers a fixture-including tests tsconfig.json as a public check', async () => {
+    await writeFile2('packages/sdk/tests/providers/agent/agent-unions.typecheck.ts', 'export const ok: number = 1;\n');
+    await writeFile2(
+      'packages/sdk/tests/providers/agent/tsconfig.json',
+      JSON.stringify({
+        extends: '../../tsconfig.json',
+        compilerOptions: { noEmit: true, composite: false },
+        include: ['./*.typecheck.ts'],
+      }),
+    );
+
+    const result = await runTypeFixtures({ packagesRoot: join(fixtureRoot, 'packages') });
+
+    expect(result.ok).toBe(true);
+    expect(result.checked).toBe(1);
+    expect(result.publicCount).toBe(1);
+  });
+
+  it('skips plain tsconfig.json files that are not fixture configs', async () => {
+    // baseTsconfig (no include) is written by beforeEach. Add a config whose
+    // include references no fixture/typecheck source, and one that is not valid
+    // JSON — none of the three should be discovered.
+    await writeFile2('packages/sdk/tests/feature/index.ts', 'export const value: number = 1;\n');
+    await writeFile2(
+      'packages/sdk/tests/feature/tsconfig.json',
+      JSON.stringify({ compilerOptions: { noEmit: true }, include: ['./index.ts'] }),
+    );
+    await writeFile2('packages/sdk/tests/broken/tsconfig.json', '{ not valid json');
+
+    const result = await runTypeFixtures({ packagesRoot: join(fixtureRoot, 'packages') });
+
+    expect(result.ok).toBe(true);
+    expect(result.checked).toBe(0);
   });
 
   it('checks negative and public fixtures together and aggregates counts', async () => {

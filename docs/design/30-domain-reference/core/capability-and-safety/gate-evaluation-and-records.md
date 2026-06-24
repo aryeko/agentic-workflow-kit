@@ -6,9 +6,9 @@ last-reviewed: "2026-06-19"
 
 # Gate evaluation and records
 
-Gate evaluation is a pure function of recorded Event log evidence, projections, policy refs, and a
-caller-supplied `evaluatedAt`. It never calls a provider, reads live time, reads the filesystem, or
-writes a projection.
+Gate evaluation is a pure function of recorded Event log evidence, projections, a caller-resolved
+policy decision, and a caller-supplied `evaluatedAt`. It never calls a provider, reads live time, reads
+the filesystem, reads the policy store, or writes a projection.
 
 ```ts
 evaluateCapabilityGate(
@@ -25,9 +25,12 @@ A `CapabilityAttestation` is usable only when all checks pass:
 1. It is a committed Event log fact with a valid envelope, provider domain, capability,
    `evidenceRef`, `driverVersion`, `platform`, `freshnessKey`, `scope`, `at`, and `expiry`.
 2. `at <= evaluatedAt < expiry`; expired or future-dated attestations are stale.
-3. Scope exactly matches the gate scope or a provider-contract-approved parent scope. Scope includes
-   provider domain, driver id/version, platform, repo/workspace/session or PR head as applicable,
-   egress policy digest when relevant, and freshness key.
+3. Scope exactly matches the gate scope or an approved parent scope named in the gate request. A parent
+   scope is usable only when it appears in the matching `providerScopes[].approvedParentScopes` list for
+   the same provider and freshness key, and the attestation scope is a lexical parent of the exact gate
+   scope (`<parent>/...`, `<parent>:...`, or `<parent>#...`). Scope includes provider domain, driver
+   id/version, platform, repo/workspace/session or PR head as applicable, egress policy digest when
+   relevant, and freshness key. The evaluator does not infer parent scopes from provider behavior.
 4. Result is `positive`; any fresh in-scope `negative` or contradictory attestation for the same
    provider capability denies the guarantee.
 5. Evidence is replayable: `evidenceRef` resolves to recorded probe output or an artifact digest.
@@ -55,13 +58,23 @@ interface CapabilityGateScope {
   runId: string;
   taskId?: string;
   operationId: string;
-  providerScopes: { provider: ProviderDomain; scope: string; freshnessKey: string }[];
+  providerScopes: {
+    provider: ProviderDomain;
+    scope: string;
+    freshnessKey: string;
+    approvedParentScopes?: string[];
+  }[];
   repoRef?: string;
   workspaceRef?: string;
   sessionId?: string;
   pullRequestRef?: string;
   expectedHeadSha?: string;
   egressPolicyDigest?: string;
+}
+interface CapabilityGatePolicyDecision {
+  policyRef: string;
+  permits: boolean;
+  denialReason?: string;
 }
 interface AttestationRef {
   eventId: string;       // run-log event id of the appended CapabilityAttestation (envelope-level)
@@ -86,6 +99,7 @@ interface CapabilityGateRequest {
   mode: CapabilityMode;
   scope: CapabilityGateScope;
   policyRef: string;
+  policyDecision: CapabilityGatePolicyDecision;
   requestedByDomain: string;
   requestedAction: string;
   evaluatedAt: string;
@@ -119,7 +133,9 @@ the autonomous action.
 1. Reject with `run-log-degraded` if core-01 replay/projection health is unusable, projections are
    missing, writer fencing failed, or session linkage required by the capability is ambiguous.
 2. Reject with `mode-disallows-capability`, `policy-disallows-capability`, or `capability-deferred`
-   before checking provider evidence when mode, policy, or AD-14 prevents the capability.
+   before checking provider evidence when mode, `request.policyDecision.permits`, or AD-14 prevents the
+   capability. `policyDecision` is the normalized Configuration & Policy result for this
+   capability/action/scope; this domain does not parse policy documents.
 3. Select only committed `CapabilityAttestation` events at or before `evaluatedAt`.
 4. Filter by provider domain, capability name, driver version, platform, freshness key, and scope.
 5. Mark each guarantee `passed` only when required recorded evidence exists and the selected

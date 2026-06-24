@@ -151,12 +151,14 @@ Consumed interfaces: fnd-01 resolved policy data; fnd-02 `LeaseStore`, `EventLog
 exists; `RunCreatedPayload` stores the same values durably so replay remains self-contained after the
 request object is gone.
 
-`RunEventCursor` is sequence-based and host-neutral. `waitRunEvents` is the low-level cursor primitive
-that core-04 wraps for liveness and operator blocking; core-01 does not derive liveness or timers from
-it. Because fnd-02 exposes replay rather than subscribe, core-01 implements a bounded
+`RunEventCursor` is sequence-based and host-neutral. `waitRunEvents` is the low-level async cursor
+primitive that core-04 wraps for liveness and operator blocking; core-01 does not derive liveness or
+timers from it. Because fnd-02 exposes replay rather than subscribe, core-01 implements a bounded
 poll-over-`EventLogStore.replay`: deliver committed events after `cursor.afterSequence`, or return
-`timedOut = true` when `timeoutMs` elapses. Waiting does not acquire or renew leases, append health
-records, mutate liveness state, write projections, or otherwise change the canonical log.
+`timedOut = true` when `timeoutMs` elapses. Empty replay passes yield through an injected sleep/backoff
+dependency before polling again, so a wait does not hot-spin the JavaScript event loop. Waiting does
+not acquire or renew leases, append health records, mutate liveness state, write projections, or
+otherwise change the canonical log.
 
 ## 6. Events & data
 

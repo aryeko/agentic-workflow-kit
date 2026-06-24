@@ -16,7 +16,7 @@ const npmPackagePath = (packageNamePattern) => [
 
 const NPM_DEPENDENCY_TYPES = ['npm', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-bundled', 'npm-no-pkg', 'npm-unknown'];
 
-const TEST_SUPPORT_PATH = '(^|/)(__fixtures__|__tests__|test-helpers|conformance-helpers)(/|$)';
+const TEST_SUPPORT_PATH = '(^|/)(tests|__fixtures__|__tests__|test-helpers|conformance-helpers)(/|$)';
 
 const TARGET = {
   sdk: packagePath('sdk'),

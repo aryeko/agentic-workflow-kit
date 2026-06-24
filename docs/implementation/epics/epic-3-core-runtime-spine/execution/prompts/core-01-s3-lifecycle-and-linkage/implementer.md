@@ -155,10 +155,10 @@ exact test id and the result it produces.
   `linkHistory`.
 
 - **AC-13** The linkage resolver classifies `RunLaunchProjection.linkage` as `"known"` for exactly one
-  non-superseded owning link, `"unknown"` for no link, and folds an ambiguous result (more than one
-  conflicting non-superseded owning link) to `"unknown"` for the launch projection - evidence:
-  `linkage-classification.unit.test.ts` provides three fixtures (one owning link → `"known"`; no links →
-  `"unknown"`; two conflicting non-superseded owning links → `"unknown"`) and asserts the resolved
+  non-superseded owning link, `"unknown"` for no link, and `"ambiguous"` for more than one conflicting
+  non-superseded owning link - evidence: `linkage-classification.unit.test.ts` provides three fixtures
+  (one owning link → `"known"`; no links → `"unknown"`; two conflicting non-superseded owning links →
+  `"ambiguous"`) and asserts the resolved
   `linkage` value for each.
 
 - **AC-14** The table/validator, lifecycle reducer, ordinal-monotonicity predicate, and linkage resolver
@@ -394,7 +394,8 @@ Do not introduce implementation choices outside the names, events, failure token
     terminal source closes lifecycle mutation.
   - Session linkage is append-only and monotonic: ordinals start at 1 and are strictly contiguous; a
     correction appends `SessionLinkSuperseded` and never clobbers a prior link fact.
-  - Ambiguous or missing linkage resolves to `launch.linkage = "unknown"`.
+  - Missing linkage resolves to `launch.linkage = "unknown"`; ambiguous ownership resolves to
+    `launch.linkage = "ambiguous"`.
 
 ### Source Evidence Pack
 

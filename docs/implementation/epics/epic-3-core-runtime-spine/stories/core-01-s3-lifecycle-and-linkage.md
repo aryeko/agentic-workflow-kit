@@ -28,7 +28,8 @@ resolve `launch.linkage` (FR-11, NFR-DET, NFR-SAFE; story-DAG catalog/behavior-o
   `completed|blocked|failed|canceled`, no `abandoned`, terminal closes lifecycle mutation for the writer
   epoch, post-terminal non-lifecycle facts cannot change state); §Session linkage (`linkOrdinal` starts
   at 1 and is strictly contiguous, supersession appends and never clobbers, latest-non-superseded
-  resolution, missing/ambiguous → `launch.linkage = "unknown"`); §Failure and degraded modes
+  resolution, missing → `launch.linkage = "unknown"`, ambiguous → `launch.linkage = "ambiguous"`);
+  §Failure and degraded modes
   (`illegal-lifecycle-transition`).
 - `docs/design/30-domain-reference/core/run-lifecycle-and-state/README.md` §Core decisions —
   `RunLifecycleTransitioned` is the only event that authors lifecycle state; `RunCreated`,
@@ -277,10 +278,10 @@ exact test id and the result it produces.
   `linkHistory`.
 
 - **AC-13** The linkage resolver classifies `RunLaunchProjection.linkage` as `"known"` for exactly one
-  non-superseded owning link, `"unknown"` for no link, and folds an ambiguous result (more than one
-  conflicting non-superseded owning link) to `"unknown"` for the launch projection - evidence:
-  `linkage-classification.unit.test.ts` provides three fixtures (one owning link → `"known"`; no links →
-  `"unknown"`; two conflicting non-superseded owning links → `"unknown"`) and asserts the resolved
+  non-superseded owning link, `"unknown"` for no link, and `"ambiguous"` for more than one conflicting
+  non-superseded owning link - evidence: `linkage-classification.unit.test.ts` provides three fixtures
+  (one owning link → `"known"`; no links → `"unknown"`; two conflicting non-superseded owning links →
+  `"ambiguous"`) and asserts the resolved
   `linkage` value for each.
 
 - **AC-14** The table/validator, lifecycle reducer, ordinal-monotonicity predicate, and linkage resolver
@@ -383,7 +384,8 @@ Each row's cited AC asserts this row's trigger AND required behavior, with its o
     terminal source closes lifecycle mutation.
   - Session linkage is append-only and monotonic: ordinals start at 1 and are strictly contiguous; a
     correction appends `SessionLinkSuperseded` and never clobbers a prior link fact.
-  - Ambiguous or missing linkage resolves to `launch.linkage = "unknown"`.
+  - Missing linkage resolves to `launch.linkage = "unknown"`; ambiguous ownership resolves to
+    `launch.linkage = "ambiguous"`.
 
 ## Required reading
 

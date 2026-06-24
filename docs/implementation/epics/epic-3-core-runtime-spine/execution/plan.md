@@ -159,6 +159,6 @@ Package creation ends here. Feature implementation, worker dispatch, review, com
 
 ---
 
-**↑ Up:** [Epic 3 - Core runtime spine](../README.md) · **← Prev:** [Epic 3 - story DAG](../story-dag.md) · **Next →:** [Implementer Prompt: core-01-s1-event-contracts](./prompts/core-01-s1-event-contracts/implementer.md)
+**↑ Up:** [Epic 3 - Core runtime spine](../README.md) · **← Prev:** [Evidence and Method](../delivery-retro/05-evidence-and-method.md) · **Next →:** [Implementer Prompt: core-01-s1-event-contracts](./prompts/core-01-s1-event-contracts/implementer.md)
 
 <!-- /DOCS-NAV -->

@@ -52,8 +52,11 @@ names (runtime-types variant).
   - `evaluateCapabilityGate(request: CapabilityGateRequest, replay: RunReplay, projections: RunProjections): CapabilityGateRecordPayload`
     — pure function over core-01 value types, never a `RunEventLog`.
   - `CapabilityGateRequest` — `gateId`, `runId`, `capability: CapabilityId`, `mode: CapabilityMode`,
-    `scope: CapabilityGateScope`, `policyRef`, `requestedByDomain`, `requestedAction`, `evaluatedAt`,
-    `evidenceRefs: string[]`.
+    `scope: CapabilityGateScope`, `policyRef`, `policyDecision: CapabilityGatePolicyDecision`,
+    `requestedByDomain`, `requestedAction`, `evaluatedAt`, `evidenceRefs: string[]`.
+  - `CapabilityGatePolicyDecision` — `policyRef`, `permits: boolean`, optional `denialReason?: string`;
+    this is the normalized Configuration & Policy result for the exact capability, requested action, and
+    gate scope. The evaluator does not parse policy documents.
   - `CapabilityGateRecordPayload` — `schema: "kit-vnext.capability-gate-record.v1"`, `gateId`,
     `capability: CapabilityId`, `decision: GateDecision`, `mode: CapabilityMode`, `scope:
     CapabilityGateScope`, `policyRef`, `requestedByDomain`, `requestedAction`, `evaluatedAt`,
@@ -64,8 +67,8 @@ names (runtime-types variant).
   - `AttestationRef` — `eventId`, `provider: ProviderDomain`, `capability`, `evidenceRef`,
     `freshnessKey`, `scope`, `expiry`.
   - `CapabilityGateScope` — `runId`, optional `taskId`, `operationId`, `providerScopes: { provider:
-    ProviderDomain; scope: string; freshnessKey: string }[]`, optional `repoRef`, `workspaceRef`,
-    `sessionId`, `pullRequestRef`, `expectedHeadSha`, `egressPolicyDigest`.
+    ProviderDomain; scope: string; freshnessKey: string; approvedParentScopes?: string[] }[]`, optional
+    `repoRef`, `workspaceRef`, `sessionId`, `pullRequestRef`, `expectedHeadSha`, `egressPolicyDigest`.
 - Unions (kept distinct):
   - `GateDecision` = `"allow" | "deny"`.
   - `ProviderDomain` = `"Agent" | "Forge" | "Work Source" | "Execution Host"`.
@@ -99,10 +102,10 @@ token proven by its own negative fixture asserting `decision="deny"` with that e
 
 ## Responsibilities
 
-- Declare `CapabilityGateRequest`, `CapabilityGateRecordPayload` (with the frozen `schema` literal
-  `"kit-vnext.capability-gate-record.v1"`), `GuaranteeEvaluation`, `AttestationRef`,
-  `CapabilityGateScope`, `GateDecision`, `ProviderDomain`, and the full `CapabilityGateFailureReason`
-  union with exactly the design's members and no others.
+- Declare `CapabilityGateRequest`, `CapabilityGatePolicyDecision`, `CapabilityGateRecordPayload` (with
+  the frozen `schema` literal `"kit-vnext.capability-gate-record.v1"`), `GuaranteeEvaluation`,
+  `AttestationRef`, `CapabilityGateScope`, `GateDecision`, `ProviderDomain`, and the full
+  `CapabilityGateFailureReason` union with exactly the design's members and no others.
 - Implement `evaluateCapabilityGate` as a pure function: it reads only `request`, `replay`, and
   `projections`; it never reads the clock, filesystem, network, a provider, or a `RunEventLog`, and never
   writes a projection — `request.evaluatedAt` is the only time source.
@@ -110,9 +113,9 @@ token proven by its own negative fixture asserting `decision="deny"` with that e
   (`replay.health` is `interior-corrupt` or `event-log-unavailable`), projections are missing, or session
   linkage required by the capability is ambiguous (`projections.launch.linkage === "ambiguous"`).
 - Reject with `mode-disallows-capability`, `policy-disallows-capability`, or `capability-deferred`
-  (step 2) — before checking provider evidence — when mode, resolved policy, or AD-14 deferral prevents
-  the capability (reusing the `core-02-s1-capability-registry` posture/guarantee catalog and its three
-  pre-evidence tokens).
+  (step 2) — before checking provider evidence — when mode, `request.policyDecision.permits`, or AD-14
+  deferral prevents the capability (reusing the `core-02-s1-capability-registry` posture/guarantee
+  catalog and its three pre-evidence tokens).
 - Select only committed `CapabilityAttestation` events whose envelope `at <= request.evaluatedAt`
   (step 3), then filter by provider domain, capability name, driver version, platform, freshness key, and
   scope (step 4).
@@ -123,7 +126,11 @@ token proven by its own negative fixture asserting `decision="deny"` with that e
   expiry`; scope exact-or-approved-parent; `result === "positive"`; `evidenceRef` resolves to recorded
   probe output / artifact digest; a fresh in-scope `negative` or contradictory attestation for the same
   provider capability denies the guarantee; schema-only evidence cannot prove liveness, persistence,
-  parentage, kill, egress confinement, or write-side Forge behavior.
+  parentage, kill, egress confinement, or write-side Forge behavior. Exact-or-approved-parent means the
+  attestation provider/freshness key matches a `providerScopes[]` entry and either
+  `attestation.scope === providerScope.scope`, or `attestation.scope` appears in
+  `providerScope.approvedParentScopes` and is a lexical parent of `providerScope.scope` using `/`, `:`,
+  or `#` as the next separator. The evaluator must not infer parent scopes from providers.
 - Fail closed: stale, absent, future-dated, negative, out-of-scope, contradictory, malformed, or
   non-replayable evidence denies, and self-report (worker prose, Agent/Guardian text, unprobed driver
   feature list) never allows a guarantee.
@@ -150,8 +157,8 @@ token proven by its own negative fixture asserting `decision="deny"` with that e
   `RunDegradedHealth`, `EvidenceEventRef`) and the `replay()`/`project()` behaviors that build them —
   owned by `core-01-s1`/`s2`/`s5`; referenced as value types, never redeclared, and not depended on as
   runtime behaviors (the evaluator takes them as values built from fixtures).
-- Resolved policy schema (what makes `policyRef` permit a capability) — owned by Configuration & Policy
-  (`fnd-01`); consumed as a resolved input.
+- Full policy document schema — owned by Configuration & Policy (`fnd-01`); consumed here only as the
+  normalized `CapabilityGatePolicyDecision` input.
 - The lifecycle consequence of a deny (park/block/fail) — chosen by the caller via core-01 legal
   transitions, not by this evaluator.
 
@@ -197,14 +204,17 @@ test id and the result it produces.
   valid fixture, runs a `never` exhaustiveness switch over `GateDecision`, and a negative fixture
   (`gate-record-bad-schema.fixture.ts`) using a `schema` other than
   `"kit-vnext.capability-gate-record.v1"` or omitting `evaluatedGuarantees` fails compilation.
-- **AC-3** `GuaranteeEvaluation`, `AttestationRef`, `CapabilityGateScope`, `ProviderDomain`, and
-  `CapabilityGateRequest` are present with the design fields, where `ProviderDomain` is exactly
+- **AC-3** `GuaranteeEvaluation`, `AttestationRef`, `CapabilityGateScope`,
+  `CapabilityGatePolicyDecision`, `ProviderDomain`, and `CapabilityGateRequest` are present with the
+  design fields, where `ProviderDomain` is exactly
   `"Agent" | "Forge" | "Work Source" | "Execution Host"`, `AttestationRef` carries
-  `eventId`/`provider`/`capability`/`evidenceRef`/`freshnessKey`/`scope`/`expiry`, and
-  `CapabilityGateScope.providerScopes` is `{ provider: ProviderDomain; scope: string; freshnessKey: string }[]`
+  `eventId`/`provider`/`capability`/`evidenceRef`/`freshnessKey`/`scope`/`expiry`,
+  `CapabilityGatePolicyDecision` carries `policyRef` and `permits`, and
+  `CapabilityGateScope.providerScopes` is
+  `{ provider: ProviderDomain; scope: string; freshnessKey: string; approvedParentScopes?: string[] }[]`
   - evidence: `gate-types.unit.test.ts` constructs each from a valid fixture, runs a `never` switch over
-  `ProviderDomain`, and a negative fixture (`attestation-ref-missing-expiry.fixture.ts`) omitting
-  `AttestationRef.expiry` fails compilation.
+  `ProviderDomain`, and negative fixtures (`attestation-ref-missing-expiry.fixture.ts`,
+  `policy-decision-missing-permits.fixture.ts`) fail compilation when required fields are omitted.
 - **AC-4** `CapabilityGateFailureReason` is the full union with exactly the 14 members
   `mode-disallows-capability`, `policy-disallows-capability`, `capability-deferred`, `run-log-degraded`,
   `required-evidence-absent`, `required-evidence-ambiguous`, `attestation-absent`, `attestation-stale`,
@@ -225,9 +235,10 @@ test id and the result it produces.
   `deny-run-log-degraded.unit.test.ts` (`degraded-replay.fixture.ts` with `health:"interior-corrupt"`
   and `ambiguous-linkage.fixture.ts`) asserts `decision==="deny"` and `failureReason==="run-log-degraded"`.
 - **AC-7** When `request.mode === "manual"` the evaluator denies with
-  `failureReason="mode-disallows-capability"`; when resolved policy does not permit the capability for the
-  scope it denies with `failureReason="policy-disallows-capability"`; and when the capability is
-  `orchestrator-decide` (AD-14 deferred) it denies with `failureReason="capability-deferred"` — each
+  `failureReason="mode-disallows-capability"`; when `request.policyDecision.permits === false` for the
+  already-resolved capability/action/scope decision it denies with
+  `failureReason="policy-disallows-capability"`; and when the capability is `orchestrator-decide`
+  (AD-14 deferred) it denies with `failureReason="capability-deferred"` — each
   raised before any provider attestation is inspected, reusing the
   `core-02-s1-capability-registry` tokens - evidence: `deny-mode-policy-deferred.unit.test.ts`
   (`manual-mode.fixture.ts`, `policy-denies.fixture.ts`, `orchestrator-decide.fixture.ts`) asserts each
@@ -254,11 +265,14 @@ test id and the result it produces.
   `failureReason="attestation-contradictory"` - evidence: `deny-attestation-negative-contradictory.unit.test.ts`
   (`negative-attestation.fixture.ts`, `contradictory-attestations.fixture.ts`) asserts the two distinct
   `failureReason` values.
-- **AC-12** An attestation whose `scope` is neither the exact gate scope nor a provider-contract-approved
-  parent scope denies with `failureReason="attestation-out-of-scope"` - evidence:
+- **AC-12** An attestation whose `scope` is neither the exact gate scope nor an approved parent scope
+  denies with `failureReason="attestation-out-of-scope"`. A parent is approved only when it is listed in
+  the matching `providerScopes[].approvedParentScopes` for the same provider/freshness key and is a
+  lexical parent of the exact scope using `/`, `:`, or `#` as the next separator - evidence:
   `deny-attestation-out-of-scope.unit.test.ts` (`wrong-scope-attestation.fixture.ts` whose
   `scope`/`freshnessKey` does not match the gate `providerScopes`) asserts
-  `failureReason==="attestation-out-of-scope"`.
+  `failureReason==="attestation-out-of-scope"`, and `approved-parent-scope.unit.test.ts` asserts a listed
+  parent scope is accepted while an unlisted lexical parent is denied.
 - **AC-13** An attestation whose `evidenceRef` does not resolve to recorded probe output / artifact
   digest, or whose envelope is malformed, denies with `failureReason="attestation-non-replayable"` -
   evidence: `deny-attestation-non-replayable.unit.test.ts` (`unresolvable-evidence-ref.fixture.ts`,
@@ -303,16 +317,16 @@ responsibility crosses this story's assigned signal.
 |---|---|
 | `evaluateCapabilityGate` exact signature + purity/determinism (no clock/IO) | AC-1 |
 | `CapabilityGateRecordPayload` shape + `schema` literal; `GateDecision` union | AC-2 |
-| `GuaranteeEvaluation` / `AttestationRef` / `CapabilityGateScope` / `ProviderDomain` / `CapabilityGateRequest` shapes | AC-3 |
+| `GuaranteeEvaluation` / `AttestationRef` / `CapabilityGateScope` / `CapabilityGatePolicyDecision` / `ProviderDomain` / `CapabilityGateRequest` shapes | AC-3 |
 | `CapabilityGateFailureReason` full 14-member union (single producer) | AC-4 |
 | `allow` only when all five guarantees pass over a fully-satisfied fixture | AC-5 |
 | Step-1 reject `run-log-degraded` (degraded health / missing projections / ambiguous linkage) | AC-6 |
-| Step-2 pre-evidence denial: mode / policy / deferred (reused s1 tokens) | AC-7 |
+| Step-2 pre-evidence denial: mode / resolved policy decision / deferred (reused s1 tokens) | AC-7 |
 | `required-evidence-absent` / `required-evidence-ambiguous` | AC-8 |
 | Attestation selection/filter; `attestation-absent` | AC-9 |
 | Freshness check `at <= evaluatedAt < expiry`; `attestation-stale` | AC-10 |
 | Result-positive + non-contradictory checks; `attestation-negative` / `attestation-contradictory` | AC-11 |
-| Scope exact-or-approved-parent check; `attestation-out-of-scope` | AC-12 |
+| Scope exact-or-listed-approved-parent check; `attestation-out-of-scope` | AC-12 |
 | Replayable-evidence check + malformed envelope; `attestation-non-replayable` | AC-13 |
 | Self-report / schema-only rejection; `self-report-only` | AC-14 |
 | Stable failure ordering (replay determinism) | AC-15 |
@@ -329,7 +343,7 @@ exact `failureReason`) against its own negative fixture — never a happy-path e
 |---|---|---|---|
 | `run-log-degraded` | `replay.health` is `interior-corrupt`/`event-log-unavailable`, projections missing, or `projections.launch.linkage === "ambiguous"` | `decision="deny"`, `failureReason="run-log-degraded"`, raised before mode/policy/attestation inspection | AC-6 |
 | `mode-disallows-capability` (s1 token) | `request.mode === "manual"` for an autonomous capability | `decision="deny"`, `failureReason="mode-disallows-capability"`, no attestation selected | AC-7 |
-| `policy-disallows-capability` (s1 token) | resolved policy does not permit the capability for the scope | `decision="deny"`, `failureReason="policy-disallows-capability"` | AC-7 |
+| `policy-disallows-capability` (s1 token) | `request.policyDecision.permits === false` for the already-resolved capability/action/scope decision | `decision="deny"`, `failureReason="policy-disallows-capability"` | AC-7 |
 | `capability-deferred` (s1 token) | capability is `orchestrator-decide` (AD-14) | `decision="deny"`, `failureReason="capability-deferred"` | AC-7 |
 | `required-evidence-absent` | a guarantee's required recorded evidence ref is not present | `decision="deny"`, `failureReason="required-evidence-absent"`, failing guarantee `passed:false` | AC-8 |
 | `required-evidence-ambiguous` | recorded evidence contradicts for a required input | `decision="deny"`, `failureReason="required-evidence-ambiguous"` | AC-8 |
@@ -337,7 +351,7 @@ exact `failureReason`) against its own negative fixture — never a happy-path e
 | `attestation-stale` | matched attestation fails `at <= evaluatedAt < expiry` (expired or future-dated) | `decision="deny"`, `failureReason="attestation-stale"` | AC-10 |
 | `attestation-negative` | fresh in-scope attestation `result === "negative"` | `decision="deny"`, `failureReason="attestation-negative"` | AC-11 |
 | `attestation-contradictory` | fresh in-scope positive + a fresh in-scope negative/conflicting for the same provider capability | `decision="deny"`, `failureReason="attestation-contradictory"` | AC-11 |
-| `attestation-out-of-scope` | attestation `scope` is neither exact nor an approved-parent of the gate scope | `decision="deny"`, `failureReason="attestation-out-of-scope"` | AC-12 |
+| `attestation-out-of-scope` | attestation `scope` is neither exact nor listed in the matching `approvedParentScopes` as a lexical parent of the gate scope | `decision="deny"`, `failureReason="attestation-out-of-scope"` | AC-12 |
 | `attestation-non-replayable` | `evidenceRef` does not resolve, or the attestation envelope is malformed | `decision="deny"`, `failureReason="attestation-non-replayable"` | AC-13 |
 | `self-report-only` | the only support is worker/Agent/Guardian prose, an unprobed feature list, or schema-only evidence claiming behavioral guarantees | `decision="deny"`, `failureReason="self-report-only"`, guarantee never passes | AC-14 |
 
@@ -371,7 +385,8 @@ exact `failureReason`) against its own negative fixture — never a happy-path e
   `guarantee-evaluation.unit.test.ts` (AC-16); `gate-public-import.unit.test.ts` (AC-17); the
   forbidden-symbol sweep (AC-18). Negative fixtures (each its own file under
   `tests/core/capability/evaluator/fixtures/`): `gate-record-bad-schema.fixture.ts`,
-  `attestation-ref-missing-expiry.fixture.ts`, `failure-reason-unknown.fixture.ts`,
+  `attestation-ref-missing-expiry.fixture.ts`, `policy-decision-missing-permits.fixture.ts`,
+  `failure-reason-unknown.fixture.ts`,
   `degraded-replay.fixture.ts`, `ambiguous-linkage.fixture.ts`, `manual-mode.fixture.ts`,
   `policy-denies.fixture.ts`, `orchestrator-decide.fixture.ts`, `evidence-absent.fixture.ts`,
   `evidence-ambiguous.fixture.ts`, `no-attestation.fixture.ts`, `expired-attestation.fixture.ts`,
@@ -494,9 +509,9 @@ events, split into focused files, exposed on the `sdk` public entrypoint, plus t
   `gate-record-unwritable` (owned by `core-02-s3-gate-record-durability`); declaring the registry catalog
   or the `CapabilityId`/posture shapes (`core-02-s1-capability-registry`); declaring the
   `CapabilityAttestation` payload (Epic 2 `prov-00-s1`); declaring the core-01 run-log value types
-  (`core-01-s1-event-contracts`); or any provider/driver behavior. If the design does not answer a
-  contract question (e.g. the precise approved-parent-scope rule or the policy-permits shape), report it
-  as a design gap — do not invent it.
+  (`core-01-s1-event-contracts`); parsing raw policy documents; inferring parent scopes not listed in
+  `approvedParentScopes`; or any provider/driver behavior. If another design contract question blocks an
+  AC, report it as a design gap — do not invent it.
 
 ## Characterization Review
 

@@ -1,3 +1,6 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   formatTypeFixturesReport,
@@ -61,7 +64,13 @@ describe('formatTypeFixturesReport', () => {
 });
 
 describe('main', () => {
-  it('returns exit code 0 when the repository has no fixtures (clean no-op on v-next)', async () => {
-    await expect(main()).resolves.toBe(0);
+  it('returns exit code 0 when no fixtures are found', async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), 'kit-vnext-type-fixtures-main-'));
+
+    try {
+      await expect(main({ packagesRoot: join(fixtureRoot, 'packages') })).resolves.toBe(0);
+    } finally {
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
   });
 });
