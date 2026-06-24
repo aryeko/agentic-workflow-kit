@@ -39,4 +39,39 @@ describe('cursor-wait', () => {
       },
     });
   });
+
+  it('normalizes foreign cursors before applying the offset', async () => {
+    const events = [makeEnvelope(1), makeEnvelope(2), makeEnvelope(3)];
+    const replay = vi.fn(() => makeReplaySuccess(events));
+    const clock = vi.fn(() => 0);
+
+    const result = await waitRunEvents(
+      {
+        runId: textRunId,
+        cursor: {
+          runId: 'run-other',
+          afterSequence: 2,
+        },
+        timeoutMs: 1_000,
+      },
+      replay,
+      clock,
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        runId: textRunId,
+        cursor: {
+          runId: textRunId,
+          afterSequence: 3,
+        },
+        events,
+        timedOut: false,
+        lastSequence: 3,
+        health: 'ok',
+        healthRecords: [],
+      },
+    });
+  });
 });

@@ -37,7 +37,7 @@ const toDeliveredResult = (
   value: {
     runId: request.runId,
     cursor: {
-      runId: request.cursor.runId,
+      runId: request.runId,
       afterSequence: events[events.length - 1].sequence,
     },
     events,
@@ -51,13 +51,14 @@ const toDeliveredResult = (
 const toTimedOutResult = (
   request: WaitRunEventsRequest,
   replay: RunReplay,
+  afterSequence: number,
 ): Result<WaitRunEventsResult, RunReplayFailure> => ({
   ok: true,
   value: {
     runId: request.runId,
     cursor: {
-      runId: request.cursor.runId,
-      afterSequence: request.cursor.afterSequence,
+      runId: request.runId,
+      afterSequence,
     },
     events: [],
     timedOut: true,
@@ -74,6 +75,7 @@ export const waitRunEvents = async (
   pause: CursorWaitSleep = sleep,
 ): Promise<Result<WaitRunEventsResult, RunReplayFailure>> => {
   const startedAt = now();
+  const afterSequence = request.cursor.runId === request.runId ? request.cursor.afterSequence : 0;
 
   while (true) {
     const replayed = replayRun(request.runId);
@@ -81,13 +83,13 @@ export const waitRunEvents = async (
       return replayed;
     }
 
-    const events = takeEventsAfterCursor(replayed.value.events, request.cursor.afterSequence, request.maxEvents);
+    const events = takeEventsAfterCursor(replayed.value.events, afterSequence, request.maxEvents);
     if (events.length > 0) {
       return toDeliveredResult(request, replayed.value, events);
     }
 
     if (now() - startedAt >= request.timeoutMs) {
-      return toTimedOutResult(request, replayed.value);
+      return toTimedOutResult(request, replayed.value, afterSequence);
     }
 
     const remainingMs = request.timeoutMs - (now() - startedAt);
