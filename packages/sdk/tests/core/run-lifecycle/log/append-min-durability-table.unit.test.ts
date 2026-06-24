@@ -14,17 +14,17 @@ const encoder = new TextEncoder();
 describe('RunWriter minimum durability validation', () => {
   it('rejects a terminal lifecycle transition requested as durable even with a barrier sibling', () => {
     const harness = createHarness();
+    harness.seedCreatedRun();
     const states = [
-      [1, null, 'created'],
-      [2, 'created', 'configured'],
-      [3, 'configured', 'task-snapshotted'],
-      [4, 'task-snapshotted', 'workspace-ready'],
-      [5, 'workspace-ready', 'worker-starting'],
-      [6, 'worker-starting', 'running'],
-      [7, 'running', 'runner-verifying'],
-      [8, 'runner-verifying', 'forge-waiting'],
-      [9, 'forge-waiting', 'merge-waiting'],
-      [10, 'merge-waiting', 'settling'],
+      [3, 'created', 'configured'],
+      [4, 'configured', 'task-snapshotted'],
+      [5, 'task-snapshotted', 'workspace-ready'],
+      [6, 'workspace-ready', 'worker-starting'],
+      [7, 'worker-starting', 'running'],
+      [8, 'running', 'runner-verifying'],
+      [9, 'runner-verifying', 'forge-waiting'],
+      [10, 'forge-waiting', 'merge-waiting'],
+      [11, 'merge-waiting', 'settling'],
     ] as const;
     for (const [sequence, from, to] of states) {
       const envelope = makeEnvelope(sequence, 'RunLifecycleTransitioned', lifecyclePayload(from, to));

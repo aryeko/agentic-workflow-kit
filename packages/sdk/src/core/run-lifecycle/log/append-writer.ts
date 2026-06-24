@@ -15,6 +15,7 @@ import {
   findInvalidRequestedDurabilityIndex,
   findMismatchedPayloadDigestIndex,
   hasContiguousSequence,
+  isLifecyclePayload,
 } from './append-envelopes.js';
 import { buildRunAppendRejected } from './append-rejected.js';
 import {
@@ -38,6 +39,20 @@ const runWriterLeaseName = (runId: string): string => `run-writer:${runId}`;
 const leaseIsCurrent = (context: WriterContext): (() => boolean) => {
   const { lease } = context;
   return () => context.deps.leaseStore.fence(lease.name, lease.epoch, lease.token);
+};
+
+const hasCanonicalCreationHistory = (replayed: RunReplay): boolean => {
+  const created = replayed.events[0];
+  const transitioned = replayed.events[1];
+
+  return (
+    created?.type === 'RunCreated' &&
+    transitioned?.type === 'RunLifecycleTransitioned' &&
+    isLifecyclePayload(transitioned.payload) &&
+    transitioned.payload.from === null &&
+    transitioned.payload.to === 'created' &&
+    transitioned.payload.sourceEventIds.includes(created.eventId)
+  );
 };
 
 const durabilityFailure = (
@@ -86,6 +101,10 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
     const replayed = replay(context.runId, context.deps.eventLogStore);
     if (!replayed.ok) {
       return replayFailureToAppendFailure(replayed.error);
+    }
+
+    if (!hasCanonicalCreationHistory(replayed.value)) {
+      return appendFailure('sequence-conflict', 'Run append requires committed creation history.');
     }
 
     if (findMismatchedPayloadDigestIndex(batch, context.deps.digestPayload) !== undefined) {

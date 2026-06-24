@@ -116,6 +116,19 @@ describe('RunEventLog and RunWriter edge failures', () => {
     }
   });
 
+  it('rejects ordinary appends to logs without committed creation history', () => {
+    const harness = createHarness();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    expectFailureCode(writer.value.append([appendIntent('SiblingFact', { ok: true })]), 'sequence-conflict');
+    expect(harness.appendCalls).toHaveLength(0);
+  });
+
   it('rejects writers opened with a lease scoped to another run', () => {
     const harness = createHarness();
     const wrongRunLease = harness.leaseStore.acquire(
