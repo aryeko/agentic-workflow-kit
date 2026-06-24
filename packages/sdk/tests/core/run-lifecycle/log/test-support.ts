@@ -141,6 +141,7 @@ export function createHarness(options: HarnessOptions = {}): LogHarness {
   const appendCalls: AppendCall[] = [];
   const releaseCalls: ReleaseCall[] = [];
   const appendOutcomes = [...(options.appendOutcomes ?? [])];
+  let appendLeaseIsCurrent: (() => boolean) | undefined;
 
   const leaseStore: LeaseStore = {
     acquire(name: string): LeaseCapability {
@@ -205,7 +206,8 @@ export function createHarness(options: HarnessOptions = {}): LogHarness {
   };
 
   const eventLogStore: EventLogStore = {
-    openForAppend(logId: string, lease: { name: string; epoch: number; token: string }): LogHandle {
+    openForAppend(logId, lease): LogHandle | StorageError {
+      appendLeaseIsCurrent = lease.isCurrent;
       return {
         logId,
         leaseName: lease.name,
@@ -214,6 +216,14 @@ export function createHarness(options: HarnessOptions = {}): LogHarness {
       };
     },
     append(handle: LogHandle, batch: AppendBatch): AppendReceipt | NonDurableAck | StorageError {
+      if (appendLeaseIsCurrent?.() === false) {
+        return {
+          code: 'stale-writer-fenced',
+          message: 'stale lease',
+          health: 'ok',
+        };
+      }
+
       const envelopes = batch.payloads.map((payload) => decode(payload));
       appendCalls.push({ handle, batch, envelopes });
       const outcome = appendOutcomes.shift();

@@ -67,6 +67,7 @@ export const recoverLostAck = (
       context.lease,
       envelopes,
       durability,
+      () => context.deps.leaseStore.fence(context.lease.name, context.lease.epoch, context.lease.token),
     );
     if (freshAppend.kind === 'receipt') {
       return {

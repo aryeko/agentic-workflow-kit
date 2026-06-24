@@ -129,6 +129,19 @@ describe('core-07-s3 terminal analysis invariant', () => {
             reportArtifactRef: scratchReportRef,
           },
         }),
+        createEvent({
+          eventId: 'analysis:bad-reason',
+          sequence: 13,
+          type: 'AnalysisFailed',
+          payload: {
+            schema: 'kit-vnext.analysis-failed.v1' as const,
+            request: input.request,
+            inputHealth: input.inputHealth,
+            reason: 'analysis-typo',
+            evidenceRefs: [],
+            artifactRefs: [],
+          },
+        }),
       ]),
     );
 

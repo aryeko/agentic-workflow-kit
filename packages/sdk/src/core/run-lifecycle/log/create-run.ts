@@ -76,7 +76,9 @@ export const createRun = (
     artifactRefs: input.artifactRefs,
   };
 
-  const appended = appendEnvelopes(deps.eventLogStore, input.runId, lease, [created, transitioned], 'barrier');
+  const appended = appendEnvelopes(deps.eventLogStore, input.runId, lease, [created, transitioned], 'barrier', () =>
+    deps.leaseStore.fence(lease.name, lease.epoch, lease.token),
+  );
   if (appended.kind === 'failure') {
     releaseAcquiredLease(deps, lease);
     return appended.failure;

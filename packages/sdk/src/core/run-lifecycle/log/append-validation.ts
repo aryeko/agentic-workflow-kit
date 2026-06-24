@@ -174,7 +174,14 @@ const semanticFailure = (
     failureCode: 'illegal-lifecycle-transition',
     reason,
   });
-  const authored = appendEnvelopes(context.deps.eventLogStore, context.runId, context.lease, [rejection], 'durable');
+  const authored = appendEnvelopes(
+    context.deps.eventLogStore,
+    context.runId,
+    context.lease,
+    [rejection],
+    'durable',
+    () => context.deps.leaseStore.fence(context.lease.name, context.lease.epoch, context.lease.token),
+  );
   if (authored.kind === 'failure') {
     return authored.failure;
   }

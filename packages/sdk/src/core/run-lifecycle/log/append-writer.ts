@@ -34,6 +34,11 @@ type WriterContext = {
 
 const runWriterLeaseName = (runId: string): string => `run-writer:${runId}`;
 
+const leaseIsCurrent = (context: WriterContext): (() => boolean) => {
+  const { lease } = context;
+  return () => context.deps.leaseStore.fence(lease.name, lease.epoch, lease.token);
+};
+
 const durabilityFailure = (
   context: WriterContext,
   replayed: RunReplay,
@@ -48,7 +53,14 @@ const durabilityFailure = (
     failureCode: 'durability-insufficient',
     reason,
   });
-  const authored = appendEnvelopes(context.deps.eventLogStore, context.runId, context.lease, [rejection], 'durable');
+  const authored = appendEnvelopes(
+    context.deps.eventLogStore,
+    context.runId,
+    context.lease,
+    [rejection],
+    'durable',
+    leaseIsCurrent(context),
+  );
   if (authored.kind === 'failure') {
     return authored.failure;
   }
@@ -125,6 +137,7 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
       context.lease,
       envelopes,
       effectiveDurability,
+      leaseIsCurrent(context),
     );
     if (appended.kind === 'receipt') {
       return {

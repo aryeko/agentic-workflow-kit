@@ -5,6 +5,13 @@ import type { AnalysisReportRefCandidate, TerminalAnalysisInvariantResult } from
 
 const TERMINAL_STATES = new Set(['completed', 'blocked', 'failed', 'canceled']);
 const USABLE_REPLAY_HEALTH = new Set(['ok', 'tail-repaired']);
+const ANALYSIS_FAILED_REASONS = new Set([
+  'analysis-input-degraded',
+  'analysis-artifact-unavailable',
+  'analysis-redaction-unavailable',
+  'analysis-rule-error',
+  'analysis-invariant-missing',
+]);
 
 const toEventRef = (event: RunEventEnvelope): EvidenceEventRef => ({
   eventId: event.eventId,
@@ -34,6 +41,9 @@ const isAnalysisReportRefCandidate = (value: unknown): value is AnalysisReportRe
   typeof value.classification === 'string' &&
   typeof value.redactionState === 'string';
 
+const isRecordableAnalysisFailureReason = (value: unknown): value is string =>
+  typeof value === 'string' && ANALYSIS_FAILED_REASONS.has(value);
+
 const isValidAnalysisRecordedPayload = (payload: unknown): boolean =>
   isObjectRecord(payload) &&
   payload.schema === 'kit-vnext.analysis-recorded.v1' &&
@@ -51,7 +61,7 @@ const isValidAnalysisFailedPayload = (payload: unknown): boolean =>
   payload.schema === 'kit-vnext.analysis-failed.v1' &&
   isObjectRecord(payload.request) &&
   isObjectRecord(payload.inputHealth) &&
-  typeof payload.reason === 'string' &&
+  isRecordableAnalysisFailureReason(payload.reason) &&
   Array.isArray(payload.evidenceRefs) &&
   Array.isArray(payload.artifactRefs);
 

@@ -57,11 +57,13 @@ export const appendEnvelopes = (
   lease: LeaseCapability,
   envelopes: readonly RunEventEnvelope[],
   durability: DurabilityClass,
+  isCurrent?: () => boolean,
 ): AppendStorageResult => {
   const handle = eventLogStore.openForAppend(runId, {
     name: lease.name,
     epoch: lease.epoch,
     token: lease.token,
+    ...(isCurrent === undefined ? {} : { isCurrent }),
   });
 
   if (isStorageError(handle)) {
