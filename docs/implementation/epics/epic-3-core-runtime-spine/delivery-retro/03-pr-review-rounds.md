@@ -124,8 +124,11 @@ throughout the loop:
 - capability gates and terminal lifecycle denial;
 - analysis-record idempotency across cursor movement.
 
-This points to a missing pre-PR integration invariant sweep more than a failure to apply individual
-review comments.
+Both are **composed cross-domain invariants that had no owner in the story DAG** — a Bucket-1
+characterization gap, not merely a missing downstream check. A pre-PR sweep would have *caught* them one
+stage earlier; a composed-invariant owner at `plan-epic` would have *prevented* them at the cheapest
+point. See [Cause Analysis and Recommendations](./04-cause-analysis-and-recommendations.md) for the
+bucket split and the re-leveled recommendations.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

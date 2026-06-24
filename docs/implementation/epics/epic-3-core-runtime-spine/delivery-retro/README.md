@@ -11,6 +11,12 @@ Primary PR: <https://github.com/aryeko/agentic-workflow-kit/pull/144>.
 Time basis: timestamps are UTC unless stated otherwise. The original Codex desktop environment used
 Asia/Jerusalem local time, UTC+03:00 on these dates.
 
+> **Revision note (2026-06-24).** This report was re-analyzed against the operating model's two-bucket
+> framework and the [implementation lessons ledger](../../../../implementation-authoring/lessons-ledger.md).
+> Findings are now bucket-classified; recommendations are re-leveled to the cheapest catch point; and the
+> original headline recommendation (a downstream "pre-PR integration sweep") is superseded by two
+> left-shifts. Observed facts and metrics are unchanged — only the interpretation and recommendations.
+
 ## How to Read This Report
 
 This report is ordered high-to-low:
@@ -20,7 +26,8 @@ This report is ordered high-to-low:
 3. [Spawned sessions](./02-spawned-sessions.md) covers implementer/reviewer outcomes.
 4. [PR review rounds](./03-pr-review-rounds.md) captures the Codex review-loop counts and severity.
 5. [Cause analysis and recommendations](./04-cause-analysis-and-recommendations.md) separates causes
-   from proposed changes.
+   from proposed changes — and holds the bucket split, the re-leveled recommendations, and the ledger
+   reconciliation.
 6. [Evidence and method](./05-evidence-and-method.md) records handles, commands, sources, and limits.
 
 ## Executive Summary
@@ -47,9 +54,16 @@ caught real blockers, and produced reviewed story slices. They did not reliably 
 exports, cross-story invariants, full-gate state, or PR-level runtime behavior. The coordinator had to
 integrate, normalize, patch, gate, and later respond to many external review findings.
 
-The main recommendation is to strengthen the pre-PR integration layer: add a cross-story invariant
-sweep, make normalized observability story-aware, reduce watcher noise, and teach story reviewers to
-inspect composed package behavior rather than only their local story surface.
+**The headline correction (this revision):** the 91 findings are two populations, not one. Most hot-spot
+findings were **already enumerated** in their story contracts — with failure rows and named negative
+fixtures — yet shipped and were approved by story review (a **Bucket-2** review-depth miss). The two
+genuinely-late P1s were **composed cross-domain invariants with no owner in the DAG** (a **Bucket-1**
+characterization miss). The primary fix is therefore to move *both* left — a composed cross-story
+invariant owner at `plan-epic`, and a required scenario matrix plus a sharper story reviewer — not to add
+a pre-PR integration layer *downstream* (the original P0), which sits to the right of where the operating
+model says these are cheapest to catch. Story-aware observability and a quieter watch mode are real but
+secondary tooling wins, and several original recommendations are **already covered** by LSN-21/22/23. Full
+reasoning in [Cause Analysis and Recommendations](./04-cause-analysis-and-recommendations.md).
 
 ## Key Observed Metrics
 
@@ -98,102 +112,99 @@ then stopped without merge as requested.
 
 ## What Did Not Work
 
-PR review found too much too late. The PR reviewer effectively became the deepest integration reviewer.
-That is too late for the observed volume and severity of findings.
+Bucket-2 invariants escaped story review. Most PR findings were in invariants the contract had already
+enumerated — with failure rows and named negative fixtures — yet they shipped, story review approved
+them, and `pnpm check` passed. The escape was review depth and scenario coverage, not a missing *what*.
+
+Bucket-1 composed invariants had no owner. The two genuinely-late P1s — gate denial after terminal
+lifecycle, analysis-head preservation across cursor advance — were cross-domain invariants that lived in
+the seam between stories with no owner in the DAG, so they reached the external PR reviewer.
+
+PR review became the integration net. The PR reviewer effectively became the deepest integration
+reviewer — a review altitude the operating model never staffs — which is too late for the observed
+volume and severity.
 
 Review severity did not monotonically decline. Finding volume declined over time, but the final two
-finding-bearing Codex review rounds were both P1. This means the loop converged on fewer issues per
-round, not necessarily lower-risk issues per round.
+finding-bearing Codex review rounds were both P1: the loop converged on fewer issues per round, not
+lower-risk issues per round.
+
+Story size concentrated the churn. `core-02-s2` carried 18 ACs against the DAG's 3–10 bar; its two files
+were the top-two review hot spots (~22% of all 94 threads). Oversized nodes create internal seams that
+per-AC review walks past.
 
 Watch supervision was noisy. Watchers produced many non-actionable waits and sometimes exited without
 useful terminal output. Direct live polling became the reliable path.
 
 Story observability was under-structured. Retro analysis had to reconstruct story timelines from
-aliases and tracker text. The analyzer could not directly report per-story duration, review rounds, or
-usage.
+aliases and tracker text; the analyzer could not directly report per-story duration, review rounds, or
+usage, and aliases drifted from stable ids.
 
 Thread-cap management was manual. The run repeatedly had to close completed or blocked
-workers/reviewers to free capacity.
-
-Local gates lacked invariant breadth. The gate verified existing tests. It did not know enough about
-missing runtime invariant cases until PR review described them.
+workers/reviewers to free capacity — which collided with routing PR findings back to the story pair.
 
 ## Recommendations
 
-### P0: Add a Pre-PR Integration Invariant Sweep
+Re-leveled to the cheapest catch point; each names its altitude and ledger status. Detail and rationale
+in [Cause Analysis and Recommendations](./04-cause-analysis-and-recommendations.md).
 
-Before PR creation, run a dedicated integration review or script-assisted checklist over composed
-runtime behavior:
-
-- capability gates fail closed on missing, stale, malformed, future, or self-report evidence;
-- attestation consumption respects provider domain, scope, chronology, and replayability;
-- run append validates creation, lifecycle, linkage, epoch, digest, retry, and terminal idempotency
-  ordering;
-- analysis records preserve terminal invariants, cursor bounds, redaction, report refs, and
-  idempotency;
-- public package exports and public testkit imports are verified from package entrypoints.
-
-Expected effect: move many PR-review P1/P2 findings into local pre-publication review.
-
-### P0: Make Observability Story-Aware
-
-Add structured fields to orchestration events: `storyId`, `wave`, `role`, `agentId`, `alias`,
-`promptPath`, `round`, `dependsOn`, `unlockedByCommit`, `status`, `blockerCode`, `storyCommit`,
-`trackerCommit`, `gateCommand`, `gateResult`, `tokenUsage`, `startedAt`, and `completedAt`.
-
-Expected effect: future retros can compute story duration, review rounds, blocked time, worker cost,
-and throughput without transcript reconstruction.
-
-### P1: Add a Batched PR Review Strategy
-
-When PR review produces repeated findings in the same invariant family, stop requesting review after
-each tiny fix. Collect unresolved threads, cluster by invariant class, search sibling issues, patch the
-class, run focused tests plus `pnpm check`, resolve affected threads, then request one review.
-
-Expected effect: fewer review requests and fewer single-fix commits.
-
-### P1: Quiet and Harden Watch Mode
-
-Watcher output should emit only review requested, changes requested, approval/no-major-issues,
-timeout, CI failure, unresolved-thread count changes, or direct user-decision points. If a watcher
-exits without a verdict, the wrapper should automatically run the authoritative poll and print the
-normalized result.
-
-Expected effect: lower operator attention cost and less transcript noise.
-
-### P1: Strengthen Package Readiness Review for Safety-Critical Stories
-
-For each high-risk story, ask: can an implementer complete this without inventing a policy shape, event
-payload, authority rule, ordering rule, or acceptance predicate?
-
-If not, the story is not ready.
-
-Expected effect: blockers like `core-02-s2` are fixed before orchestration starts.
-
-### P1: Upgrade Story Reviewer Prompts
-
-Story reviewers should inspect local AC compliance, allowed pathset, public package surface, sibling
-pattern consistency, dependent-story assumptions, cross-story invariant candidates, and tests that
-could falsely pass.
-
-Expected effect: reviewers catch more defects before PR publication.
+- **R1 — Replace the single "pre-PR sweep" with two left-shifts (supersedes the original P0).**
+  - **R1a (authoring · `plan-epic` / Gate 3):** a **composed cross-story invariant owner** — name the
+    owning story (or epic-level invariant AC set) and the integration test; no composed invariant left
+    implicit. Fixes Bucket 1. Candidate **LSN-24**.
+  - **R1b (authoring · story contract R3 + reviewer prompt):** a required **scenario matrix** for every
+    invariant/failure AC, plus *tests that could falsely pass* / *cross-story invariant candidates* /
+    *dependent-story assumptions* on the reviewer checklist. Fixes Bucket 2. Candidate **LSN-25**.
+  - **R1c (execution · `orchestrated-delivery`, optional):** any pre-PR sweep must re-run *authored*
+    invariant ACs, never invent checks at runtime (preserves invariant I2).
+- **R2 — Make observability story-aware (tooling).** Structured event fields + stable ids as primary
+  identity.
+- **R3 — Batched PR review (with caveat).** Cluster by invariant family, patch the class, request one
+  review; reuse `thread-aware-pr-followup` / `watch-pr`. Reduces rounds, not findings — secondary to R1.
+- **R4 — Quiet and harden watch mode (low-leverage ergonomics).**
+- **R5 — Safety-critical predicate-input readiness — ALREADY COVERED by LSN-21.** Confirm the gate runs;
+  do not re-add.
+- **R6 — Enforce the Gate-3 sizing bar (authoring).** Decompose nodes materially over the AC budget.
+- **R7 — Govern mid-run package repair and the close-workers/PR-follow-up tension (execution).**
+- **R8 — Strengthen the delivery-retro contract itself (meta):** require ledger reconciliation, bucket
+  classification, and recommendation pressure-testing against the operating-model invariants.
+- **R9 — Worker-pool lifecycle automation — maps to LSN-20 (conditional).**
 
 ## Candidate Durable Lessons
 
-Promote these because they recur or represent process-level behavior:
+Reconciled against the [lessons ledger](../../../../implementation-authoring/lessons-ledger.md) — the
+method R8 asks every retro to apply.
 
-- A dependency is not ready until implementation, review, coordinator inspection, gate evidence, story
-  commit, tracker evidence, and current commit hash are all present.
-- Worker self-report is not evidence. Treat it as a pointer to evidence.
-- For long PR watch loops, the source of truth is live PR review-thread state plus checks, not watcher
-  output alone.
-- Explicit user approval is required before repairing planning/package artifacts during execution.
-- PR publication is not a substitute for integration review; a pre-PR invariant sweep is needed for
-  safety-critical runtime stories.
-- Story-level observability must be structured at capture time, not reconstructed from transcript text.
+New (no cover yet):
 
-Do not promote one-off implementation bugs as general lessons unless they expose a broader invariant
-class.
+- A **composed cross-story/cross-domain runtime invariant with no owner** falls into the seam between
+  stories and escapes characterization review → candidate **LSN-24** (Gate 3 composed-invariant-owner box).
+- An **enumerated invariant AC can still ship wrong** when the contract requires no scenario matrix and
+  the reviewer does not hunt falsely-passing tests → candidate **LSN-25** (R3 scenario matrix +
+  story-reviewer checklist).
+- An **oversized story (≫10 ACs)** concentrates review churn and hides internal seams → tighten Gate-3
+  sizing enforcement (no new rule).
+- **Mid-run package repair** requires explicit user approval and a planning route-back, never orchestrator
+  self-repair (process).
+- **Story-level observability** must be structured at capture time, not reconstructed from transcript text
+  (tooling).
+- For long PR watch loops, the **source of truth is live PR review-thread state plus checks**, not watcher
+  output alone (operational).
+
+Already covered (confirm, do not re-derive):
+
+- "Would an implementer need to invent a policy shape / authority rule?" → **LSN-21** (R6 predicate-input
+  + `plan-delivery` self-blocking preflight).
+- AC proof not re-run by the standing gate → **LSN-22** (`type:fixtures` lane, PR #146).
+- Tautological cross-surface parity test → **LSN-23** (`edge-01-s2`).
+- A dependency is ready only with implementation, review, coordinator inspection, gate evidence, story
+  commit, tracker evidence, and current commit hash all present → OD-3 / OD-6.
+- Worker self-report is not evidence; treat it as a pointer to evidence → implementer/reviewer evidence
+  model + invariant I5.
+- Capacity / slot reservation + auto-close terminal workers → **LSN-20** (conditional; skill enforcement
+  deferred).
+
+Do not promote one-off implementation bugs against a clear spec as lessons; those remain Bucket-2 review
+findings. No candidate was `recurring-despite-cover` this epic.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
