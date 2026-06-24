@@ -218,6 +218,62 @@ describe('RunWriter lifecycle validation', () => {
     expect(harness.appendCalls[0].envelopes[0].type).toBe('RunLifecycleTransitioned');
   });
 
+  it('rejects evidence-constrained transitions that cite non-evidence events', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    harness.seedLifecycle('configured', 3);
+    harness.seedLifecycle('task-snapshotted', 4);
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const result = writer.value.append([
+      appendIntent(
+        'RunLifecycleTransitioned',
+        lifecyclePayload('task-snapshotted', 'workspace-ready', {
+          sourceEventIds: ['evt-created-transition'],
+        }),
+      ),
+    ]);
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+  });
+
+  it('accepts evidence-constrained transitions that cite concrete evidence events', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    harness.seedLifecycle('configured', 3);
+    harness.seedLifecycle('task-snapshotted', 4);
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const evidence = writer.value.append([
+      appendIntent('WorkspacePreparedEvidence', { workspaceRef: 'workspace://ready' }, { eventId: 'evt-workspace' }),
+    ]);
+    expect(evidence.ok).toBe(true);
+    harness.resetAppendCalls();
+
+    const result = writer.value.append([
+      appendIntent(
+        'RunLifecycleTransitioned',
+        lifecyclePayload('task-snapshotted', 'workspace-ready', {
+          sourceEventIds: ['evt-workspace'],
+        }),
+      ),
+    ]);
+
+    expect(result.ok).toBe(true);
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunLifecycleTransitioned');
+  });
+
   it('rejects running transitions that cite observer-only session links', () => {
     const harness = createHarness();
     harness.seedCreatedRun();

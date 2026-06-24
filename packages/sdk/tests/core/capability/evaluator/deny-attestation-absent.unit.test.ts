@@ -72,6 +72,24 @@ describe('core-02-s2 deny attestation absent', () => {
     expect(payload.failureReason).toBe('attestation-absent');
   });
 
+  it('denies enqueue-and-complete actions without a merge-queue attestation', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      {
+        ...scenario.request,
+        requestedAction: 'enqueue-pull-request-and-complete-task',
+      },
+      {
+        ...scenario.replay,
+        events: scenario.replay.events.filter((event) => event.eventId !== 'evt-forge-merge-queue'),
+      },
+      scenario.projections,
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('attestation-absent');
+  });
+
   it('denies task-completing merge actions without a status-write attestation', () => {
     const scenario = createAllowAutoMergeScenario();
     const payload = evaluateCapabilityGate(

@@ -13,7 +13,11 @@ type GuaranteeResult = {
 const sortEvidenceRefs = (evidenceRefs: readonly string[]): string[] =>
   [...evidenceRefs].sort((left, right) => left.localeCompare(right));
 
-const mergeQueueActions = new Set(['enqueue-pull-request', 'merge-pull-request-via-queue']);
+const mergeQueueActions = new Set([
+  'enqueue-pull-request',
+  'merge-pull-request-via-queue',
+  'enqueue-pull-request-and-complete-task',
+]);
 const taskCompletingActions = new Set([
   'merge-pull-request-and-complete-task',
   'enqueue-pull-request-and-complete-task',

@@ -52,6 +52,9 @@ const isOwningSessionLink = (event: RunEventEnvelope): boolean =>
   isSessionLinkedPayload(event.payload) &&
   (event.payload.linkRole === 'primary' || event.payload.linkRole === 'recovery');
 
+const isEvidenceEvent = (event: RunEventEnvelope): boolean =>
+  event.type === 'Evidence' || event.type === 'RecordedEvidence' || event.type.endsWith('Evidence');
+
 const hasCommittedReference = (
   sourceEventIds: readonly string[],
   sourceEventsById: ReadonlyMap<string, RunEventEnvelope>,
@@ -64,7 +67,10 @@ const hasCommittedReference = (
       return false;
     }
 
-    return (expectedType === 'Evidence' || referenced.type === expectedType) && predicate(referenced);
+    return (
+      (expectedType === 'Evidence' ? isEvidenceEvent(referenced) : referenced.type === expectedType) &&
+      predicate(referenced)
+    );
   });
 
 const hasCommittedReferenceIn = (
