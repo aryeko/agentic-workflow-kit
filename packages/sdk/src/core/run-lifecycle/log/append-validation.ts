@@ -115,6 +115,33 @@ const hasCommittedSourceReference = (
   return hasCommittedReference(payload.sourceEventIds, sourceEventsById, 'PolicyDecision');
 };
 
+const matchesRetryEnvelope = (committed: RunEventEnvelope, attempted: RunEventEnvelope): boolean =>
+  committed.type === attempted.type &&
+  committed.eventId === attempted.eventId &&
+  committed.payloadDigest === attempted.payloadDigest;
+
+const findContiguousRetryBatch = (
+  committed: readonly RunEventEnvelope[],
+  attempted: readonly RunEventEnvelope[],
+): readonly RunEventEnvelope[] | undefined => {
+  if (attempted.length === 0 || committed.length < attempted.length) {
+    return undefined;
+  }
+
+  for (let start = 0; start <= committed.length - attempted.length; start += 1) {
+    const candidate = committed.slice(start, start + attempted.length);
+    const matchesInOrder = candidate.every((event, index) => matchesRetryEnvelope(event, attempted[index]));
+    const hasContiguousSequences = candidate.every(
+      (event, index) => index === 0 || event.sequence === candidate[index - 1].sequence + 1,
+    );
+    if (matchesInOrder && hasContiguousSequences) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+};
+
 export const terminalIdempotentReceipt = (
   context: Pick<WriterContext, 'runId'>,
   replayed: RunReplay,
@@ -131,40 +158,18 @@ export const terminalIdempotentReceipt = (
     return undefined;
   }
 
-  const matchingTerminal = replayed.events.find(
-    (event) =>
-      event.type === 'RunLifecycleTransitioned' &&
-      isLifecyclePayload(event.payload) &&
-      TERMINAL_STATES.has(event.payload.to) &&
-      event.eventId === terminalEnvelope.eventId &&
-      event.payloadDigest === terminalEnvelope.payloadDigest,
+  const matchingEvents = findContiguousRetryBatch(replayed.events, envelopes);
+  const matchingTerminal = matchingEvents?.find(
+    (event) => event.eventId === terminalEnvelope.eventId && event.payloadDigest === terminalEnvelope.payloadDigest,
   );
-
-  if (!matchingTerminal) {
-    return undefined;
-  }
-
-  const unmatched = [...replayed.events];
-  const matchingEvents: RunEventEnvelope[] = [];
-  for (const envelope of envelopes) {
-    const matchIndex = unmatched.findIndex(
-      (event) =>
-        event.type === envelope.type &&
-        event.eventId === envelope.eventId &&
-        event.payloadDigest === envelope.payloadDigest,
-    );
-    if (matchIndex === -1) {
-      return undefined;
-    }
-
-    const [matched] = unmatched.splice(matchIndex, 1);
-    matchingEvents.push(matched);
-  }
-
-  const orderedMatches = [...matchingEvents].sort((left, right) => left.sequence - right.sequence);
-  const firstMatch = orderedMatches[0];
-  const lastMatch = orderedMatches.at(-1);
-  if (firstMatch === undefined || lastMatch === undefined) {
+  const firstMatch = matchingEvents?.[0];
+  const lastMatch = matchingEvents?.at(-1);
+  if (
+    matchingEvents === undefined ||
+    matchingTerminal === undefined ||
+    firstMatch === undefined ||
+    lastMatch === undefined
+  ) {
     return undefined;
   }
 

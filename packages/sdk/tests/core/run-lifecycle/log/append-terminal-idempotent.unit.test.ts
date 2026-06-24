@@ -11,6 +11,19 @@ import {
 
 const encoder = new TextEncoder();
 
+const pushStoredEnvelope = (harness: ReturnType<typeof createHarness>, envelope: ReturnType<typeof makeEnvelope>) => {
+  harness.records.push({
+    sequence: envelope.sequence,
+    writerEpoch: envelope.writerEpoch,
+    leaseName: `run-writer:${runId}`,
+    payloadLength: 1,
+    payloadDigest: envelope.payloadDigest,
+    frameDigest: `seed-frame:${envelope.sequence}`,
+    byteRange: { start: envelope.sequence, end: envelope.sequence + 1 },
+    payload: encoder.encode(JSON.stringify(envelope)),
+  });
+};
+
 const seedTerminal = (harness: ReturnType<typeof createHarness>) => {
   const states = [
     [3, 'created', 'configured'],
@@ -75,6 +88,51 @@ const seedTerminal = (harness: ReturnType<typeof createHarness>) => {
   return terminalPayload;
 };
 
+const seedTerminalWithInterruptedEvidence = (harness: ReturnType<typeof createHarness>) => {
+  const states = [
+    [3, 'created', 'configured'],
+    [4, 'configured', 'task-snapshotted'],
+    [5, 'task-snapshotted', 'workspace-ready'],
+    [6, 'workspace-ready', 'worker-starting'],
+    [7, 'worker-starting', 'running'],
+    [8, 'running', 'runner-verifying'],
+    [9, 'runner-verifying', 'forge-waiting'],
+    [10, 'forge-waiting', 'merge-waiting'],
+    [11, 'merge-waiting', 'settling'],
+  ] as const;
+  const oldEvidencePayload = { evidenceRef: 'old', supportKind: 'probe', value: 'old' };
+  const oldEvidence = makeEnvelope(12, 'Evidence', oldEvidencePayload, {
+    eventId: 'old-evidence',
+    payloadDigest: `digest:${JSON.stringify(oldEvidencePayload)}`,
+    durability: 'barrier',
+  });
+  const mergeEvidencePayload = { evidenceRef: 'merge', supportKind: 'probe', value: 'merged' };
+  const mergeEvidence = makeEnvelope(13, 'Evidence', mergeEvidencePayload, {
+    eventId: 'merge',
+    payloadDigest: `digest:${JSON.stringify(mergeEvidencePayload)}`,
+    durability: 'barrier',
+  });
+  const terminalPayload = lifecyclePayload('settling', 'completed', {
+    terminal: true,
+    sourceEventIds: ['Evidence:merge'],
+  });
+  const terminal = makeEnvelope(14, 'RunLifecycleTransitioned', terminalPayload, {
+    eventId: 'terminal-1',
+    payloadDigest: `digest:${JSON.stringify(terminalPayload)}`,
+    durability: 'barrier',
+  });
+
+  harness.seedCreatedRun();
+  for (const [sequence, from, to] of states) {
+    pushStoredEnvelope(harness, makeEnvelope(sequence, 'RunLifecycleTransitioned', lifecyclePayload(from, to)));
+  }
+  pushStoredEnvelope(harness, oldEvidence);
+  pushStoredEnvelope(harness, mergeEvidence);
+  pushStoredEnvelope(harness, terminal);
+
+  return { oldEvidencePayload, terminalPayload };
+};
+
 describe('RunWriter terminal idempotency', () => {
   it('reports an identical terminal lifecycle envelope as committed without a second storage append', () => {
     const harness = createHarness();
@@ -137,6 +195,27 @@ describe('RunWriter terminal idempotency', () => {
             { evidenceRef: 'merge-new', supportKind: 'probe', value: 'new' },
             { eventId: 'merge-new' },
           ),
+          appendIntent('RunLifecycleTransitioned', terminalPayload, {
+            eventId: 'terminal-1',
+            durability: 'barrier',
+          }),
+        ])
+      : writer;
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+  });
+
+  it('rejects a terminal retry batch when matching events were not committed contiguously', () => {
+    const harness = createHarness();
+    const { oldEvidencePayload, terminalPayload } = seedTerminalWithInterruptedEvidence(harness);
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    const result = writer.ok
+      ? writer.value.append([
+          appendIntent('Evidence', oldEvidencePayload, {
+            eventId: 'old-evidence',
+          }),
           appendIntent('RunLifecycleTransitioned', terminalPayload, {
             eventId: 'terminal-1',
             durability: 'barrier',
