@@ -27,13 +27,18 @@ Each rule fixes a recurring defect class from early-epic delivery; the
 | **R6** | Predicate inputs are evaluable | for every behavioral AC and failure row, name the concrete request field, consumed event, projection, producer-owned shape field, or resolver that supplies the value being tested; a ref, hash, citation, or token is not a decision input unless this story owns or consumes the resolver that turns it into values | a story says "deny when policy disallows" while its contract exposes only `policyRef`, or "approved parent scope" with no approved-parent source |
 
 **Internal coverage — both ways.** Carry a matrix mapping every responsibility and manifest item to a
-proving `AC-n`, and every `AC-n` back to one. A manifest item with no AC is an orphaned obligation; an
-AC with no manifest item is invented scope; a responsibility reaching into another story's signal is an
-ownership leak — move it to the owning story.
+proving `AC-n`, and every `AC-n` back to the **standing gate lane** that re-proves it. A manifest item
+with no AC is an orphaned obligation; an AC with no manifest item is invented scope; an AC whose only
+proof is a manual one-off (not a named `pnpm check` / CI lane) is a manual-only proof that does not
+durably hold; a responsibility reaching into another story's signal is an ownership leak — move it to
+the owning story.
 
 **Negative claims need negative fixtures.** A green happy-path tool exit (`tsc -b`, `pnpm deps`,
 `pnpm check`) proves only *acceptance*. Every rejection / fail-fast / degraded / validation-failure AC
-names its own failing fixture or artifact.
+names its own failing fixture or artifact — and that fixture must be **invoked by a named gate lane**
+(e.g. `type:fixtures`), not only by a manual one-off command. A negative type-fixture outside the
+`tsc -b` build graph is unenforced: it silently rots and a regression that widens a union or drops a
+required field passes CI. The proof only counts once the standing gate re-runs it.
 
 **Decision predicates need decision values.** If an AC says the implementation must branch on policy,
 scope, capability state, approval state, authority, or any other runtime condition, the contract must
@@ -46,6 +51,14 @@ contract consumes an already-frozen producer shape/resolver verbatim or stops as
 Use `Validated artifacts:` (the files / inventories / config shapes it produces) and
 `Validation failure modes:` (the invalid shapes it must reject, each with a negative fixture); the
 failure table becomes a validation-failure table.
+
+**Cross-surface parity stories.** When a story asserts two surfaces are equivalent (e.g. CLI vs MCP),
+the parity is only real if the test can fail. Either the two surfaces must **not** share a byte-identical
+implementation file, **or** the parity test must vary a surface-specific input. Otherwise the assertion
+is tautological — "the same code on the same input yields the same bytes" can never fail and proves
+nothing. `edge-01-s2` shipped this weakness: `packages/cli/src/operator-smoke/shared.ts` was
+byte-identical to the MCP copy, so the parity test compared a file against itself. State the
+non-tautological parity check (distinct sources, or a varied surface-specific input) in the contract.
 
 ## Gate 4 — authoring-ready
 
@@ -62,7 +75,9 @@ Tick every box; an empty box means not ready.
       scope.
 - [ ] Failure/degraded (or validation-failure) table present; **each row's cited AC actually asserts
       that row** — not the happy path, not a different condition.
-- [ ] Every negative AC has a failing fixture; no green tool exit cited for a rejection.
+- [ ] Every negative AC has a failing fixture, and that fixture is **invoked by a named gate lane**
+      (e.g. `type:fixtures`) inside `pnpm check` — not only by a manual one-off; no green tool exit cited
+      for a rejection, no fixture left outside the `tsc -b` build graph.
 - [ ] Coverage number + enforcement command + instrumented lane stated, and the command measures the
       claimed helper scope; **substrate/config stories instead prove each validated artifact by a shape
       assertion and each validation-failure mode by a negative fixture — no coverage lane required.**
@@ -74,6 +89,8 @@ Tick every box; an empty box means not ready.
 - [ ] Public exposure: each public SDK shape names its import path (export + barrel + `exports`) and a
       public-import test; or the story states it exposes none — **substrate/config stories that expose no
       SDK surface satisfy this by construction.**
+- [ ] Cross-surface parity ACs are non-tautological: the comparison runs over distinct implementation
+      files or varies a surface-specific input — never the same file compared against itself.
 - [ ] Constructable: no AC or manifest shape requires a combination no value can satisfy; a fixture
       constructs each public shape.
 - [ ] Safety invariants fail-closed **by construction** — the unsafe state is unrepresentable or
@@ -96,7 +113,9 @@ blocker); coverage command + lane + number for the stated scope; a public-import
 sweep output for any cross-package change; predicate-input evidence showing each branch value comes from
 a declared input/event/projection/producer shape/resolver; conformance evidence for provider ports/mocks
 (real-runtime attestation only for a real driver capability). No manifest item missing; no requirement
-invented beyond design.
+invented beyond design. **An AC whose only proof is a command not invoked by `pnpm check` or a named CI
+lane is not gradable** — a manual one-off re-run by the reviewer is not a durable proof; name the
+standing gate lane that re-proves the AC, or the AC stays ungraded.
 
 **Gate 6 — readiness matrix.** An implementation axis moves to `yes` only with cited executable
 evidence. Design approval, prose, migrated code, fixtures, or worker self-report justify `partial` only.

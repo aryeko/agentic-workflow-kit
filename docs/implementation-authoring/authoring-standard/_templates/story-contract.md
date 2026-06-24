@@ -93,12 +93,14 @@ that supplies that value.
 
 ## Coverage matrix
 
-Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one. No
-responsibility crosses this story's assigned signal.
+Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one, and every
+AC names the **standing gate lane** that re-proves it (a `pnpm check` leaf such as `type:fixtures`,
+`coverage:baseline`, `deps`, or `typecheck` — never a manual one-off). No responsibility crosses this
+story's assigned signal.
 
-| Responsibility / spec-surface item | Proven by |
-|---|---|
-| <responsibility or manifest item> | AC-<n> |
+| Responsibility / spec-surface item | Proven by | Standing gate lane |
+|---|---|---|
+| <responsibility or manifest item> | AC-<n> | <`pnpm check` leaf that re-proves it> |
 
 ## Predicate-input matrix
 
