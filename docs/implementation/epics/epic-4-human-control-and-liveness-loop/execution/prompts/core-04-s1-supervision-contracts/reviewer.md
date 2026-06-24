@@ -8,16 +8,21 @@
 - Effort: `high`.
 - Suggested-tier floor: `elevated`.
 - Reasoning tier: `elevated`.
-- Routing rationale: core-04-s1-supervision-contracts covers `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7` and carries public supervision and liveness contract surface and single-producer value/event/projection/failure catalog consumed by later supervision behavior stories and later epics. The selected tier is at or above the DAG floor and uses no provider-specific runtime model id.
+- Routing rationale: core-04-s1-supervision-contracts covers `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7` and carries public supervision and liveness contract surface, serialized SDK entrypoint export wiring, and single-producer value/event/projection/failure catalog consumed by later supervision behavior stories and later epics. The selected tier is at or above the DAG floor and uses no provider-specific runtime model id.
 
 ## Original Scope
 
 - Story id: `core-04-s1-supervision-contracts`.
 - Epic slug: `epic-4-human-control-and-liveness-loop`.
 - Source story contract path: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s1-supervision-contracts.md`.
-- Allowed pathset: `packages/sdk/src/core/supervision/contracts/**`, `packages/sdk/tests/core/supervision/contracts/**`.
-- Direct dependencies: none.
-- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG.
+- Allowed pathset: `packages/sdk/src/core/supervision/contracts/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/supervision/contracts/**`.
+- Direct dependencies: `core-03-s1-approval-contracts` for serialized SDK public-entrypoint export
+  wiring only.
+- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths,
+  event/projection inputs, and provider-port facts named in the source contract and DAG. The
+  `core-03-s1-approval-contracts` dependency is only the committed baseline for serialized
+  `packages/sdk/src/index.ts` export wiring; it is not supervision shape input.
 
 ### Acceptance Criteria
 
@@ -62,7 +67,8 @@ This story declares the reason catalog but raises no runtime failure. Behavior s
 ### Dependencies And Frozen Inputs
 
 - Covers signals: supervisor/liveness/timer/termination facts contract part; fail-closed reason catalog.
-- Depends on: none inside Epic 4.
+- Depends on: `core-03-s1-approval-contracts` for serialized `packages/sdk/src/index.ts` export wiring
+  only; this story consumes no approval shapes.
 - Cross-epic frozen inputs: Epic 3 run-log/cursor types; Epic 2 Agent and Execution Host port types.
 - Decision inputs consumed: none; this story declares types only.
 
@@ -74,8 +80,10 @@ This story declares the reason catalog but raises no runtime failure. Behavior s
 
 ### STOP Conditions And Boundaries
 
-- Package/module boundary: `packages/sdk/src/core/supervision/contracts/**`.
+- Package/module boundary: `packages/sdk/src/core/supervision/contracts/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
 - Owned pathset: `packages/sdk/src/core/supervision/contracts/**`,
+  `packages/sdk/src/index.ts`,
   `packages/sdk/tests/core/supervision/contracts/**`.
 - Forbidden dependencies: concrete providers, process/network APIs, behavior folds.
 - STOP when an event payload field is not defined in the supervision design.
@@ -100,7 +108,8 @@ Check implementation against source story `docs/implementation/epics/epic-4-huma
 - Dependency boundaries, committed dependency inputs, and `{{DEPENDENCY_COMMITS}}` consistency.
 - Stale names and sibling occurrences of any issue found.
 - Tests, targeted checks, coverage commands, forbidden-symbol sweeps, and `pnpm check` output.
-- Scope control against allowed writes: `packages/sdk/src/core/supervision/contracts/**`, `packages/sdk/tests/core/supervision/contracts/**`.
+- Scope control against allowed writes: `packages/sdk/src/core/supervision/contracts/**`,
+  `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/contracts/**`.
 - Repo conventions and mutation limits from `AGENTS.md` and the source contract.
 
 ## Verdict Format

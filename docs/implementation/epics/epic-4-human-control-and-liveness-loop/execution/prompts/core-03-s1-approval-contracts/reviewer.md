@@ -8,14 +8,15 @@
 - Effort: `high`.
 - Suggested-tier floor: `elevated`.
 - Reasoning tier: `elevated`.
-- Routing rationale: core-03-s1-approval-contracts covers `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6` and carries public approval contract surface and single-producer value/event/projection/failure catalog consumed by later approval behavior stories and later epics. The selected tier is at or above the DAG floor and uses no provider-specific runtime model id.
+- Routing rationale: core-03-s1-approval-contracts covers `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6` and carries public approval contract surface, SDK entrypoint export wiring, and single-producer value/event/projection/failure catalog consumed by later approval behavior stories and later epics. The selected tier is at or above the DAG floor and uses no provider-specific runtime model id.
 
 ## Original Scope
 
 - Story id: `core-03-s1-approval-contracts`.
 - Epic slug: `epic-4-human-control-and-liveness-loop`.
 - Source story contract path: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s1-approval-contracts.md`.
-- Allowed pathset: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/tests/core/approval/contracts/**`.
+- Allowed pathset: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/contracts/**`.
 - Direct dependencies: none.
 - Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG.
 
@@ -62,7 +63,8 @@ This story declares the catalog but raises no runtime failure. Behavior stories 
 
 - Covers signals: neutral records contract part; fail-closed catalog part.
 - Depends on: Epic 2 `prov-01-s1-agent-port/ScopedGrant`.
-- Depended on by: `core-03-s2`, `core-03-s3`, `core-03-s4`, Epic 5, Epic 7.
+- Depended on by: `core-03-s2`, `core-03-s3`, `core-03-s4`, `core-04-s1` for serialized
+  `packages/sdk/src/index.ts` export wiring only, Epic 5, Epic 7.
 - Shared shapes consumed: `prov-01-s1-agent-port/ScopedGrant`.
 - Decision inputs consumed: none; this story declares shapes only.
 
@@ -74,8 +76,10 @@ This story declares the catalog but raises no runtime failure. Behavior stories 
 
 ### STOP Conditions And Boundaries
 
-- Package/module boundary: `packages/sdk/src/core/approval/contracts/**`.
-- Owned pathset: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/tests/core/approval/contracts/**`.
+- Package/module boundary: `packages/sdk/src/core/approval/contracts/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/contracts/**`.
 - Forbidden dependencies: provider packages, `testkit`, process/network APIs, concrete Codex enums.
 - STOP when a required approval field is not in the design files named above.
 
@@ -99,7 +103,8 @@ Check implementation against source story `docs/implementation/epics/epic-4-huma
 - Dependency boundaries, committed dependency inputs, and `{{DEPENDENCY_COMMITS}}` consistency.
 - Stale names and sibling occurrences of any issue found.
 - Tests, targeted checks, coverage commands, forbidden-symbol sweeps, and `pnpm check` output.
-- Scope control against allowed writes: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/tests/core/approval/contracts/**`.
+- Scope control against allowed writes: `packages/sdk/src/core/approval/contracts/**`,
+  `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/contracts/**`.
 - Repo conventions and mutation limits from `AGENTS.md` and the source contract.
 
 ## Verdict Format

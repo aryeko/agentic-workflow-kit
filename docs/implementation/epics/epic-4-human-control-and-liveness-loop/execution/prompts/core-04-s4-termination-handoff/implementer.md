@@ -25,7 +25,8 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 - Covers signals: supervisor facts behavior part; cursor/linkage/progress/stale/termination fail-closed
   behavior.
 - Depends on: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`,
-  `core-04-s3-timers-and-wait`.
+  `core-04-s3-timers-and-wait`, and `core-03-s4-grant-mapping-and-outcome` for serialized
+  `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: liveness state/reason, timer-expired facts, ownership/worker handle,
   Execution Host `canKill` attestation/capability, `TerminationResult.proof.containmentEmpty`, writer
   append result, terminal lifecycle state.
@@ -94,15 +95,24 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s4-termination-handoff.md`. Owned pathset from the frozen DAG and source contract:
 
 - `packages/sdk/src/core/supervision/termination/**`
+- `packages/sdk/src/index.ts`
 - `packages/sdk/tests/core/supervision/termination/**`
 
 Every other write is forbidden, including this execution package, tracker files, source planning artifacts, repo-wide cleanup, dependency churn, generated files outside the owned pathset, commits, pushes, PRs, and merges.
 
 ## Dependency Inputs
 
-Direct dependency story ids: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`, `core-04-s3-timers-and-wait`.
+Direct dependency story ids: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`,
+`core-04-s3-timers-and-wait`, `core-03-s4-grant-mapping-and-outcome`.
 
-Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use only producer-owned shared shapes, public import paths, committed events/projections, provider-port inputs, and frozen cross-epic facts named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s4-termination-handoff.md`. Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
+Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use the
+committed `core-03-s4-grant-mapping-and-outcome` input only as the baseline for
+`packages/sdk/src/index.ts`; do not import approval grant/outcome shapes or treat the serialization
+edge as a supervision termination dependency. Use only producer-owned shared shapes, public import
+paths, committed events/projections, provider-port inputs, and frozen cross-epic facts named by
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s4-termination-handoff.md`.
+Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
 
 ## Non-Goals And STOP Conditions
 
@@ -114,8 +124,10 @@ Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_CO
 
 ### Source Boundaries And STOP Conditions
 
-- Package/module boundary: `packages/sdk/src/core/supervision/termination/**`.
-- Owned pathset: that source/test folder.
+- Package/module boundary: `packages/sdk/src/core/supervision/termination/**`, with SDK
+  public-entrypoint export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/supervision/termination/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/supervision/termination/**`.
 - Forbidden dependencies: Local provider, process kill, recovery decisions, operator UI.
 - STOP when a story needs to prove containment empty itself rather than consuming Execution Host proof.
 

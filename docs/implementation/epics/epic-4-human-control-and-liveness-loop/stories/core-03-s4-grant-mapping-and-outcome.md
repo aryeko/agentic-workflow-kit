@@ -51,7 +51,8 @@ relay, and record final approval outcome facts without embedding provider-specif
 
 - Covers signals: policy-level grant mapping; relay/channel/mapping/outcome failure behavior; neutral
   record behavior part.
-- Depends on: `core-03-s1`, `core-03-s2`, `core-03-s3`.
+- Depends on: `core-03-s1`, `core-03-s2`, `core-03-s3`; `core-04-s3-timers-and-wait` for serialized
+  `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: original `ApprovalRequest` command/host/file/session evidence,
   `PolicyGrantPlan`, committed `ApprovalDecisionRecorded` event id, Agent relay/channel capability
   attestations, Agent answer result.
@@ -135,8 +136,11 @@ relay, and record final approval outcome facts without embedding provider-specif
 ## Boundaries and STOP conditions
 
 - Package/module boundary: `packages/sdk/src/core/approval/grants/**`,
-  `packages/sdk/src/core/approval/outcomes/**`.
-- Owned pathset: those source/test folders.
+  `packages/sdk/src/core/approval/outcomes/**`, with SDK public-entrypoint export wiring in
+  `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/grants/**`,
+  `packages/sdk/src/core/approval/outcomes/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/grants/**`, `packages/sdk/tests/core/approval/outcomes/**`.
 - Forbidden dependencies: concrete Agent driver behavior, Codex enums, recovery action selection.
 - STOP when a policy scope cannot map to Agent `ScopedGrant` without widening or inventing a grant kind.
 
@@ -145,6 +149,11 @@ relay, and record final approval outcome facts without embedding provider-specif
 - Scope decision: grant mapping is separate from risk decision and pending resume. Rationale: Agent
   boundary conversion has distinct failure tokens. Falsification: policy-level grant crosses Agent
   boundary. Escalation: story defect.
+- Scope decision: SDK public entrypoint wiring is part of this public behavior story. Rationale: its
+  public-import test cannot pass unless the story can add grant/outcome exports to
+  `packages/sdk/src/index.ts`; the cross-domain dependency is serialization only. Falsification: public
+  import AC excludes the package entrypoint from the pathset or runs concurrently with another barrel
+  writer.
 - Gate verdict: ready. Each mapping and failure row is directly testable from declared input values.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

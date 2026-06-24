@@ -48,7 +48,8 @@ Evaluate supervision timers from liveness projection and explicit clock input, a
 ## Dependencies and frozen inputs
 
 - Covers signals: timer signals; `waitRunEvents` wrapper and cursor validation.
-- Depends on: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`.
+- Depends on: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`;
+  `core-03-s3-pending-park-resume` for serialized `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: `LivenessProjection` timestamps/sequences/timers, `SupervisionTimerPolicy`,
   sampled clock, wait request `runId`, `cursor.runId`, `cursor.afterSequence`, `timeoutMs`,
   `maxEvents`, and Epic 3 wait result.
@@ -135,8 +136,11 @@ Evaluate supervision timers from liveness projection and explicit clock input, a
 ## Boundaries and STOP conditions
 
 - Package/module boundary: `packages/sdk/src/core/supervision/timers/**`,
-  `packages/sdk/src/core/supervision/wait/**`.
-- Owned pathset: those source/test folders.
+  `packages/sdk/src/core/supervision/wait/**`, with SDK public-entrypoint export wiring in
+  `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/supervision/timers/**`,
+  `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**`.
 - Forbidden dependencies: projection mutation in wait, liveness refresh in wait, new timer not in design.
 - STOP when a timer beyond the six design timers is needed.
 
@@ -144,6 +148,11 @@ Evaluate supervision timers from liveness projection and explicit clock input, a
 
 - Scope decision: wait wrapper is not liveness proof. Rationale: design says wait responses never
   refresh liveness. Falsification: wait changes liveness projection. Escalation: story defect.
+- Scope decision: SDK public entrypoint wiring is part of this public behavior story. Rationale: its
+  public-import test cannot pass unless the story can add timer/wait exports to
+  `packages/sdk/src/index.ts`; the cross-domain dependency is serialization only. Falsification: public
+  import AC excludes the package entrypoint from the pathset or runs concurrently with another barrel
+  writer.
 - Gate verdict: ready. ACs map every timer and wait failure to concrete assertions.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

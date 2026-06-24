@@ -23,7 +23,8 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 
 - Covers signals: pending persistence; parked/resumed/expired facts; pending/session/expiry/log failure
   behavior.
-- Depends on: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`.
+- Depends on: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`, and
+  `core-04-s2-liveness-fold` for serialized `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: request `requestedAt`, `expiresAt`, `answerChannelPersistable`,
   `answerChannelRef`; policy `approval.decisionWindowMs`; sampled `evaluatedAt`; committed
   `Decision`; core-01 linkage resolver/raw linkage events; Agent `canResumeOwned`,
@@ -91,6 +92,7 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 
 - `packages/sdk/src/core/approval/pending/**`
 - `packages/sdk/src/core/approval/projections/**`
+- `packages/sdk/src/index.ts`
 - `packages/sdk/tests/core/approval/pending/**`
 - `packages/sdk/tests/core/approval/projections/**`
 
@@ -98,9 +100,17 @@ Every other write is forbidden, including this execution package, tracker files,
 
 ## Dependency Inputs
 
-Direct dependency story ids: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`.
+Direct dependency story ids: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`,
+`core-04-s2-liveness-fold`.
 
-Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use only producer-owned shared shapes, public import paths, committed events/projections, provider-port inputs, and frozen cross-epic facts named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s3-pending-park-resume.md`. Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
+Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use the
+committed `core-04-s2-liveness-fold` input only as the baseline for `packages/sdk/src/index.ts`; do
+not import liveness shapes or treat the serialization edge as an approval pending dependency. Use only
+producer-owned shared shapes, public import paths, committed events/projections, provider-port inputs,
+and frozen cross-epic facts named by
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s3-pending-park-resume.md`.
+Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
 
 ## Non-Goals And STOP Conditions
 
@@ -113,8 +123,11 @@ Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_CO
 ### Source Boundaries And STOP Conditions
 
 - Package/module boundary: `packages/sdk/src/core/approval/pending/**`,
-  `packages/sdk/src/core/approval/projections/**`.
-- Owned pathset: those source/test folders.
+  `packages/sdk/src/core/approval/projections/**`, with SDK public-entrypoint export wiring in
+  `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/pending/**`,
+  `packages/sdk/src/core/approval/projections/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**`.
 - Forbidden dependencies: concrete providers, real process/network, recovery action selection.
 - STOP when resume requires a later Epic 5 recovery choice.
 

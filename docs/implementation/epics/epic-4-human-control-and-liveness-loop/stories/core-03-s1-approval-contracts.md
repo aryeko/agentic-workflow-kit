@@ -58,7 +58,8 @@ payloads, projection shapes, interfaces, and failure-state catalog.
 
 - Covers signals: neutral records contract part; fail-closed catalog part.
 - Depends on: Epic 2 `prov-01-s1-agent-port/ScopedGrant`.
-- Depended on by: `core-03-s2`, `core-03-s3`, `core-03-s4`, Epic 5, Epic 7.
+- Depended on by: `core-03-s2`, `core-03-s3`, `core-03-s4`, `core-04-s1` for serialized
+  `packages/sdk/src/index.ts` export wiring only, Epic 5, Epic 7.
 - Shared shapes consumed: `prov-01-s1-agent-port/ScopedGrant`.
 - Decision inputs consumed: none; this story declares shapes only.
 
@@ -136,8 +137,10 @@ This story declares the catalog but raises no runtime failure. Behavior stories 
 
 ## Boundaries and STOP conditions
 
-- Package/module boundary: `packages/sdk/src/core/approval/contracts/**`.
-- Owned pathset: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/tests/core/approval/contracts/**`.
+- Package/module boundary: `packages/sdk/src/core/approval/contracts/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/contracts/**`.
 - Forbidden dependencies: provider packages, `testkit`, process/network APIs, concrete Codex enums.
 - STOP when a required approval field is not in the design files named above.
 
@@ -145,6 +148,10 @@ This story declares the catalog but raises no runtime failure. Behavior stories 
 
 - Scope decision: approval contracts are value types. Rationale: consumers use these as data shapes;
   falsified if a behavior story redeclares them. Escalation: return to DAG.
+- Scope decision: SDK public entrypoint wiring is part of this public producer. Rationale: AC-6 is not
+  executable unless this story can edit `packages/sdk/src/index.ts`; falsified if AC-6 requires a public
+  import while the pathset excludes the package entrypoint. Escalation: return to DAG or introduce a
+  separate export-wiring story if more producers need the same shared file.
 - Gate verdict: ready. All ACs have concrete assertions, public import is named, no runtime predicate is
   hidden, and failure tokens are catalog-only here.
 

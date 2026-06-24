@@ -15,9 +15,9 @@
 - Story id: `core-04-s2-liveness-fold`.
 - Epic slug: `epic-4-human-control-and-liveness-loop`.
 - Source story contract path: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s2-liveness-fold.md`.
-- Allowed pathset: `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/tests/core/supervision/liveness/**`.
-- Direct dependencies: `core-04-s1-supervision-contracts`.
-- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG.
+- Allowed pathset: `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/liveness/**`.
+- Direct dependencies: `core-04-s1-supervision-contracts`, `core-03-s2-risk-and-decision`.
+- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG. The `core-03-s2-risk-and-decision` dependency is only the committed baseline for serialized `packages/sdk/src/index.ts` export wiring; it is not supervision shape input.
 
 ### Acceptance Criteria
 
@@ -79,8 +79,10 @@ Source AC ids: `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`.
 
 ### STOP Conditions And Boundaries
 
-- Package/module boundary: `packages/sdk/src/core/supervision/liveness/**`.
-- Owned pathset: source/test liveness folders.
+- Package/module boundary: `packages/sdk/src/core/supervision/liveness/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/supervision/liveness/**`.
 - Forbidden dependencies: runtime log objects, providers, process/network APIs.
 - STOP when liveness requires a concrete Agent protocol event not present in Epic 2 Agent port.
 
@@ -104,7 +106,7 @@ Check implementation against source story `docs/implementation/epics/epic-4-huma
 - Dependency boundaries, committed dependency inputs, and `{{DEPENDENCY_COMMITS}}` consistency.
 - Stale names and sibling occurrences of any issue found.
 - Tests, targeted checks, coverage commands, forbidden-symbol sweeps, and `pnpm check` output.
-- Scope control against allowed writes: `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/tests/core/supervision/liveness/**`.
+- Scope control against allowed writes: `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/liveness/**`.
 - Repo conventions and mutation limits from `AGENTS.md` and the source contract.
 
 ## Verdict Format

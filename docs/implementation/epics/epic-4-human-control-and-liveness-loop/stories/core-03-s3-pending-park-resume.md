@@ -53,7 +53,8 @@ facts, and fold approval projections from committed events.
 
 - Covers signals: pending persistence; parked/resumed/expired facts; pending/session/expiry/log failure
   behavior.
-- Depends on: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`.
+- Depends on: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`;
+  `core-04-s2-liveness-fold` for serialized `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: request `requestedAt`, `expiresAt`, `answerChannelPersistable`,
   `answerChannelRef`; policy `approval.decisionWindowMs`; sampled `evaluatedAt`; committed
   `Decision`; core-01 linkage resolver/raw linkage events; Agent `canResumeOwned`,
@@ -145,8 +146,11 @@ facts, and fold approval projections from committed events.
 ## Boundaries and STOP conditions
 
 - Package/module boundary: `packages/sdk/src/core/approval/pending/**`,
-  `packages/sdk/src/core/approval/projections/**`.
-- Owned pathset: those source/test folders.
+  `packages/sdk/src/core/approval/projections/**`, with SDK public-entrypoint export wiring in
+  `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/pending/**`,
+  `packages/sdk/src/core/approval/projections/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**`.
 - Forbidden dependencies: concrete providers, real process/network, recovery action selection.
 - STOP when resume requires a later Epic 5 recovery choice.
 
@@ -154,6 +158,11 @@ facts, and fold approval projections from committed events.
 
 - Scope decision: pending/park/resume owns durable facts and projection fold, not Agent answer. Rationale:
   design separates pending/resume from grant mapping. Falsification: this story calls Agent answer.
+- Scope decision: SDK public entrypoint wiring is part of this public behavior story. Rationale: its
+  public-import test cannot pass unless the story can add pending/projection exports to
+  `packages/sdk/src/index.ts`; the cross-domain dependency is serialization only. Falsification: public
+  import AC excludes the package entrypoint from the pathset or runs concurrently with another barrel
+  writer.
 - Gate verdict: ready. ACs are falsifiable and failure rows map to concrete negative fixtures.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

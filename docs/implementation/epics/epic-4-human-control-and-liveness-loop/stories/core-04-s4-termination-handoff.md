@@ -57,7 +57,8 @@ implementing host kill mechanics.
 - Covers signals: supervisor facts behavior part; cursor/linkage/progress/stale/termination fail-closed
   behavior.
 - Depends on: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`,
-  `core-04-s3-timers-and-wait`.
+  `core-04-s3-timers-and-wait`, and `core-03-s4-grant-mapping-and-outcome` for serialized
+  `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: liveness state/reason, timer-expired facts, ownership/worker handle,
   Execution Host `canKill` attestation/capability, `TerminationResult.proof.containmentEmpty`, writer
   append result, terminal lifecycle state.
@@ -146,8 +147,10 @@ implementing host kill mechanics.
 
 ## Boundaries and STOP conditions
 
-- Package/module boundary: `packages/sdk/src/core/supervision/termination/**`.
-- Owned pathset: that source/test folder.
+- Package/module boundary: `packages/sdk/src/core/supervision/termination/**`, with SDK
+  public-entrypoint export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/supervision/termination/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/supervision/termination/**`.
 - Forbidden dependencies: Local provider, process kill, recovery decisions, operator UI.
 - STOP when a story needs to prove containment empty itself rather than consuming Execution Host proof.
 
@@ -155,6 +158,10 @@ implementing host kill mechanics.
 
 - Scope decision: termination is handoff, not kill. Rationale: design forbids core from signalling or
   proving-empty directly. Falsification: process API import or concrete Local provider call.
+- Scope decision: SDK public entrypoint wiring belongs to this story for termination exports. Rationale:
+  AC public exposure requires importability from `sdk`; serialization through
+  `core-03-s4-grant-mapping-and-outcome` only preserves the committed barrel baseline and does not
+  introduce approval-shape consumption.
 - Gate verdict: ready. ACs name exact event ordering, failure behavior, and forbidden-symbol sweep.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

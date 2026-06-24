@@ -8,7 +8,7 @@
 - Effort: `high`.
 - Suggested-tier floor: `elevated`.
 - Reasoning tier: `elevated`.
-- Routing rationale: core-04-s1-supervision-contracts covers `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7` and carries public supervision and liveness contract surface and single-producer value/event/projection/failure catalog consumed by later supervision behavior stories and later epics. The selected tier is at or above the DAG floor and uses no provider-specific runtime model id.
+- Routing rationale: core-04-s1-supervision-contracts covers `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7` and carries public supervision and liveness contract surface, serialized SDK entrypoint export wiring, and single-producer value/event/projection/failure catalog consumed by later supervision behavior stories and later epics. The selected tier is at or above the DAG floor and uses no provider-specific runtime model id.
 
 ## Exact Task
 
@@ -22,7 +22,8 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 ## Why It Matters
 
 - Covers signals: supervisor/liveness/timer/termination facts contract part; fail-closed reason catalog.
-- Depends on: none inside Epic 4.
+- Depends on: `core-03-s1-approval-contracts` for serialized `packages/sdk/src/index.ts` export wiring
+  only; this story consumes no approval shapes.
 - Cross-epic frozen inputs: Epic 3 run-log/cursor types; Epic 2 Agent and Execution Host port types.
 - Decision inputs consumed: none; this story declares types only.
 
@@ -35,7 +36,9 @@ DAG dependents for this story: `core-04-s2-liveness-fold`, `core-04-s3-timers-an
 - `docs/design/30-domain-reference/core/supervision-and-liveness/README.md` - normative design named by the source contract.
 - `docs/design/30-domain-reference/core/supervision-and-liveness/liveness-model.md` - normative design named by the source contract.
 - `docs/design/20-sdk-and-packaging/sdk-boundary.md` - normative design named by the source contract.
-- `{{DEPENDENCY_COMMITS}}` - runtime slot; this story has no direct intra-epic dependencies, so the execution run may leave it empty.
+- `{{DEPENDENCY_COMMITS}}` - runtime slot; this story requires the committed
+  `core-03-s1-approval-contracts` dependency input so `packages/sdk/src/index.ts` starts from the
+  approved approval export wiring.
 - `AGENTS.md` and `CLAUDE.md` - repo branch, worktree, mutation, and verification rules.
 
 ## Acceptance Criteria
@@ -83,15 +86,24 @@ This story declares the reason catalog but raises no runtime failure. Behavior s
 Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s1-supervision-contracts.md`. Owned pathset from the frozen DAG and source contract:
 
 - `packages/sdk/src/core/supervision/contracts/**`
+- `packages/sdk/src/index.ts`
 - `packages/sdk/tests/core/supervision/contracts/**`
 
 Every other write is forbidden, including this execution package, tracker files, source planning artifacts, repo-wide cleanup, dependency churn, generated files outside the owned pathset, commits, pushes, PRs, and merges.
 
 ## Dependency Inputs
 
-Direct dependency story ids: none.
+Direct dependency story ids: `core-03-s1-approval-contracts` for serialized SDK public-entrypoint
+export wiring only.
 
-Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use only producer-owned shared shapes, public import paths, committed events/projections, provider-port inputs, and frozen cross-epic facts named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s1-supervision-contracts.md`. Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
+Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use the
+committed `core-03-s1-approval-contracts` input only as the baseline for `packages/sdk/src/index.ts`;
+do not import approval shapes or treat the serialization edge as a supervision contract dependency. Use
+only producer-owned shared shapes, public import paths, committed events/projections, provider-port
+inputs, and frozen cross-epic facts named by
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s1-supervision-contracts.md`.
+Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
 
 ## Non-Goals And STOP Conditions
 
@@ -103,8 +115,10 @@ Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_CO
 
 ### Source Boundaries And STOP Conditions
 
-- Package/module boundary: `packages/sdk/src/core/supervision/contracts/**`.
+- Package/module boundary: `packages/sdk/src/core/supervision/contracts/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
 - Owned pathset: `packages/sdk/src/core/supervision/contracts/**`,
+  `packages/sdk/src/index.ts`,
   `packages/sdk/tests/core/supervision/contracts/**`.
 - Forbidden dependencies: concrete providers, process/network APIs, behavior folds.
 - STOP when an event payload field is not defined in the supervision design.
