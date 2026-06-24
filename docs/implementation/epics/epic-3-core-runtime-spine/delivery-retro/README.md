@@ -57,8 +57,8 @@ integrate, normalize, patch, gate, and later respond to many external review fin
 **The headline correction (this revision):** the 91 findings are two populations, not one. Most hot-spot
 findings were **already enumerated** in their story contracts — with failure rows and named negative
 fixtures — yet shipped and were approved by story review (a **Bucket-2** review-depth miss). The two
-genuinely-late P1s were **composed cross-domain invariants with no owner in the DAG** (a **Bucket-1**
-characterization miss). The primary fix is therefore to move *both* left — a composed cross-story
+genuinely-late P1s were **composed cross-domain invariants that were never enumerated, so no story owned
+them** (a **Bucket-1** characterization miss). The primary fix is therefore to move *both* left — a composed cross-story
 invariant owner at `plan-epic`, and a required scenario matrix plus a sharper story reviewer — not to add
 a pre-PR integration layer *downstream* (the original P0), which sits to the right of where the operating
 model says these are cheapest to catch. Story-aware observability and a quieter watch mode are real but
@@ -116,9 +116,10 @@ Bucket-2 invariants escaped story review. Most PR findings were in invariants th
 enumerated — with failure rows and named negative fixtures — yet they shipped, story review approved
 them, and `pnpm check` passed. The escape was review depth and scenario coverage, not a missing *what*.
 
-Bucket-1 composed invariants had no owner. The two genuinely-late P1s — gate denial after terminal
-lifecycle, analysis-head preservation across cursor advance — were cross-domain invariants that lived in
-the seam between stories with no owner in the DAG, so they reached the external PR reviewer.
+Bucket-1 composed invariants were never enumerated. The two genuinely-late P1s — gate denial after
+terminal lifecycle, analysis-head preservation across cursor advance — were cross-domain invariants that
+existed only as design prose, so no story owned them (Gate 3's existing cross-domain ownership rule had
+nothing to assign) and they reached the external PR reviewer.
 
 PR review became the integration net. The PR reviewer effectively became the deepest integration
 reviewer — a review altitude the operating model never staffs — which is too late for the observed
@@ -148,9 +149,11 @@ Re-leveled to the cheapest catch point; each names its altitude and ledger statu
 in [Cause Analysis and Recommendations](./04-cause-analysis-and-recommendations.md).
 
 - **R1 — Replace the single "pre-PR sweep" with two left-shifts (supersedes the original P0).**
-  - **R1a (authoring · `plan-epic` / Gate 3):** a **composed cross-story invariant owner** — name the
-    owning story (or epic-level invariant AC set) and the integration test; no composed invariant left
-    implicit. Fixes Bucket 1. Candidate **LSN-24**.
+  - **R1a (authoring · `plan-epic` / Gate 3):** **enumerate cross-domain invariants so the existing
+    ownership gate applies.** Gate 3 already spans cross-story/cross-domain (40-story-dag.md:68-91); it
+    failed here only because the invariant was never enumerated (it was design prose). Name the owning
+    story (or epic-level invariant AC set) + the integration test — tightening enumeration, not a new
+    rule. Fixes Bucket 1. Candidate **LSN-24**.
   - **R1b (authoring · story contract R3 + reviewer prompt):** a required **scenario matrix** for every
     invariant/failure AC, plus *tests that could falsely pass* / *cross-story invariant candidates* /
     *dependent-story assumptions* on the reviewer checklist. Fixes Bucket 2. Candidate **LSN-25**.
@@ -176,8 +179,9 @@ method R8 asks every retro to apply.
 
 New (no cover yet):
 
-- A **composed cross-story/cross-domain runtime invariant with no owner** falls into the seam between
-  stories and escapes characterization review → candidate **LSN-24** (Gate 3 composed-invariant-owner box).
+- A **cross-domain runtime invariant that is never enumerated** has no story to own it (Gate 3's existing
+  cross-domain ownership rule has nothing to bind) and escapes characterization review → candidate
+  **LSN-24** (enumerate cross-domain invariants so the existing Gate-3 ownership rule applies).
 - An **enumerated invariant AC can still ship wrong** when the contract requires no scenario matrix and
   the reviewer does not hunt falsely-passing tests → candidate **LSN-25** (R3 scenario matrix +
   story-reviewer checklist).

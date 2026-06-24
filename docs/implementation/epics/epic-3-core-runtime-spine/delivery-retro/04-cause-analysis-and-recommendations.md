@@ -108,7 +108,7 @@ invariant ship:
 - The projected story-reviewer checklist omits the operating-model reviewer's stated *real value*:
   *tests that could falsely pass*, *cross-story invariant candidates*, *dependent-story assumptions*.
 
-### Bucket 1 — the genuinely-late P1s: composed invariants with no owner
+### Bucket 1 — the genuinely-late P1s: cross-domain invariants never enumerated, so unowned
 
 The two final finding-bearing rounds were both single P1s (see
 [PR Review Rounds](./03-pr-review-rounds.md)): "deny unattended-run gates **after terminal lifecycle**"
@@ -121,12 +121,19 @@ member for terminal lifecycle state**; AC-6 keys "degraded" only on replay healt
 ambiguous linkage; and its *Out of scope* explicitly punts "the lifecycle consequence of a deny … to the
 caller, not this evaluator." Nobody owned the *composed* rule "a gate must deny once the run is terminal."
 
-The authoring standard's catalog/invariant-owner rule
-([40-story-dag.md](../../../../implementation-authoring/authoring-standard/40-story-dag.md)) only reaches
-**within a domain** (e.g. `core-01-s3` owns the lifecycle table). There is no owner for a *cross-domain
-composed* invariant, so it fell into the seam — and the PR bot became the integration net the operating
-model never staffed. The cheapest catch point would be **characterization review**, *if* the composed
-invariant had an owner. That ownership is the real authoring-standard hole this epic exposed.
+The authoring standard's shared-contract / catalog-invariant-owner rule
+([40-story-dag.md:68-91](../../../../implementation-authoring/authoring-standard/40-story-dag.md))
+**already spans cross-story and cross-domain** — it names the `core-02`..`core-07` consumers of
+`core-01`'s run event envelope as the worked example and states that *"neither side may leave the
+behavior unowned."* So the gate is **not** scoped within a domain, and the escape was **not** a reach
+limit of the rule. The rule can only assign an invariant that has been **enumerated** as an owned
+signal/invariant — and "a gate must deny once the run is terminal" was never enumerated. It lived as
+prose on the producer side (`capability-registry.md:48`, *unattended-run proceeds "until it hits … a
+terminal state"*) and was punted out of scope on the consumer, so the existing ownership gate had
+**nothing to assign**. The cheapest catch point would still be **characterization review** — but the
+fix is to **enumerate the cross-domain invariant** (so the existing Gate-3 ownership rule applies and
+asks "which story owns the deny-when-terminal behavior?"), not to invent a new owner rule. That
+enumeration gap — an invariant that exists only as design prose — is the real hole this epic exposed.
 
 ## Story size concentrated the churn
 
@@ -182,10 +189,14 @@ The original P0 — a "pre-PR integration invariant sweep" — is the *least-lef
 *downstream* of story review, and, if the orchestrator invents the checks at runtime, a violation of
 pipeline invariant **I2** ("the executor binds runtime facts, never the *what*"). Split it by bucket:
 
-- **R1a (authoring · `plan-epic` / Gate 3) — composed cross-story invariant owner.** When an invariant
-  spans stories or domains, the DAG must name the **owning story** (or an epic-level invariant AC set) and
-  the **integration test** that proves it; no composed invariant is left implicit in per-file behavior
-  stories. Fixes Bucket 1. **Candidate LSN-24.**
+- **R1a (authoring · `plan-epic` / Gate 3) — enumerate cross-domain invariants so the *existing*
+  ownership gate applies.** Gate 3 already requires every shared contract / catalog / invariant to have
+  exactly one owner across producer/consumer stories (40-story-dag.md:68-91); it failed here only because
+  the invariant was never enumerated (it was design prose). The fix is to make cross-domain invariants
+  first-class enumerated signals — name the **owning story** (or an epic-level invariant AC set) and the
+  **integration test** that proves it — so Gate 3's "neither side may leave the behavior unowned" check
+  has something to bind. This is tightening enumeration + applying the existing gate, **not** a new owner
+  rule. Fixes Bucket 1. **Candidate LSN-24.**
 - **R1b (authoring · story contract R3 + reviewer prompt) — scenario matrix + reviewer depth.** Require a
   **scenario matrix** for every invariant/failure AC, and add *tests that could falsely pass* /
   *cross-story invariant candidates* / *dependent-story assumptions* to the story-reviewer checklist.
@@ -260,7 +271,7 @@ The method R8 asks every future retro to apply, applied here: each candidate les
 
 | Candidate lesson | Status vs ledger | Cover (existing or proposed) |
 |---|---|---|
-| Composed cross-story/cross-domain runtime invariant has no owner | **new** | candidate **LSN-24** — Gate 3 composed-invariant-owner box (R1a) |
+| Cross-domain runtime invariant never enumerated, so Gate 3's existing ownership rule had nothing to assign | **new** | candidate **LSN-24** — enumerate cross-domain invariants so the existing Gate-3 ownership rule applies (R1a) |
 | Enumerated invariant AC shipped wrong (no required scenario matrix; reviewer didn't hunt falsely-passing tests) | **new** | candidate **LSN-25** — R3 scenario matrix + story-reviewer checklist (R1b) |
 | Oversized story (≫10 ACs) concentrates review churn and hides internal seams | **new** | tighten existing Gate-3 sizing enforcement (R6) — no new rule |
 | Mid-run package repair needs explicit approval + planning route-back | **new (process)** | `orchestrated-delivery` boundary clarification (R7) |
