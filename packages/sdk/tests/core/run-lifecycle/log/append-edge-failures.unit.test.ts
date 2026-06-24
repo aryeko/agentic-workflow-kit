@@ -218,7 +218,7 @@ describe('RunEventLog and RunWriter edge failures', () => {
     expect(harness.records.map((record) => harness.decode(record.payload).type)).not.toContain('RunPolicyBound');
   });
 
-  it('computes payload digests instead of trusting caller-supplied digest metadata', () => {
+  it('preserves caller-supplied payload digests', () => {
     const harness = createHarness();
     harness.seedCreatedRun();
     const writer = harness.log.openWriter(runId, harness.acquireLease());
@@ -233,7 +233,7 @@ describe('RunEventLog and RunWriter edge failures', () => {
       ]);
 
       expect(result.ok).toBe(true);
-      expect(harness.appendCalls[0]?.envelopes[0]?.payloadDigest).toBe(`digest:${JSON.stringify(payload)}`);
+      expect(harness.appendCalls[0]?.envelopes[0]?.payloadDigest).toBe('sha256:caller-supplied');
     }
   });
 

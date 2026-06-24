@@ -98,7 +98,7 @@ const makeEnvelope = (
     durability: effectiveDurability,
     occurredAt: intent.occurredAt,
     recordedAt: binding.deps.now(),
-    payloadDigest: binding.deps.digestPayload(intent.payload),
+    payloadDigest: intent.payloadDigest ?? binding.deps.digestPayload(intent.payload),
     payload: intent.payload,
     causationId: intent.causationId,
     correlationId: intent.correlationId,

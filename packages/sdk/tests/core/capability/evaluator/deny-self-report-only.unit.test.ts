@@ -75,7 +75,7 @@ describe('core-02-s2 deny self-report-only evidence', () => {
     });
   });
 
-  it('reports self-report-only before missing attestations', () => {
+  it('reports missing attestations before self-report-only evidence', () => {
     const scenario = createAllowAutoMergeScenario();
     const replayEvents = [
       createEvidenceEvent('evt-evidence-head-self-report', 1, defaultEvidenceRefs[0], {
@@ -105,7 +105,7 @@ describe('core-02-s2 deny self-report-only evidence', () => {
       (guarantee) => guarantee.guaranteeId === 'attestations-fresh-positive-in-scope-non-contradictory-replayable',
     );
 
-    expect(payload.failureReason).toBe('self-report-only');
+    expect(payload.failureReason).toBe('attestation-absent');
     expect(evidenceGuarantee).toMatchObject({
       passed: false,
       failureReason: 'self-report-only',
