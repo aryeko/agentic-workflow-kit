@@ -13,7 +13,11 @@ const walk = (dir, matches = []) => {
       continue;
     }
 
-    if (entry.name === 'tsconfig.public.json' || entry.name === 'tsconfig.negative.json') {
+    if (
+      entry.name === 'tsconfig.public.json' ||
+      entry.name === 'tsconfig.negative.json' ||
+      entry.name === 'tsconfig.json'
+    ) {
       matches.push(absolute);
     }
   }
@@ -26,6 +30,20 @@ const relative = (absolute) => path.relative(root, absolute).split(path.sep).joi
 const relativeFrom = (from, absolute) => path.relative(from, absolute).split(path.sep).join('/');
 
 const escapeRegex = (value) => value.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+
+const readConfig = (configPath) => JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+const hasFixtureInclude = (configPath) => {
+  const config = readConfig(configPath);
+  const includes = Array.isArray(config.include) ? config.include : [];
+
+  return includes.some((include) => typeof include === 'string' && /(?:fixture|\.typecheck\.)/.test(include));
+};
+
+const isPlainFixtureConfig = (configPath) =>
+  path.basename(configPath) === 'tsconfig.json' &&
+  relative(configPath).includes('/tests/') &&
+  hasFixtureInclude(configPath);
 
 const globToRegex = (pattern) => {
   const normalized = pattern.replace(/\\/g, '/').replace(/^\.\//, '');
@@ -59,7 +77,7 @@ const filesUnder = (dir, matches = []) => {
 
 const negativeFixturePaths = (configPath) => {
   const configDir = path.dirname(configPath);
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  const config = readConfig(configPath);
   const includes = Array.isArray(config.include) ? config.include : [];
   const includeMatchers = includes.map(globToRegex);
 
@@ -79,9 +97,12 @@ const runTsc = (configPath) =>
   });
 
 const configs = walk(path.join(root, 'packages')).sort((left, right) => left.localeCompare(right));
+const positiveConfigs = configs.filter(
+  (config) => config.endsWith('tsconfig.public.json') || isPlainFixtureConfig(config),
+);
 const failures = [];
 
-for (const configPath of configs.filter((config) => config.endsWith('tsconfig.public.json'))) {
+for (const configPath of positiveConfigs) {
   const result = runTsc(configPath);
   if (result.status !== 0) {
     failures.push(`${relative(configPath)} should compile but failed:\n${result.stdout}${result.stderr}`);

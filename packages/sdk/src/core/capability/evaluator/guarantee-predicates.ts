@@ -79,8 +79,7 @@ export const evaluateReplayHealthGuarantee = (
     replay.runId !== request.runId ||
     (projections !== undefined && projections.summary.runId !== request.runId);
   const degraded =
-    replay.health === 'interior-corrupt' ||
-    replay.health === 'event-log-unavailable' ||
+    replay.health !== 'ok' ||
     projections === undefined ||
     runMismatch ||
     projections.launch.linkage === 'ambiguous' ||

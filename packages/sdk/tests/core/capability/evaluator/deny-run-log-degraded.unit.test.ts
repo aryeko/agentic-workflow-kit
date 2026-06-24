@@ -5,7 +5,14 @@ import { project } from '../../../../src/core/run-lifecycle/projections/index.js
 
 import { ambiguousLinkageFixture } from './fixtures/ambiguous-linkage.fixture.js';
 import { degradedReplayFixture } from './fixtures/degraded-replay.fixture.js';
-import { createAllowAutoMergeScenario, createEvent, createProjections, createRequest, createScope } from './shared.js';
+import {
+  createAllowAutoMergeScenario,
+  createEvent,
+  createProjections,
+  createReplay,
+  createRequest,
+  createScope,
+} from './shared.js';
 
 describe('core-02-s2 deny run-log-degraded', () => {
   it('denies degraded replays before attestation evaluation', () => {
@@ -13,6 +20,31 @@ describe('core-02-s2 deny run-log-degraded', () => {
       degradedReplayFixture.request,
       degradedReplayFixture.replay,
       degradedReplayFixture.projections,
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('run-log-degraded');
+  });
+
+  it('denies tail-repaired replay health as degraded run-log input', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      scenario.request,
+      createReplay({
+        ...scenario.replay,
+        health: 'tail-repaired',
+        healthRecords: [
+          {
+            kind: 'tail-repaired',
+            detectedAt: '2026-06-23T12:01:00.000Z',
+            firstAffectedSequence: 9,
+            lastValidSequence: 8,
+            storageHealth: 'log-tail-repaired',
+            detail: 'truncated incomplete tail frame',
+          },
+        ],
+      }),
+      scenario.projections,
     );
 
     expect(payload.decision).toBe('deny');
