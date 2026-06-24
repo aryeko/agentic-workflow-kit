@@ -5,7 +5,7 @@ import { project } from '../../../../src/core/run-lifecycle/projections/index.js
 
 import { ambiguousLinkageFixture } from './fixtures/ambiguous-linkage.fixture.js';
 import { degradedReplayFixture } from './fixtures/degraded-replay.fixture.js';
-import { createAllowAutoMergeScenario, createEvent, createProjections } from './shared.js';
+import { createAllowAutoMergeScenario, createEvent, createProjections, createRequest } from './shared.js';
 
 describe('core-02-s2 deny run-log-degraded', () => {
   it('denies degraded replays before attestation evaluation', () => {
@@ -95,6 +95,27 @@ describe('core-02-s2 deny run-log-degraded', () => {
     );
 
     expect(payload.decision).toBe('allow');
+  });
+
+  it('denies unknown linkage for auto-recover gates', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      createRequest({
+        capability: 'auto-recover',
+        requestedAction: 'recover-run',
+      }),
+      scenario.replay,
+      createProjections({
+        ...scenario.projections,
+        launch: {
+          ...scenario.projections.launch,
+          linkage: 'unknown',
+        },
+      }),
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('run-log-degraded');
   });
 
   it('denies missing projections as degraded run-log input', () => {

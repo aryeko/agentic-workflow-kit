@@ -16,6 +16,7 @@ import {
   validateLifecycleTransition,
 } from '../lifecycle/index.js';
 import { reduceRunLifecycle } from '../lifecycle/lifecycle-reducer.js';
+import { hasValidDeclaredPayload } from '../replay/payload-validator.js';
 import { isLifecyclePayload } from './append-envelopes.js';
 import { buildRunAppendRejected } from './append-rejected.js';
 import { appendFailure } from './failures.js';
@@ -159,10 +160,11 @@ export const terminalIdempotentReceipt = (
   };
 };
 
-const lifecycleFailure = (
+const semanticFailure = (
   context: WriterContext,
   replayed: RunReplay,
   attempted: RunEventEnvelope,
+  reason: string,
 ): Result<never, RunAppendFailure> => {
   const rejection = buildRunAppendRejected(context.deps, {
     runId: context.runId,
@@ -170,7 +172,7 @@ const lifecycleFailure = (
     sequence: replayed.lastSequence + 1,
     attempted,
     failureCode: 'illegal-lifecycle-transition',
-    reason: 'Lifecycle transition is not legal from the current replayed state.',
+    reason,
   });
   const authored = appendEnvelopes(context.deps.eventLogStore, context.runId, context.lease, [rejection], 'durable');
   if (authored.kind === 'failure') {
@@ -181,11 +183,27 @@ const lifecycleFailure = (
     return appendFailure('partial-ack-unknown', 'RunAppendRejected acknowledgement was not authoritative.');
   }
 
-  return appendFailure(
-    'illegal-lifecycle-transition',
-    'Lifecycle transition is not legal from the current replayed state.',
-    rejection.payload,
-  );
+  return appendFailure('illegal-lifecycle-transition', reason, rejection.payload);
+};
+
+const lifecycleFailure = (
+  context: WriterContext,
+  replayed: RunReplay,
+  attempted: RunEventEnvelope,
+): Result<never, RunAppendFailure> =>
+  semanticFailure(context, replayed, attempted, 'Lifecycle transition is not legal from the current replayed state.');
+
+export const validateDeclaredPayloads = (
+  context: WriterContext,
+  replayed: RunReplay,
+  envelopes: readonly RunEventEnvelope[],
+): Result<void, RunAppendFailure> => {
+  const invalid = envelopes.find((envelope) => !hasValidDeclaredPayload(envelope));
+  if (invalid !== undefined) {
+    return semanticFailure(context, replayed, invalid, 'Declared event payload is malformed.');
+  }
+
+  return { ok: true, value: undefined };
 };
 
 export const validateLifecycleAndLinkage = (

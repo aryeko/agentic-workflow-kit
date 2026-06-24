@@ -74,7 +74,7 @@ export const evaluateCapabilityGate = (
   projections: RunProjections,
 ): CapabilityGateRecordPayload => {
   const posture = capabilityPostureCatalog[request.capability];
-  const replayHealth = evaluateReplayHealthGuarantee(replay, projections);
+  const replayHealth = evaluateReplayHealthGuarantee(request, replay, projections);
 
   if (replayHealth.failureReason === 'run-log-degraded') {
     const evaluatedGuarantees: GuaranteeEvaluation[] = [replayHealth.evaluation];

@@ -22,6 +22,7 @@ const taskCompletingActions = new Set([
   'merge-pull-request-and-complete-task',
   'enqueue-pull-request-and-complete-task',
 ]);
+const knownLinkageCapabilities = new Set(['auto-recover', 'unattended-run']);
 
 const requiredAttestationsForRequest = (request: CapabilityGateRequest): readonly string[] => {
   const posture = capabilityPostureCatalog[request.capability];
@@ -69,6 +70,7 @@ export const evaluatePolicyGuarantee = (request: CapabilityGateRequest): Guarant
 };
 
 export const evaluateReplayHealthGuarantee = (
+  request: CapabilityGateRequest,
   replay: RunReplay,
   projections: RunProjections | undefined,
 ): GuaranteeResult => {
@@ -76,7 +78,8 @@ export const evaluateReplayHealthGuarantee = (
     replay.health === 'interior-corrupt' ||
     replay.health === 'event-log-unavailable' ||
     projections === undefined ||
-    projections.launch.linkage === 'ambiguous';
+    projections.launch.linkage === 'ambiguous' ||
+    (knownLinkageCapabilities.has(request.capability) && projections.launch.linkage === 'unknown');
 
   return {
     evaluation: {

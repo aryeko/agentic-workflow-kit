@@ -16,7 +16,11 @@ import {
   hasContiguousSequence,
 } from './append-envelopes.js';
 import { buildRunAppendRejected } from './append-rejected.js';
-import { terminalIdempotentReceipt, validateLifecycleAndLinkage } from './append-validation.js';
+import {
+  terminalIdempotentReceipt,
+  validateDeclaredPayloads,
+  validateLifecycleAndLinkage,
+} from './append-validation.js';
 import { appendFailure, replayFailureToAppendFailure } from './failures.js';
 import { recoverLostAck } from './lost-ack-recovery.js';
 import { appendEnvelopes, toRunReceipt } from './storage.js';
@@ -95,6 +99,15 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
         'sequence-conflict',
         'Append batch sequence must begin at the next committed sequence and be contiguous.',
       );
+    }
+
+    const declaredPayloadValidation = validateDeclaredPayloads(
+      { deps: context.deps, runId: context.runId, writerEpoch: context.lease.epoch, lease: context.lease },
+      replayed.value,
+      envelopes,
+    );
+    if (!declaredPayloadValidation.ok) {
+      return declaredPayloadValidation;
     }
 
     const semanticValidation = validateLifecycleAndLinkage(

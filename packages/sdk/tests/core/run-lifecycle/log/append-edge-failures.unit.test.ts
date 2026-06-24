@@ -187,6 +187,37 @@ describe('RunEventLog and RunWriter edge failures', () => {
     }
   });
 
+  it('rejects malformed declared payloads before appending the requested event', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const result = writer.value.append([
+      appendIntent(
+        'RunPolicyBound',
+        {
+          provenanceRef: 'policy/ref',
+        },
+        { durability: 'barrier' },
+      ),
+    ]);
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+    expect(harness.appendCalls).toHaveLength(1);
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+    expect(harness.appendCalls[0].envelopes[0].payload).toMatchObject({
+      attemptedType: 'RunPolicyBound',
+      failureCode: 'illegal-lifecycle-transition',
+      recordedReason: 'Declared event payload is malformed.',
+    });
+    expect(harness.records.map((record) => harness.decode(record.payload).type)).not.toContain('RunPolicyBound');
+  });
+
   it('computes payload digests instead of trusting caller-supplied digest metadata', () => {
     const harness = createHarness();
     harness.seedCreatedRun();
