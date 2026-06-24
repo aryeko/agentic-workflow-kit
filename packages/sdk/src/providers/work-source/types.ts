@@ -139,6 +139,7 @@ export interface WorkSourceProvider {
     expectedRecordDigest: string;
     sourceRevision: string;
   }): ClaimResult | WorkSourceError;
+  // biome-ignore lint/suspicious/noConfusingVoidType: the void arm is this seam contract's success signal (release resolves to no value on success or a typed WorkSourceError); the return type is design-frozen.
   release(input: { task: TaskKey; runId: string; reason: string; expectedEpoch: number }): void | WorkSourceError;
   writeStatus(input: {
     task: TaskKey;
