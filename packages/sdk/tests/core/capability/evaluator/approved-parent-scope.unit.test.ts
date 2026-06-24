@@ -32,6 +32,31 @@ describe('core-02-s2 approved parent scopes', () => {
     expect(payload.decision).toBe('allow');
   });
 
+  it('accepts compatible positive attestations for approved parent and exact child scopes', () => {
+    const events = [
+      ...allowAutoMergeFixture.replay.events,
+      createAttestationEvent('evt-forge-inspect-parent', 7, 'Forge', 'canInspectProtection', {
+        scope: 'repo:aryeko/workflow-kit/pr:42',
+      }),
+    ];
+
+    const payload = evaluateCapabilityGate(
+      createRequest({
+        ...allowAutoMergeFixture.request,
+        scope: createScope(),
+      }),
+      createReplay({
+        ...allowAutoMergeFixture.replay,
+        events,
+        lastSequence: events[events.length - 1]?.sequence ?? 0,
+      }),
+      allowAutoMergeFixture.projections,
+    );
+
+    expect(payload.decision).toBe('allow');
+    expect(payload.failureReason).toBeUndefined();
+  });
+
   it('denies an unlisted lexical parent scope', () => {
     const events = [
       allowAutoMergeFixture.replay.events[0],

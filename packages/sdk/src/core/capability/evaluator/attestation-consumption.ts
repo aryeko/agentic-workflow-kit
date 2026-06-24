@@ -163,7 +163,7 @@ const hasPositiveConflict = (candidates: readonly ValidAttestationCandidate[]): 
   const signatures = new Set(
     candidates.map(
       (candidate) =>
-        `${candidate.attestation.scope}|${candidate.attestation.freshnessKey}|${candidate.attestation.driverVersion}|${candidate.attestation.platform}`,
+        `${candidate.attestation.freshnessKey}|${candidate.attestation.driverVersion}|${candidate.attestation.platform}`,
     ),
   );
   return signatures.size > 1;
