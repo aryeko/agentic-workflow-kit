@@ -11,6 +11,13 @@ import {
   scratchReportRef,
 } from './shared.js';
 
+const toEventRef = (event: ReturnType<typeof createTerminalEvent>) => ({
+  eventId: event.eventId,
+  sequence: event.sequence,
+  payloadDigest: event.payloadDigest,
+  type: event.type,
+});
+
 describe('core-07-s3 terminal analysis invariant', () => {
   it('reports terminal usable replay with no analysis fact as analysis-invariant-missing', () => {
     const result = checkTerminalAnalysisInvariant(createReplay([createTerminalEvent()]));
@@ -77,7 +84,17 @@ describe('core-07-s3 terminal analysis invariant', () => {
   });
 
   it('reports satisfied only when an analysis fact exists at or after the terminal sequence', () => {
-    const input = createRecordInput();
+    const terminalEvent = createTerminalEvent(10);
+    const baseInput = createRecordInput();
+    const input = createRecordInput({
+      request: {
+        ...baseInput.request,
+        trigger: {
+          ...baseInput.request.trigger,
+          eventRef: toEventRef(terminalEvent),
+        },
+      },
+    });
     const payload = {
       schema: 'kit-vnext.analysis-recorded.v1' as const,
       request: input.request,
@@ -89,7 +106,7 @@ describe('core-07-s3 terminal analysis invariant', () => {
     };
     const result = checkTerminalAnalysisInvariant(
       createReplay([
-        createTerminalEvent(10),
+        terminalEvent,
         createEvent({
           eventId: 'analysis:after-terminal',
           sequence: 11,
@@ -100,6 +117,98 @@ describe('core-07-s3 terminal analysis invariant', () => {
     );
 
     expect(result.status).toBe('satisfied');
+  });
+
+  it('ignores later analysis facts recorded for a different trigger', () => {
+    const input = createRecordInput();
+    const staleProgressInput = createRecordInput({
+      request: {
+        ...input.request,
+        trigger: {
+          kind: 'stale-progress',
+          eventRef: {
+            eventId: 'evt-progress-9',
+            sequence: 9,
+            payloadDigest: 'sha256:progress',
+            type: 'ProgressObserved',
+          },
+          reason: 'stale progress',
+        },
+        evaluatedThrough: {
+          runId: input.request.runId,
+          afterSequence: 11,
+        },
+      },
+    });
+    const payload = {
+      schema: 'kit-vnext.analysis-recorded.v1' as const,
+      request: staleProgressInput.request,
+      inputHealth: staleProgressInput.inputHealth,
+      issues: [],
+      metrics: {},
+      evidenceRefs: [],
+      reportArtifactRef: redactedReportRef,
+    };
+
+    const result = checkTerminalAnalysisInvariant(
+      createReplay([
+        createTerminalEvent(10),
+        createEvent({
+          eventId: 'analysis:stale-progress',
+          sequence: 11,
+          type: 'AnalysisRecorded',
+          payload,
+        }),
+      ]),
+    );
+
+    expect(result).toMatchObject({
+      status: 'unmet',
+      reason: 'analysis-invariant-missing',
+    });
+  });
+
+  it('ignores terminal-triggered analysis that did not evaluate through the terminal event', () => {
+    const terminalEvent = createTerminalEvent(10);
+    const baseInput = createRecordInput();
+    const input = createRecordInput({
+      request: {
+        ...baseInput.request,
+        trigger: {
+          ...baseInput.request.trigger,
+          eventRef: toEventRef(terminalEvent),
+        },
+        evaluatedThrough: {
+          runId: baseInput.request.runId,
+          afterSequence: 9,
+        },
+      },
+    });
+    const payload = {
+      schema: 'kit-vnext.analysis-failed.v1' as const,
+      request: input.request,
+      inputHealth: input.inputHealth,
+      reason: 'analysis-rule-error',
+      evidenceRefs: [],
+      artifactRefs: [],
+    };
+
+    const result = checkTerminalAnalysisInvariant(
+      createReplay([
+        terminalEvent,
+        createEvent({
+          eventId: 'analysis:too-early-cursor',
+          sequence: 11,
+          type: 'AnalysisFailed',
+          payload,
+        }),
+      ]),
+    );
+
+    expect(result).toMatchObject({
+      status: 'unmet',
+      reason: 'analysis-invariant-missing',
+    });
   });
 
   it('ignores malformed and scratch analysis payloads after the terminal sequence', () => {

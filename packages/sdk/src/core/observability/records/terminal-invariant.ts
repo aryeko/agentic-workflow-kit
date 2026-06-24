@@ -66,9 +66,33 @@ const isValidAnalysisFailedPayload = (payload: unknown): boolean =>
   Array.isArray(payload.evidenceRefs) &&
   Array.isArray(payload.artifactRefs);
 
-const isValidAnalysisEvent = (event: RunEventEnvelope): boolean =>
-  (event.type === 'AnalysisRecorded' && isValidAnalysisRecordedPayload(event.payload)) ||
-  (event.type === 'AnalysisFailed' && isValidAnalysisFailedPayload(event.payload));
+const matchesEventRef = (value: unknown, expected: EvidenceEventRef): boolean =>
+  isObjectRecord(value) &&
+  value.eventId === expected.eventId &&
+  value.sequence === expected.sequence &&
+  value.payloadDigest === expected.payloadDigest &&
+  value.type === expected.type;
+
+const analyzesThroughTerminalEvent = (payload: unknown, runId: string, terminalEventRef: EvidenceEventRef): boolean => {
+  if (!isObjectRecord(payload) || !isObjectRecord(payload.request)) {
+    return false;
+  }
+
+  const { trigger, evaluatedThrough } = payload.request;
+  return (
+    isObjectRecord(trigger) &&
+    matchesEventRef(trigger.eventRef, terminalEventRef) &&
+    isObjectRecord(evaluatedThrough) &&
+    evaluatedThrough.runId === runId &&
+    typeof evaluatedThrough.afterSequence === 'number' &&
+    evaluatedThrough.afterSequence >= terminalEventRef.sequence
+  );
+};
+
+const isValidAnalysisEvent = (event: RunEventEnvelope, terminalEventRef: EvidenceEventRef): boolean =>
+  ((event.type === 'AnalysisRecorded' && isValidAnalysisRecordedPayload(event.payload)) ||
+    (event.type === 'AnalysisFailed' && isValidAnalysisFailedPayload(event.payload))) &&
+  analyzesThroughTerminalEvent(event.payload, event.runId, terminalEventRef);
 
 export const checkTerminalAnalysisInvariant = (
   replay: RunReplay,
@@ -88,7 +112,7 @@ export const checkTerminalAnalysisInvariant = (
   }
 
   const analysisEvent = replay.events.find(
-    (event) => event.sequence >= terminalEvent.sequence && isValidAnalysisEvent(event),
+    (event) => event.sequence >= terminalEvent.sequence && isValidAnalysisEvent(event, terminalEventRef),
   );
 
   if (analysisEvent === undefined) {
