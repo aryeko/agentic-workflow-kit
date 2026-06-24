@@ -25,7 +25,7 @@ type RunEventEnvelope<TPayload = unknown> = {
 type EvidenceEventRef = { eventId: string; sequence: number; payloadDigest: string; type: string };
 type CreateRunInput = {
   runId: string; holder: string; leaseTtlMs: number; idempotencyKey: string;
-  createdAt: string; operatorRef?: string; correlationId?: string; artifactRefs?: string[];
+  createdAt: string; operatorRef?: string; requestedBy: string; correlationId?: string; artifactRefs?: string[];
   payload: RunCreatedPayload;
 };
 type AppendIntent<TPayload = unknown> = {

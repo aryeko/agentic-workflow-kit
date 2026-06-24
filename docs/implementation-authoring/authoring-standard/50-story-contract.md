@@ -46,6 +46,14 @@ name where the branch value comes from. `policyRef`, `configHash`, `leaseId`, "d
 id can be provenance, but not the value being evaluated. If the value lives behind another system, the
 contract consumes an already-frozen producer shape/resolver verbatim or stops as a source gap.
 
+**Producer-closure (construction obligations).** R6 makes *consumed* predicates evaluable; this closes
+the mirror gap on *produced* shapes. For every required field of every record/event the story produces,
+and every required public symbol the story exposes, the contract must name a declared source — an input
+field, an owned-pathset file, or an explicitly stated producer/minting rule. A required output with no
+producer reachable from declared inputs is a **closure defect** and a blocking gate failure, not an
+implementer's puzzle. The predicate-input matrix must therefore cover construction obligations (fields
+produced), not only predicates consumed.
+
 **Substrate/config variant.** A story whose deliverable is declarative substrate (`tsconfig`,
 `package.json`, workspace, dependency rules, CI, linters) must **not** invent a runtime type or token.
 Use `Validated artifacts:` (the files / inventories / config shapes it produces) and
@@ -73,6 +81,10 @@ Tick every box; an empty box means not ready.
       concrete declared input, consumed event/projection, producer-owned field, or resolver that makes
       the predicate decidable; refs/hashes/citations are not accepted as values unless a resolver is in
       scope.
+- [ ] Producer-closure holds: every required produced record/event field and every required public
+      symbol the story exposes names a declared source — an input field, an owned-pathset file, or an
+      explicit producer/minting rule; a required output with no reachable producer is a blocking closure
+      defect, not deferred to the implementer.
 - [ ] Failure/degraded (or validation-failure) table present; **each row's cited AC actually asserts
       that row** — not the happy path, not a different condition.
 - [ ] Every negative AC has a failing fixture, and that fixture is **invoked by a named gate lane**

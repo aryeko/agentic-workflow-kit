@@ -46,8 +46,13 @@ interface EgressRule {
   ports?: number[]; phase: string; purpose: string;
 }
 interface RequiredAttester {
+  // `point`, `capability`, `driverId` come from the fnd-01 `RequiredAttesterSource`; `scopeDigest`
+  // and `egressPolicyDigest` are computed by fnd-04. `platform` and `driverVersion` are NOT declared
+  // here — they are runtime facts of the attesting Execution Host driver, matched at credential
+  // release time against the Host `CapabilityAttestation` (see README release-match rule), not values
+  // config or fnd-04 can produce.
   point: EnforcementPoint; capability: "egress-confinement"; driverId: string;
-  scopeDigest: string; egressPolicyDigest: string; platform: string; driverVersion: string;
+  scopeDigest: string; egressPolicyDigest: string;
 }
 interface NegativeProbe { host: string; protocol: "https" | "ssh"; expected: "blocked"; reason: string }
 ```
@@ -58,6 +63,9 @@ interface ResolvedCredential {
   ok: true; credentialRefId: string; materialHandle: string; redactionSet: RedactionSet;
   auditEvent: CredentialUseStarted;
 }
+// `mode` and `nameOrPath` are derived by `planInjection` from the credential's `kind`/`purpose` per
+// the README injection rules (env var for tokens, file path for key material), keyed per `CredentialRef`;
+// `redactionLabel` is the credential's redaction label from the `RedactionSet`.
 interface InjectionBinding { mode: InjectionMode; nameOrPath: string; redactionLabel: string }
 interface InjectionPlan {
   ok: true; operationId: string; party: CredentialParty; bindings: InjectionBinding[];
@@ -89,17 +97,36 @@ type RedactResult<T extends RedactedInput = RedactedInput> = RedactedValue<T> | 
 ```
 
 ```ts
+// Injected on every method so fnd-04 produces complete `AuditBase` records without reading ambient
+// time or guessing identity. `scope` carries runId/taskId/operationId/party/phase/grantEventId;
+// `attestationEventIds`/`evidenceRefs` are the matching fresh `CapabilityAttestation` event ids and
+// their evidence refs; `occurredAt` is the injected audit timestamp (fnd-04 never reads ambient time,
+// mirroring fnd-01 `ResolutionContext.occurredAt`).
+interface CredentialAuditContext {
+  scope: CredentialScope;
+  attestationEventIds: string[];
+  evidenceRefs: string[];
+  occurredAt: string;
+}
+
 interface CredentialsAndSecretsContract {
-  resolveCredential(ref: CredentialRef, scope: CredentialScope): ResolveCredentialResult;
-  planInjection(refs: CredentialRef[], scope: CredentialScope): PlanInjectionResult;
-  redact<T extends RedactedInput>(value: T, redactionSet: RedactionSet): RedactResult<T>;
-  destroy(operationId: string): CredentialMaterialDestroyed;
-  issueEgressPolicy(refs: CredentialRef[], scope: CredentialScope): EgressPolicy | CredentialDenied;
+  resolveCredential(ref: CredentialRef, ctx: CredentialAuditContext): ResolveCredentialResult;
+  planInjection(refs: CredentialRef[], ctx: CredentialAuditContext): PlanInjectionResult;
+  redact<T extends RedactedInput>(value: T, redactionSet: RedactionSet, ctx: CredentialAuditContext): RedactResult<T>;
+  destroy(ctx: CredentialAuditContext): CredentialMaterialDestroyed;
+  // `source` is the fnd-01 `EgressPolicySource` (rules/negativeProbes/requiredAttesters); fnd-04
+  // validates it into `EgressPolicy` and computes digests. Without it the produced policy's rules,
+  // probes, and attesters would have no source.
+  issueEgressPolicy(refs: CredentialRef[], source: EgressPolicySource, ctx: CredentialAuditContext): EgressPolicy | CredentialDenied;
 }
 ```
 
 ```ts
 interface AuditBase {
+  // Every AuditBase field has a declared source: `runId`/`taskId`/`operationId`/`party`/`phase`/
+  // `grantEventId` from `ctx.scope`; `credentialRefIds` from the call's refs; `attestationEventIds`/
+  // `evidenceRefs` from `ctx`; `at` from `ctx.occurredAt`; `policyDigest`/`credentialRefDigest`/
+  // `scopeDigest` computed by fnd-04 from the ref(s)/scope. fnd-04 reads no ambient time.
   runId: string; taskId: string; operationId: string; credentialRefIds: string[];
   party: CredentialParty; phase: string; policyDigest: string; credentialRefDigest: string;
   scopeDigest: string; grantEventId?: string; attestationEventIds: string[]; evidenceRefs: string[];

@@ -146,6 +146,16 @@ interface RecoveryPlanInput {
   policyRef: string;
   requestedAction: RecoveryAction;
   scope: CapabilityGateScope;
+  evaluatedThrough: RunEventCursor;   // replay cursor; also feeds the deterministic planId hash
+}
+interface RecoveryRecordInput {
+  runId: string;
+  plan: RecoveryPlan;
+  appliedControl?: { kind: NonNullable<RecoveryPlan["providerControl"]>; evidenceRefs: EvidenceEventRef[] };
+  outcome: "applied" | "blocked";
+  blockedReason?: string;          // required when outcome === "blocked"
+  gateRef?: CapabilityGateRecord;
+  evaluatedThrough: RunEventCursor;
 }
 interface RecoveryPlan {
   planId: string;
@@ -172,9 +182,99 @@ foundation into the Control plane.
 
 Barrier events emitted with `domain = "core-06"`: `StoryLaunchLeaseAcquired`,
 `DuplicateLaunchBlocked`, `RecoveryClassified`, `RecoveryActionPlanned`, `RecoveryActionApplied`,
-`StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`, and `ReconciliationBlocked`. They record
-lease epochs, Task keys, classifier rule version, replay cursor, cited evidence refs, selected action,
-required gate, lifecycle target, provider control kind, applied control evidence, or parked reason.
+`StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`, and `ReconciliationBlocked`. Each carries
+only its own required fields through a named `*Payload` (lease epochs only for lease events; classifier
+rule version and replay cursor for `RecoveryClassified`; selected action, required gate, lifecycle
+target, and provider control for the plan/apply events; parked reason for `ReconciliationBlocked`):
+
+```ts
+interface StoryLaunchLeaseAcquiredPayload {
+  schema: "kit-vnext.story-launch-lease-acquired.v1";
+  runId: string;
+  storyLaunchKey: string;          // workSourceId:trackId:taskId
+  leaseEpoch: number;
+  acquiredAt: string;
+  sourceEventIds: string[];
+}
+
+interface DuplicateLaunchBlockedPayload {
+  schema: "kit-vnext.duplicate-launch-blocked.v1";
+  runId: string;
+  storyLaunchKey: string;
+  incumbentLeaseEpoch: number;
+  blockedAt: string;
+  sourceEventIds: string[];
+}
+
+interface RecoveryClassifiedPayload {
+  schema: "kit-vnext.recovery-classified.v1";
+  runId: string;
+  recoveryState: RecoveryState;
+  actionSafety: ActionSafetyClass;
+  recommendedAction: RecoveryAction;
+  classifierRuleVersion: string;
+  cursor: RunEventCursor;          // replay cursor classified through
+  evidenceRefs: EvidenceEventRef[];
+  classifiedAt: string;
+}
+
+interface RecoveryActionPlannedPayload {
+  schema: "kit-vnext.recovery-action-planned.v1";
+  runId: string;
+  planId: string;
+  selectedAction: RecoveryAction;
+  requiredGate?: "auto-recover";
+  lifecycleTarget?: RunLifecycleState;
+  providerControl?: NonNullable<RecoveryPlan["providerControl"]>;
+  plannedAt: string;
+  sourceEventIds: string[];
+}
+
+interface RecoveryActionAppliedPayload {
+  schema: "kit-vnext.recovery-action-applied.v1";
+  runId: string;
+  planId: string;
+  appliedControl: NonNullable<RecoveryPlan["providerControl"]>;
+  gateRef?: CapabilityGateRecord;
+  appliedEvidenceRefs: EvidenceEventRef[];
+  appliedAt: string;
+  sourceEventIds: string[];
+}
+
+interface StaleLaunchClearanceRequestedPayload {
+  schema: "kit-vnext.stale-launch-clearance-requested.v1";
+  runId: string;
+  storyLaunchKey: string;
+  expiredLeaseEpoch: number;
+  nextLeaseEpoch: number;
+  requestedAt: string;
+  evidenceRefs: EvidenceEventRef[];
+}
+
+interface StoryLaunchLeaseClearedPayload {
+  schema: "kit-vnext.story-launch-lease-cleared.v1";
+  runId: string;
+  storyLaunchKey: string;
+  clearedLeaseEpoch: number;
+  clearedAt: string;
+  sourceEventIds: string[];
+}
+
+interface ReconciliationBlockedPayload {
+  schema: "kit-vnext.reconciliation-blocked.v1";
+  runId: string;
+  recoveryState: RecoveryState;
+  parkedReason: string;      // -> operator-notice summary
+  severity: "operator-attention" | "info";
+  evidenceRefs: EvidenceEventRef[];   // -> sourceEventRef
+  cursor: RunEventCursor;
+  blockedAt: string;
+}
+```
+
+`ReconciliationBlockedPayload` carries the fields the operator surface consumes
+(see [Operator Surface - attention, explainability & triggers](../../edge/operator-surface/attention-explainability-and-triggers.md)):
+a summary (`parkedReason`), a `severity`, and `evidenceRefs`.
 
 Core-06 contributes a `recovery` projection: latest classification by Run, active `story-launch`
 lease ref, duplicate-launch status, latest recovery plan, and whether recovery is parked. The

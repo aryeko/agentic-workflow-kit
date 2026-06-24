@@ -147,7 +147,7 @@ Consumed interfaces: fnd-01 resolved policy data; fnd-02 `LeaseStore`, `EventLog
 `DurabilityClass`, replay health, and append receipts. The detailed append and replay contracts are in
 [Event log, writer, and corruption protocol](event-log-writer-and-corruption.md).
 
-`CreateRunInput.idempotencyKey` and `operatorRef` are API request metadata used before any event
+`CreateRunInput.idempotencyKey`, `operatorRef`, and `requestedBy` are API request metadata used before any event
 exists; `RunCreatedPayload` stores the same values durably so replay remains self-contained after the
 request object is gone.
 

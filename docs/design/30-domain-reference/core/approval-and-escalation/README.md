@@ -9,6 +9,7 @@ depends-on:
   - "core-01-run-lifecycle-and-state"
   - "core-02-capability-and-safety"
   - "fnd-01-configuration-and-policy"
+  - "fnd-02-storage-and-artifacts"
   - "seam-agent-contract-mock"
 ---
 
@@ -117,15 +118,18 @@ flowchart LR
   APR -->|"parked approval state"| SUP
 ```
 
-Dependency Rule statement: `core-03` depends only on `core-01`, `core-02`, `fnd-01`, and the
-host-neutral Agent contract. It introduces no dependency on Codex, GitHub, Markdown, Local, mock, or
+Dependency Rule statement: `core-03` depends only on `core-01`, `core-02`, `fnd-01`, `fnd-02`
+(`ArtifactStore` for prompt persistence), and the host-neutral Agent contract. It introduces no dependency on Codex, GitHub, Markdown, Local, mock, or
 any concrete Driver behavior.
 
 ## 4. Design
 
-The approval flow is `normalize -> persist pending -> classify -> decide -> answer or park ->
-record outcome`. The request is always recorded before classification or decision, so recovery can
-resume from the Event log after process death or human latency.
+The approval flow is `persist prompt -> normalize -> persist pending -> classify -> decide ->
+answer or park -> record outcome`. Before `normalize`, the orchestration persists the Agent prompt to
+an fnd-02 `ArtifactRef` and supplies its id as `ApprovalContext.promptRef`, alongside the
+`AgentApprovalRequested` envelope `.at` as `ApprovalContext.requestedAt`; this keeps `normalize` a
+pure total function that reads no ambient time. The request is always recorded before classification
+or decision, so recovery can resume from the Event log after process death or human latency.
 
 Low-level detail is split to keep this entry point focused:
 

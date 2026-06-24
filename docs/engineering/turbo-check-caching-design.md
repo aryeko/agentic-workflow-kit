@@ -202,6 +202,6 @@ root Vitest projects and is out of scope here. Track separately.
 
 ---
 
-**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Tooling and CI](./tooling-and-ci.md) · **Next →:** [roadmap](../roadmap.md)
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Tooling and CI](./tooling-and-ci.md) · **Next →:** [Closure-Defect Remediation — Durable Execution Plan](../reviews/2026-06-25-closure-remediation-plan.md)
 
 <!-- /DOCS-NAV -->

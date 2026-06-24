@@ -85,6 +85,36 @@ interface Outcome {
 }
 ```
 
+## Normalization & field provenance
+
+`normalize(input: AgentApprovalRequest, context: ApprovalContext): ApprovalRequest` is a pure total
+function. Every required `ApprovalRequest` field has a declared source:
+
+| `ApprovalRequest` field | Source |
+|---|---|
+| `requestId`, `command`, `cwd` | `input.requestId`, `input.command`, `input.cwd` |
+| `runId`, `taskId`, `sessionId`, `operationId`, `policyRef`, `agentRequestEventId` | `context.*` (copied) |
+| `requestedAt` | `context.requestedAt` (the `AgentApprovalRequested` envelope `.at`) |
+| `promptRef` | `context.promptRef` (fnd-02 `ArtifactRef.id` of the prompt persisted before `normalize`) |
+| `answerChannelRef`, `answerChannelPersistable`, `expiresAt` | `input.answerChannel.{channelRef, persistable, expiresAt}` |
+| `subject` | `context.subjectOverride` when set (context-derived `protected-policy-change`/`network`); otherwise `input.kind` via the mapping below |
+| `requestedScope` | reverse-mapped from `input.proposedGrant` when present |
+
+`ApprovalKind` → `ApprovalSubject` mapping. The Agent port `kind` has no `protected-policy-change` or
+`network` member; those subjects arrive as a normal `kind` and are set instead via
+`context.subjectOverride` (computed by the orchestration from policy/changed-path context), which takes
+precedence over this table:
+
+| `AgentApprovalRequest.kind` | `ApprovalSubject` |
+|---|---|
+| `command-execution`, `legacy-exec` | `command` |
+| `file-change`, `apply-patch` | `file-change` |
+| `permissions` | `permission` |
+| `mcp-elicitation`, `tool-user-input` | `input` |
+| (unmapped) | `other` |
+
+`context.subjectOverride` (when set) → `protected-policy-change` or `network`.
+
 ## Deterministic risk classification
 
 Risk is the maximum triggered rule. Rules are evaluated in this stable order: high, then medium, then
