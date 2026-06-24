@@ -94,6 +94,5 @@ export type CapabilityGateFailureReason =
   | 'attestation-out-of-scope'
   | 'attestation-contradictory'
   | 'attestation-non-replayable'
-  | 'attestation-insufficient-containment'
   | 'self-report-only'
   | 'gate-record-unwritable';

@@ -67,7 +67,7 @@ describe('core-02-s2 containment floor evaluation', () => {
     const payload = evaluateCapabilityGate(createAutoRecoverRequest(), createAutoRecoverReplay(), createProjections());
 
     expect(payload.decision).toBe('deny');
-    expect(payload.failureReason).toBe('attestation-insufficient-containment');
+    expect(payload.failureReason).toBe('attestation-negative');
   });
 
   it('denies containment attestations below the registry floor', () => {
@@ -78,7 +78,7 @@ describe('core-02-s2 containment floor evaluation', () => {
     );
 
     expect(payload.decision).toBe('deny');
-    expect(payload.failureReason).toBe('attestation-insufficient-containment');
+    expect(payload.failureReason).toBe('attestation-negative');
   });
 
   it('allows containment attestations at the registry floor', () => {

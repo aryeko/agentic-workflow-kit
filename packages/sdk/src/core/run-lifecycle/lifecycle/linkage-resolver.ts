@@ -66,7 +66,10 @@ export function resolveSessionLinkage(events: readonly RunEventEnvelope[]): Reso
     linkHistory.flatMap((link) => (link.supersedesOrdinal === undefined ? [] : [link.supersedesOrdinal])),
   );
   for (const supersession of replacementSupersessions) {
-    if (linkOrdinals.has(supersession.replacementOrdinal)) {
+    if (
+      supersession.replacementOrdinal > supersession.supersededOrdinal &&
+      linkOrdinals.has(supersession.replacementOrdinal)
+    ) {
       supersededOrdinals.add(supersession.supersededOrdinal);
     }
   }

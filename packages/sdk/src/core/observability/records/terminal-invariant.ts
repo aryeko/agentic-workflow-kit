@@ -38,6 +38,7 @@ const isAnalysisReportRefCandidate = (value: unknown): value is AnalysisReportRe
   typeof value.digest === 'string' &&
   typeof value.size === 'number' &&
   typeof value.mediaType === 'string' &&
+  typeof value.retentionClass === 'string' &&
   typeof value.classification === 'string' &&
   typeof value.redactionState === 'string';
 

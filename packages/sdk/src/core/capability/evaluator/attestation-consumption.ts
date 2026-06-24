@@ -21,7 +21,6 @@ export interface AttestationRequirementResult {
     | 'attestation-out-of-scope'
     | 'attestation-contradictory'
     | 'attestation-non-replayable'
-    | 'attestation-insufficient-containment'
   >;
   readonly attestationRefs: readonly AttestationRef[];
   readonly evidenceRefs: readonly string[];
@@ -325,7 +324,7 @@ export const evaluateAttestationRequirement = (
   if (insufficientContainment) {
     return {
       passed: false,
-      failureReason: 'attestation-insufficient-containment',
+      failureReason: 'attestation-negative',
       attestationRefs: sortAttestationRefs(positiveCandidates.map(toAttestationRef)),
       evidenceRefs: sortEvidenceRefs(positiveCandidates.map((candidate) => candidate.attestation.evidenceRef)),
     };

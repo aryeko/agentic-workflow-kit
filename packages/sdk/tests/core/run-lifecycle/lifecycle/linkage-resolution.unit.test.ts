@@ -71,4 +71,28 @@ describe('core-01-s3 linkage resolution', () => {
     expect(resolved.currentSession?.sessionId).toBe('session-primary');
     expect(resolved.launch.currentSession?.sessionId).toBe('session-primary');
   });
+
+  it('ignores backward supersessions whose replacement ordinal is older than the superseded link', () => {
+    const resolved = resolveSessionLinkage([
+      makeEventEnvelope('SessionLinked', 1, makeSessionLinkedPayload({ linkOrdinal: 1, sessionId: 'session-primary' })),
+      makeEventEnvelope(
+        'SessionLinked',
+        2,
+        makeSessionLinkedPayload({ linkOrdinal: 2, sessionId: 'session-recovery', linkRole: 'recovery' }),
+      ),
+      makeEventEnvelope(
+        'SessionLinkSuperseded',
+        3,
+        makeSessionLinkSupersededPayload({
+          supersededOrdinal: 2,
+          replacementOrdinal: 1,
+          reason: 'invalid backward handoff',
+          sourceEventId: 'evt-backward-supersession',
+        }),
+      ),
+    ]);
+
+    expect(resolved.classification).toBe('ambiguous');
+    expect(resolved.currentSession?.sessionId).toBe('session-recovery');
+  });
 });

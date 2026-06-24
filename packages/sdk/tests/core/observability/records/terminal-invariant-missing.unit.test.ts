@@ -104,6 +104,8 @@ describe('core-07-s3 terminal analysis invariant', () => {
 
   it('ignores malformed and scratch analysis payloads after the terminal sequence', () => {
     const input = createRecordInput();
+    const refWithoutRetentionClass = { ...redactedReportRef };
+    delete (refWithoutRetentionClass as Partial<typeof redactedReportRef>).retentionClass;
     const result = checkTerminalAnalysisInvariant(
       createReplay([
         createTerminalEvent(10),
@@ -130,8 +132,22 @@ describe('core-07-s3 terminal analysis invariant', () => {
           },
         }),
         createEvent({
-          eventId: 'analysis:bad-reason',
+          eventId: 'analysis:missing-retention',
           sequence: 13,
+          type: 'AnalysisRecorded',
+          payload: {
+            schema: 'kit-vnext.analysis-recorded.v1' as const,
+            request: input.request,
+            inputHealth: input.inputHealth,
+            issues: [],
+            metrics: {},
+            evidenceRefs: [],
+            reportArtifactRef: refWithoutRetentionClass,
+          },
+        }),
+        createEvent({
+          eventId: 'analysis:bad-reason',
+          sequence: 14,
           type: 'AnalysisFailed',
           payload: {
             schema: 'kit-vnext.analysis-failed.v1' as const,
