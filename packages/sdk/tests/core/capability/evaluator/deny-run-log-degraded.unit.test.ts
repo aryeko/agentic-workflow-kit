@@ -7,11 +7,14 @@ import { ambiguousLinkageFixture } from './fixtures/ambiguous-linkage.fixture.js
 import { degradedReplayFixture } from './fixtures/degraded-replay.fixture.js';
 import {
   createAllowAutoMergeScenario,
+  createAttestationEvent,
   createEvent,
   createProjections,
   createReplay,
   createRequest,
   createScope,
+  workSourceFreshnessKey,
+  workSourceScope,
 } from './shared.js';
 
 describe('core-02-s2 deny run-log-degraded', () => {
@@ -158,6 +161,60 @@ describe('core-02-s2 deny run-log-degraded', () => {
         requestedAction: 'recover-run',
       }),
       scenario.replay,
+      createProjections({
+        ...scenario.projections,
+        state: {
+          ...scenario.projections.state,
+          lifecycle: 'completed',
+        },
+        summary: {
+          ...scenario.projections.summary,
+          status: 'completed',
+        },
+      }),
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('run-log-degraded');
+  });
+
+  it('denies unattended-run after terminal lifecycle projection', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const replayEvents = [
+      ...scenario.replay.events,
+      createAttestationEvent('evt-work-source-claim', 7, 'Work Source', 'supportsClaim'),
+      createAttestationEvent('evt-host-kill', 8, 'Execution Host', 'canKill'),
+      createAttestationEvent('evt-host-containment', 9, 'Execution Host', 'containmentStrength', {
+        details: { containmentStrength: 'process-group' },
+      }),
+      createAttestationEvent('evt-host-egress', 10, 'Execution Host', 'egress-confinement'),
+      createAttestationEvent('evt-agent-parentage', 11, 'Agent', 'preservesHostProcessParentage'),
+    ];
+    const payload = evaluateCapabilityGate(
+      createRequest({
+        capability: 'unattended-run',
+        requestedAction: 'run-unattended',
+        scope: createScope({
+          providerScopes: [
+            ...scenario.request.scope.providerScopes,
+            {
+              provider: 'Execution Host',
+              scope: workSourceScope,
+              freshnessKey: workSourceFreshnessKey,
+            },
+            {
+              provider: 'Agent',
+              scope: workSourceScope,
+              freshnessKey: workSourceFreshnessKey,
+            },
+          ],
+        }),
+      }),
+      createReplay({
+        ...scenario.replay,
+        events: replayEvents,
+        lastSequence: 11,
+      }),
       createProjections({
         ...scenario.projections,
         state: {

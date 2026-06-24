@@ -24,6 +24,7 @@ const taskCompletingActions = new Set([
   'enqueue-pull-request-and-complete-task',
 ]);
 const knownLinkageCapabilities = new Set(['auto-recover', 'unattended-run']);
+const terminalClosedCapabilities = new Set(['auto-recover', 'unattended-run']);
 const terminalLifecycleStates = new Set<string>(TERMINAL_LIFECYCLE_STATE_SET);
 const usableReplayHealth = new Set(['ok', 'tail-repaired']);
 
@@ -87,7 +88,7 @@ export const evaluateReplayHealthGuarantee = (
     runMismatch ||
     projections.launch.linkage === 'ambiguous' ||
     (knownLinkageCapabilities.has(request.capability) && projections.launch.linkage === 'unknown') ||
-    (request.capability === 'auto-recover' &&
+    (terminalClosedCapabilities.has(request.capability) &&
       projections.state.lifecycle !== null &&
       terminalLifecycleStates.has(projections.state.lifecycle));
 
