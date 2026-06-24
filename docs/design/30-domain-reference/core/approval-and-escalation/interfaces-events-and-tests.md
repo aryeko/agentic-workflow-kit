@@ -12,8 +12,9 @@ last-reviewed: "2026-06-19"
 interface ApprovalEscalation {
   normalize(input: AgentApprovalRequest, context: ApprovalContext): ApprovalRequest;
   classify(request: ApprovalRequest, policy: ResolvedPolicy, replay: RunReplay,
-    projections: RunProjections): ApprovalRisk;
+    projections: RunProjections, classifiedAt: string): ApprovalRisk;
   decide(input: ApprovalDecisionInput): Decision;
+  park(input: ApprovalParkInput): ParkDecision;
   recordOutcome(input: ApprovalOutcomeInput): Outcome;
   resumePending(input: ApprovalResumeInput): ResumeDecision;
 }
@@ -25,6 +26,12 @@ interface ApprovalContext {
   sessionId: string;
   policyRef: string;
   agentRequestEventId: string;
+  // Injected by the core-03 orchestration so `normalize` stays a pure total function and
+  // never reads ambient time. `requestedAt` is the enclosing `AgentApprovalRequested`
+  // envelope `.at`; `promptRef` is the fnd-02 `ArtifactRef.id` of the prompt persisted by
+  // the orchestration before `normalize` (mirrors `AgentOutputSink.putToolOutput -> outputRef`).
+  requestedAt: string;
+  promptRef: string;
 }
 
 interface ApprovalDecisionInput {
@@ -53,6 +60,25 @@ interface ApprovalResumeInput {
   sessionId: string;
   decisionEventId: string;
   evaluatedAt: string;
+}
+
+interface ApprovalParkInput {
+  request: ApprovalRequest;
+  reason: "live-window-elapsed" | "live-only-channel" | "operator-attention";
+  decisionDeadline: string;
+  parkedAt: string;
+  sourceEventIds: string[];
+}
+
+interface ParkDecision {
+  schema: "kit-vnext.approval-park-decision.v1";
+  requestId: string;
+  runId: string;
+  sessionId: string;
+  reason: "live-window-elapsed" | "live-only-channel" | "operator-attention";
+  decisionDeadline: string;
+  parkedAt: string;
+  sourceEventIds: string[];
 }
 
 interface ResumeDecision {
@@ -84,10 +110,22 @@ decision event id rides `ApprovalDecisionInput.operatorDecisionEventId`; and par
 Consumed interfaces: core-01 `RunWriter`, `RunReplay`, `RunProjections`, `RunLifecycleTransitioned`,
 and `SessionLinked`; core-02 `CapabilityGateRecord` for `escalation-auto-grant` and
 `orchestrator-decide`; fnd-01 `ResolvedPolicy.policy.approval` and
-`ResolvedPolicy.policy.escalationPolicy`; and Agent `AgentApprovalRequest`, `ApprovalAnswerChannel`,
-`ApprovalAnswer`, `ScopedGrant`, and Agent capability attestations. If the resolved policy,
-`ConfigResolved`, or field provenance is unavailable, classification and decision do not run and the
-request records `approval-policy-unavailable`.
+`ResolvedPolicy.policy.escalationPolicy`; fnd-02 `ArtifactStore`/`ArtifactRef` for persisting the
+Agent prompt to `promptRef` before `normalize`; and Agent `AgentApprovalRequest`,
+`ApprovalAnswerChannel`, `ApprovalAnswer`, `ScopedGrant`, and Agent capability attestations. If the
+resolved policy, `ConfigResolved`, or field provenance is unavailable, classification and decision do
+not run and the request records `approval-policy-unavailable`.
+
+Construction & provenance. `normalize` copies `runId`, `taskId`, `operationId`, `sessionId`,
+`policyRef`, `agentRequestEventId`, `requestedAt`, and `promptRef` from `ApprovalContext`; maps
+`AgentApprovalRequest.kind` to `ApprovalSubject` via the table in `decision-model.md` (the
+`protected-policy-change` subject is set from policy/changed-path context, which has no `kind`
+antecedent); copies `command`/`cwd` from the request; and projects `answerChannelRef`,
+`answerChannelPersistable`, and `expiresAt` from `input.answerChannel.{channelRef, persistable,
+expiresAt}`. The append-side barrier events `ApprovalRequested`, `ApprovalPendingPersisted`, and
+`ApprovalParked` are appended by the core-03 orchestration through `RunWriter`; their `recordedAt`/
+`parkedAt` are caller-supplied (injected) append-time values, and every other field is sourced from
+the normalized `ApprovalRequest`, the pending computation, or the `ParkDecision`.
 
 Exposed interface: host-neutral `ApprovalRequest`, `Decision`, `Outcome`, failure states, and pure
 classification/decision functions. `Decision.grant` is the approved Agent `ScopedGrant` shape passed
@@ -151,6 +189,19 @@ interface ApprovalDecisionRecordedPayload {
   operatorDecisionEventId?: string;
   capabilityGateEventId?: string;
   sourceEventIds: string[];
+  // Required iff the approval request `subject === "protected-policy-change"`. Carries the head and policy
+  // identity the operator approval covers so core-05's changed-file gate can bind to it. The old
+  // policy digest and the concrete changed protected paths are NOT duplicated here; they remain
+  // authoritative on core-05 `ProtectedPolicySnapshotRecorded` and Workspace `LocalGitEvidence`,
+  // referenced via `protectedPolicySnapshotEventId`.
+  protectedPolicyBinding?: ProtectedPolicyApprovalBinding;
+}
+
+interface ProtectedPolicyApprovalBinding {
+  runId: string;
+  candidateHeadSha: string;
+  protectedPolicySnapshotEventId: string;
+  newPolicyDigest?: string;
 }
 
 interface ApprovalParkedPayload {

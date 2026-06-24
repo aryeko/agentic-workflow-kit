@@ -159,6 +159,31 @@ interface CompletionMergeEvaluator {
     runId: string; completionEventId: string; policyRef: string; evaluatedAt: string;
   }, replay: RunReplay, projections: RunProjections): MergeDecisionPayload;
 }
+
+// Each evaluator returns the payload of the barrier event it appends. `CompletionDecisionState`
+// and `MergeDecisionState` are the decision-state unions defined in the evidence-model subfile;
+// `EvidenceEventRef`/`RunEventCursor` come from core-01 and `CapabilityGateRecord` from core-02.
+interface CompletionDecisionPayload {
+  schema: "kit-vnext.completion-decision-recorded.v1";
+  runId: string;
+  state: CompletionDecisionState;
+  headSha: string;
+  cursor: RunEventCursor;
+  evidenceRefs: EvidenceEventRef[];
+  failureReason?: string;
+  evaluatedAt: string;
+}
+
+interface MergeDecisionPayload {
+  schema: "kit-vnext.merge-decision-recorded.v1";
+  runId: string;
+  state: MergeDecisionState;
+  headSha: string;
+  completionEventId: string;
+  gateRef?: CapabilityGateRecord;
+  forgeRefs: EvidenceEventRef[];
+  evaluatedAt: string;
+}
 ```
 
 Consumed: core-01 `RunEventLog`, `RunWriter`, `RunReplay`, `RunProjections`, `RunEventCursor`, and
@@ -175,10 +200,11 @@ Emitted with `domain = "core-05"`:
 
 - `ProtectedPolicySnapshotRecorded` (`barrier`): policy digest, base `baseSha`, verifier command, and
   protected path-set digests.
-- `CompletionDecisionRecorded` (`barrier`): completion state, exact `headSha`, replay cursor, cited
-  evidence refs, and failure reason.
-- `MergeDecisionRecorded` (`barrier`): merge state, exact `headSha`, gates, Forge refs, and capability
-  gate ref.
+- `CompletionDecisionRecorded` (`barrier`, payload `CompletionDecisionPayload`): completion state,
+  exact `headSha`, replay `cursor`, cited `evidenceRefs`, and optional `failureReason`.
+- `MergeDecisionRecorded` (`barrier`, payload `MergeDecisionPayload`): merge state, exact `headSha`,
+  cited `completionEventId`, Forge refs (`forgeRefs`), and the optional auto-merge capability
+  `gateRef`.
 - `ForgeOperationIntentRecorded` (`barrier`): `push-branch`, `upsert-pr`,
   `publish-blocker-evidence`, or `update-branch`, with `expectedHeadSha`. Blocker PR operations carry
   `purpose = "blocker-evidence-pr"` and are never `enqueue` or `merge` intents.

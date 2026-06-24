@@ -36,7 +36,13 @@ interface RecoveryEvidenceSnapshot {
   leases: { runWriter?: LeaseSnapshot; storyLaunch?: LeaseSnapshot; leaseHealth: StorageHealth };
   evidenceRefs: EvidenceEventRef[];
   providerGaps: string[];
-  completion?: { latestDecisionState?: string; postMergeOutcome?: string };
+  // CompletionDecisionState, MergeDecisionState, and PostMergeOutcomeState are imported from
+  // core-05 completion-and-merge/evidence-model-and-predicates.md.
+  completion?: {
+    latestDecisionState?: CompletionDecisionState;
+    latestMergeState?: MergeDecisionState;
+    postMergeOutcome?: PostMergeOutcomeState;
+  };
 }
 interface RecoveryClassification {
   state: RecoveryState;
@@ -75,6 +81,10 @@ mutable projection state.
     released. That returns `safe-empty-restartable`.
 11. Any missing provider evidence needed to distinguish the above returns `provider-evidence-gap`,
     `termination-ambiguous`, `supervision-stale-ambiguous`, or `merge-outcome-ambiguous`.
+
+`RecoveryPlan.planId` is minted by `plan()` as a deterministic content hash over
+`{runId, policyRef, requestedAction, scope, classification.state, evaluatedThrough}`, so identical
+evidence yields a stable id under pure replay (no clock or random input).
 
 ## Action-safety matrix
 

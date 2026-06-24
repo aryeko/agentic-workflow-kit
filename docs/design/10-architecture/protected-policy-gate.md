@@ -47,18 +47,25 @@ match it. All subsequent changed-file checks reference this record.
 ## Approval binding
 
 A protected-policy-change approval must bind to specific evidence. The
-`ApprovalDecisionRecorded` event for `ApprovalSubject = "protected-policy-change"` must carry:
+`ApprovalDecisionRecorded` event for `ApprovalSubject = "protected-policy-change"` carries the slim
+`ProtectedPolicyApprovalBinding` plus the operator decision event id:
 
 | Field | Content |
 |---|---|
-| run id | The run being approved |
-| candidate head SHA | The exact head the approval covers |
-| changed protected path set | Which protected paths were modified |
-| old policy digest | The digest from `ProtectedPolicySnapshotRecorded` |
-| new policy digest | The approved new policy (when applicable) |
+| run id | The run being approved (`runId`) |
+| candidate head SHA | The exact head the approval covers (`candidateHeadSha`) |
+| protected policy snapshot event id | Reference to the core-05 `ProtectedPolicySnapshotRecorded` the approval is bound to (`protectedPolicySnapshotEventId`) |
+| new policy digest | The approved new policy, when applicable (`newPolicyDigest?`) |
 | operator decision event id | The recorded human decision authorizing this change |
 
-Without a committed approval binding all of these fields, the gate returns
+The binding deliberately does not duplicate the old policy digest or the concrete changed
+protected paths inline on the approval event. The gate obtains the **old policy digest** by
+reference from the `ProtectedPolicySnapshotRecorded` named by `protectedPolicySnapshotEventId`,
+and the **concrete changed protected paths** by reference from Workspace `LocalGitEvidence` — those
+remain authoritative on the snapshot and the workspace evidence, not on the approval event.
+
+Without a committed binding, or when the referenced `ProtectedPolicySnapshotRecorded` is missing
+or the candidate head and snapshot do not match, the gate returns
 `protected-policy-change-unapproved` and fails closed.
 
 ## Authoritative references

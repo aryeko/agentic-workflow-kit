@@ -53,6 +53,19 @@ cli / mcp     — wire in the filesystem-backed concrete store at startup
 store-sqlite  — (if needed) separate adapter package; never imported by sdk
 ```
 
+## Public entrypoint ownership
+
+The SDK public entrypoint (`packages/sdk/src/index.ts`) and its aggregated public exports are owned by
+a single dedicated **export-aggregation owner**, not by individual behavior or contract stories. Each
+domain contributes its public symbols through that owner, which decides what is re-exported from the
+entrypoint.
+
+This removes the shared-barrel write obligation from every behavior story. Otherwise each story that
+adds a public symbol would have to write the one entrypoint file, forcing serialized cross-domain writes
+to a single shared file and blocking public-import acceptance criteria whose owned pathset excludes the
+entrypoint. With a dedicated owner, behavior stories produce their symbols within their own pathset and
+the owner aggregates them at the boundary.
+
 ## What the SDK must not own
 
 The SDK must never import:

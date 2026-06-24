@@ -138,11 +138,14 @@ probes. Missing, stale, partial, or mismatched attestation denies injection.
 
 Typed interfaces live in [contracts-and-events.md](contracts-and-events.md) because the catalog is cohesive detail. It defines `ResolvedCredential`, `InjectionPlan`, `RedactionSet`, `CredentialDenied`, `RedactedInput`, `RedactedValue`, and the public `CredentialsAndSecretsContract`.
 
-Exposes: `resolveCredential(ref, scope): ResolveCredentialResult`;
-`planInjection(refs, scope): PlanInjectionResult`;
-`redact<T extends RedactedInput>(value, redactionSet): RedactResult<T>`;
-`destroy(operationId): CredentialMaterialDestroyed`; and
-`issueEgressPolicy(refs, scope): EgressPolicy | CredentialDenied`.
+Exposes (every method takes a `CredentialAuditContext` — `scope` + attestation/evidence refs +
+injected `occurredAt` — so audit events are complete and time is never read ambiently):
+`resolveCredential(ref, ctx): ResolveCredentialResult`;
+`planInjection(refs, ctx): PlanInjectionResult`;
+`redact<T extends RedactedInput>(value, redactionSet, ctx): RedactResult<T>`;
+`destroy(ctx): CredentialMaterialDestroyed`; and
+`issueEgressPolicy(refs, source, ctx): EgressPolicy | CredentialDenied`, where `source` is the fnd-01
+`EgressPolicySource`.
 
 Consumes: Configuration & Policy supplies `CredentialRef` records and defaults by value. Dependency Rule justification: this is a Foundation peer dependency; provider, Control plane, and Edge domains consume this domain rather than being called by it.
 

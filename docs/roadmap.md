@@ -27,6 +27,6 @@ last-reviewed: "2026-06-19"
 
 ---
 
-**↑ Up:** [documentation home](./README.md) · **← Prev:** [Turbo Check-Gate Caching (design)](./engineering/turbo-check-caching-design.md)
+**↑ Up:** [documentation home](./README.md) · **← Prev:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./reviews/2026-06-25-producer-consumer-closure-audit.md)
 
 <!-- /DOCS-NAV -->

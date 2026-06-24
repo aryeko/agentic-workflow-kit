@@ -80,6 +80,10 @@ Use the [template](../_templates/domain-design-template.md). Sections, in order:
 6. **Design** — the low-level design: data structures, state machines, algorithms, decisions.
 7. **Contracts & interfaces** — what the domain exposes and consumes, typed. Provider domains define
    their contract **and** its capability set here, validated against the real driver + the mock.
+   **Producer-closure:** for every produced shape, each required field must have a named producer — an
+   input field, an owned-pathset source, or an explicit minting rule — and every cross-domain consumed
+   field must name the sibling contract that produces it. A required field with no reachable producer is
+   a closure defect and the contract is not done.
 8. **Events & data** — events emitted/consumed; projections read or contributed to.
 9. **Behavior diagram** (Mermaid) — at least one sequence or state diagram for the key flow.
 10. **Failure & degraded modes** — what happens when a guarantee can't be met; the named fail-closed
@@ -125,6 +129,8 @@ you need) and model-friendly (load one aspect without the rest).
 - [ ] Uses glossary vocabulary; introduces no synonym for an existing term.
 - [ ] States which requirements (FR/NFR ids) it satisfies and how NFR-TEST is met.
 - [ ] Defines its failure/degraded modes and how capability gates treat them (fail-closed).
+- [ ] Producer-closure holds: every required produced field names a source (input, owned pathset, or
+      minting rule) and every cross-domain consumed field names its producing sibling contract.
 - [ ] Provider domains: contract validated against the real driver **and** a mock.
 - [ ] Diagrams present and consistent with architecture.md naming.
 - [ ] Open questions captured, not silently resolved.

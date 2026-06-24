@@ -667,6 +667,9 @@ interface ForgeRuleset {
   name: string;
   enforcement: string;
   target?: string;
+  // normalized required status checks so core-05 can derive required CI checks
+  // without parsing provider-specific ruleset ASTs (empty array = no checks)
+  requiredStatusChecks: string[];
 }
 
 interface ForgeMergeQueueFacts {
