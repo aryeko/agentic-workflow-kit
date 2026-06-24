@@ -13,6 +13,7 @@ import { replay } from '../replay/index.js';
 import {
   buildAppendEnvelopes,
   findInvalidRequestedDurabilityIndex,
+  findMismatchedPayloadDigestIndex,
   hasContiguousSequence,
 } from './append-envelopes.js';
 import { buildRunAppendRejected } from './append-rejected.js';
@@ -85,6 +86,10 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
     const replayed = replay(context.runId, context.deps.eventLogStore);
     if (!replayed.ok) {
       return replayFailureToAppendFailure(replayed.error);
+    }
+
+    if (findMismatchedPayloadDigestIndex(batch, context.deps.digestPayload) !== undefined) {
+      return appendFailure('sequence-conflict', 'Append intent payloadDigest does not match payload.');
     }
 
     const { envelopes, effectiveDurability } = buildAppendEnvelopes(

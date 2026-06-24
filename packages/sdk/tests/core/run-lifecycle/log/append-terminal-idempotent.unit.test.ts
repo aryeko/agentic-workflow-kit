@@ -23,11 +23,17 @@ const seedTerminal = (harness: ReturnType<typeof createHarness>) => {
     [10, 'forge-waiting', 'merge-waiting'],
     [11, 'merge-waiting', 'settling'],
   ] as const;
+  const mergeEvidencePayload = { evidenceRef: 'merge', supportKind: 'probe', value: 'merged' };
+  const mergeEvidence = makeEnvelope(12, 'Evidence', mergeEvidencePayload, {
+    eventId: 'merge',
+    payloadDigest: `digest:${JSON.stringify(mergeEvidencePayload)}`,
+    durability: 'barrier',
+  });
   const terminalPayload = lifecyclePayload('settling', 'completed', {
     terminal: true,
     sourceEventIds: ['Evidence:merge'],
   });
-  const terminal = makeEnvelope(12, 'RunLifecycleTransitioned', terminalPayload, {
+  const terminal = makeEnvelope(13, 'RunLifecycleTransitioned', terminalPayload, {
     eventId: 'terminal-1',
     payloadDigest: `digest:${JSON.stringify(terminalPayload)}`,
     durability: 'barrier',
@@ -51,9 +57,19 @@ const seedTerminal = (harness: ReturnType<typeof createHarness>) => {
     writerEpoch: 1,
     leaseName: `run-writer:${runId}`,
     payloadLength: 1,
+    payloadDigest: mergeEvidence.payloadDigest,
+    frameDigest: 'merge-evidence-frame',
+    byteRange: { start: 12, end: 13 },
+    payload: encoder.encode(JSON.stringify(mergeEvidence)),
+  });
+  harness.records.push({
+    sequence: 13,
+    writerEpoch: 1,
+    leaseName: `run-writer:${runId}`,
+    payloadLength: 1,
     payloadDigest: terminal.payloadDigest,
     frameDigest: 'terminal-frame',
-    byteRange: { start: 12, end: 13 },
+    byteRange: { start: 13, end: 14 },
     payload: encoder.encode(JSON.stringify(terminal)),
   });
   return terminalPayload;
@@ -100,7 +116,35 @@ describe('RunWriter terminal idempotency', () => {
       : writer;
 
     expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.eventIds).toEqual(['merge', 'terminal-1']);
+      expect(result.value.firstSequence).toBe(12);
+      expect(result.value.lastSequence).toBe(13);
+    }
     expect(harness.appendCalls).toHaveLength(0);
+  });
+
+  it('rejects a terminal retry batch when a sibling fact is not already committed', () => {
+    const harness = createHarness();
+    const terminalPayload = seedTerminal(harness);
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    const result = writer.ok
+      ? writer.value.append([
+          appendIntent(
+            'Evidence',
+            { evidenceRef: 'merge-new', supportKind: 'probe', value: 'new' },
+            { eventId: 'merge-new' },
+          ),
+          appendIntent('RunLifecycleTransitioned', terminalPayload, {
+            eventId: 'terminal-1',
+            durability: 'barrier',
+          }),
+        ])
+      : writer;
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
   });
 
   it('rejects a terminal re-append with a different event id or digest as illegal lifecycle mutation', () => {

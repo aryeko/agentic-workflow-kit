@@ -143,17 +143,41 @@ export const terminalIdempotentReceipt = (
     return undefined;
   }
 
+  const unmatched = [...replayed.events];
+  const matchingEvents: RunEventEnvelope[] = [];
+  for (const envelope of envelopes) {
+    const matchIndex = unmatched.findIndex(
+      (event) =>
+        event.type === envelope.type &&
+        event.eventId === envelope.eventId &&
+        event.payloadDigest === envelope.payloadDigest,
+    );
+    if (matchIndex === -1) {
+      return undefined;
+    }
+
+    const [matched] = unmatched.splice(matchIndex, 1);
+    matchingEvents.push(matched);
+  }
+
+  const orderedMatches = [...matchingEvents].sort((left, right) => left.sequence - right.sequence);
+  const firstMatch = orderedMatches[0];
+  const lastMatch = orderedMatches.at(-1);
+  if (firstMatch === undefined || lastMatch === undefined) {
+    return undefined;
+  }
+
   return {
     ok: true,
     value: {
       runId: context.runId,
-      firstSequence: matchingTerminal.sequence,
-      lastSequence: matchingTerminal.sequence,
+      firstSequence: firstMatch.sequence,
+      lastSequence: lastMatch.sequence,
       writerEpoch: matchingTerminal.writerEpoch,
       durability: matchingTerminal.durability,
-      eventIds: [matchingTerminal.eventId],
-      payloadDigests: [matchingTerminal.payloadDigest],
-      frameDigest: `recovered:${matchingTerminal.eventId}`,
+      eventIds: matchingEvents.map((event) => event.eventId),
+      payloadDigests: matchingEvents.map((event) => event.payloadDigest),
+      frameDigest: `recovered:${firstMatch.sequence}-${lastMatch.sequence}`,
       health: replayed.health,
     },
   };

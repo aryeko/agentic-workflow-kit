@@ -218,7 +218,7 @@ describe('RunEventLog and RunWriter edge failures', () => {
     expect(harness.records.map((record) => harness.decode(record.payload).type)).not.toContain('RunPolicyBound');
   });
 
-  it('preserves caller-supplied payload digests', () => {
+  it('preserves caller-supplied payload digests when they match the payload', () => {
     const harness = createHarness();
     harness.seedCreatedRun();
     const writer = harness.log.openWriter(runId, harness.acquireLease());
@@ -226,14 +226,37 @@ describe('RunEventLog and RunWriter edge failures', () => {
 
     if (writer.ok) {
       const payload = { ok: true };
+      const payloadDigest = `digest:${JSON.stringify(payload)}`;
       const result = writer.value.append([
         appendIntent('SiblingFact', payload, {
-          payloadDigest: 'sha256:caller-supplied',
+          payloadDigest,
         }),
       ]);
 
       expect(result.ok).toBe(true);
-      expect(harness.appendCalls[0]?.envelopes[0]?.payloadDigest).toBe('sha256:caller-supplied');
+      expect(harness.appendCalls[0]?.envelopes[0]?.payloadDigest).toBe(payloadDigest);
+    }
+  });
+
+  it('rejects caller-supplied payload digests that do not match the payload before appending', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (writer.ok) {
+      const result = writer.value.append([
+        appendIntent(
+          'SiblingFact',
+          { ok: true },
+          {
+            payloadDigest: 'sha256:stale',
+          },
+        ),
+      ]);
+
+      expectFailureCode(result, 'sequence-conflict');
+      expect(harness.appendCalls).toHaveLength(0);
     }
   });
 

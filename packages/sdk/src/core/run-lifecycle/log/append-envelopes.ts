@@ -77,6 +77,21 @@ export const findInvalidRequestedDurabilityIndex = (batch: readonly AppendIntent
   return invalidIndex === -1 ? undefined : invalidIndex;
 };
 
+export const findMismatchedPayloadDigestIndex = (
+  batch: readonly AppendIntent[],
+  digestPayload: RunEventLogDependencies['digestPayload'],
+): number | undefined => {
+  const invalidIndex = batch.findIndex((intent) => {
+    if (intent.payloadDigest === undefined) {
+      return false;
+    }
+
+    return intent.payloadDigest !== digestPayload(intent.payload);
+  });
+
+  return invalidIndex === -1 ? undefined : invalidIndex;
+};
+
 const makeEnvelope = (
   binding: WriterBinding,
   intent: AppendIntent,
