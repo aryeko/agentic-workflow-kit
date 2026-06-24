@@ -5,6 +5,7 @@ const textEncoder = new TextEncoder();
 const encodeJson = (value: unknown): Uint8Array => textEncoder.encode(JSON.stringify(value));
 
 export const runId = 'run-replay-123';
+export const digestPayload = (payload: unknown): string => `digest:${JSON.stringify(payload)}`;
 
 export const lifecycleTransitionPayload = {
   from: 'created',
@@ -37,7 +38,7 @@ export const makeEnvelope = (
   durability: 'durable',
   occurredAt: `2026-06-23T12:0${sequence}:00.000Z`,
   recordedAt: `2026-06-23T12:0${sequence}:01.000Z`,
-  payloadDigest: `sha256:${sequence}`,
+  payloadDigest: digestPayload(payload),
   payload,
   ...overrides,
 });

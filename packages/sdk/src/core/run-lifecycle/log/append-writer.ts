@@ -98,7 +98,7 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
       return appendFailure('stale-writer-fenced', 'Writer lease no longer fences current.');
     }
 
-    const replayed = replay(context.runId, context.deps.eventLogStore);
+    const replayed = replay(context.runId, context.deps.eventLogStore, context.deps.digestPayload);
     if (!replayed.ok) {
       return replayFailureToAppendFailure(replayed.error);
     }

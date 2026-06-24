@@ -22,7 +22,7 @@ export const recoverLostAck = (
   envelopes: readonly RunEventEnvelope[],
   durability: RunDurabilityClass,
 ): Result<RunAppendReceipt, RunAppendFailure> => {
-  const replayed = replay(context.runId, context.deps.eventLogStore);
+  const replayed = replay(context.runId, context.deps.eventLogStore, context.deps.digestPayload);
   if (!replayed.ok) {
     return replayFailureToAppendFailure(replayed.error);
   }

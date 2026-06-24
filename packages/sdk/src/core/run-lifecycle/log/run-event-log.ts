@@ -44,14 +44,19 @@ export const createRunEventLog = (deps: RunEventLogDependencies): RunEventLog =>
   },
 
   replay(runId: string): Result<RunReplay, RunReplayFailure> {
-    return replay(runId, deps.eventLogStore);
+    return replay(runId, deps.eventLogStore, deps.digestPayload);
   },
 
   waitRunEvents(request: WaitRunEventsRequest): Promise<Result<WaitRunEventsResult, RunReplayFailure>> {
-    return waitRunEvents(request, (runId) => replay(runId, deps.eventLogStore), deps.waitClock, deps.waitSleep);
+    return waitRunEvents(
+      request,
+      (runId) => replay(runId, deps.eventLogStore, deps.digestPayload),
+      deps.waitClock,
+      deps.waitSleep,
+    );
   },
 
   project(runId: string): Result<RunProjections, RunReplayFailure> {
-    return project(runId, (requestedRunId) => replay(requestedRunId, deps.eventLogStore));
+    return project(runId, (requestedRunId) => replay(requestedRunId, deps.eventLogStore, deps.digestPayload));
   },
 });

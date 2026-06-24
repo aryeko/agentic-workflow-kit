@@ -25,6 +25,7 @@ const textDecoder = new TextDecoder();
 
 export const runId = 'run-log-123';
 export const recordedAt = '2026-06-23T12:00:00.500Z';
+export const digestPayload = (payload: unknown): string => `digest:${JSON.stringify(payload)}`;
 
 export type AppendCall = {
   handle: LogHandle;
@@ -112,7 +113,7 @@ export function makeEnvelope<TPayload>(
     durability: 'barrier',
     occurredAt: `2026-06-23T12:00:${String(sequence).padStart(2, '0')}.000Z`,
     recordedAt,
-    payloadDigest: `digest:${type}:${JSON.stringify(payload)}`,
+    payloadDigest: digestPayload(payload),
     payload,
     ...overrides,
   };
@@ -283,7 +284,7 @@ export function createHarness(options: HarnessOptions = {}): LogHarness {
     now: () => recordedAt,
     waitClock: () => 0,
     createEventId: () => `generated-${nextGeneratedId++}`,
-    digestPayload: (payload) => `digest:${JSON.stringify(payload)}`,
+    digestPayload,
   });
 
   const acquireLease = (): LeaseCapability =>

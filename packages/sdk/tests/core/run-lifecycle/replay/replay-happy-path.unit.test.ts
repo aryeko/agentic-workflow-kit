@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { replay } from '../../../../src/core/run-lifecycle/replay/index.js';
 
-import { lifecycleTransitionPayload, makeEnvelope, makeReplayStore, makeStoredRecord, runId } from './test-support.js';
+import {
+  digestPayload,
+  lifecycleTransitionPayload,
+  makeEnvelope,
+  makeReplayStore,
+  makeStoredRecord,
+  runId,
+} from './test-support.js';
 
 describe('core-01-s2 replay happy path', () => {
   it('returns the committed envelopes with ok health', () => {
@@ -15,7 +22,7 @@ describe('core-01-s2 replay happy path', () => {
       ],
     });
 
-    const result = replay(runId, store);
+    const result = replay(runId, store, digestPayload);
 
     expect(result.ok).toBe(true);
     if (!result.ok) {

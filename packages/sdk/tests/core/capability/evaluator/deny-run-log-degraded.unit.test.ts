@@ -150,6 +150,31 @@ describe('core-02-s2 deny run-log-degraded', () => {
     expect(payload.failureReason).toBe('run-log-degraded');
   });
 
+  it('denies auto-recover after terminal lifecycle projection', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const payload = evaluateCapabilityGate(
+      createRequest({
+        capability: 'auto-recover',
+        requestedAction: 'recover-run',
+      }),
+      scenario.replay,
+      createProjections({
+        ...scenario.projections,
+        state: {
+          ...scenario.projections.state,
+          lifecycle: 'completed',
+        },
+        summary: {
+          ...scenario.projections.summary,
+          status: 'completed',
+        },
+      }),
+    );
+
+    expect(payload.decision).toBe('deny');
+    expect(payload.failureReason).toBe('run-log-degraded');
+  });
+
   it('denies missing projections as degraded run-log input', () => {
     const payload = evaluateCapabilityGate(
       degradedReplayFixture.request,

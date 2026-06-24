@@ -6,6 +6,7 @@ import { classifyReplayHealth } from './health-classifier.js';
 import { hasValidDeclaredPayload } from './payload-validator.js';
 
 const textDecoder = new TextDecoder();
+export type ReplayPayloadDigest = (payload: unknown) => string;
 
 const malformedEnvelopeFailure = (
   healthRecords: RunReplayFailure['healthRecords'],
@@ -37,7 +38,11 @@ const decodeEnvelope = (payload: Uint8Array): unknown => {
   }
 };
 
-export const replay = (runId: string, store: EventLogStore): Result<RunReplay, RunReplayFailure> => {
+export const replay = (
+  runId: string,
+  store: EventLogStore,
+  digestPayload: ReplayPayloadDigest,
+): Result<RunReplay, RunReplayFailure> => {
   const replayed = store.replay(runId);
   const events: RunEventEnvelope[] = [];
 
@@ -52,6 +57,10 @@ export const replay = (runId: string, store: EventLogStore): Result<RunReplay, R
 
     if (!hasValidDeclaredPayload(decoded)) {
       return malformedDeclaredPayloadFailure([]);
+    }
+
+    if (decoded.payloadDigest !== digestPayload(decoded.payload)) {
+      return malformedEnvelopeFailure([]);
     }
 
     events.push(decoded);

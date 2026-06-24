@@ -1,4 +1,5 @@
 import type { RunProjections, RunReplay } from '../../run-lifecycle/contracts/index.js';
+import { TERMINAL_LIFECYCLE_STATE_SET } from '../../run-lifecycle/lifecycle/index.js';
 import { capabilityPostureCatalog, guaranteeRequirementCatalog } from '../registry/index.js';
 
 import { deriveExpectedProviderDomain, evaluateAttestationRequirement } from './attestation-consumption.js';
@@ -23,6 +24,7 @@ const taskCompletingActions = new Set([
   'enqueue-pull-request-and-complete-task',
 ]);
 const knownLinkageCapabilities = new Set(['auto-recover', 'unattended-run']);
+const terminalLifecycleStates = new Set<string>(TERMINAL_LIFECYCLE_STATE_SET);
 
 const requiredAttestationsForRequest = (request: CapabilityGateRequest): readonly string[] => {
   const posture = capabilityPostureCatalog[request.capability];
@@ -83,7 +85,10 @@ export const evaluateReplayHealthGuarantee = (
     projections === undefined ||
     runMismatch ||
     projections.launch.linkage === 'ambiguous' ||
-    (knownLinkageCapabilities.has(request.capability) && projections.launch.linkage === 'unknown');
+    (knownLinkageCapabilities.has(request.capability) && projections.launch.linkage === 'unknown') ||
+    (request.capability === 'auto-recover' &&
+      projections.state.lifecycle !== null &&
+      terminalLifecycleStates.has(projections.state.lifecycle));
 
   return {
     evaluation: {

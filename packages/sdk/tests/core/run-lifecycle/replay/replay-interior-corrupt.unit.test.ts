@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { replay } from '../../../../src/core/run-lifecycle/replay/index.js';
 
-import { lifecycleTransitionPayload, makeEnvelope, makeReplayStore, makeStoredRecord, runId } from './test-support.js';
+import {
+  digestPayload,
+  lifecycleTransitionPayload,
+  makeEnvelope,
+  makeReplayStore,
+  makeStoredRecord,
+  runId,
+} from './test-support.js';
 
 describe('core-01-s2 interior-corrupt replay failure', () => {
   it('fails closed with an interior-corrupt health record', () => {
@@ -15,6 +22,7 @@ describe('core-01-s2 interior-corrupt replay failure', () => {
           makeStoredRecord(2, makeEnvelope(2, 'RunLifecycleTransitioned', lifecycleTransitionPayload)),
         ],
       }),
+      digestPayload,
     );
 
     expect(result).toEqual({

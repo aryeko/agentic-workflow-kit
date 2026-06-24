@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { replay } from '../../../../src/core/run-lifecycle/replay/index.js';
 
 import {
+  digestPayload,
   lifecycleTransitionPayload,
   makeEnvelope,
   makeReplayStore,
@@ -23,6 +24,7 @@ describe('core-01-s2 tail-repaired replay', () => {
           makeStoredRecord(3, makeEnvelope(3, 'RunLogTailRepaired', tailRepairedPayload, { durability: 'barrier' })),
         ],
       }),
+      digestPayload,
     );
 
     expect(result.ok).toBe(true);

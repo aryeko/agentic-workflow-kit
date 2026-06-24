@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { replay } from '../../../../src/core/run-lifecycle/replay/index.js';
 
-import { makeEnvelope, makeReplayStore, makeStoredRecord, runId } from './test-support.js';
+import { digestPayload, makeEnvelope, makeReplayStore, makeStoredRecord, runId } from './test-support.js';
 
 describe('core-01-s2 malformed declared payload replay failures', () => {
   it('fails when a declared relevant payload is malformed', () => {
@@ -18,6 +18,7 @@ describe('core-01-s2 malformed declared payload replay failures', () => {
           health: 'ok',
           records: [makeStoredRecord(1, envelope)],
         }),
+        digestPayload,
       );
 
       expect(result).toMatchObject({
