@@ -51,4 +51,24 @@ describe('core-01-s3 linkage resolution', () => {
     expect(resolved.currentSession?.sessionId).toBe('session-primary');
     expect(resolved.launch.currentSession?.sessionId).toBe('session-primary');
   });
+
+  it('ignores supersession events whose replacement ordinal is not linked', () => {
+    const resolved = resolveSessionLinkage([
+      makeEventEnvelope('SessionLinked', 1, makeSessionLinkedPayload({ linkOrdinal: 1, sessionId: 'session-primary' })),
+      makeEventEnvelope(
+        'SessionLinkSuperseded',
+        2,
+        makeSessionLinkSupersededPayload({
+          supersededOrdinal: 1,
+          replacementOrdinal: 99,
+          reason: 'invalid handoff',
+          sourceEventId: 'evt-invalid-supersession',
+        }),
+      ),
+    ]);
+
+    expect(resolved.classification).toBe('known');
+    expect(resolved.currentSession?.sessionId).toBe('session-primary');
+    expect(resolved.launch.currentSession?.sessionId).toBe('session-primary');
+  });
 });

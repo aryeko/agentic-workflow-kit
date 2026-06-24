@@ -48,20 +48,26 @@ export function hasContiguousSessionLinkOrdinals(links: readonly SessionLinkedPa
 
 export function resolveSessionLinkage(events: readonly RunEventEnvelope[]): ResolvedSessionLinkage {
   const linkHistory: SessionLinkedPayload[] = [];
-  const supersededOrdinals = new Set<number>();
+  const replacementSupersessions: SessionLinkSupersededPayload[] = [];
 
   for (const event of events) {
     if (event.type === 'SessionLinked' && isSessionLinkedPayload(event.payload)) {
-      if (event.payload.supersedesOrdinal !== undefined) {
-        supersededOrdinals.add(event.payload.supersedesOrdinal);
-      }
-
       linkHistory.push(event.payload);
       continue;
     }
 
     if (event.type === 'SessionLinkSuperseded' && isSessionLinkSupersededPayload(event.payload)) {
-      supersededOrdinals.add(event.payload.supersededOrdinal);
+      replacementSupersessions.push(event.payload);
+    }
+  }
+
+  const linkOrdinals = new Set(linkHistory.map((link) => link.linkOrdinal));
+  const supersededOrdinals = new Set(
+    linkHistory.flatMap((link) => (link.supersedesOrdinal === undefined ? [] : [link.supersedesOrdinal])),
+  );
+  for (const supersession of replacementSupersessions) {
+    if (linkOrdinals.has(supersession.replacementOrdinal)) {
+      supersededOrdinals.add(supersession.supersededOrdinal);
     }
   }
 

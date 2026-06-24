@@ -100,6 +100,10 @@ const hasCommittedSourceReference = (
     return true;
   }
 
+  if (payload.authority !== 'policy') {
+    return false;
+  }
+
   return hasCommittedReference(payload.sourceEventIds, sourceEventsById, 'PolicyDecision');
 };
 
