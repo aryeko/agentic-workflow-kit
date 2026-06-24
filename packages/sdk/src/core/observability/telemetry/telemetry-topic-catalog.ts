@@ -16,7 +16,12 @@ export const TELEMETRY_TOPIC_CATALOG: TelemetryTopicCatalog = Object.freeze([
     'MergeDecisionRecorded',
     'PostMergeOutcomeRecorded',
   ]),
-  createTelemetryTopicEntry('recovery', ['RecoveryClassified', 'RecoveryActionPlanned', 'ReconciliationBlocked']),
+  createTelemetryTopicEntry('recovery', [
+    'RecoveryClassified',
+    'RecoveryActionPlanned',
+    'RecoveryActionApplied',
+    'ReconciliationBlocked',
+  ]),
   createTelemetryTopicEntry('provider-evidence', [
     'AgentToolObserved',
     'ForgeEvidenceCollected',

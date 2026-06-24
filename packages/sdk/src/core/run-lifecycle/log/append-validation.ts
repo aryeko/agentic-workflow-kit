@@ -119,15 +119,14 @@ export const terminalIdempotentReceipt = (
   replayed: RunReplay,
   envelopes: readonly RunEventEnvelope[],
 ): Result<RunAppendReceipt, RunAppendFailure> | undefined => {
-  if (
-    envelopes.length !== 1 ||
-    envelopes[0].type !== 'RunLifecycleTransitioned' ||
-    !isLifecyclePayload(envelopes[0].payload)
-  ) {
-    return undefined;
-  }
+  const terminalEnvelope = envelopes.find(
+    (event) =>
+      event.type === 'RunLifecycleTransitioned' &&
+      isLifecyclePayload(event.payload) &&
+      TERMINAL_STATES.has(event.payload.to),
+  );
 
-  if (!TERMINAL_STATES.has(envelopes[0].payload.to)) {
+  if (terminalEnvelope === undefined || !isLifecyclePayload(terminalEnvelope.payload)) {
     return undefined;
   }
 
@@ -136,8 +135,8 @@ export const terminalIdempotentReceipt = (
       event.type === 'RunLifecycleTransitioned' &&
       isLifecyclePayload(event.payload) &&
       TERMINAL_STATES.has(event.payload.to) &&
-      event.eventId === envelopes[0].eventId &&
-      event.payloadDigest === envelopes[0].payloadDigest,
+      event.eventId === terminalEnvelope.eventId &&
+      event.payloadDigest === terminalEnvelope.payloadDigest,
   );
 
   if (!matchingTerminal) {

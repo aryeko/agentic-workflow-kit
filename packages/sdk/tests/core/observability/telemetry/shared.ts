@@ -19,7 +19,7 @@ export const expectedTelemetryCatalog = {
   approval: ['ApprovalRequested', 'ApprovalDecisionRecorded', 'ApprovalOutcomeRecorded'],
   liveness: ['LivenessStateChanged', 'SupervisionLost', 'WorkerTerminated'],
   completion: ['CompletionDecisionRecorded', 'MergeDecisionRecorded', 'PostMergeOutcomeRecorded'],
-  recovery: ['RecoveryClassified', 'RecoveryActionPlanned', 'ReconciliationBlocked'],
+  recovery: ['RecoveryClassified', 'RecoveryActionPlanned', 'RecoveryActionApplied', 'ReconciliationBlocked'],
   'provider-evidence': ['AgentToolObserved', 'ForgeEvidenceCollected', 'HostOutputCaptured', 'WorkSourceStatusWritten'],
   storage: ['RunLogTailRepaired', 'WorktreeLeaseCreated'],
   privacy: ['CredentialUseDenied', 'RedactionApplied', 'CredentialMaterialDestroyed'],

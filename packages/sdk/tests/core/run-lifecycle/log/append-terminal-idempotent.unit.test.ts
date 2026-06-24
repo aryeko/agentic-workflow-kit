@@ -79,6 +79,30 @@ describe('RunWriter terminal idempotency', () => {
     expect(harness.appendCalls).toHaveLength(0);
   });
 
+  it('reports an identical terminal lifecycle envelope inside an evidenced batch as committed', () => {
+    const harness = createHarness();
+    const terminalPayload = seedTerminal(harness);
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    const result = writer.ok
+      ? writer.value.append([
+          appendIntent(
+            'Evidence',
+            { evidenceRef: 'merge', supportKind: 'probe', value: 'merged' },
+            { eventId: 'merge' },
+          ),
+          appendIntent('RunLifecycleTransitioned', terminalPayload, {
+            eventId: 'terminal-1',
+            durability: 'barrier',
+          }),
+        ])
+      : writer;
+
+    expect(result.ok).toBe(true);
+    expect(harness.appendCalls).toHaveLength(0);
+  });
+
   it('rejects a terminal re-append with a different event id or digest as illegal lifecycle mutation', () => {
     const harness = createHarness();
     const terminalPayload = seedTerminal(harness);
