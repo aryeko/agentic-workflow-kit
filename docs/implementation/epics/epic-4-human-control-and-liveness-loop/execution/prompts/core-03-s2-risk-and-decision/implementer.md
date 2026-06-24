@@ -23,7 +23,8 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 ## Why It Matters
 
 - Covers signals: risk classification; v1 mode ladder; policy/risk/gate failure behavior.
-- Depends on: `core-03-s1-approval-contracts`.
+- Depends on: `core-03-s1-approval-contracts`, and `core-04-s1-supervision-contracts` for serialized
+  `packages/sdk/src/index.ts` export wiring only.
 - Cross-epic frozen inputs: Epic 1 `ResolvedPolicy.policy.approval` and
   `ResolvedPolicy.policy.escalationPolicy`; Epic 3 committed `CapabilityGateRecord`; Epic 3
   `core-02-s3` gate-record durability result for append-failure evidence; Epic 3
@@ -105,15 +106,23 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s2-risk-and-decision.md`. Owned pathset from the frozen DAG and source contract:
 
 - `packages/sdk/src/core/approval/decision/**`
+- `packages/sdk/src/index.ts`
 - `packages/sdk/tests/core/approval/decision/**`
 
 Every other write is forbidden, including this execution package, tracker files, source planning artifacts, repo-wide cleanup, dependency churn, generated files outside the owned pathset, commits, pushes, PRs, and merges.
 
 ## Dependency Inputs
 
-Direct dependency story ids: `core-03-s1-approval-contracts`.
+Direct dependency story ids: `core-03-s1-approval-contracts`, `core-04-s1-supervision-contracts`.
 
-Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use only producer-owned shared shapes, public import paths, committed events/projections, provider-port inputs, and frozen cross-epic facts named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s2-risk-and-decision.md`. Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
+Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use the
+committed `core-04-s1-supervision-contracts` input only as the baseline for
+`packages/sdk/src/index.ts`; do not import supervision shapes or treat the serialization edge as an
+approval decision dependency. Use only producer-owned shared shapes, public import paths, committed
+events/projections, provider-port inputs, and frozen cross-epic facts named by
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s2-risk-and-decision.md`.
+Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
 
 ## Non-Goals And STOP Conditions
 
@@ -125,8 +134,10 @@ Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_CO
 
 ### Source Boundaries And STOP Conditions
 
-- Package/module boundary: `packages/sdk/src/core/approval/decision/**`.
-- Owned pathset: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/tests/core/approval/decision/**`.
+- Package/module boundary: `packages/sdk/src/core/approval/decision/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/decision/**`.
 - Forbidden dependencies: concrete provider packages, process/network APIs, Operator UI.
 - STOP when a branch needs a policy value not exposed by Epic 1 policy contracts or a session value not
   exposed by Epic 3 linkage contracts.

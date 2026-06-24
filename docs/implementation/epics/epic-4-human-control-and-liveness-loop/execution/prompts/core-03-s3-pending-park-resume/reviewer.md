@@ -15,9 +15,9 @@
 - Story id: `core-03-s3-pending-park-resume`.
 - Epic slug: `epic-4-human-control-and-liveness-loop`.
 - Source story contract path: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s3-pending-park-resume.md`.
-- Allowed pathset: `packages/sdk/src/core/approval/pending/**`, `packages/sdk/src/core/approval/projections/**`, `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**`.
-- Direct dependencies: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`.
-- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG.
+- Allowed pathset: `packages/sdk/src/core/approval/pending/**`, `packages/sdk/src/core/approval/projections/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**`.
+- Direct dependencies: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`, `core-04-s2-liveness-fold`.
+- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG. The `core-04-s2-liveness-fold` dependency is only the committed baseline for serialized `packages/sdk/src/index.ts` export wiring; it is not approval pending/projection shape input.
 
 ### Acceptance Criteria
 
@@ -82,8 +82,11 @@ Source AC ids: `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`.
 ### STOP Conditions And Boundaries
 
 - Package/module boundary: `packages/sdk/src/core/approval/pending/**`,
-  `packages/sdk/src/core/approval/projections/**`.
-- Owned pathset: those source/test folders.
+  `packages/sdk/src/core/approval/projections/**`, with SDK public-entrypoint export wiring in
+  `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/pending/**`,
+  `packages/sdk/src/core/approval/projections/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**`.
 - Forbidden dependencies: concrete providers, real process/network, recovery action selection.
 - STOP when resume requires a later Epic 5 recovery choice.
 
@@ -107,7 +110,7 @@ Check implementation against source story `docs/implementation/epics/epic-4-huma
 - Dependency boundaries, committed dependency inputs, and `{{DEPENDENCY_COMMITS}}` consistency.
 - Stale names and sibling occurrences of any issue found.
 - Tests, targeted checks, coverage commands, forbidden-symbol sweeps, and `pnpm check` output.
-- Scope control against allowed writes: `packages/sdk/src/core/approval/pending/**`, `packages/sdk/src/core/approval/projections/**`, `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**`.
+- Scope control against allowed writes: `packages/sdk/src/core/approval/pending/**`, `packages/sdk/src/core/approval/projections/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**`.
 - Repo conventions and mutation limits from `AGENTS.md` and the source contract.
 
 ## Verdict Format

@@ -15,9 +15,9 @@
 - Story id: `core-04-s3-timers-and-wait`.
 - Epic slug: `epic-4-human-control-and-liveness-loop`.
 - Source story contract path: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s3-timers-and-wait.md`.
-- Allowed pathset: `packages/sdk/src/core/supervision/timers/**`, `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**`.
-- Direct dependencies: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`.
-- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG.
+- Allowed pathset: `packages/sdk/src/core/supervision/timers/**`, `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**`.
+- Direct dependencies: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`, `core-03-s3-pending-park-resume`.
+- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG. The `core-03-s3-pending-park-resume` dependency is only the committed baseline for serialized `packages/sdk/src/index.ts` export wiring; it is not supervision timer/wait shape input.
 
 ### Acceptance Criteria
 
@@ -82,8 +82,11 @@ Source AC ids: `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`.
 ### STOP Conditions And Boundaries
 
 - Package/module boundary: `packages/sdk/src/core/supervision/timers/**`,
-  `packages/sdk/src/core/supervision/wait/**`.
-- Owned pathset: those source/test folders.
+  `packages/sdk/src/core/supervision/wait/**`, with SDK public-entrypoint export wiring in
+  `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/supervision/timers/**`,
+  `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**`.
 - Forbidden dependencies: projection mutation in wait, liveness refresh in wait, new timer not in design.
 - STOP when a timer beyond the six design timers is needed.
 
@@ -107,7 +110,7 @@ Check implementation against source story `docs/implementation/epics/epic-4-huma
 - Dependency boundaries, committed dependency inputs, and `{{DEPENDENCY_COMMITS}}` consistency.
 - Stale names and sibling occurrences of any issue found.
 - Tests, targeted checks, coverage commands, forbidden-symbol sweeps, and `pnpm check` output.
-- Scope control against allowed writes: `packages/sdk/src/core/supervision/timers/**`, `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**`.
+- Scope control against allowed writes: `packages/sdk/src/core/supervision/timers/**`, `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**`.
 - Repo conventions and mutation limits from `AGENTS.md` and the source contract.
 
 ## Verdict Format

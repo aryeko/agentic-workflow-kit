@@ -49,7 +49,8 @@ timer/wait inputs, event payloads, termination fact shapes, and fail-closed reas
 ## Dependencies and frozen inputs
 
 - Covers signals: supervisor/liveness/timer/termination facts contract part; fail-closed reason catalog.
-- Depends on: none inside Epic 4.
+- Depends on: `core-03-s1-approval-contracts` for serialized `packages/sdk/src/index.ts` export wiring
+  only; this story consumes no approval shapes.
 - Cross-epic frozen inputs: Epic 3 run-log/cursor types; Epic 2 Agent and Execution Host port types.
 - Decision inputs consumed: none; this story declares types only.
 
@@ -126,8 +127,10 @@ This story declares the reason catalog but raises no runtime failure. Behavior s
 
 ## Boundaries and STOP conditions
 
-- Package/module boundary: `packages/sdk/src/core/supervision/contracts/**`.
+- Package/module boundary: `packages/sdk/src/core/supervision/contracts/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
 - Owned pathset: `packages/sdk/src/core/supervision/contracts/**`,
+  `packages/sdk/src/index.ts`,
   `packages/sdk/tests/core/supervision/contracts/**`.
 - Forbidden dependencies: concrete providers, process/network APIs, behavior folds.
 - STOP when an event payload field is not defined in the supervision design.
@@ -136,6 +139,11 @@ This story declares the reason catalog but raises no runtime failure. Behavior s
 
 - Scope decision: supervision contracts are value types. Rationale: consumers use them as fixtures and
   later projections. Falsification: behavior stories redeclare payloads. Escalation: return to DAG.
+- Scope decision: SDK public entrypoint wiring is part of this public producer and is serialized after
+  `core-03-s1`. Rationale: AC-7 is not executable unless this story can edit `packages/sdk/src/index.ts`;
+  falsification: AC-7 requires public `sdk` imports while the pathset excludes the package entrypoint or
+  runs concurrently with the other shared-barrel writer. Escalation: return to DAG or introduce a
+  separate export-wiring story if shared export ownership expands.
 - Gate verdict: ready. Every exported shape has a concrete assertion and public import test.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

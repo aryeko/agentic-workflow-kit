@@ -15,9 +15,9 @@
 - Story id: `core-03-s2-risk-and-decision`.
 - Epic slug: `epic-4-human-control-and-liveness-loop`.
 - Source story contract path: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s2-risk-and-decision.md`.
-- Allowed pathset: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/tests/core/approval/decision/**`.
-- Direct dependencies: `core-03-s1-approval-contracts`.
-- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG.
+- Allowed pathset: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/decision/**`.
+- Direct dependencies: `core-03-s1-approval-contracts`, `core-04-s1-supervision-contracts`.
+- Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus committed producer shapes, public import paths, event/projection inputs, and provider-port facts named in the source contract and DAG. The `core-04-s1-supervision-contracts` dependency is only the committed baseline for serialized `packages/sdk/src/index.ts` export wiring; it is not approval shape input.
 
 ### Acceptance Criteria
 
@@ -95,8 +95,10 @@ Source AC ids: `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`.
 
 ### STOP Conditions And Boundaries
 
-- Package/module boundary: `packages/sdk/src/core/approval/decision/**`.
-- Owned pathset: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/tests/core/approval/decision/**`.
+- Package/module boundary: `packages/sdk/src/core/approval/decision/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/decision/**`.
 - Forbidden dependencies: concrete provider packages, process/network APIs, Operator UI.
 - STOP when a branch needs a policy value not exposed by Epic 1 policy contracts or a session value not
   exposed by Epic 3 linkage contracts.
@@ -121,7 +123,7 @@ Check implementation against source story `docs/implementation/epics/epic-4-huma
 - Dependency boundaries, committed dependency inputs, and `{{DEPENDENCY_COMMITS}}` consistency.
 - Stale names and sibling occurrences of any issue found.
 - Tests, targeted checks, coverage commands, forbidden-symbol sweeps, and `pnpm check` output.
-- Scope control against allowed writes: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/tests/core/approval/decision/**`.
+- Scope control against allowed writes: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/decision/**`.
 - Repo conventions and mutation limits from `AGENTS.md` and the source contract.
 
 ## Verdict Format

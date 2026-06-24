@@ -23,7 +23,8 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 
 - Covers signals: policy-level grant mapping; relay/channel/mapping/outcome failure behavior; neutral
   record behavior part.
-- Depends on: `core-03-s1`, `core-03-s2`, `core-03-s3`.
+- Depends on: `core-03-s1`, `core-03-s2`, `core-03-s3`, and `core-04-s3` for serialized
+  `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: original `ApprovalRequest` command/host/file/session evidence,
   `PolicyGrantPlan`, committed `ApprovalDecisionRecorded` event id, Agent relay/channel capability
   attestations, Agent answer result.
@@ -88,6 +89,7 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 
 - `packages/sdk/src/core/approval/grants/**`
 - `packages/sdk/src/core/approval/outcomes/**`
+- `packages/sdk/src/index.ts`
 - `packages/sdk/tests/core/approval/grants/**`
 - `packages/sdk/tests/core/approval/outcomes/**`
 
@@ -95,9 +97,17 @@ Every other write is forbidden, including this execution package, tracker files,
 
 ## Dependency Inputs
 
-Direct dependency story ids: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`, `core-03-s3-pending-park-resume`.
+Direct dependency story ids: `core-03-s1-approval-contracts`, `core-03-s2-risk-and-decision`,
+`core-03-s3-pending-park-resume`, `core-04-s3-timers-and-wait`.
 
-Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use only producer-owned shared shapes, public import paths, committed events/projections, provider-port inputs, and frozen cross-epic facts named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s4-grant-mapping-and-outcome.md`. Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
+Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use the
+committed `core-04-s3-timers-and-wait` input only as the baseline for `packages/sdk/src/index.ts`; do
+not import supervision timer/wait shapes or treat the serialization edge as an approval grant/outcome
+dependency. Use only producer-owned shared shapes, public import paths, committed events/projections,
+provider-port inputs, and frozen cross-epic facts named by
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s4-grant-mapping-and-outcome.md`.
+Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
 
 ## Non-Goals And STOP Conditions
 
@@ -110,8 +120,11 @@ Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_CO
 ### Source Boundaries And STOP Conditions
 
 - Package/module boundary: `packages/sdk/src/core/approval/grants/**`,
-  `packages/sdk/src/core/approval/outcomes/**`.
-- Owned pathset: those source/test folders.
+  `packages/sdk/src/core/approval/outcomes/**`, with SDK public-entrypoint export wiring in
+  `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/grants/**`,
+  `packages/sdk/src/core/approval/outcomes/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/grants/**`, `packages/sdk/tests/core/approval/outcomes/**`.
 - Forbidden dependencies: concrete Agent driver behavior, Codex enums, recovery action selection.
 - STOP when a policy scope cannot map to Agent `ScopedGrant` without widening or inventing a grant kind.
 

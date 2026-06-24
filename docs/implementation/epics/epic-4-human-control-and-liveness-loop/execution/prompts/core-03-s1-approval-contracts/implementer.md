@@ -8,7 +8,7 @@
 - Effort: `high`.
 - Suggested-tier floor: `elevated`.
 - Reasoning tier: `elevated`.
-- Routing rationale: core-03-s1-approval-contracts covers `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6` and carries public approval contract surface and single-producer value/event/projection/failure catalog consumed by later approval behavior stories and later epics. The selected tier is at or above the DAG floor and uses no provider-specific runtime model id.
+- Routing rationale: core-03-s1-approval-contracts covers `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6` and carries public approval contract surface, SDK entrypoint export wiring, and single-producer value/event/projection/failure catalog consumed by later approval behavior stories and later epics. The selected tier is at or above the DAG floor and uses no provider-specific runtime model id.
 
 ## Exact Task
 
@@ -23,11 +23,12 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 
 - Covers signals: neutral records contract part; fail-closed catalog part.
 - Depends on: Epic 2 `prov-01-s1-agent-port/ScopedGrant`.
-- Depended on by: `core-03-s2`, `core-03-s3`, `core-03-s4`, Epic 5, Epic 7.
+- Depended on by: `core-03-s2`, `core-03-s3`, `core-03-s4`, `core-04-s1` for serialized
+  `packages/sdk/src/index.ts` export wiring only, Epic 5, Epic 7.
 - Shared shapes consumed: `prov-01-s1-agent-port/ScopedGrant`.
 - Decision inputs consumed: none; this story declares shapes only.
 
-DAG dependents for this story: `core-03-s2-risk-and-decision`, `core-03-s3-pending-park-resume`, `core-03-s4-grant-mapping-and-outcome`. Preserve the producer/consumer shape boundaries named in the source DAG and story contract so later stories can consume committed dependency inputs without redeclaring or widening this story's scope.
+DAG dependents for this story: `core-03-s2-risk-and-decision`, `core-03-s3-pending-park-resume`, `core-03-s4-grant-mapping-and-outcome`, and `core-04-s1-supervision-contracts` for serialized SDK public-entrypoint export wiring only. Preserve the producer/consumer shape boundaries named in the source DAG and story contract so later stories can consume committed dependency inputs without redeclaring or widening this story's scope.
 
 ## Required Reading
 
@@ -83,6 +84,7 @@ This story declares the catalog but raises no runtime failure. Behavior stories 
 Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s1-approval-contracts.md`. Owned pathset from the frozen DAG and source contract:
 
 - `packages/sdk/src/core/approval/contracts/**`
+- `packages/sdk/src/index.ts`
 - `packages/sdk/tests/core/approval/contracts/**`
 
 Every other write is forbidden, including this execution package, tracker files, source planning artifacts, repo-wide cleanup, dependency churn, generated files outside the owned pathset, commits, pushes, PRs, and merges.
@@ -103,8 +105,10 @@ Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_CO
 
 ### Source Boundaries And STOP Conditions
 
-- Package/module boundary: `packages/sdk/src/core/approval/contracts/**`.
-- Owned pathset: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/tests/core/approval/contracts/**`.
+- Package/module boundary: `packages/sdk/src/core/approval/contracts/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/contracts/**`.
 - Forbidden dependencies: provider packages, `testkit`, process/network APIs, concrete Codex enums.
 - STOP when a required approval field is not in the design files named above.
 

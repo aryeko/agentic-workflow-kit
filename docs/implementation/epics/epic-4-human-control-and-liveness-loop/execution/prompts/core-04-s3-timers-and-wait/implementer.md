@@ -22,7 +22,8 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 ## Why It Matters
 
 - Covers signals: timer signals; `waitRunEvents` wrapper and cursor validation.
-- Depends on: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`.
+- Depends on: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`, and
+  `core-03-s3-pending-park-resume` for serialized `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: `LivenessProjection` timestamps/sequences/timers, `SupervisionTimerPolicy`,
   sampled clock, wait request `runId`, `cursor.runId`, `cursor.afterSequence`, `timeoutMs`,
   `maxEvents`, and Epic 3 wait result.
@@ -90,6 +91,7 @@ Source story: `docs/implementation/epics/epic-4-human-control-and-liveness-loop/
 
 - `packages/sdk/src/core/supervision/timers/**`
 - `packages/sdk/src/core/supervision/wait/**`
+- `packages/sdk/src/index.ts`
 - `packages/sdk/tests/core/supervision/timers/**`
 - `packages/sdk/tests/core/supervision/wait/**`
 
@@ -97,9 +99,17 @@ Every other write is forbidden, including this execution package, tracker files,
 
 ## Dependency Inputs
 
-Direct dependency story ids: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`.
+Direct dependency story ids: `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`,
+`core-03-s3-pending-park-resume`.
 
-Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use only producer-owned shared shapes, public import paths, committed events/projections, provider-port inputs, and frozen cross-epic facts named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s3-timers-and-wait.md`. Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
+Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_COMMITS}}`. Use the
+committed `core-03-s3-pending-park-resume` input only as the baseline for
+`packages/sdk/src/index.ts`; do not import approval pending/projection shapes or treat the
+serialization edge as a supervision timer dependency. Use only producer-owned shared shapes, public
+import paths, committed events/projections, provider-port inputs, and frozen cross-epic facts named by
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` or
+`docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s3-timers-and-wait.md`.
+Do not redeclare producer shapes or consume a dependency before its tracker row is `done`.
 
 ## Non-Goals And STOP Conditions
 
@@ -112,8 +122,11 @@ Dependency commit inputs are supplied at execution time through `{{DEPENDENCY_CO
 ### Source Boundaries And STOP Conditions
 
 - Package/module boundary: `packages/sdk/src/core/supervision/timers/**`,
-  `packages/sdk/src/core/supervision/wait/**`.
-- Owned pathset: those source/test folders.
+  `packages/sdk/src/core/supervision/wait/**`, with SDK public-entrypoint export wiring in
+  `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/supervision/timers/**`,
+  `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**`.
 - Forbidden dependencies: projection mutation in wait, liveness refresh in wait, new timer not in design.
 - STOP when a timer beyond the six design timers is needed.
 

@@ -50,7 +50,8 @@ which current-session event classes advance liveness and which event classes nev
 ## Dependencies and frozen inputs
 
 - Covers signals: liveness fold; advancing event classes; never-refresh event classes.
-- Depends on: `core-04-s1-supervision-contracts`.
+- Depends on: `core-04-s1-supervision-contracts`; `core-03-s2-risk-and-decision` for serialized
+  `packages/sdk/src/index.ts` export wiring only.
 - Decision inputs consumed: committed event `domain`/`type`/payload, `sessionId`, `workerHandleId`,
   `itemId`, `exitCode`, `outputRef`, `answerChannelRef`, source sequence, current clock sample,
   linkage resolver/raw linkage events.
@@ -133,8 +134,10 @@ which current-session event classes advance liveness and which event classes nev
 
 ## Boundaries and STOP conditions
 
-- Package/module boundary: `packages/sdk/src/core/supervision/liveness/**`.
-- Owned pathset: source/test liveness folders.
+- Package/module boundary: `packages/sdk/src/core/supervision/liveness/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/supervision/liveness/**`.
 - Forbidden dependencies: runtime log objects, providers, process/network APIs.
 - STOP when liveness requires a concrete Agent protocol event not present in Epic 2 Agent port.
 
@@ -142,6 +145,11 @@ which current-session event classes advance liveness and which event classes nev
 
 - Scope decision: liveness fold consumes value events, not live streams. Rationale: design requires pure
   replayable fold. Falsification: implementation reads `AsyncIterable<AgentEvent>` directly here.
+- Scope decision: SDK public entrypoint wiring is part of this public behavior story. Rationale: its
+  public-import test cannot pass unless the story can add liveness exports to
+  `packages/sdk/src/index.ts`; the cross-domain dependency is serialization only. Falsification: public
+  import AC excludes the package entrypoint from the pathset or runs concurrently with another barrel
+  writer.
 - Gate verdict: ready. ACs enumerate advancing and non-refresh classes with exact assertions.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

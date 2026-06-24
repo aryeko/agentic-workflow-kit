@@ -52,7 +52,8 @@ records.
 ## Dependencies and frozen inputs
 
 - Covers signals: risk classification; v1 mode ladder; policy/risk/gate failure behavior.
-- Depends on: `core-03-s1-approval-contracts`.
+- Depends on: `core-03-s1-approval-contracts`; `core-04-s1-supervision-contracts` for serialized
+  `packages/sdk/src/index.ts` export wiring only.
 - Cross-epic frozen inputs: Epic 1 `ResolvedPolicy.policy.approval` and
   `ResolvedPolicy.policy.escalationPolicy`; Epic 3 committed `CapabilityGateRecord`; Epic 3
   `core-02-s3` gate-record durability result for append-failure evidence; Epic 3
@@ -156,8 +157,10 @@ records.
 
 ## Boundaries and STOP conditions
 
-- Package/module boundary: `packages/sdk/src/core/approval/decision/**`.
-- Owned pathset: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/tests/core/approval/decision/**`.
+- Package/module boundary: `packages/sdk/src/core/approval/decision/**`, with SDK public-entrypoint
+  export wiring in `packages/sdk/src/index.ts`.
+- Owned pathset: `packages/sdk/src/core/approval/decision/**`, `packages/sdk/src/index.ts`,
+  `packages/sdk/tests/core/approval/decision/**`.
 - Forbidden dependencies: concrete provider packages, process/network APIs, Operator UI.
 - STOP when a branch needs a policy value not exposed by Epic 1 policy contracts or a session value not
   exposed by Epic 3 linkage contracts.
@@ -167,6 +170,10 @@ records.
 - Scope decision: committed-gate-record-before-grant. Rationale: the design requires recorded gate
   evidence. Falsification: auto grant from pure evaluator return. Escalation: story defect against this
   contract.
+- Scope decision: SDK public entrypoint wiring is part of this public behavior story. Rationale: its
+  public-import test cannot pass unless the story can add decision exports to `packages/sdk/src/index.ts`;
+  the cross-domain dependency is serialization only. Falsification: public import AC excludes the
+  package entrypoint from the pathset or runs concurrently with another barrel writer.
 - Gate verdict: ready. ACs name exact assertions and predicate sources; every failure row maps to an AC.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
