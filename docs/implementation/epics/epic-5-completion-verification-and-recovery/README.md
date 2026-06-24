@@ -125,7 +125,7 @@ stays `TBD` until the Epic 5 story DAG is frozen.
 
 ---
 
-**↑ Up:** [epic charters](../README.md) · **← Prev:** [Epic 4 - story DAG](../epic-4-human-control-and-liveness-loop/story-dag.md) · **Next →:** [Epic 5 - stories](./stories/README.md)
+**↑ Up:** [epic charters](../README.md) · **← Prev:** [Epic 4 - Human control and liveness loop](../epic-4-human-control-and-liveness-loop/README.md) · **Next →:** [Epic 5 - stories](./stories/README.md)
 
 **Children:** [Epic 5 - stories](./stories/README.md) · [Epic 5 - story DAG](./story-dag.md)
 
