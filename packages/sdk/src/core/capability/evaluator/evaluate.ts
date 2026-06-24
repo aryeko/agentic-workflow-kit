@@ -57,12 +57,12 @@ const getPayloadFailureReason = (
     return evidenceFailure;
   }
 
-  if (attestationFailure !== undefined) {
-    return attestationFailure;
-  }
-
   if (evidenceFailure === 'self-report-only') {
     return evidenceFailure;
+  }
+
+  if (attestationFailure !== undefined) {
+    return attestationFailure;
   }
 
   return undefined;

@@ -36,6 +36,37 @@ describe('RunEventLog.createRun', () => {
     });
   });
 
+  it('persists RunCreated request metadata from CreateRunInput', () => {
+    const harness = createHarness();
+
+    const result = harness.log.createRun({
+      runId,
+      holder: 'holder-1',
+      leaseTtlMs: 60_000,
+      idempotencyKey: 'idempotency-input',
+      operatorRef: 'operator-ref-input',
+      createdAt: '2026-06-23T12:00:00.000Z',
+      payload: {
+        idempotencyKey: 'idempotency-payload',
+        operatorRef: 'operator-ref-payload',
+        requestedBy: 'operator-1',
+      },
+    });
+
+    expect(result.ok).toBe(true);
+
+    const [call] = harness.appendCalls;
+    const created = call.envelopes[0];
+    expect(created.payload).toEqual({
+      idempotencyKey: 'idempotency-input',
+      operatorRef: 'operator-ref-input',
+      requestedBy: 'operator-1',
+    });
+    expect(created.payloadDigest).toBe(
+      'digest:{"idempotencyKey":"idempotency-input","operatorRef":"operator-ref-input","requestedBy":"operator-1"}',
+    );
+  });
+
   it('recovers a created run when the barrier append committed but acknowledgement was lost', () => {
     const harness = createHarness({
       appendOutcomes: [{ code: 'partial-ack-unknown', commit: 'exact' }],

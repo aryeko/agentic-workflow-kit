@@ -13,6 +13,12 @@ type AcquiredLease = {
   token: string;
 };
 
+const createRunPayload = (input: CreateRunInput): CreateRunInput['payload'] => ({
+  idempotencyKey: input.idempotencyKey,
+  ...(input.operatorRef === undefined ? {} : { operatorRef: input.operatorRef }),
+  requestedBy: input.payload.requestedBy,
+});
+
 const releaseAcquiredLease = (deps: RunEventLogDependencies, lease: AcquiredLease): void => {
   deps.leaseStore.release(lease.name, lease.epoch, lease.token);
 };
@@ -26,6 +32,7 @@ export const createRun = (
     return appendFailure('event-log-unavailable', lease.message);
   }
 
+  const payload = createRunPayload(input);
   const created: RunEventEnvelope = {
     schema: 'kit-vnext.run-event.v1',
     runId: input.runId,
@@ -37,8 +44,8 @@ export const createRun = (
     durability: 'barrier',
     occurredAt: input.createdAt,
     recordedAt: deps.now(),
-    payloadDigest: deps.digestPayload(input.payload),
-    payload: input.payload,
+    payloadDigest: deps.digestPayload(payload),
+    payload,
     correlationId: input.correlationId,
     artifactRefs: input.artifactRefs,
   };
