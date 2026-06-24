@@ -5,7 +5,7 @@ import { project } from '../../../../src/core/run-lifecycle/projections/index.js
 
 import { ambiguousLinkageFixture } from './fixtures/ambiguous-linkage.fixture.js';
 import { degradedReplayFixture } from './fixtures/degraded-replay.fixture.js';
-import { createAllowAutoMergeScenario, createEvent, createProjections, createRequest } from './shared.js';
+import { createAllowAutoMergeScenario, createEvent, createProjections, createRequest, createScope } from './shared.js';
 
 describe('core-02-s2 deny run-log-degraded', () => {
   it('denies degraded replays before attestation evaluation', () => {
@@ -127,5 +127,38 @@ describe('core-02-s2 deny run-log-degraded', () => {
 
     expect(payload.decision).toBe('deny');
     expect(payload.failureReason).toBe('run-log-degraded');
+  });
+
+  it('denies cross-run request, replay, and projection inputs', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const cases = [
+      {
+        request: createRequest({ scope: createScope({ runId: 'run-other' }) }),
+        replay: scenario.replay,
+        projections: scenario.projections,
+      },
+      {
+        request: scenario.request,
+        replay: { ...scenario.replay, runId: 'run-other' },
+        projections: scenario.projections,
+      },
+      {
+        request: scenario.request,
+        replay: scenario.replay,
+        projections: createProjections({
+          summary: {
+            ...scenario.projections.summary,
+            runId: 'run-other',
+          },
+        }),
+      },
+    ];
+
+    for (const input of cases) {
+      const payload = evaluateCapabilityGate(input.request, input.replay, input.projections);
+
+      expect(payload.decision).toBe('deny');
+      expect(payload.failureReason).toBe('run-log-degraded');
+    }
   });
 });

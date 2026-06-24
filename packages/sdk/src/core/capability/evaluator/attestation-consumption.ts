@@ -2,7 +2,7 @@ import type { CapabilityAttestation } from '../../../providers/attestation/index
 import type { RunEventEnvelope } from '../../run-lifecycle/contracts/index.js';
 import { capabilityContainmentFloor } from '../registry/index.js';
 import type { RecordedEvidence } from './evidence-records.js';
-import { isEvidenceReplayable } from './evidence-records.js';
+import { isEvidenceAmbiguous, isEvidenceReplayable } from './evidence-records.js';
 import type {
   AttestationRef,
   CapabilityGateFailureReason,
@@ -310,7 +310,7 @@ export const evaluateAttestationRequirement = (
 
   const nonReplayableEvidence = positiveCandidates.some((candidate) => {
     const records = recordedEvidence.get(candidate.attestation.evidenceRef);
-    return records === undefined || !isEvidenceReplayable(records);
+    return records === undefined || isEvidenceAmbiguous(records) || !isEvidenceReplayable(records);
   });
   if (nonReplayableEvidence) {
     return {

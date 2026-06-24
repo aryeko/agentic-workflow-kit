@@ -74,10 +74,15 @@ export const evaluateReplayHealthGuarantee = (
   replay: RunReplay,
   projections: RunProjections | undefined,
 ): GuaranteeResult => {
+  const runMismatch =
+    request.runId !== request.scope.runId ||
+    replay.runId !== request.runId ||
+    (projections !== undefined && projections.summary.runId !== request.runId);
   const degraded =
     replay.health === 'interior-corrupt' ||
     replay.health === 'event-log-unavailable' ||
     projections === undefined ||
+    runMismatch ||
     projections.launch.linkage === 'ambiguous' ||
     (knownLinkageCapabilities.has(request.capability) && projections.launch.linkage === 'unknown');
 

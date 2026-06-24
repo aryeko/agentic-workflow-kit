@@ -86,6 +86,25 @@ describe('core-02-s2 deny attestation non-replayable', () => {
     expect(payload.failureReason).toBe('attestation-non-replayable');
   });
 
+  it('denies positive attestations backed by ambiguous evidence outside requested evidence refs', () => {
+    const scenario = createAllowAutoMergeScenario();
+    const ambiguousAttestationEvidence = createEvidenceEvent('evt-evidence-head-ambiguous', 7, defaultEvidenceRefs[0], {
+      value: 'def456',
+    });
+
+    const payload = evaluateCapabilityGate(
+      createRequest({ evidenceRefs: [defaultEvidenceRefs[1]] }),
+      {
+        ...scenario.replay,
+        events: [...scenario.replay.events, ambiguousAttestationEvidence],
+        lastSequence: ambiguousAttestationEvidence.sequence,
+      },
+      scenario.projections,
+    );
+
+    expect(payload.failureReason).toBe('attestation-non-replayable');
+  });
+
   it('denies attestations backed only by evidence recorded after the gate time', () => {
     const scenario = createAllowAutoMergeScenario();
     const futureAttestationEvidence = createEvidenceEvent('evt-evidence-head-future', 7, defaultEvidenceRefs[0], {
