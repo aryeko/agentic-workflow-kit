@@ -25,10 +25,6 @@ const isAnalysisPayload = (payload: unknown): payload is AnalysisPayload =>
   'schema' in payload &&
   (payload.schema === 'kit-vnext.analysis-recorded.v1' || payload.schema === 'kit-vnext.analysis-failed.v1');
 
-const sameCursor = (left: AnalysisRecordInput, right: AnalysisPayload): boolean =>
-  left.request.evaluatedThrough.runId === right.request.evaluatedThrough.runId &&
-  left.request.evaluatedThrough.afterSequence === right.request.evaluatedThrough.afterSequence;
-
 const sameAnalysisKey = (input: AnalysisRecordInput, payload: AnalysisPayload): boolean =>
   createAnalysisKey(input) ===
   createAnalysisKey({
@@ -90,10 +86,7 @@ export const resolveExistingAnalysisRecord = (
 
   const currentAnalysisEvents = replay.events.filter(
     (event) =>
-      ANALYSIS_EVENT_TYPES.has(event.type) &&
-      isAnalysisPayload(event.payload) &&
-      sameAnalysisKey(input, event.payload) &&
-      sameCursor(input, event.payload),
+      ANALYSIS_EVENT_TYPES.has(event.type) && isAnalysisPayload(event.payload) && sameAnalysisKey(input, event.payload),
   );
 
   if (input.supersedesEventId !== undefined) {

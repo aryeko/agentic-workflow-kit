@@ -86,6 +86,71 @@ describe('core-07-s3 record conflict handling', () => {
     expect(writer.appendCalls).toHaveLength(0);
   });
 
+  it('fails closed on current analysis at the same analysis key across cursor advances without supersession', async () => {
+    const baseInput = createRecordInput();
+    const input = createRecordInput({
+      request: {
+        ...baseInput.request,
+        evaluatedThrough: {
+          runId: baseInput.request.evaluatedThrough.runId,
+          afterSequence: 12,
+        },
+      },
+    });
+    const existingPayload = buildAnalysisRecordedPayload(baseInput, redactedReportRef);
+    const replay = createReplay([
+      createEvent({
+        eventId: 'analysis:current-before-cursor-advance',
+        sequence: 20,
+        type: 'AnalysisRecorded',
+        payload: existingPayload,
+      }),
+    ]);
+    const writer = createWriter();
+
+    const result = await recordAnalysisOutcome(input, writer, { replay });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected conflict');
+    }
+    expect(result.error.conflict).toBe('current-analysis-conflict');
+    expect(writer.appendCalls).toHaveLength(0);
+  });
+
+  it('fails closed when cross-cursor supersedesEventId does not cite the current analysis record', async () => {
+    const baseInput = createRecordInput();
+    const input = createRecordInput({
+      supersedesEventId: 'analysis:wrong-current',
+      request: {
+        ...baseInput.request,
+        evaluatedThrough: {
+          runId: baseInput.request.evaluatedThrough.runId,
+          afterSequence: 12,
+        },
+      },
+    });
+    const existingPayload = buildAnalysisRecordedPayload(baseInput, redactedReportRef);
+    const replay = createReplay([
+      createEvent({
+        eventId: 'analysis:current-before-cursor-advance',
+        sequence: 20,
+        type: 'AnalysisRecorded',
+        payload: existingPayload,
+      }),
+    ]);
+    const writer = createWriter();
+
+    const result = await recordAnalysisOutcome(input, writer, { replay });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected conflict');
+    }
+    expect(result.error.conflict).toBe('current-analysis-conflict');
+    expect(writer.appendCalls).toHaveLength(0);
+  });
+
   it('fails closed when supersedesEventId does not cite the current analysis record', async () => {
     const input = createRecordInput({ supersedesEventId: 'analysis:missing' });
     const existingPayload = buildAnalysisRecordedPayload(createRecordInput(), redactedReportRef);
