@@ -118,23 +118,27 @@ The normalized run spans `2026-06-23T16:47:37Z` to `2026-06-24T07:45:47Z`, about
 
 The first half delivered the story graph. The second half was mostly PR review churn.
 
-The earlier Gantt form was too dense for GitHub's Mermaid renderer at this scale, so the durable report
-uses a vertical phase timeline and keeps the exact timestamps in the table below.
+The diagram keeps the original time-bar idea but groups short story waves so GitHub can render it
+legibly. The exact timestamps remain in the table below.
 
 ```mermaid
-flowchart TD
-    A["16:47-16:50 UTC<br/>Preflight<br/>3m"]
-    B["16:50-16:51 UTC<br/>Approval and worktree setup<br/>1m"]
-    C["16:51-17:21 UTC<br/>Wave 1: 2 stories<br/>30m"]
-    D["17:21-18:02 UTC<br/>Wave 2: 4 stories plus verified blocker<br/>41m"]
-    E["18:02-18:25 UTC<br/>Wave 3: 4 independent stories<br/>23m"]
-    F["18:25-18:33 UTC<br/>Reload skill and repair blocked contract<br/>8m"]
-    G["18:33-20:18 UTC<br/>Remaining stories: gate evaluator, durability, writer, analysis records<br/>1h 45m"]
-    H["20:23 UTC<br/>PR #144 opened"]
-    I["20:30-07:45 UTC<br/>PR review and fix loop<br/>11h 15m"]
-    J["07:34-07:45 UTC<br/>Final check, final no-major-issues review, stop without merge<br/>11m"]
+gantt
+    title Epic 3 Delivery Timeline (UTC)
+    dateFormat  YYYY-MM-DD HH:mm
+    axisFormat  %H:%M
 
-    A --> B --> C --> D --> E --> F --> G --> H --> I --> J
+    section Setup
+    Preflight and approval          :2026-06-23 16:47, 2026-06-23 16:51
+
+    section Story delivery
+    Waves 1-3                       :2026-06-23 16:51, 2026-06-23 18:25
+    Skill reload and contract repair:2026-06-23 18:25, 2026-06-23 18:33
+    Remaining stories               :2026-06-23 18:33, 2026-06-23 20:18
+
+    section PR review
+    PR opened                       :milestone, 2026-06-23 20:23, 0m
+    Review and fix loop             :2026-06-23 20:30, 2026-06-24 07:45
+    Final check and closeout        :2026-06-24 07:34, 2026-06-24 07:45
 ```
 
 ### Timeline Table
