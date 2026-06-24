@@ -38,6 +38,11 @@ function countRetries(events: readonly RunEventEnvelope[]): number {
   }, 0);
 }
 
+function toEpochMs(value: string): number | undefined {
+  const epochMs = Date.parse(value);
+  return Number.isFinite(epochMs) ? epochMs : undefined;
+}
+
 function calculateParkedMs(events: readonly RunEventEnvelope[]): number {
   let parkedStartedAt: string | undefined;
   let total = 0;
@@ -53,7 +58,11 @@ function calculateParkedMs(events: readonly RunEventEnvelope[]): number {
     }
 
     if (event.payload.from === 'parked' && event.payload.to === 'running' && parkedStartedAt) {
-      total += Math.max(0, Date.parse(event.occurredAt) - Date.parse(parkedStartedAt));
+      const parkedStart = toEpochMs(parkedStartedAt);
+      const parkedEnd = toEpochMs(event.occurredAt);
+      if (parkedStart !== undefined && parkedEnd !== undefined) {
+        total += Math.max(0, parkedEnd - parkedStart);
+      }
       parkedStartedAt = undefined;
     }
   }

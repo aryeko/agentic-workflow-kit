@@ -18,8 +18,8 @@ const isTerminalLifecycleEvent = (event: RunEventEnvelope): boolean => {
     return false;
   }
 
-  const payload = event.payload as { readonly to?: string; readonly terminal?: boolean };
-  return payload.terminal === true || (payload.to !== undefined && TERMINAL_STATES.has(payload.to));
+  const payload = event.payload as { readonly to?: string };
+  return payload.to !== undefined && TERMINAL_STATES.has(payload.to);
 };
 
 export const checkTerminalAnalysisInvariant = (

@@ -47,6 +47,28 @@ describe('core-07-s3 terminal analysis invariant', () => {
     });
   });
 
+  it('ignores terminal flags on non-terminal lifecycle states', () => {
+    const result = checkTerminalAnalysisInvariant(
+      createReplay([
+        createEvent({
+          eventId: 'running-transition',
+          sequence: 10,
+          type: 'RunLifecycleTransitioned',
+          payload: {
+            from: 'worker-starting',
+            to: 'running',
+            reason: 'running',
+            authority: 'system',
+            sourceEventIds: ['source-event'],
+            terminal: true,
+          },
+        }),
+      ]),
+    );
+
+    expect(result).toEqual({ status: 'not-terminal' });
+  });
+
   it('reports satisfied only when an analysis fact exists at or after the terminal sequence', () => {
     const input = createRecordInput();
     const payload = {

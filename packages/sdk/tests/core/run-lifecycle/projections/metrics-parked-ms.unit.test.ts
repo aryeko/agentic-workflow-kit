@@ -58,4 +58,48 @@ describe('core-01-s5 metrics parked duration', () => {
       }),
     });
   });
+
+  it('skips parked intervals with invalid timestamps', () => {
+    const projected = project(
+      runId,
+      makeReplayDependency({
+        ok: true,
+        value: makeReplay([
+          makeEnvelope(
+            1,
+            'RunLifecycleTransitioned',
+            makeLifecyclePayload({ from: 'running', to: 'parked', sourceEventIds: ['evt-1'] }),
+            { occurredAt: 'not-a-date' },
+          ),
+          makeEnvelope(
+            2,
+            'RunLifecycleTransitioned',
+            makeLifecyclePayload({ from: 'parked', to: 'running', sourceEventIds: ['evt-2'] }),
+            { occurredAt: '2026-06-23T12:00:01.000Z' },
+          ),
+          makeEnvelope(
+            3,
+            'RunLifecycleTransitioned',
+            makeLifecyclePayload({ from: 'running', to: 'parked', sourceEventIds: ['evt-3'] }),
+            { occurredAt: '2026-06-23T12:00:02.000Z' },
+          ),
+          makeEnvelope(
+            4,
+            'RunLifecycleTransitioned',
+            makeLifecyclePayload({ from: 'parked', to: 'running', sourceEventIds: ['evt-4'] }),
+            { occurredAt: 'also-not-a-date' },
+          ),
+        ]),
+      }),
+    );
+
+    expect(projected).toEqual({
+      ok: true,
+      value: expect.objectContaining({
+        metrics: expect.objectContaining({
+          parkedMs: 0,
+        }),
+      }),
+    });
+  });
 });
