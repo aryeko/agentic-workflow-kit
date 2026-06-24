@@ -67,7 +67,9 @@
       "inputs": [
         "packages/**/tsconfig.public.json",
         "packages/**/tsconfig.negative.json",
+        "packages/**/tests/**/tsconfig.json",
         "packages/**/*.fixture.ts",
+        "packages/**/*.typecheck.ts",
         "tooling/type-fixture-check.mjs",
         "!**/dist/**",
         "!**/node_modules/**"

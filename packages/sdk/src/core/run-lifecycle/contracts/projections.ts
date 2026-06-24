@@ -10,8 +10,8 @@ export type RunProjections = {
 };
 
 export type RunStateProjection = {
-  lifecycle: RunLifecycleState;
-  currentSequence: number;
+  lifecycle: RunLifecycleState | null;
+  currentSequence?: number;
   writerEpoch?: number;
   terminalReason?: string;
   degradedHealth: RunDegradedHealth;
@@ -20,7 +20,7 @@ export type RunStateProjection = {
 export type RunSummaryProjection = {
   runId: string;
   taskId?: string;
-  status: RunLifecycleState;
+  status: RunLifecycleState | null;
   ownerSessionId?: string;
   artifactRefs: string[];
   unknownEvents: RunEventEnvelope[];

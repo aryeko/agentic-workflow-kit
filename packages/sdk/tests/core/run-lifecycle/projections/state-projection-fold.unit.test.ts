@@ -87,4 +87,34 @@ describe('core-01-s5 state projection', () => {
       }),
     });
   });
+
+  it('does not project factual-only logs as lifecycle-created runs', () => {
+    const result = project(
+      runId,
+      makeReplayDependency({
+        ok: true,
+        value: makeReplay([
+          makeEnvelope(1, 'RunCreated', { requestedBy: 'operator', idempotencyKey: 'idem-1' }),
+          makeEnvelope(2, 'RunPolicyBound', makePolicyPayload()),
+          makeEnvelope(3, 'TaskSnapshotRecorded', makeTaskSnapshotPayload()),
+        ]),
+      }),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      value: expect.objectContaining({
+        state: {
+          lifecycle: null,
+          currentSequence: undefined,
+          writerEpoch: undefined,
+          terminalReason: undefined,
+          degradedHealth: 'ok',
+        },
+        summary: expect.objectContaining({
+          status: null,
+        }),
+      }),
+    });
+  });
 });
