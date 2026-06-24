@@ -5,12 +5,15 @@ import { analyze } from '../../../../src/core/observability/analyzer/index.js';
 
 import {
   createEvent,
+  createEvidenceEventRef,
   createLifecycleTransitionEvent,
   createLivenessStateChangedEvent,
   createLivenessTimerExpiredEvent,
+  createProjections,
   createRecoveryEvent,
   createReplay,
   createRequest,
+  createRunCreatedEvent,
   createSnapshot,
   createSupervisionLostEvent,
   isAnalysisFailure,
@@ -83,6 +86,107 @@ describe('core-07-s2 analyze issue ordering', () => {
       'recovery-action-applied',
       'reconciliation-blocked',
     ]);
+  });
+
+  it('does not evaluate replay events after the declared cursor', () => {
+    const terminalEvent = createLifecycleTransitionEvent('evt-terminal', 10, 'completed');
+    const replay = createReplay({
+      events: [
+        createRunCreatedEvent(),
+        terminalEvent,
+        createSupervisionLostEvent('evt-future-supervision-lost', 11),
+        createEvent({
+          eventId: 'evt-future-retry',
+          sequence: 12,
+          domain: 'core-01',
+          type: 'RunLifecycleTransitioned',
+          payload: {
+            from: 'runner-verifying',
+            to: 'running',
+            reason: 'recovered',
+            authority: 'recovery',
+            sourceEventIds: ['retry:1'],
+          },
+        }),
+        createEvent({
+          eventId: 'evt-future-parked',
+          sequence: 13,
+          domain: 'core-01',
+          type: 'RunLifecycleTransitioned',
+          occurredAt: '2026-06-23T12:00:00.000Z',
+          payload: {
+            from: 'running',
+            to: 'parked',
+            reason: 'parked',
+            authority: 'system',
+            sourceEventIds: ['parked:1'],
+          },
+        }),
+        createEvent({
+          eventId: 'evt-future-unparked',
+          sequence: 14,
+          domain: 'core-01',
+          type: 'RunLifecycleTransitioned',
+          occurredAt: '2026-06-23T12:00:01.000Z',
+          payload: {
+            from: 'parked',
+            to: 'running',
+            reason: 'resumed',
+            authority: 'system',
+            sourceEventIds: ['parked:2'],
+          },
+        }),
+      ],
+      lastSequence: 14,
+    });
+    const request = createRequest({
+      trigger: {
+        kind: 'terminal-lifecycle',
+        eventRef: createEvidenceEventRef(terminalEvent),
+        reason: 'terminal completed',
+      },
+      evaluatedThrough: {
+        runId: replay.runId,
+        afterSequence: 10,
+      },
+    });
+    const fullProjection = createProjections();
+
+    const result = analyze(
+      request,
+      createSnapshot({
+        replay,
+        projections: createProjections({
+          metrics: {
+            ...fullProjection.metrics,
+            eventCount: replay.events.length,
+            retryCount: 1,
+            parkedMs: 1000,
+            lastRecordedAt: '2026-06-23T12:00:01.000Z',
+          },
+        }),
+      }),
+    );
+
+    expect(isAnalysisFailure(result)).toBe(false);
+    if (isAnalysisFailure(result)) {
+      throw new Error('expected analysis result');
+    }
+
+    expect(result.issues).toEqual([]);
+    expect(result.metrics['event-count']).toMatchObject({
+      state: 'available',
+      value: 2,
+    });
+    expect(result.metrics['retry-count']).toMatchObject({
+      state: 'available',
+      value: 0,
+    });
+    expect(result.metrics['parked-ms']).toMatchObject({
+      state: 'available',
+      value: 0,
+    });
+    expect(result.evidenceRefs.every((ref) => ref.sequence <= 10)).toBe(true);
   });
 
   it('sorts evidence refs and falls back to deterministic issue id ordering', () => {

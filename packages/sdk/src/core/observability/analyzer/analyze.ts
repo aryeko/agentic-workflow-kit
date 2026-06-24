@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import type { ArtifactRef } from '../../../foundation/storage/artifacts/index.js';
 import type { EvidenceEventRef } from '../../run-lifecycle/contracts/index.js';
+import { projectMetrics } from '../../run-lifecycle/projections/metrics-projection.js';
 import type { MetricValue } from '../telemetry/index.js';
 
 import { type AnalysisRule, type AnalysisRuleIssueInput, defaultAnalysisRules } from './rules.js';
@@ -215,6 +216,32 @@ const isInputDegraded = (snapshot: AnalysisSnapshot): boolean =>
   snapshot.replay.health === 'event-log-unavailable' ||
   snapshot.projections === undefined;
 
+const bindSnapshotToCursor = (request: AnalysisRequest, snapshot: AnalysisSnapshot): AnalysisSnapshot => {
+  const events = snapshot.replay.events.filter((event) => event.sequence <= request.evaluatedThrough.afterSequence);
+  const replay = {
+    ...snapshot.replay,
+    events,
+    lastSequence: Math.min(snapshot.replay.lastSequence, request.evaluatedThrough.afterSequence),
+  };
+  const boundedMetrics = projectMetrics(replay);
+
+  return {
+    ...snapshot,
+    replay,
+    projections: {
+      ...snapshot.projections,
+      metrics: {
+        ...snapshot.projections.metrics,
+        eventCount: boundedMetrics.eventCount,
+        retryCount: boundedMetrics.retryCount,
+        parkedMs: boundedMetrics.parkedMs,
+        lastRecordedAt:
+          snapshot.projections.metrics.lastRecordedAt === undefined ? undefined : boundedMetrics.lastRecordedAt,
+      },
+    },
+  };
+};
+
 export function analyzeWithRuleSet(
   request: AnalysisRequest,
   snapshot: AnalysisSnapshot,
@@ -224,17 +251,18 @@ export function analyzeWithRuleSet(
     return createFailure(request, snapshot, 'analysis-input-degraded');
   }
 
+  const boundedSnapshot = bindSnapshotToCursor(request, snapshot);
   const issues: AnalysisIssue[] = [];
   try {
     for (const rule of rules) {
-      const producedIssues = rule({ request, snapshot });
+      const producedIssues = rule({ request, snapshot: boundedSnapshot });
       if (!Array.isArray(producedIssues)) {
-        return createFailure(request, snapshot, 'analysis-rule-error');
+        return createFailure(request, boundedSnapshot, 'analysis-rule-error');
       }
 
       for (const producedIssue of producedIssues) {
         if (!isRuleIssueInput(producedIssue)) {
-          return createFailure(request, snapshot, 'analysis-rule-error');
+          return createFailure(request, boundedSnapshot, 'analysis-rule-error');
         }
 
         const evidenceRefs = sortEvidenceRefs(producedIssue.evidenceRefs);
@@ -251,13 +279,13 @@ export function analyzeWithRuleSet(
       }
     }
   } catch {
-    return createFailure(request, snapshot, 'analysis-rule-error');
+    return createFailure(request, boundedSnapshot, 'analysis-rule-error');
   }
 
   const sortedIssues = sortIssues(issues);
   return {
     issues: sortedIssues,
-    metrics: buildMetrics(snapshot),
+    metrics: buildMetrics(boundedSnapshot),
     evidenceRefs: getUniqueEvidenceRefs(request, sortedIssues),
   };
 }

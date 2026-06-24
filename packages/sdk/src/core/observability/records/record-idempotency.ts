@@ -88,17 +88,22 @@ export const resolveExistingAnalysisRecord = (
     }
   }
 
+  const currentAnalysisEvents = replay.events.filter(
+    (event) =>
+      ANALYSIS_EVENT_TYPES.has(event.type) &&
+      isAnalysisPayload(event.payload) &&
+      sameAnalysisKey(input, event.payload) &&
+      sameCursor(input, event.payload),
+  );
+
   if (input.supersedesEventId !== undefined) {
-    return { status: 'absent' };
+    const supersededCurrentEvent = currentAnalysisEvents.find((event) => event.eventId === input.supersedesEventId);
+    return supersededCurrentEvent === undefined && currentAnalysisEvents.length > 0
+      ? { status: 'conflict', conflict: 'current-analysis-conflict' }
+      : { status: 'absent' };
   }
 
-  const currentConflict = replay.events.some((event) => {
-    if (!ANALYSIS_EVENT_TYPES.has(event.type) || !isAnalysisPayload(event.payload)) {
-      return false;
-    }
-
-    return sameAnalysisKey(input, event.payload) && sameCursor(input, event.payload);
-  });
-
-  return currentConflict ? { status: 'conflict', conflict: 'current-analysis-conflict' } : { status: 'absent' };
+  return currentAnalysisEvents.length > 0
+    ? { status: 'conflict', conflict: 'current-analysis-conflict' }
+    : { status: 'absent' };
 };

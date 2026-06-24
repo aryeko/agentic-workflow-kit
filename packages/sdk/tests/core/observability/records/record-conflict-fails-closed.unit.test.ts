@@ -85,4 +85,47 @@ describe('core-07-s3 record conflict handling', () => {
     expect(result.error.conflict).toBe('current-analysis-conflict');
     expect(writer.appendCalls).toHaveLength(0);
   });
+
+  it('fails closed when supersedesEventId does not cite the current analysis record', async () => {
+    const input = createRecordInput({ supersedesEventId: 'analysis:missing' });
+    const existingPayload = buildAnalysisRecordedPayload(createRecordInput(), redactedReportRef);
+    const replay = createReplay([
+      createEvent({
+        eventId: 'analysis:already-current',
+        sequence: 20,
+        type: 'AnalysisRecorded',
+        payload: existingPayload,
+      }),
+    ]);
+    const writer = createWriter();
+
+    const result = await recordAnalysisOutcome(input, writer, { replay });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('expected conflict');
+    }
+    expect(result.error.conflict).toBe('current-analysis-conflict');
+    expect(writer.appendCalls).toHaveLength(0);
+  });
+
+  it('allows supersession when supersedesEventId cites the current analysis record', async () => {
+    const existingEventId = 'analysis:already-current';
+    const input = createRecordInput({ supersedesEventId: existingEventId });
+    const existingPayload = buildAnalysisRecordedPayload(createRecordInput(), redactedReportRef);
+    const replay = createReplay([
+      createEvent({
+        eventId: existingEventId,
+        sequence: 20,
+        type: 'AnalysisRecorded',
+        payload: existingPayload,
+      }),
+    ]);
+    const writer = createWriter();
+
+    const result = await recordAnalysisOutcome(input, writer, { replay });
+
+    expect(result.ok).toBe(true);
+    expect(writer.appendCalls).toHaveLength(1);
+  });
 });

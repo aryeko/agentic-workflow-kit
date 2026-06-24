@@ -190,7 +190,7 @@ export const createUnknownEvent = (eventId: string, sequence: number): RunEventE
 
 export const runEventCursorFixture: RunEventCursor = {
   runId,
-  afterSequence: 0,
+  afterSequence: 100,
 };
 
 export const createReplay = (overrides: Partial<RunReplay> = {}): RunReplay => ({
