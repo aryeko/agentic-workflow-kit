@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { appendIntent, createHarness, expectFailureCode, runId } from './test-support.js';
 
 describe('RunWriter buffered durability rejection', () => {
-  it('records buffered canonical run event requests before returning rejection', () => {
+  it('rejects buffered canonical run event requests without storage side effects', () => {
     const harness = createHarness();
     harness.seedCreatedRun();
     const writer = harness.log.openWriter(runId, harness.acquireLease());
@@ -14,14 +14,8 @@ describe('RunWriter buffered durability rejection', () => {
       : writer;
 
     expectFailureCode(result, 'durability-insufficient');
-    expect(harness.appendCalls).toHaveLength(1);
-    expect(harness.appendCalls[0].batch.durability).toBe('durable');
-    expect(harness.appendCalls[0].envelopes).toHaveLength(1);
-    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
-    expect(harness.appendCalls[0].envelopes[0].payload).toMatchObject({
-      attemptedType: 'SiblingFact',
-      failureCode: 'durability-insufficient',
-    });
+    expect(harness.appendCalls).toHaveLength(0);
+    expect(harness.records.map((record) => harness.decode(record.payload).type)).not.toContain('RunAppendRejected');
   });
 
   it('does not map a fnd-02 NonDurableAck into a RunAppendReceipt', () => {

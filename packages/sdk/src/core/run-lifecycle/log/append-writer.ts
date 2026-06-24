@@ -55,19 +55,20 @@ const hasCanonicalCreationHistory = (replayed: RunReplay): boolean => {
   );
 };
 
+const DURABILITY_INSUFFICIENT_REASON = 'Requested durability is weaker than the event minimum.';
+
 const durabilityFailure = (
   context: WriterContext,
   replayed: RunReplay,
   attempted: RunEventEnvelope,
 ): Result<never, RunAppendFailure> => {
-  const reason = 'Requested durability is weaker than the event minimum.';
   const rejection = buildRunAppendRejected(context.deps, {
     runId: context.runId,
     writerEpoch: context.lease.epoch,
     sequence: replayed.lastSequence + 1,
     attempted,
     failureCode: 'durability-insufficient',
-    reason,
+    reason: DURABILITY_INSUFFICIENT_REASON,
   });
   const authored = appendEnvelopes(
     context.deps.eventLogStore,
@@ -85,8 +86,11 @@ const durabilityFailure = (
     return appendFailure('partial-ack-unknown', 'RunAppendRejected acknowledgement was not authoritative.');
   }
 
-  return appendFailure('durability-insufficient', reason, rejection.payload);
+  return appendFailure('durability-insufficient', DURABILITY_INSUFFICIENT_REASON, rejection.payload);
 };
+
+const isAuthoritativeRequestedDurability = (intent: AppendIntent): boolean =>
+  intent.durability === 'durable' || intent.durability === 'barrier';
 
 export const createRunWriter = (context: WriterContext): RunWriter => ({
   append(batch: AppendIntent[]): Result<RunAppendReceipt, RunAppendFailure> {
@@ -118,6 +122,11 @@ export const createRunWriter = (context: WriterContext): RunWriter => ({
     );
     const invalidDurabilityIndex = findInvalidRequestedDurabilityIndex(batch);
     if (invalidDurabilityIndex !== undefined) {
+      const invalidIntent = batch[invalidDurabilityIndex];
+      if (invalidIntent === undefined || !isAuthoritativeRequestedDurability(invalidIntent)) {
+        return appendFailure('durability-insufficient', DURABILITY_INSUFFICIENT_REASON);
+      }
+
       return durabilityFailure(context, replayed.value, envelopes[invalidDurabilityIndex] ?? envelopes[0]);
     }
 
