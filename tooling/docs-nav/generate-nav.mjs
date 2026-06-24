@@ -160,13 +160,13 @@ const linear = [];
 const seen = new Set(linear);
 const missing = allMd.filter((p) => !seen.has(p));
 if (missing.length) {
-  console.error('WARNING: pages not reachable from root index:\n  ' + missing.join('\n  '));
+  console.error(`WARNING: pages not reachable from root index:\n  ${missing.join('\n  ')}`);
 }
 if (linear.length !== new Set(linear).size) console.error('WARNING: duplicate pages in linear order');
 
 const rel = (from, to) => {
   let r = path.relative(path.dirname(from), to).split(path.sep).join('/');
-  if (!r.startsWith('.')) r = './' + r;
+  if (!r.startsWith('.')) r = `./${r}`;
   return r;
 };
 const link = (from, to) => `[${titleOf(to)}](${rel(from, to)})`;
@@ -185,7 +185,7 @@ function navBlock(p) {
 
   const lines = [START, '', '---', ''];
   if (segs.length) lines.push(segs.join(' · '), '');
-  if (kids.length) lines.push('**Children:** ' + kids.map((k) => link(p, k)).join(' · '), '');
+  if (kids.length) lines.push(`**Children:** ${kids.map((k) => link(p, k)).join(' · ')}`, '');
   lines.push(END);
   return lines.join('\n');
 }
@@ -199,7 +199,7 @@ const stripRe = new RegExp(
 for (const p of linear) {
   const orig = fs.readFileSync(p, 'utf8');
   const body = orig.replace(stripRe, '\n').replace(/\s+$/, '');
-  const next = body + '\n\n' + navBlock(p) + '\n';
+  const next = `${body}\n\n${navBlock(p)}\n`;
   if (next !== orig) {
     changed++;
     if (!DRY && !CHECK) fs.writeFileSync(p, next);
@@ -216,7 +216,7 @@ if (CHECK) {
   }
   console.log(`Nav up to date (${linear.length} files).`);
 } else if (DRY) {
-  console.log('READING ORDER (' + linear.length + ' pages):');
+  console.log(`READING ORDER (${linear.length} pages):`);
   linear.forEach((p, i) => {
     const depth = path.relative(DOCS, p).split(path.sep).length - 1;
     console.log(`${String(i).padStart(2)}  ${'  '.repeat(depth)}${path.relative(DOCS, p)}`);
