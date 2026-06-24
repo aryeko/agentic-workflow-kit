@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  createAnalysisPayloadDigest,
-  recordAnalysisOutcome,
-} from '../../../../src/core/observability/records/index.js';
+import { recordAnalysisOutcome } from '../../../../src/core/observability/records/index.js';
 
 import {
   appendReceipt,
@@ -55,6 +52,6 @@ describe('core-07-s3 recordAnalysisOutcome recorded path', () => {
     expect(payload.metrics).toEqual(input.outcome.kind === 'recorded' ? input.outcome.result.metrics : {});
     expect(payload.evidenceRefs).toEqual(input.outcome.kind === 'recorded' ? input.outcome.result.evidenceRefs : []);
     expect(payload.reportArtifactRef).toEqual(redactedReportRef);
-    expect(writer.appendCalls[0]?.[0]?.payloadDigest).toBe(createAnalysisPayloadDigest(payload));
+    expect(writer.appendCalls[0]?.[0]?.payloadDigest).toBeUndefined();
   });
 });

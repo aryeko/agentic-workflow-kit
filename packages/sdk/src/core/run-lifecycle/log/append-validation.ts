@@ -16,6 +16,7 @@ import {
   validateLifecycleTransition,
 } from '../lifecycle/index.js';
 import { reduceRunLifecycle } from '../lifecycle/lifecycle-reducer.js';
+import { isRunEventEnvelope } from '../replay/envelope-validator.js';
 import { hasValidDeclaredPayload } from '../replay/payload-validator.js';
 import { isLifecyclePayload } from './append-envelopes.js';
 import { buildRunAppendRejected } from './append-rejected.js';
@@ -223,11 +224,29 @@ const lifecycleFailure = (
 ): Result<never, RunAppendFailure> =>
   semanticFailure(context, replayed, attempted, 'Lifecycle transition is not legal from the current replayed state.');
 
+const isJsonRoundTrippableEnvelope = (context: WriterContext, envelope: RunEventEnvelope): boolean => {
+  try {
+    const encoded = JSON.stringify(envelope);
+    if (encoded === undefined) {
+      return false;
+    }
+
+    return isRunEventEnvelope(JSON.parse(encoded), context.runId, envelope.sequence);
+  } catch {
+    return false;
+  }
+};
+
 export const validateDeclaredPayloads = (
   context: WriterContext,
   replayed: RunReplay,
   envelopes: readonly RunEventEnvelope[],
 ): Result<void, RunAppendFailure> => {
+  const malformedEnvelope = envelopes.find((envelope) => !isJsonRoundTrippableEnvelope(context, envelope));
+  if (malformedEnvelope !== undefined) {
+    return semanticFailure(context, replayed, malformedEnvelope, 'Append event envelope is not JSON replayable.');
+  }
+
   const invalid = envelopes.find((envelope) => !hasValidDeclaredPayload(envelope));
   if (invalid !== undefined) {
     return semanticFailure(context, replayed, invalid, 'Declared event payload is malformed.');

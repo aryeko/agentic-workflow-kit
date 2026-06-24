@@ -218,6 +218,33 @@ describe('RunEventLog and RunWriter edge failures', () => {
     expect(harness.records.map((record) => harness.decode(record.payload).type)).not.toContain('RunPolicyBound');
   });
 
+  it('rejects JSON-unreplayable envelopes before appending the requested event', () => {
+    const harness = createHarness();
+    harness.seedCreatedRun();
+    const writer = harness.log.openWriter(runId, harness.acquireLease());
+    expect(writer.ok).toBe(true);
+
+    if (!writer.ok) {
+      throw new Error('expected writer');
+    }
+
+    const result = writer.value.append([
+      appendIntent('SiblingFact', undefined, {
+        durability: 'barrier',
+      }),
+    ]);
+
+    expectFailureCode(result, 'illegal-lifecycle-transition');
+    expect(harness.appendCalls).toHaveLength(1);
+    expect(harness.appendCalls[0].envelopes[0].type).toBe('RunAppendRejected');
+    expect(harness.appendCalls[0].envelopes[0].payload).toMatchObject({
+      attemptedType: 'SiblingFact',
+      failureCode: 'illegal-lifecycle-transition',
+      recordedReason: 'Append event envelope is not JSON replayable.',
+    });
+    expect(harness.records.map((record) => harness.decode(record.payload).type)).not.toContain('SiblingFact');
+  });
+
   it('preserves caller-supplied payload digests when they match the payload', () => {
     const harness = createHarness();
     harness.seedCreatedRun();
