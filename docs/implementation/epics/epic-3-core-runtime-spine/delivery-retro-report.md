@@ -118,31 +118,23 @@ The normalized run spans `2026-06-23T16:47:37Z` to `2026-06-24T07:45:47Z`, about
 
 The first half delivered the story graph. The second half was mostly PR review churn.
 
+The earlier Gantt form was too dense for GitHub's Mermaid renderer at this scale, so the durable report
+uses a vertical phase timeline and keeps the exact timestamps in the table below.
+
 ```mermaid
-gantt
-    title Epic 3 Delivery Timeline (UTC)
-    dateFormat  YYYY-MM-DD HH:mm
-    axisFormat  %m-%d %H:%M
+flowchart TD
+    A["16:47-16:50 UTC<br/>Preflight<br/>3m"]
+    B["16:50-16:51 UTC<br/>Approval and worktree setup<br/>1m"]
+    C["16:51-17:21 UTC<br/>Wave 1: 2 stories<br/>30m"]
+    D["17:21-18:02 UTC<br/>Wave 2: 4 stories plus verified blocker<br/>41m"]
+    E["18:02-18:25 UTC<br/>Wave 3: 4 independent stories<br/>23m"]
+    F["18:25-18:33 UTC<br/>Reload skill and repair blocked contract<br/>8m"]
+    G["18:33-20:18 UTC<br/>Remaining stories: gate evaluator, durability, writer, analysis records<br/>1h 45m"]
+    H["20:23 UTC<br/>PR #144 opened"]
+    I["20:30-07:45 UTC<br/>PR review and fix loop<br/>11h 15m"]
+    J["07:34-07:45 UTC<br/>Final check, final no-major-issues review, stop without merge<br/>11m"]
 
-    section Setup
-    Session starts and preflight              :2026-06-23 16:47, 2026-06-23 16:50
-    User approval and worktree setup          :2026-06-23 16:50, 2026-06-23 16:51
-
-    section Story Waves
-    Wave 1 implementation, review, gate       :2026-06-23 16:51, 2026-06-23 17:21
-    Wave 2 independent stories plus blocker   :2026-06-23 17:21, 2026-06-23 18:02
-    Wave 3 independent stories                :2026-06-23 18:02, 2026-06-23 18:25
-    Reload skill and repair blocked contract  :2026-06-23 18:25, 2026-06-23 18:33
-    Repaired gate evaluator                   :2026-06-23 18:33, 2026-06-23 19:08
-    Gate record durability                    :2026-06-23 19:09, 2026-06-23 19:18
-    Run event log and writer                  :2026-06-23 19:19, 2026-06-23 19:50
-    Analysis records and reports              :2026-06-23 19:52, 2026-06-23 20:18
-
-    section PR
-    PR #144 created                           :milestone, 2026-06-23 20:23, 0m
-    Codex PR review and fix loop              :2026-06-23 20:30, 2026-06-24 07:45
-    Required check on final head              :2026-06-24 07:33, 2026-06-24 07:34
-    Final no-major-issues comment             :milestone, 2026-06-24 07:45, 0m
+    A --> B --> C --> D --> E --> F --> G --> H --> I --> J
 ```
 
 ### Timeline Table
