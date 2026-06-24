@@ -1,14 +1,19 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runTypeFixtures } from '../../tooling/type-fixtures/run-type-fixtures.js';
 
 /**
  * Integration lane: this spawns `tsc`, so it lives in the `*.int.test.ts` suite.
  * It proves the lane logic against temp-dir fixtures rather than the real
  * (unmerged) Epic 3 fixtures, so it works on `v-next` where none exist yet.
+ *
+ * Each case cold-starts `tsc` once or twice (~3s per spawn); under CI CPU
+ * contention a two-spawn case crept past Vitest's 5s default and timed out, so
+ * this suite raises the per-test timeout well clear of real spawn cost.
  */
+vi.setConfig({ testTimeout: 30_000 });
 
 let fixtureRoot: string;
 
