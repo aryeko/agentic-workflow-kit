@@ -49,6 +49,9 @@ Include these slots for execution-time evidence:
 Require the reviewer to check:
 
 - AC coverage by source `AC-n`;
+- that each AC names the `pnpm check` step (e.g. `type:fixtures`, `coverage:baseline`, `deps`,
+  `typecheck`) that re-proves it; treat any AC whose only proof is a manual / one-off command, or a
+  fixture outside the `tsc -b` build graph and the standing gate, as unproven / BLOCKING;
 - failure, degraded, or validation rows;
 - evidence pack completeness;
 - public API and import paths;

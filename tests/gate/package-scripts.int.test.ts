@@ -33,6 +33,7 @@ describe('pnpm check package scripts', () => {
     // Leaf scripts stay intact for targeted local runs.
     expect(packageJson.scripts.deps).toBe('depcruise --config .dependency-cruiser.cjs packages tooling tests');
     expect(packageJson.scripts.typecheck).toBe('tsc -b');
+    expect(packageJson.scripts['type:fixtures']).toBe('node tooling/type-fixtures/run-type-fixtures.ts');
     expect(packageJson.scripts['test:unit']).toBe('vitest run --project unit --passWithNoTests');
     expect(packageJson.scripts['test:int']).toBe('vitest run --project integration --passWithNoTests');
     // The aggregate gate is now a Turbo root-task invocation, not a plain && chain.

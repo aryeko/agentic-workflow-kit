@@ -25,6 +25,10 @@ being checkable.
   enumerate the set at the layer that first references it.
 - **One shared written rubric.** Author and reviewer grade against the *same* written check for that
   layer, graded the same way — not a bar that lives in someone's head.
+- **The standing gate, not a spot-run, makes a proof durable.** A fixture that runs only as a manual
+  one-off is a manual-only proof and does not count. The proof must be re-run by `pnpm check` (or a
+  named CI lane); a negative type-fixture outside the `tsc -b` build graph silently rots until a
+  regression slips through.
 
 ## Altitude
 

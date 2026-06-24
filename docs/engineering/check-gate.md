@@ -9,7 +9,7 @@ last-reviewed: "2026-06-23"
 `pnpm check` is the required local and CI gate that every implementation story must
 pass. Nothing merges to `v-next` without a green gate.
 
-The gate runs via Turborepo (`turbo run //#check:gate`). Each of the six leaf steps is
+The gate runs via Turborepo (`turbo run //#check:gate`). Each of the seven leaf steps is
 a cacheable root task with declared `inputs`/`outputs`. Turbo runs them concurrently,
 caches each by its input hash, and skips any leaf whose inputs are unchanged since the
 last run. A cache hit replays the original exit code and logs — it cannot turn a red
@@ -30,6 +30,7 @@ suites run. The other four leaves have no inter-dependencies and run in parallel
 | 4 | `deps` | `depcruise --config .dependency-cruiser.cjs packages tooling tests` | Dependency-graph rules — no cycles, no orphans, no package-boundary violations |
 | 5 | `typecheck` | `tsc -b` | TypeScript project references — full compilation of all composite projects |
 | 6 | `coverage:baseline` | `vitest run --project unit --project integration --project conformance-mock --coverage` | Unit, integration, and conformance-mock suites under V8 coverage; enforces 90% thresholds |
+| 7 | `type:fixtures` | `node tooling/type-fixtures/run-type-fixtures.ts` | Compiles every `tsconfig.negative.json` / `tsconfig.public.json` under `packages/**/tests/**` with `tsc --noEmit`; a negative must fail compilation, a public must pass. Finding zero fixtures is a clean no-op (logged) — it enforces compile-time AC proofs at the standing gate instead of leaving them outside the build graph |
 
 **Ordering rationale.** The numeric order is cheapest-first for documentation purposes.
 Turbo runs the leaves concurrently, so the numeric order does not determine execution
@@ -54,7 +55,7 @@ contract.
 
 ## Local Inner Loop
 
-Run `pnpm check` locally before pushing. Turbo runs all six leaf tasks, restoring
+Run `pnpm check` locally before pushing. Turbo runs all seven leaf tasks, restoring
 cache hits from `.turbo/` when inputs are unchanged. Warm no-op or docs-only re-runs
 complete in under a second. A cold run (all cache misses) completes in roughly 16–20s.
 Smoke tests and pack dry-run are intentionally excluded from `pnpm check`.
@@ -80,7 +81,8 @@ flowchart TD
     B_cache --> B3["4 deps (Turbo leaf)"]
     B_cache --> B4["5 typecheck (Turbo leaf)"]
     B_cache --> B5["6 coverage:baseline (Turbo leaf)"]
-    B0 & B1 & B2 & B3 & B4 & B5 --> B6["//#check:gate aggregate"]
+    B_cache --> B5b["7 type:fixtures (Turbo leaf)"]
+    B0 & B1 & B2 & B3 & B4 & B5 & B5b --> B6["//#check:gate aggregate"]
     B6 --> B7["pack:dry-run (CI only)"]
 
     A --> C{smoke trigger?}
@@ -88,7 +90,7 @@ flowchart TD
     D --> D1["vitest run --project smoke-real"]
 ```
 
-The `check` job (all six leaf tasks via Turbo, plus `pack:dry-run`) is a required
+The `check` job (all seven leaf tasks via Turbo, plus `pack:dry-run`) is a required
 branch-protection check. `pack:dry-run` runs only in CI because it exercises packaging
 metadata that is meaningless before `pnpm install` with a lockfile.
 
