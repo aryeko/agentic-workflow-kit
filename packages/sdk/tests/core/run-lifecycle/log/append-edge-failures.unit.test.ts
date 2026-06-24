@@ -30,6 +30,25 @@ describe('RunEventLog and RunWriter edge failures', () => {
     expectFailureCode(result, 'event-log-unavailable');
   });
 
+  it('preserves stale-writer-fenced when createRun cannot acquire the first lease', () => {
+    const harness = createHarness();
+    harness.leaseStore.acquire = () => storageError('stale-writer-fenced', 'ok');
+
+    const result = harness.log.createRun({
+      runId,
+      holder: 'holder-1',
+      leaseTtlMs: 60_000,
+      idempotencyKey: 'idempotency-1',
+      createdAt: '2026-06-23T12:00:00.000Z',
+      payload: {
+        idempotencyKey: 'idempotency-1',
+        requestedBy: 'operator-1',
+      },
+    });
+
+    expectFailureCode(result, 'stale-writer-fenced');
+  });
+
   it('surfaces createRun append storage failures and partial acknowledgements', () => {
     const failed = createHarness({
       appendOutcomes: [storageError('log-interior-corrupt', 'log-interior-corrupt')],

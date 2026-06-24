@@ -29,6 +29,10 @@ export const createRun = (
 ): Result<RunWriter, RunAppendFailure> => {
   const lease = deps.leaseStore.acquire(leaseName(input.runId), input.holder, input.leaseTtlMs);
   if ('code' in lease) {
+    if (lease.code === 'stale-writer-fenced') {
+      return appendFailure('stale-writer-fenced', lease.message);
+    }
+
     return appendFailure('event-log-unavailable', lease.message);
   }
 
