@@ -103,6 +103,42 @@ failures, adversarial inputs, or fail-closed branches is incomplete.
 Coverage expectations apply per meaningful implementation area, not by hiding untested
 risk behind aggregate repository numbers.
 
+## Proof Substrate
+
+Coverage is only a proof when the measured code emits **runtime substrate**. TypeScript
+`type` and `interface` declarations erase at compile time, so a module that exports only
+them presents `0/0` statements to V8 — which reports as 100% and clears any threshold
+*vacuously*, proving nothing. Two rules follow.
+
+- **Proof-substrate invariant.** A statement/branch coverage lane may be required of a
+  module only if its owned source pathset is guaranteed to emit runtime substrate (an
+  exported `const` / `enum` / function / `as const` value) sufficient for that lane. A
+  deliverable satisfiable entirely by erased types carries **no** coverage lane; it proves
+  its surface by type-fixtures (positive construction + negative compile fixtures inside the
+  `tsc -b` build graph, run by `type:fixtures` in `pnpm check`) and a public-import test.
+  The proof method is chosen by the contract, never left to the implementer.
+
+- **`as const` catalog convention.** An exported enumerable catalog (reasons, states, modes,
+  risk levels, timer names, …) is minted as a runtime `as const` array plus a derived union
+  type — `export const LIVENESS_REASONS = [...] as const; export type LivenessReason =
+  (typeof LIVENESS_REASONS)[number];` — **not** as a bare `type` union. The runtime array
+  gives exhaustive-membership tests something to iterate and the coverage lane real
+  statements to measure, and keeps sibling contract producers symmetric. Pure interfaces
+  (no enumerable members) stay interfaces.
+
+- **Value, not behavior.** A frozen `as const` array is a runtime **value**, not behavior:
+  it raises nothing and runs no logic. It therefore does **not** violate a "raises none at
+  runtime" / "type-only producer" STOP condition — a type-only contract story may mint
+  `as const` catalogs without becoming a behavior story. State this in any contract that
+  carries both an `as const` catalog and a type-only/producer STOP condition, so the two do
+  not read as contradictory.
+
+This is the engineering-policy home of the authoring standard's **Proof-substrate match**
+Gate-4 box; see
+[implementation-authoring/authoring-standard/50-story-contract.md](../implementation-authoring/authoring-standard/50-story-contract.md#gate-4--authoring-ready)
+and the coverage-ownership rule in
+[60-coverage.md](../implementation-authoring/authoring-standard/60-coverage.md).
+
 ## Evidence and Reporting
 
 Before declaring an item complete, report:

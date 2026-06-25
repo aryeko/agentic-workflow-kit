@@ -56,7 +56,10 @@ before the next layer consumes it and before marking it `frozen`. Three steps:
    `pnpm docs:nav` first if any file was added or moved — the gate's first step fails on stale nav.
 2. **Rebuild coverage from the source artifacts, not the rollup.** Extract every signal from the
    charters and confirm each maps to exactly one owner (epic table row / story node, or a `deferred`
-   row). Trusting the rollup's own assertion is circular.
+   row). Trusting the rollup's own assertion is circular. This is the **coverage** instance of
+   [*Readiness is reconstructed, not asserted*](10-principles.md#readiness-is-reconstructed-not-asserted) —
+   the same reconstruct-don't-assert discipline governs every closure dimension (substrate,
+   predicate-input, producer-closure, public-exposure).
 3. **Run the layer's readiness gate as an independent pass**, by a *different* reader than the author.
    Divergent independent verdicts mean the artifact or the rule is under-specified, not noise to
    average away.

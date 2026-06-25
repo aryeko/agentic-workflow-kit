@@ -17,6 +17,14 @@ one owner or `deferred`; neither = a gap surfaced loudly) and **traceability** (
 and AC traces up to a signal, then to design; an item with no source signal is scope creep, dropped or
 pushed back to design).
 
+> **Coverage scope presupposes runtime substrate.** A statement/branch coverage lane is meaningful only
+> when the measured pathset emits runtime substrate (an exported value / enum / `as const` / function); a
+> type-only producer's lane is satisfied vacuously (`0/0`→100%) and proves nothing. The proof-substrate
+> invariant and the `as const` catalog convention live in
+> [engineering/testing-policy.md](../../engineering/testing-policy.md#proof-substrate); the authoring-time
+> gate is the **Proof-substrate match** box in
+> [50-story-contract.md](50-story-contract.md#gate-4--authoring-ready).
+
 ## Disposition vocabulary
 
 | Disposition | Meaning |
