@@ -13,7 +13,7 @@ Gate-1 handoff: 8 of 8 stories are `story: ready`; the DAG is `story-dag: frozen
 | story | status | job |
 |---|---|---|
 | `core-03-s1-approval-contracts` | `story: ready` | Approval value, payload, projection, binding, and failure-catalog producer. |
-| `core-03-s2-normalize-risk-decision` | `story: ready` | Pure normalization, risk classification, and v1 decision ladder. |
+| `core-03-s2-normalize-risk-decision` | `story: ready` | Normalization, risk classification, risk/decision fact recording, and v1 decision ladder. |
 | `core-03-s3-pending-park-resume` | `story: ready` | Durable pending, park, resume, expiry, and projection folds. |
 | `core-03-s4-grants-outcomes` | `story: ready` | Agent grant mapping, answer relay, and outcome facts. |
 | `core-04-s1-supervision-contracts` | `story: ready` | Supervision value, payload, projection, and reason-catalog producer. |

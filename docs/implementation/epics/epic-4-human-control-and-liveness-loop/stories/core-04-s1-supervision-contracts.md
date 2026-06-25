@@ -77,7 +77,7 @@ event payloads, termination facts, and fail-closed reason catalog.
 | `LivenessTimerExpiredPayload.deadline` | timer evaluation output from `core-04-s3` |
 | `WorkerTerminatedPayload.proofRef` / `containmentEmpty` | Agent or Execution Host terminal observation/proof |
 | `SupervisorStoppedPayload.terminalSourceEventIds` | terminal source event ids being summarized |
-| Public symbols | owned files under `packages/sdk/src/core/supervision/contracts/**` plus SDK entrypoint |
+| Public symbols | files under `packages/sdk/src/core/supervision/contracts/**`; aggregated by the SDK public-entrypoint owner |
 
 ## Failure and Degraded Outcomes
 
@@ -92,6 +92,8 @@ This story declares liveness reasons but raises none at runtime. Behavior storie
 - Coverage: 95% statements/branches for `packages/sdk/src/core/supervision/contracts/**`.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-7.
+- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
+  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|testkit|child_process|Date\\.now|new Date|fetch\\(" packages/sdk/src/core/supervision/contracts packages/sdk/tests/core/supervision/contracts`
   returns zero matches.

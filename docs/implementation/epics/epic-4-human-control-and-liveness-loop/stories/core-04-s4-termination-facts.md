@@ -75,7 +75,7 @@ implementing host kill mechanics.
   `supervisor-stopped-terminal.unit.test.ts` asserts terminal-epoch reuse and later append rejection.
 - **AC-9** SDK source imports no process API, Local provider, or concrete kill helper - evidence:
   `termination-boundary.unit.test.ts` runs
-  `rg -n "child_process|process\\.kill|provider-local|execa|containment" packages/sdk/src/core/supervision/termination`
+  `rg -n "child_process|process\\.kill|provider-local|execa" packages/sdk/src/core/supervision/termination`
   and expects zero matches.
 - **AC-10** The public SDK entrypoint exports supervisor and termination fact functions - evidence:
   `termination-public-import.unit.test.ts` imports the full function manifest from `sdk` and constructs
@@ -91,7 +91,7 @@ implementing host kill mechanics.
 | AC-6 | unproven termination | `TerminationResult.proof.containmentEmpty` |
 | AC-7, AC-8 | terminal ordering | Epic 3 lifecycle state, terminal epoch, writer append result |
 | AC-9 | boundary | source import text |
-| AC-10 | public symbols | owned source files and `packages/sdk/src/index.ts` export wiring |
+| AC-10 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
 
 ## Failure and Degraded Outcomes
 
@@ -109,6 +109,8 @@ implementing host kill mechanics.
 - Coverage: 95% branch coverage for `packages/sdk/src/core/supervision/termination/**`.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-10.
+- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
+  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
 - Boundary sweep: AC-9.
 - File-size budget: 320 lines per implementation file, 420 lines per test file.
 

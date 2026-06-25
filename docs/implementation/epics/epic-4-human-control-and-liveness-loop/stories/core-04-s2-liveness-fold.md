@@ -80,7 +80,7 @@ Implement the pure fold from committed current-session worker events plus explic
 | AC-4 | approval wait state | `AgentApprovalRequested.answerChannelRef` |
 | AC-6 | non-refreshing status | committed event domain/type list from design |
 | AC-8 | clock | explicit sampled timestamp argument |
-| AC-9 | public symbols | owned source files and `packages/sdk/src/index.ts` export wiring |
+| AC-9 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
 
 ## Failure and Degraded Outcomes
 
@@ -96,6 +96,8 @@ Implement the pure fold from committed current-session worker events plus explic
 - Coverage: 95% branch coverage for `packages/sdk/src/core/supervision/liveness/**`.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-9.
+- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
+  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|child_process|Date\\.now|new Date|fetch\\(" packages/sdk/src/core/supervision/liveness packages/sdk/tests/core/supervision/liveness`
   returns zero matches.

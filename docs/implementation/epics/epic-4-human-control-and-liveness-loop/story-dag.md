@@ -40,12 +40,13 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 ## Reading Rules
 
 - Node = one story contract and one later reviewable implementation scope.
-- Edge = a consumer uses a value type, behavior, or shared public export baseline from a producer.
+- Edge = a consumer uses a value type, behavior, or recorded fact from a producer.
 - Cross-epic frozen inputs are not intra-epic edges; each story names them in its contract.
 - Consumers cite `<story>/<shape>` verbatim and never redeclare cross-story shapes.
-- Every public SDK story includes `packages/sdk/src/index.ts` in its owned pathset because public import
-  is part of DONE. Shared-file collisions are handled by the delivery orchestrator; they are not DAG
-  dependency edges.
+- Public import remains part of DONE, but Epic 4 stories do not own `packages/sdk/src/index.ts`.
+  Public entrypoint wiring belongs to the dedicated export-aggregation owner defined in
+  `docs/design/20-sdk-and-packaging/sdk-boundary.md`; Epic 4 stories own their domain source, tests, and
+  public-import evidence proving that the owner has aggregated their symbols.
 
 ## Scope Decisions
 
@@ -110,22 +111,22 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 
 | story id | job | domains | claimed signals | owned pathset | suggested tier |
 |---|---|---|---|---|---|
-| `core-03-s1-approval-contracts` | Produce all approval value types, event payloads, projections, binding shapes, interfaces, and failure catalog. | `core-03` | Neutral records contract part; fail-closed catalog split. | `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/contracts/**` | elevated |
-| `core-03-s2-normalize-risk-decision` | Normalize approval requests, classify risk with explicit time, apply v1 ladder, and produce pure decisions. | `core-03` | Risk classification; v1 mode ladder; policy/risk/gate failure behavior. | `packages/sdk/src/core/approval/decision/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/decision/**` | elevated |
-| `core-03-s3-pending-park-resume` | Persist request/pending facts, produce park decisions, resume or expire pending approvals, and fold projections. | `core-03` | Pending persistence; parked/resumed/expired facts; pending/session/expiry/log failure behavior. | `packages/sdk/src/core/approval/pending/**`, `packages/sdk/src/core/approval/projections/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**` | elevated |
-| `core-03-s4-grants-outcomes` | Map policy grants to Agent `ScopedGrant`, answer/deny through the Agent relay, and record outcomes. | `core-03` | Policy-to-Agent scoped grants; relay/channel/mapping/outcome behavior; neutral records behavior part. | `packages/sdk/src/core/approval/grants/**`, `packages/sdk/src/core/approval/outcomes/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/approval/grants/**`, `packages/sdk/tests/core/approval/outcomes/**` | elevated |
-| `core-04-s1-supervision-contracts` | Produce supervision/liveness value types, timer/wait inputs, event payloads, projections, and reason catalog. | `core-04` | Supervisor/liveness/timer/termination fact contract part; fail-closed reason catalog split. | `packages/sdk/src/core/supervision/contracts/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/contracts/**` | elevated |
-| `core-04-s2-liveness-fold` | Fold committed current-session events plus clock into liveness state and event-class facts. | `core-04` | Liveness fold; advancing event classes; never-refresh event classes. | `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/liveness/**` | elevated |
-| `core-04-s3-timers-wait` | Evaluate the six supervision timers and wrap Epic 3 cursor wait without liveness side effects. | `core-04` | Timer signals; `waitRunEvents` wrapper and cursor validation. | `packages/sdk/src/core/supervision/timers/**`, `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**` | elevated |
-| `core-04-s4-termination-facts` | Append supervisor lifecycle/lost/termination facts and hand stale owned workers to Execution Host. | `core-04` | Supervisor facts behavior part; cursor/linkage/progress/stale/termination failure behavior. | `packages/sdk/src/core/supervision/termination/**`, `packages/sdk/src/index.ts`, `packages/sdk/tests/core/supervision/termination/**` | elevated |
+| `core-03-s1-approval-contracts` | Produce all approval value types, event payloads, projections, binding shapes, interfaces, and failure catalog. | `core-03` | Neutral records contract part; fail-closed catalog split. | `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/tests/core/approval/contracts/**` | elevated |
+| `core-03-s2-normalize-risk-decision` | Normalize approval requests, classify risk with explicit time, record risk and decision facts, and apply the v1 ladder. | `core-03` | Risk classification; v1 mode ladder; risk/decision neutral records behavior; policy/risk/gate failure behavior. | `packages/sdk/src/core/approval/decision/**`, `packages/sdk/tests/core/approval/decision/**` | elevated |
+| `core-03-s3-pending-park-resume` | Persist request/pending facts, produce park decisions, resume or expire pending approvals, and fold projections. | `core-03` | Pending persistence; parked/resumed/expired facts; pending/session/expiry/log failure behavior. | `packages/sdk/src/core/approval/pending/**`, `packages/sdk/src/core/approval/projections/**`, `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**` | elevated |
+| `core-03-s4-grants-outcomes` | Map policy grants to Agent `ScopedGrant`, answer/deny through the Agent relay, and record outcomes. | `core-03` | Policy-to-Agent scoped grants; relay/channel/mapping/outcome behavior; outcome neutral records behavior. | `packages/sdk/src/core/approval/grants/**`, `packages/sdk/src/core/approval/outcomes/**`, `packages/sdk/tests/core/approval/grants/**`, `packages/sdk/tests/core/approval/outcomes/**` | elevated |
+| `core-04-s1-supervision-contracts` | Produce supervision/liveness value types, timer/wait inputs, event payloads, projections, and reason catalog. | `core-04` | Supervisor/liveness/timer/termination fact contract part; fail-closed reason catalog split. | `packages/sdk/src/core/supervision/contracts/**`, `packages/sdk/tests/core/supervision/contracts/**` | elevated |
+| `core-04-s2-liveness-fold` | Fold committed current-session events plus clock into liveness state and event-class facts. | `core-04` | Liveness fold; advancing event classes; never-refresh event classes. | `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/tests/core/supervision/liveness/**` | elevated |
+| `core-04-s3-timers-wait` | Evaluate the six supervision timers and wrap Epic 3 cursor wait without liveness side effects. | `core-04` | Timer signals; `waitRunEvents` wrapper and cursor validation. | `packages/sdk/src/core/supervision/timers/**`, `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**` | elevated |
+| `core-04-s4-termination-facts` | Append supervisor lifecycle/lost/termination facts and hand stale owned workers to Execution Host. | `core-04` | Supervisor facts behavior part; cursor/linkage/progress/stale/termination failure behavior. | `packages/sdk/src/core/supervision/termination/**`, `packages/sdk/tests/core/supervision/termination/**` | elevated |
 
 ## Dependency Table
 
 | story | depends on | edge contract |
 |---|---|---|
-| `core-03-s1-approval-contracts` | none | Produces approval values, payloads, projections, interfaces, failure catalog, and first SDK export baseline. |
+| `core-03-s1-approval-contracts` | none | Produces approval values, payloads, projections, interfaces, and failure catalog. |
 | `core-04-s1-supervision-contracts` | none | Produces supervision values, payloads, projections, interfaces, and failure catalog. |
-| `core-03-s2-normalize-risk-decision` | `core-03-s1-approval-contracts` | Consumes approval contract values and produces normalization/risk/decision behavior. |
+| `core-03-s2-normalize-risk-decision` | `core-03-s1-approval-contracts` | Consumes approval contract values and produces normalization/risk/decision behavior plus `ApprovalRiskClassified` and `ApprovalDecisionRecorded` facts. |
 | `core-04-s2-liveness-fold` | `core-04-s1-supervision-contracts` | Consumes supervision values and produces liveness fold behavior. |
 | `core-03-s3-pending-park-resume` | `core-03-s1-approval-contracts`, `core-03-s2-normalize-risk-decision` | Consumes approval payloads, `Decision`, `ParkDecision`, `ResumeDecision`, and pending/projection behavior. |
 | `core-04-s3-timers-wait` | `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold` | Consumes timer policy, liveness projection, wait request, and liveness output. |
@@ -136,14 +137,14 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 
 | shared shape | producer | public import path | consumers |
 |---|---|---|---|
-| Approval values, interfaces, payloads, projections, `ProtectedPolicyApprovalBinding`, failure catalog | `core-03-s1-approval-contracts` | `sdk` | `core-03-s2`, `core-03-s3`, `core-03-s4`, Epic 5, Epic 7 |
-| Normalization, risk classifier, and decision functions | `core-03-s2-normalize-risk-decision` | `sdk` | `core-03-s3`, `core-03-s4`, Epic 5 |
-| Pending/park/resume/expiry functions and projection fold | `core-03-s3-pending-park-resume` | `sdk` | `core-03-s4`, Epic 5, Epic 7 |
-| Grant mapping, Agent answer relay, and outcome recording | `core-03-s4-grants-outcomes` | `sdk` | Epic 5, Epic 7 |
-| Supervision values, payloads, timer/wait inputs, projection, reason catalog | `core-04-s1-supervision-contracts` | `sdk` | `core-04-s2`, `core-04-s3`, `core-04-s4`, Epic 5, Epic 7 |
-| Liveness fold and event-class catalog | `core-04-s2-liveness-fold` | `sdk` | `core-04-s3`, `core-04-s4`, Epic 5 |
-| Timer evaluation and wait wrapper | `core-04-s3-timers-wait` | `sdk` | `core-04-s4`, Epic 7 |
-| Supervisor and termination fact recording | `core-04-s4-termination-facts` | `sdk` | Epic 5, Epic 7 |
+| Approval values, interfaces, payloads, projections, `ProtectedPolicyApprovalBinding`, failure catalog | `core-03-s1-approval-contracts` | `sdk` via export-aggregation owner | `core-03-s2`, `core-03-s3`, `core-03-s4`, Epic 5, Epic 7 |
+| Normalization, risk classifier, decision functions, `ApprovalRiskClassified`, and `ApprovalDecisionRecorded` facts | `core-03-s2-normalize-risk-decision` | `sdk` via export-aggregation owner | `core-03-s3`, `core-03-s4`, Epic 5 |
+| Pending/park/resume/expiry functions and projection fold | `core-03-s3-pending-park-resume` | `sdk` via export-aggregation owner | `core-03-s4`, Epic 5, Epic 7 |
+| Grant mapping, Agent answer relay, and outcome recording | `core-03-s4-grants-outcomes` | `sdk` via export-aggregation owner | Epic 5, Epic 7 |
+| Supervision values, payloads, timer/wait inputs, projection, reason catalog | `core-04-s1-supervision-contracts` | `sdk` via export-aggregation owner | `core-04-s2`, `core-04-s3`, `core-04-s4`, Epic 5, Epic 7 |
+| Liveness fold and event-class catalog | `core-04-s2-liveness-fold` | `sdk` via export-aggregation owner | `core-04-s3`, `core-04-s4`, Epic 5 |
+| Timer evaluation and wait wrapper | `core-04-s3-timers-wait` | `sdk` via export-aggregation owner | `core-04-s4`, Epic 7 |
+| Supervisor and termination fact recording | `core-04-s4-termination-facts` | `sdk` via export-aggregation owner | Epic 5, Epic 7 |
 
 ## Story Graph
 
@@ -161,7 +162,7 @@ flowchart TB
   A1 -->|"ApprovalRequest, ApprovalContext, Decision, failure catalog"| A2
   S1 -->|"LivenessProjection, LivenessState, payload types"| S2
   A1 -->|"approval payloads, ParkDecision, ResumeDecision, projections"| A3
-  A2 -->|"Decision and decision event inputs"| A3
+  A2 -->|"Decision and committed decision facts"| A3
   S1 -->|"timer policy and wait request"| S3
   S2 -->|"liveness projection output"| S3
   A1 -->|"PolicyGrantPlan, Outcome, failure catalog"| A4
@@ -176,7 +177,7 @@ flowchart TB
 
 | band | stories | delivery note |
 |---|---|---|
-| 1 | `core-03-s1-approval-contracts`, `core-04-s1-supervision-contracts` | Independent root value producers. They may both touch the SDK entrypoint; delivery handles the shared file. |
+| 1 | `core-03-s1-approval-contracts`, `core-04-s1-supervision-contracts` | Independent root value producers; public entrypoint aggregation is owned outside the story pathsets. |
 | 2 | `core-03-s2-normalize-risk-decision`, `core-04-s2-liveness-fold` | First behavior consumers of their own domain contract surfaces. |
 | 3 | `core-03-s3-pending-park-resume`, `core-04-s3-timers-wait` | Second behavior layer: approval pending/projections and supervision timers/wait. |
 | 4 | `core-03-s4-grants-outcomes`, `core-04-s4-termination-facts` | Provider-port handoff behaviors over already-produced facts. |
@@ -189,14 +190,14 @@ flowchart TB
 - Single producer per shared shape: approval values live in `core-03-s1`; supervision values live in
   `core-04-s1`; behavior stories consume them.
 - Acyclic labelled graph: four ordered bands; every edge names value-shape or behavior consumption.
-- Defensible sizing: each story owns one domain surface and 5-9 falsifiable ACs.
+- Defensible sizing: each story owns one domain surface and focused, falsifiable ACs.
 - Dispatch-ready: every story has one path boundary and an `elevated` tier floor because each exposes
-  public SDK surface.
-- Seams importable: every cross-story shape names `sdk` as the public import path and producer stories
-  own public-import ACs.
+  public SDK surface through the export-aggregation owner.
+- Seams importable: every cross-story shape names `sdk` as the public import path; producer stories own
+  public-import ACs but do not own the shared SDK entrypoint file.
 - Producer-closure enforced: story contracts name construction sources for required produced fields and
-  public symbols, including `promptRef`, `requestedAt`, `classifiedAt`, protected-policy binding
-  fields, timer deadlines, and termination proof fields.
+  public symbols, including `promptRef`, `requestedAt`, `classifiedAt`, risk/decision event ids,
+  protected-policy binding fields, timer deadlines, and termination proof fields.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

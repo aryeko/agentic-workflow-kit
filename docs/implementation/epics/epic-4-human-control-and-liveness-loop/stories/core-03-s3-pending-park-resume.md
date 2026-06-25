@@ -32,7 +32,9 @@ fold approval projections from committed events.
 - Compute `decisionDeadline = request.expiresAt ?? request.requestedAt + policy.approval.decisionWindowMs`.
 - Produce `ParkDecision` from `ApprovalParkInput` for live-window elapsed, live-only channel, or
   operator attention.
-- Resume only current non-ambiguous owned or owned-remote sessions with a non-expired committed grant.
+- Resume only current non-ambiguous owned or owned-remote sessions with a non-expired committed grant and
+  fresh positive Agent attestations for `canResumeOwned` and `canRelayApproval`, plus
+  `canPersistApprovalAnswerChannel` when the channel must survive human latency.
 - Fold pending/latest/outcome/attention/failure projections deterministically.
 
 ## Dependencies and Inputs
@@ -60,14 +62,18 @@ fold approval projections from committed events.
   recording an expired outcome before final `decisionDeadline` - evidence:
   `park-live-window.unit.test.ts` asserts parked event exists and no expired outcome before deadline.
 - **AC-5** `resumePendingApproval` returns `outcome = "resume"` only for non-expired, current,
-  non-ambiguous, owned/owned-remote sessions whose committed decision event carries a grant - evidence:
-  `resume-owned-current.unit.test.ts` asserts `outcome`, `grant`, and source event ids.
+  non-ambiguous, owned/owned-remote sessions whose committed decision event carries a grant and whose
+  Agent attestations are fresh positive for `canResumeOwned` and `canRelayApproval`, plus
+  `canPersistApprovalAnswerChannel` when the channel must survive human latency - evidence:
+  `resume-owned-current.unit.test.ts` asserts `outcome`, `grant`, attestation event ids, and source
+  event ids.
 - **AC-6** Expired pending requests return `ResumeDecision.outcome = "expired"` and record
   `ApprovalOutcomeRecordedPayload.outcome.failureState = "approval-expired"` - evidence:
   `expire-pending.unit.test.ts` asserts exact outcome and failure token.
-- **AC-7** Ambiguous linkage, observe-only ownership, lost answer channel, or unavailable replay/append
-  fails closed with the exact token and no `ApprovalResumed` event - evidence:
-  `resume-fail-closed.unit.test.ts` table-tests all four fixtures.
+- **AC-7** Ambiguous linkage, observe-only ownership, missing/stale/negative resume or relay
+  attestation, missing required persistable-channel attestation, lost answer channel, or unavailable
+  replay/append fails closed with the exact token and no `ApprovalResumed` event - evidence:
+  `resume-fail-closed.unit.test.ts` table-tests all fixtures.
 - **AC-8** `foldApprovalProjection` rebuilds pending rows, latest decisions/outcomes, operator
   attention, and failure maps deterministically from committed approval events - evidence:
   `approval-projection-fold.unit.test.ts` replays the same log twice and asserts deep equality plus
@@ -85,10 +91,10 @@ fold approval projections from committed events.
 | AC-2 | `decisionDeadline` | `request.expiresAt`, `request.requestedAt`, fnd-01 policy window |
 | AC-3 | `ParkDecision` fields | `ApprovalParkInput` fields |
 | AC-4 | park vs expiry | live deadline, channel persistability, final deadline |
-| AC-5, AC-7 | resume eligibility | pending projection, linkage resolver/raw events, ownership, attestations |
+| AC-5, AC-7 | resume eligibility | pending projection, linkage resolver/raw events, ownership, committed decision event, and fresh positive Agent attestations |
 | AC-6 | expiry | sampled `evaluatedAt` and decision deadline |
 | AC-8 | projection rows | committed approval event payloads from `core-03-s1` |
-| AC-9 | public symbols | owned source files and `packages/sdk/src/index.ts` export wiring |
+| AC-9 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
 
 ## Failure and Degraded Outcomes
 
@@ -98,6 +104,7 @@ fold approval projections from committed events.
 | `approval-answer-channel-lost` | channel unavailable after park/resume | no resume event | AC-7 |
 | `approval-session-ambiguous` | current session cannot be proven | block resume | AC-7 |
 | `approval-owner-missing` | ownership absent or observe-only | block resume | AC-7 |
+| `approval-resume-capability-missing` | resume, relay, or required persistable-channel attestation absent/stale/negative | block resume | AC-7 |
 | `approval-expired` | sampled time exceeds final deadline | expired outcome | AC-6 |
 | `approval-event-log-unavailable` | replay/projection/append unavailable | block | AC-7 |
 
@@ -106,6 +113,8 @@ fold approval projections from committed events.
 - Coverage: 95% branch coverage for approval pending/projection modules.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-9.
+- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
+  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|child_process|Date\\.now|new Date|fetch\\(" packages/sdk/src/core/approval/pending packages/sdk/src/core/approval/projections`
   returns zero matches.

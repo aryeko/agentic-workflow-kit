@@ -39,7 +39,7 @@ record final approval outcomes without concrete provider behavior.
   and neutral records behavior part.
 - Depends on: `core-03-s1-approval-contracts`, `core-03-s2-normalize-risk-decision`,
   `core-03-s3-pending-park-resume`.
-- Frozen inputs: Epic 2 Agent provider port and attestations; Epic 3 writer.
+- Frozen inputs: Epic 2 Agent provider port and attestations; injected SDK `IdGenerator`; Epic 3 writer.
 
 ## Acceptance Criteria
 
@@ -57,15 +57,17 @@ record final approval outcomes without concrete provider behavior.
   `mcp-elicitation-content`, `tool-user-input-content`), missing required command/host/session/file
   evidence, or any widening mapping return `approval-grant-mapping-invalid` and do not call Agent -
   evidence: `grant-map-invalid.unit.test.ts` asserts all invalid fixtures and zero relay calls.
-- **AC-5** `answerApprovalDecision` passes `Decision.grant` unchanged as `ApprovalAnswer.grant` and
-  includes the committed decision event id; policy-level scope strings never cross the Agent boundary -
-  evidence: `answer-approval.unit.test.ts` spies on mock Agent input and asserts deep equality.
+- **AC-5** `answerApprovalDecision` consumes the committed `ApprovalDecisionRecorded` event id produced
+  by `core-03-s2`, passes `Decision.grant` unchanged as `ApprovalAnswer.grant`, and ensures
+  policy-level scope strings never cross the Agent boundary - evidence: `answer-approval.unit.test.ts`
+  spies on mock Agent input and asserts deep equality.
 - **AC-6** Missing relay, lost answer channel, or ambiguous Agent answer result records no successful
   answer and returns `approval-relay-missing`, `approval-answer-channel-lost`, or
   `approval-outcome-ambiguous` - evidence: `answer-fail-closed.unit.test.ts` asserts exact tokens.
 - **AC-7** `recordApprovalOutcome` appends `ApprovalOutcomeRecordedPayload` at `barrier`, with
-  `Outcome.schema = "kit-vnext.approval-outcome.v1"` and source event ids preserved - evidence:
-  `record-outcome.unit.test.ts` asserts durability, schema, and projection fold visibility.
+  `Outcome.schema = "kit-vnext.approval-outcome.v1"`, `Outcome.outcomeId` minted from the injected
+  `IdGenerator`, and source event ids preserved - evidence: `record-outcome.unit.test.ts` asserts
+  durability, schema, id source, and projection fold visibility.
 - **AC-8** The public SDK entrypoint exports `mapPolicyGrantToScopedGrant`,
   `answerApprovalDecision`, and `recordApprovalOutcome` - evidence:
   `approval-grants-public-import.unit.test.ts` imports the functions from `sdk` and constructs one grant
@@ -76,10 +78,10 @@ record final approval outcomes without concrete provider behavior.
 | AC / output | Decision value or produced field | Source |
 |---|---|---|
 | AC-1..AC-4 | mapping validity | `ApprovalRequest` evidence plus `PolicyGrantPlan.scope` |
-| AC-5 | Agent answer grant | mapped `ScopedGrant` and committed decision event id |
+| AC-5 | Agent answer grant | mapped `ScopedGrant` and committed `ApprovalDecisionRecorded` event id from `core-03-s2` |
 | AC-6 | relay/channel failure | Agent attestations, channel refs, answer result |
-| AC-7 | outcome append | `Outcome`, `sourceEventIds`, and `RunWriter.append` result |
-| AC-8 | public symbols | owned source files and `packages/sdk/src/index.ts` export wiring |
+| AC-7 | outcome append | `Outcome`, injected `IdGenerator` for `outcomeId`, `sourceEventIds`, and `RunWriter.append` result |
+| AC-8 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
 | `Outcome.recordedAt` | explicit caller timestamp | injected input, not ambient clock |
 
 ## Failure and Degraded Outcomes
@@ -96,6 +98,8 @@ record final approval outcomes without concrete provider behavior.
 - Coverage: 95% branch coverage for grants/outcomes modules.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-8.
+- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
+  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|Codex|child_process|fetch\\(" packages/sdk/src/core/approval/grants packages/sdk/src/core/approval/outcomes`
   returns zero matches.

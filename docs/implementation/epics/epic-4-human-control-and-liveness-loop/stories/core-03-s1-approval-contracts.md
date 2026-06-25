@@ -30,7 +30,8 @@ event payloads, projections, protected-policy binding, and the approval failure 
 
 ## Responsibilities
 
-- Export every manifest symbol through the `sdk` public entrypoint.
+- Define every manifest symbol for aggregation by the SDK public-entrypoint owner; this story does not
+  own `packages/sdk/src/index.ts`.
 - Keep `ScopedGrant` imported from the Agent provider port; do not redeclare it in core-03.
 - Make `promptRef`, `requestedAt`, `classifiedAt`, protected-policy binding fields, and source event
   ids required wherever the design requires them.
@@ -61,11 +62,13 @@ event payloads, projections, protected-policy binding, and the approval failure 
   `ResumeDecision.outcome = "resume" | "expired" | "blocked"` - evidence:
   `approval-decision-results.unit.test.ts` asserts schema strings and negative fixtures reject a
   resume result without `sourceEventIds`.
-- **AC-4** `ApprovalDecisionRecordedPayload` carries optional `protectedPolicyBinding` typed as
-  `ProtectedPolicyApprovalBinding` with required `runId`, `candidateHeadSha`, and
-  `protectedPolicySnapshotEventId`, and optional `newPolicyDigest` only - evidence:
-  `protected-policy-binding.unit.test.ts` constructs the binding and a negative fixture without
-  `protectedPolicySnapshotEventId` fails typecheck.
+- **AC-4** `ApprovalDecisionRecordedPayload` carries `protectedPolicyBinding` typed as
+  `ProtectedPolicyApprovalBinding`, required iff the approval request subject is
+  `protected-policy-change`; when present, the binding requires `runId`, `candidateHeadSha`, and
+  `protectedPolicySnapshotEventId`, and permits optional `newPolicyDigest` only - evidence:
+  `protected-policy-binding.unit.test.ts` constructs the required binding for protected-policy requests,
+  omits it for non-protected subjects, and negative fixtures reject a protected-policy decision without
+  `protectedPolicySnapshotEventId`.
 - **AC-5** All seven V1 event payloads expose exact schema literals and required event-source fields,
   including `ApprovalRiskClassifiedPayload.classifiedAt` and `ApprovalParkedPayload.parkedAt` -
   evidence: `approval-payloads.unit.test.ts` constructs one payload per event and asserts the schema
@@ -89,7 +92,7 @@ event payloads, projections, protected-policy binding, and the approval failure 
 | Answer-channel fields | `AgentApprovalRequest.answerChannel` |
 | `ApprovalRiskClassifiedPayload.classifiedAt` | explicit `classifiedAt` input to the classifier |
 | `ProtectedPolicyApprovalBinding` | Operator approval event plus protected-policy snapshot event id |
-| Public symbols | files under `packages/sdk/src/core/approval/contracts/**` and `packages/sdk/src/index.ts` |
+| Public symbols | files under `packages/sdk/src/core/approval/contracts/**`; aggregated by the SDK public-entrypoint owner |
 
 ## Failure and Degraded Outcomes
 
@@ -104,6 +107,8 @@ This story declares failure tokens but raises none at runtime. Behavior stories 
 - Coverage: 95% statements/branches for `packages/sdk/src/core/approval/contracts/**`.
 - Gate lane: `pnpm check`; unit lane includes the tests and type fixtures above.
 - Public exposure: AC-7.
+- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
+  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|testkit|child_process|Date\\.now|new Date|fetch\\(" packages/sdk/src/core/approval/contracts packages/sdk/tests/core/approval/contracts`
   returns zero matches.

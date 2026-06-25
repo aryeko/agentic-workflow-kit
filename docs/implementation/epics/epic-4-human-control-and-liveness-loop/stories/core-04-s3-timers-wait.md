@@ -76,7 +76,7 @@ Evaluate startup, idle, no-progress, per-tool, approval-SLA, and max-runtime tim
 | AC-2..AC-6 | timer reason | expired timer kind from design table |
 | AC-7 | cursor validity | `request.runId`, `cursor.runId`, `cursor.afterSequence` |
 | AC-8 | no side effects | injected collaborator call counts |
-| AC-9 | public symbols | owned source files and `packages/sdk/src/index.ts` export wiring |
+| AC-9 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
 | `LivenessTimerExpiredPayload.sourceEventIds` | source events used to compute the deadline | liveness projection/timer input |
 
 ## Failure and Degraded Outcomes
@@ -96,6 +96,8 @@ Evaluate startup, idle, no-progress, per-tool, approval-SLA, and max-runtime tim
 - Coverage: 95% branch coverage for timers and wait modules.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-9.
+- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
+  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
 - Boundary sweeps: no consumed-decision timer symbol, no process/network/provider imports, no projection
   mutation in wait.
 - File-size budget: 300 lines per implementation file, 380 lines per test file.
