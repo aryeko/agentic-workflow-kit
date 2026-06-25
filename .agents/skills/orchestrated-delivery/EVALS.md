@@ -1,7 +1,7 @@
 # Orchestrated Delivery — Shared Eval / Test Specification
 
 **Skill under test:** `orchestrated-delivery`
-**Version pin (combined skill hash):** `380b1444d5f3afdf`
+**Version pin (combined skill hash):** `e2df04b265446c75`
 **Per-file hashes:** `SKILL.md` 96c18a487908 · `references/commit-tracker.md` e0dcce263897 ·
 `references/communication.md` 38856fc142f6 · `references/package-preflight.md` 109d109230f4 ·
 `references/pr-merge.md` a2002d4e6b53 · `references/runtime-binding.md` 510ea8ca3dc7 ·
@@ -15,8 +15,9 @@
 Recompute with:
 
 ```sh
-# run from this skill's root; excludes EVALS.md so the pin is stable
-find SKILL.md references agents evals -type f 2>/dev/null | sort |
+# run from this skill's root; excludes EVALS.md so the pin is stable.
+# LC_ALL=C pins the sort order so the hash is locale-independent (reproducible in CI / any shell).
+find SKILL.md references agents evals -type f 2>/dev/null | LC_ALL=C sort |
   while IFS= read -r f; do cat "$f"; done |
   shasum -a 256 | cut -c1-16
 ```

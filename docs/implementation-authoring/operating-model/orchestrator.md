@@ -40,7 +40,10 @@ Pure coordination. Move work; never judge it.
 - **Write the tracker** per the canonical schema in
   [`delivery-pipeline/30-plan-delivery.md`](../delivery-pipeline/30-plan-delivery.md): status, round,
   per-round implementer commit + reviewer verdict, block reason, merge-back commit, gate evidence.
-- **Close the worker pair and clean the story tree** once the story is merged or blocked.
+- **Close the worker pair; clean the story tree only on merge.** Once a story is merged back, close its
+  implementer/reviewer pair and remove the disposable story worktree. On a **block/escalation** (5-round
+  cap or source-contract blocker), **preserve the story worktree and report its path** so the architect
+  has the unmerged WIP and context to diagnose — clean it only after the block is resolved.
 - **Honor the same-logic concurrency rule** — same-logic stories never run in the same wave (planning
   guarantees it; canonical rule in
   [`authoring-standard/40-story-dag.md`](../authoring-standard/40-story-dag.md)). Concurrent stories that
