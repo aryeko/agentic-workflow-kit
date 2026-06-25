@@ -58,6 +58,33 @@ a missing fact needed by one of its ACs or failure/degraded triggers.
 - A deep-readiness verdict marks the package `ready_for_implementation`, naming the sources reviewed, the
   stories covered, the per-artifact checks performed, and the final verdict.
 
+## Canonical tracker schema
+
+The tracker is the durable, resumable record of a delivery's stories. `plan-delivery` authors it as part
+of the execution package; `orchestrated-delivery` updates it at runtime. This is the **canonical schema**
+— other layers (the [orchestrator role](../operating-model/orchestrator.md), the
+[orchestrated-delivery charter](./40-orchestrated-delivery.md)) reference it rather than restating it.
+
+Each tracker row records one story with these fields:
+
+| field | values / content |
+|---|---|
+| `status` | lifecycle: `ready` → `in_progress` → `in_review` → (`blocked` \| `approved`) → `merged` |
+| `round` | current review round, `1`–`5` (the cap; see the [reviewer](../operating-model/reviewer.md) and [orchestrator](../operating-model/orchestrator.md) specs) |
+| per-round record | for each round: the implementer's commit hash + the reviewer's verdict (`APPROVE`, or `BLOCKING` with finding refs) |
+| `blocked` reason | on cap-exhaustion or escalation: which AC or finding blocked, and the escalation target (architect) |
+| `merge` | the track-branch merge-back commit hash |
+| `gate` | pointer to the last green `pnpm check` evidence |
+| wave / dependencies | the story's dependency wave and the producer stories it waits on |
+| model class + effort | the abstract routing assigned per story (no concrete provider IDs) |
+| prompt paths | the implementer + reviewer prompt files projected for the story |
+| notes | projection trace (story id + AC ids) and any routing rationale |
+
+The status lifecycle is the contract between the roles: a story is `in_review` while the
+implementer/reviewer loop runs, becomes `approved` when the reviewer returns APPROVE, `blocked` when the
+5-round cap is hit and the story is escalated, and `merged` once the orchestrator merges its commits back
+to the track branch.
+
 ## Boundaries (never)
 
 - Re-decide scope, ACs, dependency order, or tier — projection only.

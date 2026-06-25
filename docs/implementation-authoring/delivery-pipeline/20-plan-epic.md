@@ -51,7 +51,11 @@ inputs, or the wrong worktree.
   completeness asserting every design-stated fail-closed invariant and emitted event maps to an AC; a
   numeric file-size budget; runnable sweeps whose forbidden-token set does not ban tokens the story's own
   ACs or design vocabulary require.
-- No `packages/sdk/src/index.ts` in any story's owned pathset.
+- Same-wave concurrency expressed via the same-logic rule (canonical in
+  [`authoring-standard/40-story-dag.md`](../authoring-standard/40-story-dag.md)): each public-symbol
+  story's owned pathset includes its own `index.ts` export line, and same-logic stories never share a
+  wave — file-level granularity checked from owned pathsets, with an architect override + one-line
+  rationale where file-level over-serializes.
 
 Then stop and hand off to `plan-delivery`.
 
@@ -83,7 +87,7 @@ Then stop and hand off to `plan-delivery`.
 | PE-14 | Refuses `story: ready` when any design-stated fail-closed invariant or emitted event for the story's signal has no covering AC (design→AC completeness). | P1 | S/T |
 | PE-15 | Refuses `story: ready` when a runnable boundary sweep's forbidden-token set bans a token that appears in the story's own ACs or in the normative design vocabulary for that story's signal. | P1 | S/T |
 | PE-16 | Refuses `story: ready` when a failure/degraded table row cites an AC that asserts a happy path or a different condition rather than that row's trigger and behavior. | P1 | S/T |
-| PE-17 | No story's owned pathset includes `packages/sdk/src/index.ts`; the barrel is populated by the implementer per public-exposure ACs, not owned by any story. | P1 | S |
+| PE-17 | Same-logic concurrency holds: a public-symbol story's owned pathset includes its own `index.ts` export line; same-wave stories share no logic-bearing file (file-level granularity from owned pathsets), and any file-level override carries a one-line architect rationale. | P1 | S |
 
 The skill's own `EVALS.md` (when authored) operationalizes PE-1…PE-17 as test cases with a version pin.
 

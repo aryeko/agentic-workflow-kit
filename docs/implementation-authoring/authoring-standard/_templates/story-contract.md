@@ -204,7 +204,8 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 ## Boundaries and STOP conditions
 
 - Package or module boundary:
-- Owned pathset (globs the implementer may create or modify; the orchestrator commits strictly this):
+- Owned pathset (globs the implementer may create or modify and commits each round; include the story's
+  own `index.ts` export line when it exposes a public symbol):
 - Forbidden dependencies:
 - STOP when:
 ```

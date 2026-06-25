@@ -98,20 +98,29 @@ reaches into another story's signal (the `destroy`-in-the-wrong-story defect) mo
 Author the DAG to dispatch cleanly into a plan-first orchestrator (e.g. the `orchestrated-delivery` skill):
 
 - **Bands are waves.** Topological bands are the delivery waves; nodes in a band share no edge and run in
-  parallel. An edge is a hard gate — a node starts only after its dependencies are committed.
+  parallel. An edge is a hard gate — a node starts only after its dependencies are merged back to the
+  track branch.
 - **One ownership scope per node.** Each story owns one path boundary (the files / globs it may create or
-  modify), recorded as the story's owned pathset, so the orchestrator stages and commits strictly that
-  pathset.
-- **The SDK barrel (`packages/sdk/src/index.ts`) is not owned by any behavior or contract story.**
-  Individual stories declare public-exposure ACs (export + import path + public-import test) that state what
-  must appear on the barrel, but they do **not** include `packages/sdk/src/index.ts` in their owned
-  pathsets. The barrel is updated by the implementer per those ACs, guided by the
-  `epic0-s4-export-templates/PackageExportConvention`. A story that lists the barrel in its pathset is
-  wrong — remove it. A story that carries a public-exposure AC but omits the AC from its predicate-input
-  matrix is a closure defect (see §Producer-closure in `50-story-contract.md`).
-- **Other shared-file collisions are the orchestrator's job, not the author's.** For files other than the
-  barrel, pathsets may overlap; the orchestrator isolates each story in its own worktree and merges approved
-  pathsets at commit.
+  modify), recorded as the story's owned pathset, so the implementer commits strictly that pathset each
+  round and the orchestrator merges it back to the track branch.
+- **The SDK barrel (`packages/sdk/src/index.ts`) is a normal owned file.** Each public-symbol story
+  **owns its own `index.ts` export line**: it declares a public-exposure AC (export + import path +
+  public-import test) and includes that export line in its owned pathset, guided by the
+  `epic0-s4-export-templates/PackageExportConvention`. A story that carries a public-exposure AC but
+  omits the AC from its predicate-input matrix is a closure defect (see §Producer-closure in
+  `50-story-contract.md`).
+- **Concurrency is governed by the same-logic rule (canonical definition).** Two stories may run in the
+  same wave **iff** neither depends on the other **and** they do not both modify the same *logic-bearing*
+  unit. Append-only aggregation points — the SDK barrel, registries, manifests, index/aggregator files —
+  are **not** logic-bearing: stories share them freely, and a line-level overlap is resolved by rebase
+  when the orchestrator advances the wave, never by serializing the stories.
+  - **Granularity: file-level by default.** Eligibility is mechanically checkable from the stories' owned
+    pathsets: two non-dependent stories whose owned pathsets share no logic-bearing file may run
+    concurrently; sharing only an append-only aggregation file does not block them.
+  - **Architect override.** When file-level granularity over-serializes two stories that touch different
+    logic within one shared file, the architect may grant a same-wave override with a **one-line
+    rationale** recorded on the DAG. The override is the only escape hatch; without a recorded rationale,
+    file-level granularity stands.
 - **Phase boundaries are readiness gates.** A later phase may consume an earlier phase's shape only once it
   is exported and importable through its intended public path. State this exported-and-importable
   phase-boundary condition so a consumer is never dispatched against a private-only seam.
@@ -137,7 +146,7 @@ must not be authored.
 - [ ] **Defensible sizing.** No node bundles unrelated signals; no node is too thin to carry a falsifiable
       AC.
 - [ ] **Dispatch-ready.** Each node names one owned pathset and sits in a topological band (its delivery
-      wave); every edge is a commit-gate a delivery orchestrator can enforce; **every node carrying a
+      wave); every edge is a merge-back gate a delivery orchestrator can enforce; **every node carrying a
       public-exposure AC names a suggested tier** (the orchestrator's floor).
 - [ ] **Seams are importable.** Every cross-story shape records the public import path its consumers use, and
       the producer node carries the public-exposure AC that exposes it there; phase boundaries state the

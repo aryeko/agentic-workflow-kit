@@ -23,8 +23,12 @@ defects a clear spec cannot prevent.
   **unproven / BLOCKING**: a spot-run is not a durable proof.
 - Run the **Bucket-2 hunt** — concurrency, resource leaks, code-level fail-open, boundary leaks.
   **This is its real value**, not AC box-ticking.
-- Run the **incremental loop:** **re-review each fix** the implementer returns, until **APPROVE**.
-- **Does NOT** re-characterize or fix.
+- Review the implementer's **latest committed round** in the story worktree — never a stash or an
+  uncommitted draft. Each round under review is a real commit.
+- Run the **incremental loop:** **re-review each committed fix round** the implementer returns, until
+  **APPROVE**. The loop is capped at the **5-round** limit; on exhaustion the orchestrator (not the reviewer)
+  **blocks + escalates** the story — the reviewer simply keeps returning its honest verdict.
+- **Does NOT** re-characterize, fix, or commit.
 - **STOP / escalate condition:** on a spec gap, **escalate a characterization defect to the
   [architect](architect.md)** instead of silently coding around it.
 
@@ -32,7 +36,7 @@ defects a clear spec cannot prevent.
 
 - The story characterization — ACs and their evidence clauses (the same contract the
   [implementer](implementer.md) built against).
-- The implementation in its **isolated worktree draft** (pointed at by the
+- The implementation as the **latest committed round in the story worktree** (pointed at by the
   [orchestrator](orchestrator.md), never a stashed tree), plus the attached evidence each round.
 
 ## Outputs
@@ -42,7 +46,7 @@ defects a clear spec cannot prevent.
 
 ## Flow
 
-1. Receive the implementation draft and its attached evidence for the story's ACs.
+1. Receive the implementer's latest committed round and its attached evidence for the story's ACs.
 2. Confirm each AC is met; spot-re-run its evidence to confirm it is genuine.
 3. Run the Bucket-2 hunt across concurrency, leaks, code-level fail-open, boundary leaks.
 4. If a spec gap surfaces, **escalate a characterization defect** to the architect.

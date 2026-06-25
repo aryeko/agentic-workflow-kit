@@ -38,8 +38,10 @@ The delivery engine must implement:
 3. **Evidence folded into ACs** — an AC is "X holds, proven by `<command → expected output>`"; satisfying
    the spec *is* producing the proof.
 4. **One job per role** — every actor does exactly one of: author · review · prove · verify · coordinate.
-5. **Dependency-wave dispatch** — per-story worktree isolation, owned-pathset commits, the DAG's
-   suggested tier as a floor.
+5. **Dependency-wave dispatch** — per-story worktree isolation; the implementer commits each round in
+   its worktree; the orchestrator merges approved stories back to the track branch; the DAG's suggested
+   tier is a floor. Same-wave concurrency is governed by the same-logic rule (canonical in
+   [`authoring-standard/40-story-dag.md`](../authoring-standard/40-story-dag.md)).
 
 ## Flow
 
@@ -61,14 +63,16 @@ ARCHITECT ─ authors ─▶ domain plan · epic plan (DAG) · story characteriz
   REVIEWER ─ verifies evidence + ACs, hunts Bucket-2                           │
         │                                                                      │
         ├─ BLOCKING ─▶ ORCHESTRATOR routes findings back to the implementer ───╯
-        │
+        │              (capped at 5 rounds → block + escalate; siblings continue)
         ▼ APPROVE
-  ORCHESTRATOR ─ commits the approved pathset, opens / updates the PR
+  ORCHESTRATOR ─ merges the story's per-round commits back to the track branch, writes the tracker
 ```
 
-The implement→review step is a **loop**: the reviewer returns APPROVE or BLOCKING; the orchestrator routes
-BLOCKING findings back to the implementer and re-dispatches review, iterating until APPROVE — only then is
-the pathset committed.
+The implement→review step is a **loop**: the implementer commits each round in its story worktree; the
+reviewer returns APPROVE or BLOCKING against the latest committed round; the orchestrator routes BLOCKING
+findings back and re-dispatches review, iterating until APPROVE — at which point it merges the story's
+commits back to the track branch. The loop is capped at **5 rounds**: on exhaustion the orchestrator
+**blocks + escalates** that story to the architect while sibling stories keep running.
 
 Two review loops at two altitudes: **characterization review** (pre-dispatch, Bucket 1, architect-owned,
 output = `ready`) and **code review** (post-implementation, Bucket 2, reviewer-owned).
@@ -82,8 +86,8 @@ refs). Every role does exactly one of author / review / prove / verify / coordin
 |---|---|---|
 | **Architect** | authors *and* reviews the "what"; owns the verdict + the `ready` flag | [architect.md](architect.md) |
 | **Characterization review** | the Bucket-1 gate: each story complete, consistent, constructable, every AC carrying an evidence clause | [characterization-review.md](characterization-review.md) |
-| **Orchestrator** | pure coordination: waves, worktree isolation, pathset commits, PR; refuses non-`ready` | [orchestrator.md](orchestrator.md) |
-| **Implementer** | realizes one story within its pathset; proves each AC as pasted output; **fixes BLOCKING findings and re-proves each round**; stops on a bad spec | [implementer.md](implementer.md) |
+| **Orchestrator** | pure coordination: waves, worktree isolation, **track-branch merge-back + tracker** (no story commits), 5-round cap → block + escalate; refuses non-`ready` | [orchestrator.md](orchestrator.md) |
+| **Implementer** | realizes one story within its pathset; proves each AC as pasted output; **commits each round in the story worktree**; **fixes BLOCKING findings and re-proves each round**; rebases on merge-back conflict; stops on a bad spec | [implementer.md](implementer.md) |
 | **Reviewer** | verifies evidence + ACs; owns the Bucket-2 hunt; **re-reviews each fix until APPROVE**; escalates spec gaps | [reviewer.md](reviewer.md) |
 
 The "what" these roles consume — domain plan (entity altitude), epic DAG (work-item altitude), story
@@ -98,7 +102,8 @@ The engine conforms to this spec when, on a representative epic:
 - a story with an uncharacterized seam is **blocked at characterization review**, not at code review;
 - the implementer **stops and reports** a characterization defect rather than improvising the "what";
 - the reviewer **escalates** a spec gap to the architect instead of coding around it;
-- every committed change is exactly one approved pathset.
+- the implementer commits each round and the orchestrator merges only approved stories back to the track
+  branch — the orchestrator commits no story content itself.
 
 ## Acceptance
 
