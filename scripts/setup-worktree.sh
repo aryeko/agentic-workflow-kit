@@ -55,9 +55,9 @@ find_primary_checkout() {
   '
 }
 
-# Creates <primary>/.turbo if missing, then symlinks .turbo -> <primary>/.turbo
-# in the current worktree when no local .turbo already exists.
-link_shared_path() {
+# Creates <primary>/.turbo if missing, then copies it into the current worktree
+# so concurrent worktrees have isolated turbo caches and logs.
+copy_shared_path() {
   local source_root="$1"
   local path_name="$2"
   local create_source="${3:-false}"
@@ -70,14 +70,14 @@ link_shared_path() {
   fi
 
   if [[ -e "$source_path" && ! -e "$path_name" ]]; then
-    ln -s "$source_path" "$path_name"
-    echo "setup-worktree: linked $path_name -> $source_path"
+    cp -r "$source_path" "$path_name"
+    echo "setup-worktree: copied $source_path -> $path_name"
   fi
 }
 
 primary_checkout="$(find_primary_checkout)"
 if [[ -n "$primary_checkout" ]]; then
-  link_shared_path "$primary_checkout" ".turbo" true
+  copy_shared_path "$primary_checkout" ".turbo" true
 fi
 
 pnpm install --frozen-lockfile --prefer-offline
