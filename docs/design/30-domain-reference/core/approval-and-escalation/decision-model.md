@@ -85,6 +85,10 @@ interface Outcome {
 }
 ```
 
+`PolicyGrantPlan.grantId`, `Decision.decisionId`, and `Outcome.outcomeId` are minted by the injected SDK
+`IdGenerator`. The caller supplies a replay-safe generator script for deterministic tests and recovery;
+core-03 never reads ambient randomness, `crypto.randomUUID`, or wall-clock time to construct these ids.
+
 ## Normalization & field provenance
 
 `normalize(input: AgentApprovalRequest, context: ApprovalContext): ApprovalRequest` is a pure total
