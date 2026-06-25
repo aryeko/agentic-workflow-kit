@@ -52,6 +52,6 @@ not duplicate them.
 
 **Next →:** [design corpus overview](./design/README.md)
 
-**Children:** [design corpus overview](./design/README.md) · [implementation contract](./implementation/README.md) · [Implementation planning — authoring standard](./implementation-authoring/README.md) · [Engineering Policy Index](./engineering/README.md) · [Closure-Defect Remediation — Durable Execution Plan](./reviews/2026-06-25-closure-remediation-plan.md) · [Producer↔Consumer Closure Audit — kit-vnext design corpus](./reviews/2026-06-25-producer-consumer-closure-audit.md) · [roadmap](./roadmap.md)
+**Children:** [design corpus overview](./design/README.md) · [implementation contract](./implementation/README.md) · [Implementation planning — authoring standard](./implementation-authoring/README.md) · [Engineering Policy Index](./engineering/README.md) · [Delivery-model reform + barrel simplification — self-contained remediation plan](./reviews/2026-06-25-barrel-coownership-and-closure-wiring-plan.md) · [Closure-Defect Remediation — Durable Execution Plan](./reviews/2026-06-25-closure-remediation-plan.md) · [Producer↔Consumer Closure Audit — kit-vnext design corpus](./reviews/2026-06-25-producer-consumer-closure-audit.md) · [roadmap](./roadmap.md)
 
 <!-- /DOCS-NAV -->
