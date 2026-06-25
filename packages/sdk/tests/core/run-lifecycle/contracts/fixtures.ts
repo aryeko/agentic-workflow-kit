@@ -128,6 +128,7 @@ export const createRunInputFixture: CreateRunInput = {
   leaseTtlMs: 30_000,
   idempotencyKey: 'idem-1',
   createdAt: baseTimestamp,
+  requestedBy: 'runner',
   operatorRef: 'operator://arye',
   correlationId: 'corr-1',
   artifactRefs: ['artifact://created'],
