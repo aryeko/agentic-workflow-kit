@@ -104,6 +104,8 @@ story's assigned signal.
 
 ## Predicate-input matrix
 
+### Consumed predicates
+
 Every behavioral AC and every failure/degraded trigger is decidable from declared inputs, consumed
 events/projections, producer-owned fields, or an in-scope resolver. Do not count refs, hashes,
 citations, or story ids as values unless the resolver is in scope.
@@ -111,6 +113,33 @@ citations, or story ids as values unless the resolver is in scope.
 | AC or failure row | Predicate / branch value | Declared source value | Producer / resolver | Verdict |
 |---|---|---|---|---|
 | AC-<n> | <condition evaluated> | <request field, event field, projection field, producer field, or resolver output> | <producer story/type or resolver owned here> | decidable |
+
+### Produced obligations (producer-closure)
+
+For every required field of every record/event this story appends, and every required public symbol it
+exposes, name the declared source. A required output with no reachable source is a **closure defect**
+and a Gate 4 blocker. If a field comes from an id-generator or minting rule, name the generator.
+
+| Produced record/event/symbol | Required field or symbol | Declared source (input field / owned-pathset file / minting rule) | Verdict |
+|---|---|---|---|
+| <EventName or public symbol> | <field name> | <source> | closed |
+
+**Worked example — event appended by one story and consumed by another:**
+
+Suppose story `apr-s2-decide` must append `ApprovalDecisionRecorded` and story `apr-s3-classify` consumes
+it. The `apr-s2-decide` contract's produced-obligations table must read:
+
+| Produced record/event/symbol | Required field or symbol | Declared source | Verdict |
+|---|---|---|---|
+| `ApprovalDecisionRecorded` | `decisionId` | `IdGenerator.newId()` — owned port, injected at construction | closed |
+| `ApprovalDecisionRecorded` | `requestId` | `ApprovalRequest.requestId` — consumed input field | closed |
+| `ApprovalDecisionRecorded` | `decision` | `ApproveOrDenyCommand.decision` — consumed command field | closed |
+| `ApprovalDecisionRecorded` | `decidedAt` | `Clock()` — owned port, injected at construction | closed |
+
+`apr-s3-classify` lists `ApprovalDecisionRecorded` as a consumed event in its dependencies and consumes its
+fields as declared source values in its own consumed-predicates table. The DAG must declare `apr-s2-decide`
+as the producer node for `ApprovalDecisionRecorded`; if no story claims production of a consumed event, that
+is the whole-graph closure defect that Gate 3 catches (see `40-story-dag.md`).
 
 ## Failure and degraded outcomes
 

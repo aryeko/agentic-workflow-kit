@@ -49,6 +49,17 @@ Done means all are true:
 
 Run this seam pass **before** sizing nodes; node boundaries fall out of it, not the other way round.
 
+**Barrel ownership.** Do not include `packages/sdk/src/index.ts` in any story's owned pathset.
+Behavior stories declare public-exposure ACs (export + import path + public-import test) that state what
+must appear on the barrel; the barrel is updated per those ACs without a story owning the file.
+
+**Whole-graph event/record producer reconciliation.** Before freezing the DAG, enumerate every event/record
+named in the design seams for this epic AND every event/record any story declares as consumed. Assert that
+exactly one story (this epic or a prior frozen epic) declares each as a produced output. Record this
+reconciliation table in the DAG. An event consumed by any story but produced by none is a DAG-level closure
+defect — per-story closure checks cannot catch it. Gate 3 fails until every consumed event/record has a
+declared producer or is escalated as a design gap.
+
 **Value-type vs runtime-object seam.** For each shared shape, decide how its consumers use it:
 
 - *Value type* — a data shape passed as a function input (built from fixtures in tests).
@@ -90,14 +101,25 @@ directory not traceable to the design package decomposition.
   or a runnable sweep (path + forbidden token + expected exit). An AC whose only evidence is "see test
   file X" fails Gate 4.
 - Each failure/degraded/validation token maps to exactly one owning AC; the failure table cites that AC.
+  The cited AC must assert **this row's trigger and behavior** — not the happy path, not a different token.
 - Every behavioral AC and every failure/degraded trigger has predicate-input coverage. The contract must
   name the request field, consumed event/projection, producer-owned field, or in-scope resolver that
   supplies each runtime branch value. A ref, hash, citation, or story id is provenance only. If an AC
   says "policy permits/denies" while the contract exposes only `policyRef`, or says "approved parent"
   without a defined approved-parent source, Gate 4 fails and the story must not become `ready`.
+- **Producer-closure coverage.** For every required field of every record/event this story produces and
+  every required public symbol it exposes, the predicate-input matrix must name a declared source: an input
+  field, an owned-pathset file, or an explicit producer/minting rule. A required output with no reachable
+  source is a **closure defect** — Gate 4 fails until it is resolved or escalated.
+- **Design→AC completeness.** For every fail-closed invariant and every emitted event the design states for
+  this story's signal, assert it maps to at least one AC. Gates check AC→design (nothing invented); this
+  check is the mirror: design→AC (nothing dropped). A design-stated invariant or emitted event with no
+  covering AC is a dropped obligation and a Gate 4 failure.
 - Public-exposure AC + import path + public-import test for every exported shape.
 - A numeric per-file size budget within the repo cap (200–400 typical, 800 hard).
-- Runnable sweeps for forbidden symbols and re-exports.
+- Runnable sweeps for forbidden symbols and re-exports. A sweep's forbidden-token set must not ban tokens
+  that appear in the story's own ACs or in the normative design vocabulary for this story's signal — an
+  over-broad sweep that forbids a token the story itself requires is a defect, not a safety measure.
 
 ## Characterization Review
 

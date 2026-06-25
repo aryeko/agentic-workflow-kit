@@ -29,7 +29,18 @@ defects left, before any code is written. Output the binding `ready` flag.
   classifies story-defect vs design-defect.
 - **Re-derive, don't trust the self-claim:** for sweep and coverage boxes, independently reconstruct the
   true forbidden-token set (the real public surface) and the claimed helper scope from the design — a
-  passing self-stated set or an aggregate coverage number is not evidence.
+  passing self-stated set or an aggregate coverage number is not evidence. Verify that no forbidden-token
+  set bans a token that appears in the story's own ACs or in the normative design vocabulary — an
+  over-broad sweep is a defect, not a safety measure.
+- **Design→AC completeness pass (per story).** Read the design sections that govern each story's signal.
+  For every fail-closed invariant and every emitted event the design states, assert it maps to at least one
+  AC in the contract. Gates check AC→design (nothing invented); this pass is the mirror check:
+  design→AC (nothing dropped). A dropped invariant or dropped emitted event is a story-defect finding.
+  This pass is not optional: it is the only check that catches a silently dropped requirement before any
+  code is written.
+- **Producer-closure pass (per story).** Verify the contract's produced-obligations section of the
+  predicate-input matrix exists and covers every required field of every produced record/event and every
+  required public symbol. A row with no declared source is a closure defect.
 - **Does NOT** review or anticipate implementation code — that is Bucket 2, owned by the
   [reviewer](reviewer.md) post-implementation.
 

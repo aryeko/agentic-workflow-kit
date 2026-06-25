@@ -102,10 +102,16 @@ Author the DAG to dispatch cleanly into a plan-first orchestrator (e.g. the `orc
 - **One ownership scope per node.** Each story owns one path boundary (the files / globs it may create or
   modify), recorded as the story's owned pathset, so the orchestrator stages and commits strictly that
   pathset.
-- **Shared-file collisions are the orchestrator's job, not the author's.** Pathsets may overlap on a shared
-  file (e.g. a barrel); the author does not force disjoint pathsets. The orchestrator isolates each story in
-  its own worktree and merges approved pathsets at commit. Planning supplies accurate per-story pathsets and
-  the public-exposure ACs — not a shared-file owner.
+- **The SDK barrel (`packages/sdk/src/index.ts`) is not owned by any behavior or contract story.**
+  Individual stories declare public-exposure ACs (export + import path + public-import test) that state what
+  must appear on the barrel, but they do **not** include `packages/sdk/src/index.ts` in their owned
+  pathsets. The barrel is updated by the implementer per those ACs, guided by the
+  `epic0-s4-export-templates/PackageExportConvention`. A story that lists the barrel in its pathset is
+  wrong — remove it. A story that carries a public-exposure AC but omits the AC from its predicate-input
+  matrix is a closure defect (see §Producer-closure in `50-story-contract.md`).
+- **Other shared-file collisions are the orchestrator's job, not the author's.** For files other than the
+  barrel, pathsets may overlap; the orchestrator isolates each story in its own worktree and merges approved
+  pathsets at commit.
 - **Phase boundaries are readiness gates.** A later phase may consume an earlier phase's shape only once it
   is exported and importable through its intended public path. State this exported-and-importable
   phase-boundary condition so a consumer is never dispatched against a private-only seam.
@@ -136,6 +142,13 @@ must not be authored.
 - [ ] **Seams are importable.** Every cross-story shape records the public import path its consumers use, and
       the producer node carries the public-exposure AC that exposes it there; phase boundaries state the
       exported-and-importable condition a later wave depends on.
+- [ ] **Whole-graph event/record producer reconciliation (DAG-level closure).** Enumerate every
+      event/record named in the included design seams AND every event/record any story declares as consumed.
+      Assert that exactly one story in this DAG (or a prior frozen epic) declares each of those as a produced
+      output. An event consumed by any story but produced by none is a **DAG-level closure defect** — it
+      cannot be caught by per-story checks alone. Gate 3 fails until every consumed event/record maps to one
+      declared producer node. Record this reconciliation table in the DAG (or a named appendix) so the
+      independent reviewer can verify it without re-deriving.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

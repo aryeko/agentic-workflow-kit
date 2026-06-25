@@ -55,16 +55,20 @@ store-sqlite  — (if needed) separate adapter package; never imported by sdk
 
 ## Public entrypoint ownership
 
-The SDK public entrypoint (`packages/sdk/src/index.ts`) and its aggregated public exports are owned by
-a single dedicated **export-aggregation owner**, not by individual behavior or contract stories. Each
-domain contributes its public symbols through that owner, which decides what is re-exported from the
-entrypoint.
+The SDK public entrypoint (`packages/sdk/src/index.ts`) is **not owned by any individual behavior or
+contract story**. Behavior stories declare public-exposure ACs (the symbol name, its import path from
+the barrel, and a public-import test) but do not include `packages/sdk/src/index.ts` in their owned
+pathsets. The barrel is updated by the implementer per those ACs, following the convention established
+by `epic0-s4-export-templates/PackageExportConvention`.
 
-This removes the shared-barrel write obligation from every behavior story. Otherwise each story that
-adds a public symbol would have to write the one entrypoint file, forcing serialized cross-domain writes
-to a single shared file and blocking public-import acceptance criteria whose owned pathset excludes the
-entrypoint. With a dedicated owner, behavior stories produce their symbols within their own pathset and
-the owner aggregates them at the boundary.
+This keeps the shared-barrel write obligation out of story pathsets. A story whose owned pathset
+includes `packages/sdk/src/index.ts` is wrong — remove it. A story that carries a public-exposure AC
+is responsible for stating what must appear on the barrel, not for writing the barrel file.
+
+**Design note:** An earlier formulation said "a single dedicated export-aggregation owner story." No
+such owner story exists in the delivered epics or in Epic 0's s1–s5. The model above matches delivered
+practice. If a future decision reinstates a dedicated owner story (e.g. as an Epic 0 output),
+`authoring-standard/40-story-dag.md` and the lessons ledger must be updated to match.
 
 ## What the SDK must not own
 
