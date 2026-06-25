@@ -43,6 +43,14 @@ Refuse and route back to `$plan-epic` when any condition holds:
   resolver;
 - a package element would require adding, weakening, reordering, or interpreting scope beyond the
   frozen DAG and ready contracts.
+- **substrate-presence preflight** (PD-9): refuse if a quality bar names a statement/branch coverage
+  lane while the spec-surface manifest declares only types/interfaces with no runtime-value export
+  and/or the story carries a type-only marker. Full rules in
+  `docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md#readiness-contract-preflights`.
+- **predicate-input preflight** (PD-10): refuse if any AC closure row names an input category
+  instead of a concrete `Producer/Type.field`, or a relational keyword appears in an AC whose
+  closure row names fewer than two declared fields. Full rules in
+  `docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md#readiness-contract-preflights`.
 
 This is a boolean gate check, not a second characterization review. Do not repair or improve the
 source artifacts here.

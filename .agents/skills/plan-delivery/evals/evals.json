@@ -93,6 +93,38 @@
         "All edits are confined to files under the epic execution/ package.",
         "The output contains plan.md, tracker.md, and implementer and reviewer prompts only."
       ]
+    },
+    {
+      "id": "negative-refuse-type-only-coverage-lane",
+      "prompt": "Use $plan-delivery for workflow-kit epic kappa. The DAG is frozen and kappa-01 is story: ready. The kappa-01 quality bar states 'Coverage: 95% statements/branches for src/kappa/contracts/' and the story prose includes 'type-only producer: declares types only, raises none at runtime.' The spec-surface manifest lists only TypeScript interfaces with no export const, as const, enum, or function. Package it anyway.",
+      "expected_output": "The skill refuses before marking ready_for_implementation, citing the substrate-presence preflight (PD-9): the quality bar names a coverage lane but the spec-surface manifest declares only types/interfaces with no runtime-value export, which would yield a vacuously green lane. The skill routes the repair back to $plan-epic.",
+      "files": [
+        "docs/implementation/epics/epic-kappa/story-dag.md",
+        "docs/implementation/epics/epic-kappa/stories/kappa-01.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md"
+      ],
+      "assertions": [
+        "The output refuses even though the story frontmatter says story: ready.",
+        "The blocker cites the substrate-presence preflight (PD-9) and the manifest-only-types mismatch.",
+        "The output routes the source repair back to $plan-epic.",
+        "No package is marked ready_for_implementation."
+      ]
+    },
+    {
+      "id": "negative-refuse-unsourced-relational-predicate",
+      "prompt": "Use $plan-delivery for workflow-kit epic lambda. The DAG is frozen and lambda-01 is story: ready. AC-4 states 'deny when cwd is outside the workspace' and the closure row for AC-4 names 'normalized request' as the input source. The declared frozen inputs expose only cwd?: string with no workspace root field. Package it anyway.",
+      "expected_output": "The skill refuses before marking ready_for_implementation, citing the predicate-input preflight (PD-10): AC-4 closure row names an input category ('normalized request') not a concrete Producer/Type.field, and the relational predicate 'outside the workspace' names fewer than two declared fields. The skill routes the repair back to $plan-epic.",
+      "files": [
+        "docs/implementation/epics/epic-lambda/story-dag.md",
+        "docs/implementation/epics/epic-lambda/stories/lambda-01.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md"
+      ],
+      "assertions": [
+        "The output refuses even though the story frontmatter says story: ready.",
+        "The blocker cites the predicate-input preflight (PD-10) and names the unsourced relational operand or input-category closure row.",
+        "The output routes the source repair back to $plan-epic.",
+        "No package is marked ready_for_implementation."
+      ]
     }
   ]
 }

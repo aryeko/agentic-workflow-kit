@@ -1,7 +1,7 @@
 # plan-delivery Evals
 
 **Skill under test:** `plan-delivery`
-**Version pin (combined skill hash):** `ac9203aab5eefc66`
+**Version pin (combined skill hash):** `20446e2e1b724099`
 **Status:** active
 
 Recompute with:
@@ -14,7 +14,7 @@ find SKILL.md references agents evals -type f 2>/dev/null | LC_ALL=C sort |
   shasum -a 256 | cut -c1-16
 ```
 
-These evals operationalize PD-1 through PD-8 from
+These evals operationalize PD-1 through PD-10 from
 `docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md`.
 
 ## Coverage Matrix
@@ -29,6 +29,8 @@ These evals operationalize PD-1 through PD-8 from
 | PD-6: no code writes, worker dispatch, or edits outside package | `positive-project-ready-epic`, `negative-refuse-write-code`, trigger near-miss negatives |
 | PD-7: package durable and resumable from artifacts, not session prose | `positive-project-ready-epic` |
 | PD-8: self-blocking ready contracts route back before packaging | `negative-refuse-self-blocking-ready-contract` |
+| PD-9: substrate-presence preflight: refuses `ready_for_implementation` when a coverage lane is named but the spec-surface manifest declares only types/interfaces with no runtime-value export; reads the manifest, not the pathset | `negative-refuse-type-only-coverage-lane` |
+| PD-10: predicate-input preflight: refuses when an AC closure row names an input category not a concrete `Producer/Type.field`, or a relational predicate names fewer than two declared fields; reads the manifest, not the pathset | `negative-refuse-unsourced-relational-predicate` |
 
 ## Expected Evidence
 
