@@ -25,7 +25,7 @@ Gate-1 handoff: 8 of 8 stories are `story: ready`; the DAG is `story-dag: frozen
 
 ---
 
-**↑ Up:** [Epic 4 - Human control and liveness loop](../README.md) · **← Prev:** [Epic 4 - Human control and liveness loop](../README.md) · **Next →:** [core-03-s1-approval-contracts - approval contracts implementation story](./core-03-s1-approval-contracts.md)
+**↑ Up:** [Epic 4 - Human control and liveness loop](../README.md) · **← Prev:** [Epic 4 Execution Tracker](../execution/tracker.md) · **Next →:** [core-03-s1-approval-contracts - approval contracts implementation story](./core-03-s1-approval-contracts.md)
 
 **Children:** [core-03-s1-approval-contracts - approval contracts implementation story](./core-03-s1-approval-contracts.md) · [core-03-s2-normalize-risk-decision - approval normalize risk and decision implementation story](./core-03-s2-normalize-risk-decision.md) · [core-03-s3-pending-park-resume - approval pending park resume implementation story](./core-03-s3-pending-park-resume.md) · [core-03-s4-grants-outcomes - approval grants outcomes implementation story](./core-03-s4-grants-outcomes.md) · [core-04-s1-supervision-contracts - supervision contracts implementation story](./core-04-s1-supervision-contracts.md) · [core-04-s2-liveness-fold - liveness fold implementation story](./core-04-s2-liveness-fold.md) · [core-04-s3-timers-wait - supervision timers wait implementation story](./core-04-s3-timers-wait.md) · [core-04-s4-termination-facts - supervision termination facts implementation story](./core-04-s4-termination-facts.md)
 
