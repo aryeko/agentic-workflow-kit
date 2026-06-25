@@ -13,6 +13,6 @@ Story DAG placeholder. This file will order dispatch-ready stories inside Epic 7
 
 ---
 
-**↑ Up:** [Epic 7 - Operator surfaces and end-to-end composition](./README.md) · **← Prev:** [Epic 7 - stories](./stories/README.md) · **Next →:** [implementation coverage rollup](../../coverage.md)
+**↑ Up:** [Epic 7 - Operator surfaces and end-to-end composition](./README.md) · **← Prev:** [Epic 7 - stories](./stories/README.md) · **Next →:** [Epic R1 - Delivered-code closure remediation](../epic-r1-closure-remediation/README.md)
 
 <!-- /DOCS-NAV -->

@@ -12,6 +12,7 @@ describe('RunEventLog.createRun', () => {
       leaseTtlMs: 60_000,
       idempotencyKey: 'idempotency-1',
       createdAt: '2026-06-23T12:00:00.000Z',
+      requestedBy: 'operator-1',
       payload: {
         idempotencyKey: 'idempotency-1',
         requestedBy: 'operator-1',
@@ -46,10 +47,11 @@ describe('RunEventLog.createRun', () => {
       idempotencyKey: 'idempotency-input',
       operatorRef: 'operator-ref-input',
       createdAt: '2026-06-23T12:00:00.000Z',
+      requestedBy: 'requester-input',
       payload: {
         idempotencyKey: 'idempotency-payload',
         operatorRef: 'operator-ref-payload',
-        requestedBy: 'operator-1',
+        requestedBy: 'requester-payload',
       },
     });
 
@@ -60,10 +62,10 @@ describe('RunEventLog.createRun', () => {
     expect(created.payload).toEqual({
       idempotencyKey: 'idempotency-input',
       operatorRef: 'operator-ref-input',
-      requestedBy: 'operator-1',
+      requestedBy: 'requester-input',
     });
     expect(created.payloadDigest).toBe(
-      'digest:{"idempotencyKey":"idempotency-input","operatorRef":"operator-ref-input","requestedBy":"operator-1"}',
+      'digest:{"idempotencyKey":"idempotency-input","operatorRef":"operator-ref-input","requestedBy":"requester-input"}',
     );
   });
 
@@ -78,6 +80,7 @@ describe('RunEventLog.createRun', () => {
       leaseTtlMs: 60_000,
       idempotencyKey: 'idempotency-1',
       createdAt: '2026-06-23T12:00:00.000Z',
+      requestedBy: 'operator-1',
       payload: {
         idempotencyKey: 'idempotency-1',
         requestedBy: 'operator-1',
@@ -103,6 +106,7 @@ describe('RunEventLog.createRun', () => {
       leaseTtlMs: 60_000,
       idempotencyKey: 'idempotency-1',
       createdAt: '2026-06-23T12:00:00.000Z',
+      requestedBy: 'operator-1',
       payload: {
         idempotencyKey: 'idempotency-1',
         requestedBy: 'operator-1',
@@ -129,6 +133,7 @@ describe('RunEventLog.createRun', () => {
       leaseTtlMs: 60_000,
       idempotencyKey: 'idempotency-1',
       createdAt: '2026-06-23T12:00:00.000Z',
+      requestedBy: 'operator-1',
       payload: {
         idempotencyKey: 'idempotency-1',
         requestedBy: 'operator-1',
@@ -150,6 +155,7 @@ describe('RunEventLog.createRun', () => {
       leaseTtlMs: 60_000,
       idempotencyKey: 'idempotency-1',
       createdAt: '2026-06-23T12:00:01.000Z',
+      requestedBy: 'operator-1',
       payload: {
         idempotencyKey: 'idempotency-1',
         requestedBy: 'operator-1',

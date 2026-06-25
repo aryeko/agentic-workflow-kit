@@ -154,7 +154,6 @@ export const planInjection = (
       refs: input.refs,
       scope: input.scope,
       egressSource: input.egressSource,
-      requiredAttesters: dependencies.requiredAttesters,
     },
     {
       hashText: dependencies.hashText,

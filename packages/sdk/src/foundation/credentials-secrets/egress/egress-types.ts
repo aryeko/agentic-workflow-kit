@@ -13,12 +13,14 @@ export type EgressRule = EgressRuleSource;
 
 export type NegativeProbe = NegativeProbeSource;
 
+// `point`, `capability`, and `driverId` come from the fnd-01 `RequiredAttesterSource`;
+// `scopeDigest` and `egressPolicyDigest` are computed by fnd-04. `platform` and
+// `driverVersion` are intentionally NOT declared here — they are runtime facts of the
+// attesting Execution Host driver, matched at credential-release time against the Host
+// `CapabilityAttestation`, not values config or fnd-04 can produce.
 export type RequiredAttester = RequiredAttesterSource & {
   readonly scopeDigest: string;
   readonly egressPolicyDigest: string;
-  readonly platform: string;
-  readonly driverVersion: string;
-  readonly runtimeMetadataAvailable: boolean;
 };
 
 export type EgressPolicy = {
@@ -43,17 +45,10 @@ export type IssuedEgressPolicy = {
 
 export type IssueEgressPolicyResult = IssuedEgressPolicy | CredentialDenied;
 
-export type RequiredAttesterRuntime = {
-  readonly driverId: string;
-  readonly platform: string;
-  readonly driverVersion: string;
-};
-
 export type IssueEgressPolicyInput = {
   readonly refs: readonly import('../refs/index.js').CredentialRef[];
   readonly scope: CredentialScope;
   readonly egressSource: EgressPolicySource;
-  readonly requiredAttesters: readonly RequiredAttesterRuntime[];
 };
 
 export type IssueEgressPolicyDependencies = {

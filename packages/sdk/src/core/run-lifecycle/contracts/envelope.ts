@@ -32,6 +32,7 @@ export type CreateRunInput = {
   leaseTtlMs: number;
   idempotencyKey: string;
   createdAt: string;
+  requestedBy: string;
   operatorRef?: string;
   correlationId?: string;
   artifactRefs?: string[];

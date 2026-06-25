@@ -3,7 +3,7 @@ import type { CredentialDenied } from '../failures/index.js';
 import type { CredentialKind, CredentialParty, CredentialRef, InjectionMode } from '../refs/index.js';
 import type { RedactionSet } from '../redaction/index.js';
 import type { CredentialScope } from '../scopes/index.js';
-import type { EgressAttestation, EgressPolicy, RequiredAttesterRuntime } from '../egress/index.js';
+import type { EgressAttestation, EgressPolicy } from '../egress/index.js';
 
 export type InjectionBinding = {
   readonly mode: InjectionMode;
@@ -78,9 +78,7 @@ export type SharedCredentialOperationDependencies = {
   readonly resolveSecretMaterial: (ref: CredentialRef) => ResolvedSecretMaterial | undefined;
 };
 
-export type PlanInjectionDependencies = SharedCredentialOperationDependencies & {
-  readonly requiredAttesters: readonly RequiredAttesterRuntime[];
-};
+export type PlanInjectionDependencies = SharedCredentialOperationDependencies;
 
 export type ResolveCredentialInput = {
   readonly ref: CredentialRef;

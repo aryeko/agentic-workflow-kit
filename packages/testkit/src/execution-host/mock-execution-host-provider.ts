@@ -332,10 +332,7 @@ const validateInjection = (
       attester.capability === 'egress-confinement' &&
       attester.driverId === driverId &&
       attester.scopeDigest === request.injection.scopeDigest &&
-      attester.egressPolicyDigest === request.injection.egressPolicy.egressPolicyDigest &&
-      attester.platform === platform &&
-      attester.driverVersion === driverVersion &&
-      attester.runtimeMetadataAvailable,
+      attester.egressPolicyDigest === request.injection.egressPolicy.egressPolicyDigest,
   );
 
   if (
@@ -354,8 +351,8 @@ const validateInjection = (
   const key = egressAttestationKey(
     requiredAttester.scopeDigest,
     requiredAttester.egressPolicyDigest,
-    requiredAttester.driverVersion,
-    requiredAttester.platform,
+    driverVersion,
+    platform,
     request.injection.egressPolicy.freshnessKey,
   );
 
@@ -527,8 +524,6 @@ export const createMockExecutionHostProvider = (
               attester.point === 'execution-host' &&
               attester.capability === 'egress-confinement' &&
               attester.driverId === driverId &&
-              attester.driverVersion === driverVersion &&
-              attester.platform === platform &&
               attester.egressPolicyDigest === scope.egressPolicy?.egressPolicyDigest,
           );
 
@@ -538,8 +533,8 @@ export const createMockExecutionHostProvider = (
               egressAttestationKey(
                 attester.scopeDigest,
                 attester.egressPolicyDigest,
-                attester.driverVersion,
-                attester.platform,
+                driverVersion,
+                platform,
                 scope.freshnessKey,
               ),
             ),

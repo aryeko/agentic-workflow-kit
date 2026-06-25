@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { issueEgressPolicy, resolveCredential } from '../../../../src/index.js';
-import {
-  egressSource,
-  hashText,
-  ref,
-  requiredAttesters,
-  scope,
-  createPositiveAttestation,
-} from './resolve-credential.test-helpers.js';
+import { egressSource, hashText, ref, scope, createPositiveAttestation } from './resolve-credential.test-helpers.js';
 
 const forgeRef = {
   id: 'forge-primary',
@@ -33,7 +26,6 @@ describe('fnd-04-s2 issue egress policy', () => {
         refs: [ref],
         scope,
         egressSource,
-        requiredAttesters,
       },
       {
         hashText,
@@ -76,9 +68,6 @@ describe('fnd-04-s2 issue egress policy', () => {
             driverId: 'local-host',
             scopeDigest: expect.any(String),
             egressPolicyDigest: expect.any(String),
-            platform: 'darwin',
-            driverVersion: '1.0.0',
-            runtimeMetadataAvailable: true,
           },
         ],
         negativeProbeIds: [expect.any(String)],
@@ -86,6 +75,15 @@ describe('fnd-04-s2 issue egress policy', () => {
         expiresAt: '2026-06-22T10:02:00.000Z',
       },
     });
+    if (policy.ok) {
+      expect(Object.keys(policy.value.requiredAttesters[0] ?? {})).toEqual([
+        'point',
+        'capability',
+        'driverId',
+        'scopeDigest',
+        'egressPolicyDigest',
+      ]);
+    }
   });
 
   it('deduplicates duplicate credential refs when deriving the egress freshness key inputs', () => {
@@ -94,7 +92,6 @@ describe('fnd-04-s2 issue egress policy', () => {
         refs: [ref, ref],
         scope,
         egressSource,
-        requiredAttesters,
       },
       {
         hashText,
@@ -136,7 +133,6 @@ describe('fnd-04-s2 issue egress policy', () => {
             },
           ],
         },
-        requiredAttesters,
       },
       {
         hashText,
@@ -226,7 +222,6 @@ describe('fnd-04-s2 issue egress policy', () => {
         refs: [forgeRef],
         scope: fixture.scope,
         egressSource: fixture.egressSource,
-        requiredAttesters,
       },
       {
         hashText,
@@ -252,7 +247,7 @@ describe('fnd-04-s2 issue egress policy', () => {
     expect(fixture.expectedReason).toBeTruthy();
   });
 
-  it('retains required attesters without runtime metadata and denies release even when other attestation evidence matches', () => {
+  it('retains every configured required attester and denies release when an attester has no matching attestation evidence', () => {
     const policy = issueEgressPolicy(
       {
         refs: [ref],
@@ -268,7 +263,6 @@ describe('fnd-04-s2 issue egress policy', () => {
             },
           ],
         },
-        requiredAttesters,
       },
       {
         hashText,
@@ -284,16 +278,19 @@ describe('fnd-04-s2 issue egress policy', () => {
 
     expect(policy.value.requiredAttesters).toEqual([
       expect.objectContaining({
+        point: 'execution-host',
+        capability: 'egress-confinement',
         driverId: 'local-host',
-        runtimeMetadataAvailable: true,
       }),
       expect.objectContaining({
+        point: 'execution-host',
+        capability: 'egress-confinement',
         driverId: 'missing-runtime',
-        platform: 'runtime-metadata-missing',
-        driverVersion: 'runtime-metadata-missing',
-        runtimeMetadataAvailable: false,
       }),
     ]);
+    for (const attester of policy.value.requiredAttesters) {
+      expect(Object.keys(attester)).toEqual(['point', 'capability', 'driverId', 'scopeDigest', 'egressPolicyDigest']);
+    }
 
     const denied = resolveCredential(
       {

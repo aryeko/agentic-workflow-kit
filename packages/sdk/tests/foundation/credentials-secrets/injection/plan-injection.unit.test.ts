@@ -9,7 +9,6 @@ import {
   type CredentialGrant,
   type CredentialRef,
   type EgressPolicySource,
-  type RequiredAttesterRuntime,
 } from '../../../../src/index.js';
 
 const hashText = (value: string): string => `digest:${value}`;
@@ -83,14 +82,6 @@ const baseEgressSource = (overrides: Partial<EgressPolicySource> = {}): EgressPo
   ...overrides,
 });
 
-const requiredAttesters: readonly RequiredAttesterRuntime[] = [
-  {
-    driverId: 'local-host',
-    platform: 'darwin',
-    driverVersion: '1.0.0',
-  },
-];
-
 const basePlanDependencies = {
   hashText,
   now: '2026-06-22T10:01:00.000Z',
@@ -105,7 +96,6 @@ const basePlanDependencies = {
     materialHandle: 'memory://registry-read',
     fingerprintId: 'fp-registry-read',
   }),
-  requiredAttesters,
 };
 
 describe('fnd-04-s2 injection planning', () => {
@@ -160,7 +150,6 @@ describe('fnd-04-s2 injection planning', () => {
           refs: [ref],
           scope,
           egressSource: baseEgressSource(),
-          requiredAttesters,
         },
         {
           hashText,
@@ -478,7 +467,6 @@ describe('fnd-04-s2 injection planning', () => {
               refs: [baseRef()],
               scope: baseScope(),
               egressSource: baseEgressSource(),
-              requiredAttesters,
             },
             {
               hashText,
@@ -494,7 +482,7 @@ describe('fnd-04-s2 injection planning', () => {
     expect(planned.ok).toBe(true);
   });
 
-  it('retains missing-runtime required attesters in the policy so release stays fail-closed', () => {
+  it('retains every configured required attester in the policy so release stays fail-closed', () => {
     const planned = planInjection(
       {
         refs: [baseRef()],
@@ -547,18 +535,27 @@ describe('fnd-04-s2 injection planning', () => {
         negativeProbeIds: [expect.any(String)],
         requiredAttesters: [
           {
+            point: 'execution-host',
+            capability: 'egress-confinement',
             driverId: 'local-host',
-            runtimeMetadataAvailable: true,
+            scopeDigest: expect.any(String),
+            egressPolicyDigest: expect.any(String),
           },
           {
+            point: 'execution-host',
+            capability: 'egress-confinement',
             driverId: 'missing-runtime',
-            platform: 'runtime-metadata-missing',
-            driverVersion: 'runtime-metadata-missing',
-            runtimeMetadataAvailable: false,
+            scopeDigest: expect.any(String),
+            egressPolicyDigest: expect.any(String),
           },
         ],
       },
     });
+    if (planned.ok) {
+      for (const attester of planned.egressPolicy.requiredAttesters) {
+        expect(Object.keys(attester)).toEqual(['point', 'capability', 'driverId', 'scopeDigest', 'egressPolicyDigest']);
+      }
+    }
   });
 
   it('denies when the credential scope allows a host but the configured egress policy does not', () => {

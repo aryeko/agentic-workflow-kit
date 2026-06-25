@@ -9,5 +9,4 @@ export type {
   IssuedEgressPolicy,
   NegativeProbe,
   RequiredAttester,
-  RequiredAttesterRuntime,
 } from './egress-types.js';

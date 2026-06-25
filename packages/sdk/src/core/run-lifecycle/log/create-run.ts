@@ -16,7 +16,7 @@ type AcquiredLease = {
 const createRunPayload = (input: CreateRunInput): CreateRunInput['payload'] => ({
   idempotencyKey: input.idempotencyKey,
   ...(input.operatorRef === undefined ? {} : { operatorRef: input.operatorRef }),
-  requestedBy: input.payload.requestedBy,
+  requestedBy: input.requestedBy,
 });
 
 const releaseAcquiredLease = (deps: RunEventLogDependencies, lease: AcquiredLease): void => {

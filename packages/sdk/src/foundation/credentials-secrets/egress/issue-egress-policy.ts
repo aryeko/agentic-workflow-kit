@@ -87,22 +87,13 @@ const resolveRequiredAttesters = (
   scopeDigest: string,
   egressPolicyDigest: string,
 ): readonly RequiredAttester[] =>
-  input.egressSource.requiredAttesters.flatMap((requiredAttester) => {
-    const runtime = input.requiredAttesters.find((candidate) => candidate.driverId === requiredAttester.driverId);
-
-    return [
-      {
-        point: requiredAttester.point,
-        capability: requiredAttester.capability,
-        driverId: requiredAttester.driverId,
-        scopeDigest,
-        egressPolicyDigest,
-        platform: runtime?.platform ?? 'runtime-metadata-missing',
-        driverVersion: runtime?.driverVersion ?? 'runtime-metadata-missing',
-        runtimeMetadataAvailable: runtime !== undefined,
-      },
-    ];
-  });
+  input.egressSource.requiredAttesters.map((requiredAttester) => ({
+    point: requiredAttester.point,
+    capability: requiredAttester.capability,
+    driverId: requiredAttester.driverId,
+    scopeDigest,
+    egressPolicyDigest,
+  }));
 
 const denyPolicyIssuance = (
   ref: CredentialRef,

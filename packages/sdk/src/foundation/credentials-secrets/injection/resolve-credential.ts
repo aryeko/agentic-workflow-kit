@@ -38,8 +38,12 @@ const matchesEgressAttestation = (
       (negativeProbeId) => !attestation.negativeProbeIds.includes(negativeProbeId),
     );
 
+    // Match on attester identity (`driverId` via `required`), `scopeDigest`,
+    // `egressPolicyDigest`, freshness, and negative-probe coverage of a fresh
+    // positive `egress-confinement` attestation. `platform`/`driverVersion` are
+    // Host-reported evidence on the attestation, not match criteria — fnd-04 does
+    // not produce them, so the release-match is platform/version agnostic.
     return (
-      required.runtimeMetadataAvailable &&
       attestation.result === 'positive' &&
       evidenceRef.length > 0 &&
       !missingNegativeProbeCoverage &&
@@ -48,9 +52,7 @@ const matchesEgressAttestation = (
       attestation.capability === required.capability &&
       attestation.scopeDigest === required.scopeDigest &&
       attestation.egressPolicyDigest === required.egressPolicyDigest &&
-      attestation.freshnessKey === input.egressPolicy?.freshnessKey &&
-      attestation.platform === required.platform &&
-      attestation.driverVersion === required.driverVersion
+      attestation.freshnessKey === input.egressPolicy?.freshnessKey
     );
   });
 };
