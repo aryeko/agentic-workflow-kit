@@ -3,7 +3,7 @@ title: Epic 4 - Human control and liveness loop
 epic: 4
 status: "epic: ready"
 depends-on-epics: [2, 3]
-last-reviewed: "2026-06-22"
+last-reviewed: "2026-06-25"
 ---
 
 # Epic 4 - Human Control and Liveness Loop
@@ -71,13 +71,13 @@ story owner from the Epic 4 DAG.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Neutral `ApprovalRequest`, decision, outcome, and scoped-grant records. | `core-03-s1-approval-contracts`; `split(records behavior: core-03-s2-risk-and-decision, core-03-s3-pending-park-resume, core-03-s4-grant-mapping-and-outcome)` | split(contract, behavior) |
-| Deterministic low, medium, and high risk classification signals. | `core-03-s2-risk-and-decision` | covered |
-| V1 mode ladder: policy allowlist to human, with high risk always requiring a human. | `core-03-s2-risk-and-decision` | covered |
+| Neutral `ApprovalRequest`, decision, outcome, and scoped-grant records. | `core-03-s1-approval-contracts`; `split(records behavior: core-03-s2-normalize-risk-decision, core-03-s3-pending-park-resume, core-03-s4-grants-outcomes)` | split(contract, behavior) |
+| Deterministic low, medium, and high risk classification signals. | `core-03-s2-normalize-risk-decision` | covered |
+| V1 mode ladder: policy allowlist to human, with high risk always requiring a human. | `core-03-s2-normalize-risk-decision` | covered |
 | Pending approval persistence before decision. | `core-03-s3-pending-park-resume` | covered |
 | Parked approval, resumed approval, and expired approval facts. | `core-03-s3-pending-park-resume` | covered |
-| Mapping from policy-level grants to Agent-provider scoped grants. | `core-03-s4-grant-mapping-and-outcome` | covered |
-| Fail-closed states for missing policy, missing relay, ambiguous session linkage, expired requests, or unwritable event records. | `core-03-s1-approval-contracts`; `split(catalog: core-03-s1-approval-contracts, policy/risk/gate behavior: core-03-s2-risk-and-decision, pending/session/expiry/log behavior: core-03-s3-pending-park-resume, relay/channel/mapping/outcome behavior: core-03-s4-grant-mapping-and-outcome)` | split(catalog, behavior) |
+| Mapping from policy-level grants to Agent-provider scoped grants. | `core-03-s4-grants-outcomes` | covered |
+| Fail-closed states for missing policy, missing relay, ambiguous session linkage, expired requests, or unwritable event records. | `core-03-s1-approval-contracts`; `split(catalog: core-03-s1-approval-contracts, policy/risk/gate behavior: core-03-s2-normalize-risk-decision, pending/session/expiry/log behavior: core-03-s3-pending-park-resume, relay/channel/mapping/outcome behavior: core-03-s4-grants-outcomes)` | split(catalog, behavior) |
 
 - Evidence expectation: Epic 4 stories leave replayable approval and grant facts that completion,
   recovery, and operator surfaces can inspect without provider-specific approval protocol behavior.
@@ -89,10 +89,10 @@ story owner from the Epic 4 DAG.
 | Liveness state fold over committed events and explicit clock input. | `core-04-s2-liveness-fold` | covered |
 | Current-session event classes that advance liveness. | `core-04-s2-liveness-fold` | covered |
 | Event classes that explicitly never refresh liveness. | `core-04-s2-liveness-fold` | covered |
-| Startup, idle, no-progress, per-tool, approval-SLA, and max-runtime timer signals. | `core-04-s3-timers-and-wait` | covered |
-| `waitRunEvents` wrapper behavior and cursor validation. | `core-04-s3-timers-and-wait` | covered |
-| Supervisor start, liveness advanced, timer expired, supervision lost, termination requested, worker terminated, and supervisor stopped facts. | `core-04-s1-supervision-contracts`; `split(contract: core-04-s1-supervision-contracts, behavior: core-04-s4-termination-handoff)` | split(contract, behavior) |
-| Fail-closed signals for unavailable cursor, ambiguous session linkage, missing progress guarantee, stale workers, overdue approvals, or unproven termination. | `core-04-s1-supervision-contracts`; `split(catalog: core-04-s1-supervision-contracts, liveness behavior: core-04-s2-liveness-fold, timer/wait behavior: core-04-s3-timers-and-wait, termination behavior: core-04-s4-termination-handoff)` | split(catalog, behavior) |
+| Startup, idle, no-progress, per-tool, approval-SLA, and max-runtime timer signals. | `core-04-s3-timers-wait` | covered |
+| `waitRunEvents` wrapper behavior and cursor validation. | `core-04-s3-timers-wait` | covered |
+| Supervisor start, liveness advanced, timer expired, supervision lost, termination requested, worker terminated, and supervisor stopped facts. | `core-04-s1-supervision-contracts`; `split(contract: core-04-s1-supervision-contracts, behavior: core-04-s4-termination-facts)` | split(contract, behavior) |
+| Fail-closed signals for unavailable cursor, ambiguous session linkage, missing progress guarantee, stale workers, overdue approvals, or unproven termination. | `core-04-s1-supervision-contracts`; `split(catalog: core-04-s1-supervision-contracts, liveness behavior: core-04-s2-liveness-fold, timer/wait behavior: core-04-s3-timers-wait, termination behavior: core-04-s4-termination-facts)` | split(catalog, behavior) |
 
 - Evidence expectation: Epic 4 stories leave liveness and termination-handoff facts that completion
   and recovery can consume without treating parent polling, process presence, or worker prose as
@@ -123,6 +123,8 @@ story owner from the Epic 4 DAG.
 
 ---
 
-**↑ Up:** [epic charters](../README.md) · **← Prev:** [edge-01-s2-cli-mcp-parity-smoke - CLI and MCP parity smoke implementation story](../epic-3-core-runtime-spine/stories/edge-01-s2-cli-mcp-parity-smoke.md) · **Next →:** [Epic 5 - Completion, verification, and recovery](../epic-5-completion-verification-and-recovery/README.md)
+**↑ Up:** [epic charters](../README.md) · **← Prev:** [edge-01-s2-cli-mcp-parity-smoke - CLI and MCP parity smoke implementation story](../epic-3-core-runtime-spine/stories/edge-01-s2-cli-mcp-parity-smoke.md) · **Next →:** [Epic 4 - stories](./stories/README.md)
+
+**Children:** [Epic 4 - stories](./stories/README.md) · [Epic 4 - story DAG](./story-dag.md)
 
 <!-- /DOCS-NAV -->
