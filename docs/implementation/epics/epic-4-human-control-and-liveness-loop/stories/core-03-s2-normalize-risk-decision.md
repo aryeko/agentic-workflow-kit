@@ -107,8 +107,10 @@ ladder against recorded policy and gate evidence.
   ambient random/UUID call.
 - **AC-14** The public SDK entrypoint exports `normalizeApprovalRequest`, `classifyApprovalRisk`,
   `recordApprovalRiskClassified`, `decideApproval`, and `recordApprovalDecision` plus their public
-  input/result types - evidence: `approval-decision-public-import.unit.test.ts` imports those symbols
-  from `sdk` and constructs one normalize/classify/record/decide fixture without private paths.
+  input/result types, through this story's own export line(s) in `packages/sdk/src/index.ts` (this story
+  owns those barrel lines, in its owned pathset) - evidence:
+  `approval-decision-public-import.unit.test.ts` imports those symbols from `sdk` and constructs one
+  normalize/classify/record/decide fixture without private paths.
 
 ## Predicate and Producer Closure
 
@@ -124,7 +126,7 @@ ladder against recorded policy and gate evidence.
 | AC-11 | v1 deferral | Epic 3 capability registry and AD-14 |
 | AC-12 | `ApprovalDecisionRecorded` event id | `Decision`, source event ids, protected-policy binding inputs, and `RunWriter.append` result |
 | AC-13 | `Decision.decisionId`, `PolicyGrantPlan.grantId` | injected SDK `IdGenerator` |
-| AC-14 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
+| AC-14 | public symbols | owned source files plus this story's own export line(s) in `packages/sdk/src/index.ts` (owned pathset) |
 | `Decision.sourceEventIds` | event provenance | replayed request, policy, gate, and operator decision event ids supplied in input |
 
 ## Failure and Degraded Outcomes
@@ -143,8 +145,10 @@ ladder against recorded policy and gate evidence.
 - Coverage: 95% branch coverage for `packages/sdk/src/core/approval/decision/**`.
 - Gate lane: `pnpm check`; unit lane includes AC fixtures above.
 - Public exposure: AC-14.
-- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
-  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
+- Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal
+  owned file in this story's owned pathset, per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. The
+  barrel is an append-only aggregation point shared across concurrent stories; a line-level overlap is
+  resolved by rebase, never by a special ownership role.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|testkit|child_process|Date\\.now|new Date|Math\\.random|fetch\\(" packages/sdk/src/core/approval/decision packages/sdk/tests/core/approval/decision`
   returns zero source matches.

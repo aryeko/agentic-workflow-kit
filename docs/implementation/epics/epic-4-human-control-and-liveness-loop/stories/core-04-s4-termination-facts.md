@@ -77,9 +77,10 @@ implementing host kill mechanics.
   `termination-boundary.unit.test.ts` runs
   `rg -n "child_process|process\\.kill|provider-local|execa" packages/sdk/src/core/supervision/termination`
   and expects zero matches.
-- **AC-10** The public SDK entrypoint exports supervisor and termination fact functions - evidence:
-  `termination-public-import.unit.test.ts` imports the full function manifest from `sdk` and constructs
-  one termination request fixture without private paths.
+- **AC-10** The public SDK entrypoint exports supervisor and termination fact functions, through this
+  story's own export line(s) in `packages/sdk/src/index.ts` (this story owns those barrel lines, in its
+  owned pathset) - evidence: `termination-public-import.unit.test.ts` imports the full function manifest
+  from `sdk` and constructs one termination request fixture without private paths.
 
 ## Predicate and Producer Closure
 
@@ -91,7 +92,7 @@ implementing host kill mechanics.
 | AC-6 | unproven termination | `TerminationResult.proof.containmentEmpty` |
 | AC-7, AC-8 | terminal ordering | Epic 3 lifecycle state, terminal epoch, writer append result |
 | AC-9 | boundary | source import text |
-| AC-10 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
+| AC-10 | public symbols | owned source files plus this story's own export line(s) in `packages/sdk/src/index.ts` (owned pathset) |
 
 ## Failure and Degraded Outcomes
 
@@ -109,8 +110,10 @@ implementing host kill mechanics.
 - Coverage: 95% branch coverage for `packages/sdk/src/core/supervision/termination/**`.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-10.
-- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
-  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
+- Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal
+  owned file in this story's owned pathset, per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. The
+  barrel is an append-only aggregation point shared across concurrent stories; a line-level overlap is
+  resolved by rebase, never by a special ownership role.
 - Boundary sweep: AC-9.
 - File-size budget: 320 lines per implementation file, 420 lines per test file.
 

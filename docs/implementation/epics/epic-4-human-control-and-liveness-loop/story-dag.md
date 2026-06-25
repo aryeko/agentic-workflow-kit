@@ -43,10 +43,13 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 - Edge = a consumer uses a value type, behavior, or recorded fact from a producer.
 - Cross-epic frozen inputs are not intra-epic edges; each story names them in its contract.
 - Consumers cite `<story>/<shape>` verbatim and never redeclare cross-story shapes.
-- Public import remains part of DONE, but Epic 4 stories do not own `packages/sdk/src/index.ts`.
-  Public entrypoint wiring belongs to the dedicated export-aggregation owner defined in
-  `docs/design/20-sdk-and-packaging/sdk-boundary.md`; Epic 4 stories own their domain source, tests, and
-  public-import evidence proving that the owner has aggregated their symbols.
+- Public import is part of DONE. `packages/sdk/src/index.ts` is a **normal owned file**: each
+  public-symbol story **owns its own export line(s)** in it end-to-end (export + public-import test),
+  per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. Every Epic 4 story therefore includes
+  `packages/sdk/src/index.ts` in its owned pathset alongside its domain source and tests. The barrel is
+  an **append-only aggregation point** (not logic-bearing): concurrent stories add disjoint export lines
+  and a line-level overlap is resolved by rebase when the orchestrator advances the wave, never by
+  serializing the stories.
 
 ## Scope Decisions
 
@@ -119,18 +122,46 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 - Falsification: SDK core imports process APIs or concrete provider kill helpers.
 - Escalation: host behavior gaps belong to provider-driver epics; recovery decisions belong to Epic 5.
 
+### barrel-is-per-story-owned
+
+- Rationale: `packages/sdk/src/index.ts` is a normal owned file. Each of the eight public-symbol stories
+  owns its own export line(s) end-to-end (export + public-import test) and carries that line in its owned
+  pathset — no dedicated barrel-owner role exists. This is the reformed barrel model in
+  `sdk-boundary.md` and `authoring-standard/40-story-dag.md`.
+- Design trace: `docs/design/20-sdk-and-packaging/sdk-boundary.md` §Public entrypoint ownership; barrel
+  rule in `authoring-standard/40-story-dag.md` (each public-symbol story owns its own `index.ts` export
+  line).
+- Falsification: a story exposes a public symbol without owning its export line, or a story declares the
+  barrel unowned / delegates it to a dedicated barrel-owner role, or two same-wave stories are serialized
+  solely because they share the barrel.
+- Escalation: a real logic conflict on the barrel (not a trivial line-level replay) means a same-logic
+  violation upstream — escalate; do not introduce a special ownership role.
+
+### concurrency-by-same-logic-rule
+
+- Rationale: same-wave eligibility is governed by the same-logic rule, not pathset disjointness. Every
+  band pairs stories on disjoint logic-bearing source dirs (`approval/**` vs `supervision/**` and
+  disjoint sub-modules), and the only shared file is the append-only barrel — so no wave serializes and
+  no architect override is required.
+- Design trace: same-logic concurrency rule (canonical) in `authoring-standard/40-story-dag.md`; the
+  Concurrency section of this DAG.
+- Falsification: a band pairs two stories that modify the same logic-bearing file, or an architect
+  override is asserted without a recorded one-line rationale.
+- Escalation: if a future signal forces two same-logic stories into one band, re-slice or record an
+  architect override with rationale; do not silently allow a shared logic-bearing file.
+
 ## Story Nodes
 
 | story id | job | domains | claimed signals | owned pathset | suggested tier |
 |---|---|---|---|---|---|
-| `core-03-s1-approval-contracts` | Produce all approval value types, event payloads, projections, binding shapes, interfaces, and failure catalog. | `core-03` | Neutral records contract part; fail-closed catalog split. | `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/tests/core/approval/contracts/**` | elevated |
-| `core-03-s2-normalize-risk-decision` | Normalize approval requests, classify risk with explicit time, record risk and decision facts, and apply the v1 ladder. | `core-03` | Risk classification; v1 mode ladder; risk/decision neutral records behavior; policy/risk/gate failure behavior. | `packages/sdk/src/core/approval/decision/**`, `packages/sdk/tests/core/approval/decision/**` | elevated |
-| `core-03-s3-pending-park-resume` | Persist request/pending facts, produce park decisions, resume or expire pending approvals, and fold projections. | `core-03` | Pending persistence; parked/resumed/expired facts; pending/session/expiry/log failure behavior. | `packages/sdk/src/core/approval/pending/**`, `packages/sdk/src/core/approval/projections/**`, `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**` | elevated |
-| `core-03-s4-grants-outcomes` | Map policy grants to Agent `ScopedGrant`, answer/deny through the Agent relay, and record outcomes. | `core-03` | Policy-to-Agent scoped grants; relay/channel/mapping/outcome behavior; outcome neutral records behavior. | `packages/sdk/src/core/approval/grants/**`, `packages/sdk/src/core/approval/outcomes/**`, `packages/sdk/tests/core/approval/grants/**`, `packages/sdk/tests/core/approval/outcomes/**` | elevated |
-| `core-04-s1-supervision-contracts` | Produce supervision/liveness value types, timer/wait inputs, event payloads, projections, and reason catalog. | `core-04` | Supervisor/liveness/timer/termination fact contract part; fail-closed reason catalog split. | `packages/sdk/src/core/supervision/contracts/**`, `packages/sdk/tests/core/supervision/contracts/**` | elevated |
-| `core-04-s2-liveness-fold` | Fold committed current-session events plus clock into liveness state and event-class facts. | `core-04` | Liveness fold; advancing event classes; never-refresh event classes. | `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/tests/core/supervision/liveness/**` | elevated |
-| `core-04-s3-timers-wait` | Evaluate the six supervision timers and wrap Epic 3 cursor wait without liveness side effects. | `core-04` | Timer signals; `waitRunEvents` wrapper and cursor validation. | `packages/sdk/src/core/supervision/timers/**`, `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**` | elevated |
-| `core-04-s4-termination-facts` | Append supervisor lifecycle/lost/termination facts and hand stale owned workers to Execution Host. | `core-04` | Supervisor facts behavior part; cursor/linkage/progress/stale/termination failure behavior. | `packages/sdk/src/core/supervision/termination/**`, `packages/sdk/tests/core/supervision/termination/**` | elevated |
+| `core-03-s1-approval-contracts` | Produce all approval value types, event payloads, projections, binding shapes, interfaces, and failure catalog. | `core-03` | Neutral records contract part; fail-closed catalog split. | `packages/sdk/src/core/approval/contracts/**`, `packages/sdk/tests/core/approval/contracts/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-03-s2-normalize-risk-decision` | Normalize approval requests, classify risk with explicit time, record risk and decision facts, and apply the v1 ladder. | `core-03` | Risk classification; v1 mode ladder; risk/decision neutral records behavior; policy/risk/gate failure behavior. | `packages/sdk/src/core/approval/decision/**`, `packages/sdk/tests/core/approval/decision/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-03-s3-pending-park-resume` | Persist request/pending facts, produce park decisions, resume or expire pending approvals, and fold projections. | `core-03` | Pending persistence; parked/resumed/expired facts; pending/session/expiry/log failure behavior. | `packages/sdk/src/core/approval/pending/**`, `packages/sdk/src/core/approval/projections/**`, `packages/sdk/tests/core/approval/pending/**`, `packages/sdk/tests/core/approval/projections/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-03-s4-grants-outcomes` | Map policy grants to Agent `ScopedGrant`, answer/deny through the Agent relay, and record outcomes. | `core-03` | Policy-to-Agent scoped grants; relay/channel/mapping/outcome behavior; outcome neutral records behavior. | `packages/sdk/src/core/approval/grants/**`, `packages/sdk/src/core/approval/outcomes/**`, `packages/sdk/tests/core/approval/grants/**`, `packages/sdk/tests/core/approval/outcomes/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-04-s1-supervision-contracts` | Produce supervision/liveness value types, timer/wait inputs, event payloads, projections, and reason catalog. | `core-04` | Supervisor/liveness/timer/termination fact contract part; fail-closed reason catalog split. | `packages/sdk/src/core/supervision/contracts/**`, `packages/sdk/tests/core/supervision/contracts/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-04-s2-liveness-fold` | Fold committed current-session events plus clock into liveness state and event-class facts. | `core-04` | Liveness fold; advancing event classes; never-refresh event classes. | `packages/sdk/src/core/supervision/liveness/**`, `packages/sdk/tests/core/supervision/liveness/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-04-s3-timers-wait` | Evaluate the six supervision timers and wrap Epic 3 cursor wait without liveness side effects. | `core-04` | Timer signals; `waitRunEvents` wrapper and cursor validation. | `packages/sdk/src/core/supervision/timers/**`, `packages/sdk/src/core/supervision/wait/**`, `packages/sdk/tests/core/supervision/timers/**`, `packages/sdk/tests/core/supervision/wait/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-04-s4-termination-facts` | Append supervisor lifecycle/lost/termination facts and hand stale owned workers to Execution Host. | `core-04` | Supervisor facts behavior part; cursor/linkage/progress/stale/termination failure behavior. | `packages/sdk/src/core/supervision/termination/**`, `packages/sdk/tests/core/supervision/termination/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
 
 ## Dependency Table
 
@@ -149,14 +180,14 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 
 | shared shape | producer | public import path | consumers |
 |---|---|---|---|
-| Approval values, interfaces, payloads, projections, `ProtectedPolicyApprovalBinding`, failure catalog | `core-03-s1-approval-contracts` | `sdk` via export-aggregation owner | `core-03-s2`, `core-03-s3`, `core-03-s4`, Epic 5, Epic 7 |
-| Normalization, risk classifier, decision functions, `ApprovalRiskClassified`, and `ApprovalDecisionRecorded` facts | `core-03-s2-normalize-risk-decision` | `sdk` via export-aggregation owner | `core-03-s3`, `core-03-s4`, Epic 5 |
-| Pending/park/resume/expiry functions and projection fold | `core-03-s3-pending-park-resume` | `sdk` via export-aggregation owner | `core-03-s4`, Epic 5, Epic 7 |
-| Grant mapping, Agent answer relay, and outcome recording | `core-03-s4-grants-outcomes` | `sdk` via export-aggregation owner | Epic 5, Epic 7 |
-| Supervision values, payloads, timer/wait inputs, projection, reason catalog | `core-04-s1-supervision-contracts` | `sdk` via export-aggregation owner | `core-04-s2`, `core-04-s3`, `core-04-s4`, Epic 5, Epic 7 |
-| Liveness fold and event-class catalog | `core-04-s2-liveness-fold` | `sdk` via export-aggregation owner | `core-04-s3`, `core-04-s4`, Epic 5 |
-| Timer evaluation and wait wrapper | `core-04-s3-timers-wait` | `sdk` via export-aggregation owner | `core-04-s4`, Epic 7 |
-| Supervisor and termination fact recording | `core-04-s4-termination-facts` | `sdk` via export-aggregation owner | Epic 5, Epic 7 |
+| Approval values, interfaces, payloads, projections, `ProtectedPolicyApprovalBinding`, failure catalog | `core-03-s1-approval-contracts` | `sdk` | `core-03-s2`, `core-03-s3`, `core-03-s4`, Epic 5, Epic 7 |
+| Normalization, risk classifier, decision functions, `ApprovalRiskClassified`, and `ApprovalDecisionRecorded` facts | `core-03-s2-normalize-risk-decision` | `sdk` | `core-03-s3`, `core-03-s4`, Epic 5 |
+| Pending/park/resume/expiry functions and projection fold | `core-03-s3-pending-park-resume` | `sdk` | `core-03-s4`, Epic 5, Epic 7 |
+| Grant mapping, Agent answer relay, and outcome recording | `core-03-s4-grants-outcomes` | `sdk` | Epic 5, Epic 7 |
+| Supervision values, payloads, timer/wait inputs, projection, reason catalog | `core-04-s1-supervision-contracts` | `sdk` | `core-04-s2`, `core-04-s3`, `core-04-s4`, Epic 5, Epic 7 |
+| Liveness fold and event-class catalog | `core-04-s2-liveness-fold` | `sdk` | `core-04-s3`, `core-04-s4`, Epic 5 |
+| Timer evaluation and wait wrapper | `core-04-s3-timers-wait` | `sdk` | `core-04-s4`, Epic 7 |
+| Supervisor and termination fact recording | `core-04-s4-termination-facts` | `sdk` | Epic 5, Epic 7 |
 
 ## Story Graph
 
@@ -189,10 +220,29 @@ flowchart TB
 
 | band | stories | delivery note |
 |---|---|---|
-| 1 | `core-03-s1-approval-contracts`, `core-04-s1-supervision-contracts` | Independent root value producers; public entrypoint aggregation is owned outside the story pathsets. |
+| 1 | `core-03-s1-approval-contracts`, `core-04-s1-supervision-contracts` | Independent root value producers on disjoint source dirs; each owns its own export lines in the shared `packages/sdk/src/index.ts` (append-only, rebase-resolved). |
 | 2 | `core-03-s2-normalize-risk-decision`, `core-04-s2-liveness-fold` | First behavior consumers of their own domain contract surfaces. |
 | 3 | `core-03-s3-pending-park-resume`, `core-04-s3-timers-wait` | Second behavior layer: approval pending/projections and supervision timers/wait. |
 | 4 | `core-03-s4-grants-outcomes`, `core-04-s4-termination-facts` | Provider-port handoff behaviors over already-produced facts. |
+
+## Concurrency (same-logic rule)
+
+Same-wave eligibility follows the canonical same-logic rule in
+[`authoring-standard/40-story-dag.md`](../../../implementation-authoring/authoring-standard/40-story-dag.md):
+two non-dependent stories share a wave only when their owned pathsets share no *logic-bearing* file
+(file-level granularity).
+
+- In every band the two parallel stories own **disjoint logic-bearing source dirs** —
+  `core/approval/**` versus `core/supervision/**` at the top level, and disjoint sub-modules
+  (`contracts` / `decision` / `pending` / `projections` / `grants` / `outcomes` versus
+  `contracts` / `liveness` / `timers` / `wait` / `termination`) within each domain. No band pairs two
+  stories that modify the same logic-bearing file.
+- The only file shared across same-wave stories is `packages/sdk/src/index.ts`. It is an **append-only
+  aggregation point and not logic-bearing**: each story adds its own disjoint export line(s), and a
+  line-level overlap is resolved by rebase when the orchestrator advances the wave — never by serializing
+  the stories. Sharing the barrel therefore does **not** block any wave.
+- No architect override is required: file-level granularity already clears every band without an
+  exemption.
 
 ## Gate 3 Evidence
 
@@ -207,13 +257,48 @@ flowchart TB
   classification, decision computation, and risk/decision fact recording in one cohesive full decision
   path. Splitting it would reintroduce a cross-story decision handoff; its elevated tier and 95%
   branch coverage quality bar absorb the load.
-- Dispatch-ready: every story has one path boundary and an `elevated` tier floor because each exposes
-  public SDK surface through the export-aggregation owner.
-- Seams importable: every cross-story shape names `sdk` as the public import path; producer stories own
-  public-import ACs but do not own the shared SDK entrypoint file.
+- Dispatch-ready: every story has one path boundary (its domain source/tests plus its own export lines
+  in `packages/sdk/src/index.ts`) and an `elevated` tier floor because each exposes public SDK surface.
+- Seams importable: every cross-story shape names `sdk` as the public import path; each producer story
+  owns its own `index.ts` export line(s) for the symbols it exposes and proves them with a public-import
+  AC. The barrel is a normal owned file shared as an append-only aggregation point.
+- Same-logic concurrency holds: see the Concurrency section — every band's parallel stories own disjoint
+  logic-bearing source dirs and share only the append-only barrel, so no wave serializes and no architect
+  override is needed.
 - Producer-closure enforced: story contracts name construction sources for required produced fields and
   public symbols, including `promptRef`, `requestedAt`, `classifiedAt`, risk/decision event ids,
   protected-policy binding fields, timer deadlines, and termination proof fields.
+- Whole-graph event/record producer reconciliation: every event/record consumed by any Epic 4 story (or
+  named in the included design seams) maps to exactly one declared producer node, per the table below.
+
+### Event / record producer reconciliation
+
+Each event/record emitted in the included approval and supervision seams has exactly one **appending
+producer** story in this epic; no consumed event/record is orphaned. The producer is the story that
+**appends** the event to the run log (making it authoritative), distinct from a story that computes the
+values it carries — e.g. `core-04-s2` folds liveness as a pure value (never appends) and `core-04-s3`
+computes timer-expiry facts with no side effects, while `core-04-s4` is the single appender of every
+supervision fact. Downstream cross-epic consumers (Epic 5 recovery, Epic 7 operator UI) read these facts
+but produce none of them.
+
+| event / record | appending producer story | value source (if distinct) | intra-epic consumers |
+|---|---|---|---|
+| `ApprovalRequested` / `ApprovalPendingPersisted` | `core-03-s3-pending-park-resume` | — | `core-03-s4`, projection fold |
+| `ApprovalRiskClassified` | `core-03-s2-normalize-risk-decision` | — | `core-03-s3`, `core-03-s4` |
+| `ApprovalDecisionRecorded` | `core-03-s2-normalize-risk-decision` | — | `core-03-s3`, `core-03-s4` |
+| `ApprovalParked` / `ApprovalResumed` | `core-03-s3-pending-park-resume` | `Decision` from `core-03-s2` | `core-03-s4`, projection fold |
+| `ApprovalOutcomeRecorded` | `core-03-s4-grants-outcomes` | — | projection fold |
+| `SupervisorStarted` | `core-04-s4-termination-facts` | — | terminal projection |
+| `LivenessAdvanced` | `core-04-s4-termination-facts` | liveness fold + `LivenessAdvanceClass` from `core-04-s2` | terminal projection |
+| `LivenessTimerExpired` | `core-04-s4-termination-facts` | timer-expiry facts from `core-04-s3` | terminal projection |
+| `LivenessStateChanged` | `core-04-s4-termination-facts` | liveness state from `core-04-s2` | terminal projection |
+| `SupervisionLost` | `core-04-s4-termination-facts` | liveness reason / unestablished termination proof | terminal projection |
+| `SupervisorTerminationRequested` | `core-04-s4-termination-facts` | stale-worker eligibility + host capability | terminal projection |
+| `WorkerTerminated` | `core-04-s4-termination-facts` | termination proof from Execution Host | terminal projection |
+| `SupervisorStopped` | `core-04-s4-termination-facts` | terminal source event ids | terminal projection |
+
+Payload *types* for every row are declared once by the domain contract story (`core-03-s1` /
+`core-04-s1`) and cited verbatim; the contract stories declare types only and append nothing.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

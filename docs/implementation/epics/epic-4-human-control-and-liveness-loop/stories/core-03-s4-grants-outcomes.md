@@ -69,7 +69,8 @@ record final approval outcomes without concrete provider behavior.
   `IdGenerator`, and source event ids preserved - evidence: `record-outcome.unit.test.ts` asserts
   durability, schema, id source, and projection fold visibility.
 - **AC-8** The public SDK entrypoint exports `mapPolicyGrantToScopedGrant`,
-  `answerApprovalDecision`, and `recordApprovalOutcome` - evidence:
+  `answerApprovalDecision`, and `recordApprovalOutcome`, through this story's own export line(s) in
+  `packages/sdk/src/index.ts` (this story owns those barrel lines, in its owned pathset) - evidence:
   `approval-grants-public-import.unit.test.ts` imports the functions from `sdk` and constructs one grant
   mapping and outcome fixture without private paths.
 
@@ -81,7 +82,7 @@ record final approval outcomes without concrete provider behavior.
 | AC-5 | Agent answer grant | mapped `ScopedGrant` and committed `ApprovalDecisionRecorded` event id from `core-03-s2` |
 | AC-6 | relay/channel failure | Agent attestations, channel refs, answer result |
 | AC-7 | outcome append | `Outcome`, injected `IdGenerator` for `outcomeId`, `sourceEventIds`, and `RunWriter.append` result |
-| AC-8 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
+| AC-8 | public symbols | owned source files plus this story's own export line(s) in `packages/sdk/src/index.ts` (owned pathset) |
 | `Outcome.recordedAt` | explicit caller timestamp | injected input, not ambient clock |
 
 ## Failure and Degraded Outcomes
@@ -98,8 +99,10 @@ record final approval outcomes without concrete provider behavior.
 - Coverage: 95% branch coverage for grants/outcomes modules.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-8.
-- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
-  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
+- Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal
+  owned file in this story's owned pathset, per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. The
+  barrel is an append-only aggregation point shared across concurrent stories; a line-level overlap is
+  resolved by rebase, never by a special ownership role.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|Codex|child_process|fetch\\(" packages/sdk/src/core/approval/grants packages/sdk/src/core/approval/outcomes`
   returns zero matches.

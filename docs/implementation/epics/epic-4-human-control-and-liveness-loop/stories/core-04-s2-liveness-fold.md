@@ -67,8 +67,10 @@ Implement the pure fold from committed current-session worker events plus explic
   no ambient clock/API calls - evidence: `liveness-determinism.unit.test.ts` asserts equality and zero
   `Date.now|new Date` use.
 - **AC-9** The public SDK entrypoint exports `foldLiveness`, `classifyLivenessAdvance`, and
-  `isLivenessRefreshingEvent` - evidence: `liveness-public-import.unit.test.ts` imports the functions
-  from `sdk` and constructs one liveness fixture without private paths.
+  `isLivenessRefreshingEvent`, through this story's own export line(s) in `packages/sdk/src/index.ts`
+  (this story owns those barrel lines, in its owned pathset) - evidence:
+  `liveness-public-import.unit.test.ts` imports the functions from `sdk` and constructs one liveness
+  fixture without private paths.
 
 ## Predicate and Producer Closure
 
@@ -80,7 +82,7 @@ Implement the pure fold from committed current-session worker events plus explic
 | AC-4 | approval wait state | `AgentApprovalRequested.answerChannelRef` |
 | AC-6 | non-refreshing status | committed event domain/type list from design |
 | AC-8 | clock | explicit sampled timestamp argument |
-| AC-9 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
+| AC-9 | public symbols | owned source files plus this story's own export line(s) in `packages/sdk/src/index.ts` (owned pathset) |
 
 ## Failure and Degraded Outcomes
 
@@ -96,8 +98,10 @@ Implement the pure fold from committed current-session worker events plus explic
 - Coverage: 95% branch coverage for `packages/sdk/src/core/supervision/liveness/**`.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-9.
-- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
-  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
+- Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal
+  owned file in this story's owned pathset, per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. The
+  barrel is an append-only aggregation point shared across concurrent stories; a line-level overlap is
+  resolved by rebase, never by a special ownership role.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|child_process|Date\\.now|new Date|fetch\\(" packages/sdk/src/core/supervision/liveness packages/sdk/tests/core/supervision/liveness`
   returns zero matches.

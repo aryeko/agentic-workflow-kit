@@ -30,8 +30,9 @@ event payloads, projections, protected-policy binding, and the approval failure 
 
 ## Responsibilities
 
-- Define every manifest symbol for aggregation by the SDK public-entrypoint owner; this story does not
-  own `packages/sdk/src/index.ts`.
+- Define every manifest symbol and add its own export line(s) for them in `packages/sdk/src/index.ts`
+  (a normal owned file in this story's owned pathset), following
+  `epic0-s4-export-templates/PackageExportConvention`.
 - Keep `ScopedGrant` imported from the Agent provider port; do not redeclare it in core-03.
 - Make `promptRef`, `requestedAt`, `classifiedAt`, protected-policy binding fields, and source event
   ids required wherever the design requires them.
@@ -77,9 +78,10 @@ event payloads, projections, protected-policy binding, and the approval failure 
   operator-attention, and failure-state maps, with `decisionDeadline` required on each pending row -
   evidence: `approval-projections.unit.test.ts` constructs a one-request projection and asserts the
   deadline and attention reason.
-- **AC-7** Every manifest symbol imports from `sdk` with no private path - evidence:
-  `approval-public-import.unit.test.ts` imports the full manifest and constructs `ApprovalRequest`,
-  `ApprovalDecisionRecordedPayload`, `ParkDecision`, and `ResumeDecision`.
+- **AC-7** Every manifest symbol imports from `sdk` with no private path, exported through this story's
+  own export line(s) in `packages/sdk/src/index.ts` (this story owns those barrel lines, in its owned
+  pathset) - evidence: `approval-public-import.unit.test.ts` imports the full manifest from `sdk` and
+  constructs `ApprovalRequest`, `ApprovalDecisionRecordedPayload`, `ParkDecision`, and `ResumeDecision`.
 
 ## Predicate and Producer Closure
 
@@ -92,7 +94,7 @@ event payloads, projections, protected-policy binding, and the approval failure 
 | Answer-channel fields | `AgentApprovalRequest.answerChannel` |
 | `ApprovalRiskClassifiedPayload.classifiedAt` | explicit `classifiedAt` input to the classifier |
 | `ProtectedPolicyApprovalBinding` | Operator approval event plus protected-policy snapshot event id |
-| Public symbols | files under `packages/sdk/src/core/approval/contracts/**`; aggregated by the SDK public-entrypoint owner |
+| Public symbols | files under `packages/sdk/src/core/approval/contracts/**` plus this story's own export line(s) in `packages/sdk/src/index.ts` (owned pathset) |
 
 ## Failure and Degraded Outcomes
 
@@ -107,8 +109,10 @@ This story declares failure tokens but raises none at runtime. Behavior stories 
 - Coverage: 95% statements/branches for `packages/sdk/src/core/approval/contracts/**`.
 - Gate lane: `pnpm check`; unit lane includes the tests and type fixtures above.
 - Public exposure: AC-7.
-- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
-  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
+- Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal
+  owned file in this story's owned pathset, per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. The
+  barrel is an append-only aggregation point shared across concurrent stories; a line-level overlap is
+  resolved by rebase, never by a special ownership role.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|testkit|child_process|Date\\.now|new Date|fetch\\(" packages/sdk/src/core/approval/contracts packages/sdk/tests/core/approval/contracts`
   returns zero matches.

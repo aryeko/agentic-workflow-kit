@@ -64,9 +64,10 @@ Evaluate startup, idle, no-progress, per-tool, approval-SLA, and max-runtime tim
 - **AC-8** Wait wrapper has no liveness side effects: append, project, renew, and liveness-refresh spies
   all remain zero on success and timeout - evidence: `wait-no-side-effects.unit.test.ts` asserts zero
   calls and unchanged projection fixture.
-- **AC-9** The public SDK entrypoint exports `evaluateSupervisionTimers` and `wrapWaitRunEvents` -
-  evidence: `supervision-timers-public-import.unit.test.ts` imports both functions from `sdk` and
-  constructs one timer and wait fixture without private paths.
+- **AC-9** The public SDK entrypoint exports `evaluateSupervisionTimers` and `wrapWaitRunEvents`,
+  through this story's own export line(s) in `packages/sdk/src/index.ts` (this story owns those barrel
+  lines, in its owned pathset) - evidence: `supervision-timers-public-import.unit.test.ts` imports both
+  functions from `sdk` and constructs one timer and wait fixture without private paths.
 
 ## Predicate and Producer Closure
 
@@ -76,7 +77,7 @@ Evaluate startup, idle, no-progress, per-tool, approval-SLA, and max-runtime tim
 | AC-2..AC-6 | timer reason | expired timer kind from design table |
 | AC-7 | cursor validity | `request.runId`, `cursor.runId`, `cursor.afterSequence` |
 | AC-8 | no side effects | injected collaborator call counts |
-| AC-9 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
+| AC-9 | public symbols | owned source files plus this story's own export line(s) in `packages/sdk/src/index.ts` (owned pathset) |
 | `LivenessTimerExpiredPayload.sourceEventIds` | source events used to compute the deadline | liveness projection/timer input |
 
 ## Failure and Degraded Outcomes
@@ -96,8 +97,10 @@ Evaluate startup, idle, no-progress, per-tool, approval-SLA, and max-runtime tim
 - Coverage: 95% branch coverage for timers and wait modules.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-9.
-- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
-  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
+- Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal
+  owned file in this story's owned pathset, per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. The
+  barrel is an append-only aggregation point shared across concurrent stories; a line-level overlap is
+  resolved by rebase, never by a special ownership role.
 - Boundary sweeps: no consumed-decision timer symbol, no process/network/provider imports, no projection
   mutation in wait.
 - File-size budget: 300 lines per implementation file, 380 lines per test file.

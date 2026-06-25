@@ -79,9 +79,10 @@ fold approval projections from committed events.
   `approval-projection-fold.unit.test.ts` replays the same log twice and asserts deep equality plus
   `operatorAttention.reason === "parked"`.
 - **AC-9** The public SDK entrypoint exports `recordApprovalPending`, `parkApproval`,
-  `resumePendingApproval`, `expireApproval`, and `foldApprovalProjection` - evidence:
-  `approval-pending-public-import.unit.test.ts` imports the functions from `sdk` and constructs one
-  pending/park/resume fixture without private paths.
+  `resumePendingApproval`, `expireApproval`, and `foldApprovalProjection`, through this story's own
+  export line(s) in `packages/sdk/src/index.ts` (this story owns those barrel lines, in its owned
+  pathset) - evidence: `approval-pending-public-import.unit.test.ts` imports the functions from `sdk` and
+  constructs one pending/park/resume fixture without private paths.
 
 ## Predicate and Producer Closure
 
@@ -94,7 +95,7 @@ fold approval projections from committed events.
 | AC-5, AC-7 | resume eligibility | pending projection, linkage resolver/raw events, ownership, committed decision event, and fresh positive Agent attestations |
 | AC-6 | expiry | sampled `evaluatedAt` and decision deadline |
 | AC-8 | projection rows | committed approval event payloads from `core-03-s1` |
-| AC-9 | public symbols | owned source files aggregated by the SDK public-entrypoint owner |
+| AC-9 | public symbols | owned source files plus this story's own export line(s) in `packages/sdk/src/index.ts` (owned pathset) |
 
 ## Failure and Degraded Outcomes
 
@@ -113,8 +114,10 @@ fold approval projections from committed events.
 - Coverage: 95% branch coverage for approval pending/projection modules.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-9.
-- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
-  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
+- Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal
+  owned file in this story's owned pathset, per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. The
+  barrel is an append-only aggregation point shared across concurrent stories; a line-level overlap is
+  resolved by rebase, never by a special ownership role.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|child_process|Date\\.now|new Date|fetch\\(" packages/sdk/src/core/approval/pending packages/sdk/src/core/approval/projections`
   returns zero matches.

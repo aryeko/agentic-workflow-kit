@@ -63,9 +63,10 @@ event payloads, termination facts, and fail-closed reason catalog.
   `WorkerTerminatedPayload.observedBy`, and `SupervisorStoppedPayload.terminalSourceEventIds` -
   evidence: `supervision-payloads.unit.test.ts` constructs each payload and negative fixtures reject
   missing terminal sources.
-- **AC-7** Every manifest symbol imports from `sdk` with no private module path - evidence:
-  `supervision-public-import.unit.test.ts` imports and constructs `LivenessProjection`,
-  `SupervisionWaitRequest`, and `SupervisorStoppedPayload`.
+- **AC-7** Every manifest symbol imports from `sdk` with no private module path, exported through this
+  story's own export line(s) in `packages/sdk/src/index.ts` (this story owns those barrel lines, in its
+  owned pathset) - evidence: `supervision-public-import.unit.test.ts` imports from `sdk` and constructs
+  `LivenessProjection`, `SupervisionWaitRequest`, and `SupervisorStoppedPayload`.
 
 ## Predicate and Producer Closure
 
@@ -77,7 +78,7 @@ event payloads, termination facts, and fail-closed reason catalog.
 | `LivenessTimerExpiredPayload.deadline` | timer evaluation output from `core-04-s3` |
 | `WorkerTerminatedPayload.proofRef` / `containmentEmpty` | Agent or Execution Host terminal observation/proof |
 | `SupervisorStoppedPayload.terminalSourceEventIds` | terminal source event ids being summarized |
-| Public symbols | files under `packages/sdk/src/core/supervision/contracts/**`; aggregated by the SDK public-entrypoint owner |
+| Public symbols | files under `packages/sdk/src/core/supervision/contracts/**` plus this story's own export line(s) in `packages/sdk/src/index.ts` (owned pathset) |
 
 ## Failure and Degraded Outcomes
 
@@ -92,8 +93,10 @@ This story declares liveness reasons but raises none at runtime. Behavior storie
 - Coverage: 95% statements/branches for `packages/sdk/src/core/supervision/contracts/**`.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-7.
-- Shared entrypoint ownership: `packages/sdk/src/index.ts` belongs to the export-aggregation owner named
-  by `docs/design/20-sdk-and-packaging/sdk-boundary.md`.
+- Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal
+  owned file in this story's owned pathset, per `docs/design/20-sdk-and-packaging/sdk-boundary.md`. The
+  barrel is an append-only aggregation point shared across concurrent stories; a line-level overlap is
+  resolved by rebase, never by a special ownership role.
 - Boundary sweep:
   `rg -n "provider-codex|provider-local|testkit|child_process|Date\\.now|new Date|fetch\\(" packages/sdk/src/core/supervision/contracts packages/sdk/tests/core/supervision/contracts`
   returns zero matches.
