@@ -19,12 +19,12 @@ repo discovery, edits, dispatch, commits, pushes, PRs, or merges.
 
 For each selected story, bind only:
 
-- repo root, delivery worktree path, delivery branch, base, and cleanliness;
+- repo root, track worktree path, track branch, base, and cleanliness;
 - story worktree path, temporary story branch, story branch base, and cleanliness;
 - provider profile and resolved concrete model for the package-declared model class;
 - actual effort supported by the worker surface for the package-declared tier;
 - worker alias and completion signal;
-- current dependency approved-story commit hashes that are present in the delivery worktree.
+- current dependency merge-back commit hashes present on the track branch.
 
 Unknown runtime facts stay `unknown pending inspection` until inspected. Do not invent them.
 

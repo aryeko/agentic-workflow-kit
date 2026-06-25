@@ -78,21 +78,39 @@ Do not introduce implementation choices that the source did not authorize.
 List targeted commands, required sweeps, evidence-pack items, and the repo gate exactly as sourced
 from the story contract. Require exact command output or an explicit blocked reason.
 
+### Commit Cadence
+
+The implementer commits its own work in the story worktree, never the orchestrator:
+
+- make the gate green (`pnpm check`) before every commit;
+- make an impl-done commit when the story first proves out, then one commit per fix round;
+- tag each commit with a review-round trailer (`Story: <story-id>` and `Round: <n>`) so the per-round
+  history is visible;
+- on an orchestrator-reported merge-back conflict, rebase the story's commits onto the track branch
+  `HEAD`, re-prove (gate green), and re-commit; report a real logic conflict rather than forcing a
+  resolution.
+
+The implementer commits only within its owned pathset in its own story worktree; it never pushes,
+opens or updates PRs, merges, closes contexts, edits the tracker, or marks stories complete.
+
 ### Delivery Report
 
 Require the worker report to include:
 
 - changed files;
 - AC coverage by `AC-n`;
+- per-round commit hashes (impl-done + each fix round);
 - tests and checks run;
 - evidence pack;
 - open questions;
 - blockers.
 
-The report is evidence for later review. It is not permission to update tracker state or perform
-delivery actions.
+The report and the per-round commits are the evidence for review and merge-back. The implementer does
+not update tracker state or perform merge/PR/publication actions.
 
 ### Mutation Limits
 
-State explicitly: no staging, commits, pushes, PRs, merges, worker closure, tracker edits, package
-edits, source planning edits, or writes outside allowed paths.
+State explicitly: the implementer commits each round within its owned pathset in its own story
+worktree (gate-green, round trailer) and rebases on orchestrator request, but performs no pushes, PRs,
+merges, worker closure, tracker edits, package edits, source planning edits, or writes outside allowed
+paths.

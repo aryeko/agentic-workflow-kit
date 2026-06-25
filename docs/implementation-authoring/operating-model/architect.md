@@ -20,14 +20,20 @@ the system builds and grades against, and own the verdict that releases them for
 - Author the three planning altitudes, each to its layer's gate in the authoring standard:
   - **domain plan** (entity altitude) — entity contracts, types/events, exposed/consumed seam
     shapes, the public-SDK surface — per [`20-domain-charter.md`](../authoring-standard/20-domain-charter.md).
-  - **epic plan / DAG** (work-item altitude) — waves, per-story owned pathsets, shared-file
-    ownership, producer→consumer seams by import path, phase-boundary readiness gate, suggested
+  - **epic plan / DAG** (work-item altitude) — waves, per-story owned pathsets, same-wave concurrency
+    eligibility, producer→consumer seams by import path, phase-boundary readiness gate, suggested
     model tier — per [`30-epic-charter.md`](../authoring-standard/30-epic-charter.md) and
     [`40-story-dag.md`](../authoring-standard/40-story-dag.md).
   - **story characterizations** (per-story altitude) — ACs each carrying an evidence clause,
     public-SDK exposure, seam contract with import path, constructability, file-size budget as a
     number, negative-case matrix, per-story coverage command, non-goals — per
     [`50-story-contract.md`](../authoring-standard/50-story-contract.md).
+- **Characterize same-wave concurrency.** Decide which stories may run in the same wave by applying the
+  same-logic rule (canonical in [`40-story-dag.md`](../authoring-standard/40-story-dag.md); do not
+  restate it here): non-dependent stories whose owned pathsets share no logic-bearing file are eligible,
+  and a file-level over-serialization may be lifted by an architect override with a one-line rationale.
+  The plan must guarantee that same-logic stories never share a wave so the orchestrator's merge-back
+  rebases stay trivial.
 - Review the authored "what" through [characterization review](characterization-review.md),
   dispatching a spec-reviewer sub-agent to assist; **the architect owns the final verdict.**
 - Set the binding **`ready`** flag per story — and only after characterization review passes.

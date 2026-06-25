@@ -55,16 +55,17 @@ store-sqlite  — (if needed) separate adapter package; never imported by sdk
 
 ## Public entrypoint ownership
 
-The SDK public entrypoint (`packages/sdk/src/index.ts`) and its aggregated public exports are owned by
-a single dedicated **export-aggregation owner**, not by individual behavior or contract stories. Each
-domain contributes its public symbols through that owner, which decides what is re-exported from the
-entrypoint.
+The SDK public entrypoint (`packages/sdk/src/index.ts`) is a **normal owned file**. Each public-symbol
+story **owns its own `index.ts` export line** end-to-end: it adds the export line, includes that line
+in its owned pathset, and proves it with a public-import test. A story that exposes a public symbol
+carries a public-exposure AC (the symbol name, its import path from the barrel, and the public-import
+test) and is responsible for writing the export line that satisfies it, following the convention
+established by `epic0-s4-export-templates/PackageExportConvention`.
 
-This removes the shared-barrel write obligation from every behavior story. Otherwise each story that
-adds a public symbol would have to write the one entrypoint file, forcing serialized cross-domain writes
-to a single shared file and blocking public-import acceptance criteria whose owned pathset excludes the
-entrypoint. With a dedicated owner, behavior stories produce their symbols within their own pathset and
-the owner aggregates them at the boundary.
+The barrel is an append-only aggregation point: stories contribute their own export lines, so it can be
+shared across concurrent stories. Eligibility to run such stories in the same wave is governed by the
+same-logic concurrency rule defined in `docs/implementation-authoring/authoring-standard/40-story-dag.md`;
+a line-level overlap on the barrel is resolved by rebase, not by a special ownership role.
 
 ## What the SDK must not own
 

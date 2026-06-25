@@ -1,14 +1,15 @@
 # plan-delivery Evals
 
 **Skill under test:** `plan-delivery`
-**Version pin (combined skill hash):** `d91e78fb66f5fcfb`
+**Version pin (combined skill hash):** `ac9203aab5eefc66`
 **Status:** active
 
 Recompute with:
 
 ```sh
-# run from this skill's root; excludes EVALS.md so the pin is stable
-find SKILL.md references agents evals -type f 2>/dev/null | sort |
+# run from this skill's root; excludes EVALS.md so the pin is stable.
+# LC_ALL=C pins the sort order so the hash is locale-independent (reproducible in CI / any shell).
+find SKILL.md references agents evals -type f 2>/dev/null | LC_ALL=C sort |
   while IFS= read -r f; do cat "$f"; done |
   shasum -a 256 | cut -c1-16
 ```

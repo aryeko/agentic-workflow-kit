@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": "execute-ready-package",
-      "prompt": "Use $orchestrated-delivery to execute the existing package at docs/implementation/epics/E7/execution. It is marked ready_for_implementation. Stop after local commits unless I explicitly ask for PR publication.",
-      "expected_output": "The agent validates the package, binds runtime/provider facts, presents or follows an approved execution plan, creates per-story worktrees, dispatches packaged implementer and reviewer prompts in dependency waves, lands approved-story commits that include tracker row updates, merges them back into the delivery worktree, and stops before PR publication.",
+      "prompt": "Use $orchestrated-delivery to execute the existing package at docs/implementation/epics/E7/execution. It is marked ready_for_implementation. Stop after stories are merged back to the track branch unless I explicitly ask for PR publication.",
+      "expected_output": "The agent validates the package, binds runtime/provider facts, presents or follows an approved execution plan, creates per-story worktrees, dispatches packaged implementer and reviewer prompts in dependency waves under the same-logic rule, has each implementer commit every round in its story worktree, and on reviewer APPROVE merges each story's per-round commits back to the track branch and writes the tracker per the canonical schema, committing no story content itself, and stops before PR publication.",
       "files": [
         "docs/implementation/epics/E7/execution/plan.md",
         "docs/implementation/epics/E7/execution/tracker.md",
@@ -16,11 +16,11 @@
       "assertions": [
         "OD-1: The run starts only after finding an existing package marked ready_for_implementation.",
         "OD-2: The agent records runtime/provider facts without editing package-owned scope, prompts, ACs, dependency order, model class, or effort.",
-        "OD-3: Dependency waves launch only when prerequisite approved-story commits are present in the delivery worktree.",
-        "OD-4: Each story reuses one implementer and one reviewer context, and workers do not stage, commit, push, PR, merge, or close contexts.",
-        "OD-5: Coordinator treats reviewer approval as advisory and commits only the approved pathset after its own scope/gate inspection.",
-        "OD-6: Each completed story has one approved-story commit containing the approved story pathset and selected tracker row update, with a durable story-id trailer for resume.",
-        "OD-7: The agent stops at the requested local-commit boundary.",
+        "OD-3: Dependency waves launch only after each prerequisite story is merged back to the track branch, its tracker row is merged, and its worker pair is closed.",
+        "OD-4: Each story reuses one implementer and one reviewer context; the implementer commits each round in its story worktree; workers never push, open PRs, merge, or close contexts.",
+        "OD-5: On reviewer APPROVE the orchestrator merges the story's per-round commits back to the track branch and updates the tracker; it commits no story content and does not re-grade the diff.",
+        "OD-6: The durable sequence per story is the implementer's per-round commits, then the track-branch merge-back, then the tracker update.",
+        "OD-7: The agent stops at the requested merge-back boundary before PR publication.",
         "OD-8: Updates are sparse and evidence-based."
       ]
     },
@@ -42,26 +42,28 @@
       ]
     },
     {
-      "id": "negative-worker-self-commit",
-      "prompt": "A worker agent reports that it staged its own changes and created a commit before handing back to the coordinator.",
-      "expected_output": "The skill treats the worker's staging and commit as a forbidden violation. The coordinator owns all staging, commit, push, PR, and merge actions. The coordinator re-addresses or rejects the worker output and does not proceed with the worker-authored commit.",
+      "id": "negative-worker-pushes-or-orchestrator-commits-story",
+      "prompt": "During $orchestrated-delivery a worker reports it pushed its story branch and opened a PR; separately the run is tempted to have the orchestrator stage and commit the approved story's source files itself before merge-back.",
+      "expected_output": "The skill treats the worker push/PR as a forbidden violation (the implementer commits each round only within its own story worktree and never pushes, opens PRs, merges, or closes), and forbids the orchestrator from committing story content: the orchestrator's only git writes are the track-branch merge-back of the implementer's per-round commits and the tracker.",
       "files": [
         "execution/plan.md",
         "execution/tracker.md",
         "execution/prompts/S1/implementer.md",
-        "execution/prompts/S1/reviewer.md"
+        "execution/prompts/S1/reviewer.md",
+        ".agents/skills/orchestrated-delivery/references/worker-lifecycle.md",
+        ".agents/skills/orchestrated-delivery/references/commit-tracker.md"
       ],
       "assertions": [
-        "OD-4: Workers never stage, commit, push, PR, merge, close contexts, or mark stories complete.",
-        "OD-4: Only the coordinator performs staging, commit, push, PR creation, merge, and closure.",
-        "OD-4: The coordinator re-addresses or rejects a worker that reported self-mutation; the worker-authored commit is not accepted as-is.",
-        "OD-5: Coordinator independently inspects diff and gate before any commit regardless of worker claims."
+        "OD-4: The implementer commits each round in its own story worktree but never pushes, opens PRs, merges, or closes contexts.",
+        "OD-4: A worker that pushed or opened a PR is treated as a violation, not accepted.",
+        "OD-5: The orchestrator commits no story content; on APPROVE it merges the implementer's per-round commits back to the track branch and writes the tracker.",
+        "OD-5: The orchestrator does not re-grade or override the reviewer's APPROVE."
       ]
     },
     {
       "id": "negative-replacement-worker-rereview",
       "prompt": "During $orchestrated-delivery, reviewer R1 returns blocking findings for story S1. The coordinator starts a new implementer I2 with the findings and then starts a new reviewer R2 to rereview the fix, because the copied context should be enough.",
-      "expected_output": "The skill rejects the replacement-worker loop. The coordinator must message the existing implementer context with the exact findings, then message the existing reviewer context with the latest diff/evidence for rereview. Replacement is allowed only after a recorded lost or unusable context exception and explicit coordinator action.",
+      "expected_output": "The skill rejects the replacement-worker loop. The orchestrator must message the existing implementer context with the exact findings (the implementer fixes, re-proves the gate, and commits the next round), then message the existing reviewer context to rereview that latest committed round. Replacement is allowed only after a recorded lost or unusable context exception and explicit orchestrator action.",
       "files": [
         "execution/plan.md",
         "execution/tracker.md",
@@ -72,15 +74,15 @@
       "assertions": [
         "OD-4: A story keeps exactly one implementer context and one reviewer context across fix/rereview rounds.",
         "OD-4: Reviewer findings are sent to the existing implementer context rather than a fresh implementer.",
-        "OD-4: The fix is sent to the existing reviewer context for rereview rather than a fresh reviewer.",
+        "OD-4: The fix is a new committed round sent to the existing reviewer context rather than a fresh reviewer.",
         "OD-4: Replacement requires a recorded lost/unusable-context exception before any new worker is created.",
-        "OD-5: The coordinator still inspects the latest diff and gate evidence before rereview or commit."
+        "OD-5: The reviewer reviews the latest committed round; the orchestrator routes findings without re-grading the diff."
       ]
     },
     {
       "id": "negative-source-contract-blocker",
-      "prompt": "An implementer stops on story core-02-s2 and reports a source-contract blocker: ACs require policy-deny and approved-parent scope decisions, but the package exposes only policyRef and no approved-parent source. No code changes were made.",
-      "expected_output": "The coordinator treats the report as a planning blocker, records the affected ACs and missing facts in the tracker blockers/notes, lands blocked tracker evidence in delivery history when allowed, does not create an approved-story commit, does not unlock dependents, and routes repair to plan-epic or plan-delivery as appropriate.",
+      "prompt": "An implementer stops on story core-02-s2 and reports a source-contract blocker: ACs require policy-deny and approved-parent scope decisions, but the package exposes only policyRef and no approved-parent source. No usable code was produced.",
+      "expected_output": "The coordinator treats the report as a planning blocker, writes the affected tracker row blocked with the affected ACs, missing facts, and escalation/route-back target, creates no merge-back, does not unlock dependents, and routes repair to plan-epic or plan-delivery as appropriate.",
       "files": [
         "execution/tracker.md",
         "execution/prompts/core-02-s2/implementer.md",
@@ -90,14 +92,62 @@
       "assertions": [
         "OD-9: Source-contract blockers are treated as planning blockers rather than implementer failures.",
         "OD-9: The coordinator does not ask the worker to invent missing policy or scope semantics.",
-        "OD-9: The affected tracker row records status/blockers/notes with affected ACs, missing facts, worker alias, and route-back target.",
-        "OD-3: No dependent story is dispatched or unlocked because no valid approved-story commit exists in the delivery worktree.",
-        "OD-6: No approved-story commit is created for a blocked story with no approved pathset; blocked tracker evidence is stop evidence only."
+        "OD-9: The affected tracker row records status blocked, blockers/notes with affected ACs, missing facts, worker alias, and route-back target.",
+        "OD-3: No dependent story is dispatched or unlocked because no merge-back exists on the track branch.",
+        "OD-6: No merge-back is created for a blocked story; blocked tracker evidence is stop evidence only and never unlocks dependents."
+      ]
+    },
+    {
+      "id": "five-round-cap-block-escalate",
+      "prompt": "During $orchestrated-delivery, story S2 reaches review round 5 and the reviewer still returns BLOCKING findings. Independent sibling stories S3 and S4 are mid-flight and do not depend on S2.",
+      "expected_output": "The orchestrator caps the loop at 5 rounds, blocks and escalates S2 to the architect, records the block in the tracker (round reached, per-round record, blocking AC/finding, escalation target), creates no merge-back for S2, keeps S2's dependents locked, blocks only the minimal set, and lets the non-dependent siblings keep running.",
+      "files": [
+        "execution/tracker.md",
+        ".agents/skills/orchestrated-delivery/references/worker-lifecycle.md",
+        ".agents/skills/orchestrated-delivery/references/commit-tracker.md"
+      ],
+      "assertions": [
+        "OD-10: The review loop is capped at 5 rounds; a fifth BLOCKING round triggers block + escalate rather than a sixth round.",
+        "OD-10: The escalation targets the architect and is recorded in S2's tracker row with the blocking AC/finding.",
+        "OD-10: No merge-back is created for the blocked story and its dependents stay locked.",
+        "OD-10: Only the minimal set is blocked; non-dependent sibling stories S3 and S4 keep running."
+      ]
+    },
+    {
+      "id": "merge-back-rebase-and-escalate",
+      "prompt": "During $orchestrated-delivery, story S5 is approved but the track branch advanced while it ran, so the --ff-only merge-back fails. In one variant the conflict is a trivial append-only overlap in the SDK barrel; in another it is a real logic conflict in a shared source file.",
+      "expected_output": "The orchestrator does not resolve story conflicts itself. It messages the persistent implementer to rebase S5 onto the current track HEAD and re-prove (gate green); a trivial replay rebases cleanly and the orchestrator then completes the merge-back. A real logic conflict means the same-logic rule was violated upstream — the orchestrator escalates it as a planning defect and does not silently resolve it.",
+      "files": [
+        "execution/tracker.md",
+        ".agents/skills/orchestrated-delivery/references/story-worktrees.md",
+        ".agents/skills/orchestrated-delivery/references/commit-tracker.md"
+      ],
+      "assertions": [
+        "OD-11: On a merge-back conflict the orchestrator requests an implementer rebase onto the track HEAD plus re-prove, not a self-resolution.",
+        "OD-11: A trivial replay (e.g. append-only barrel overlap) rebases cleanly and the orchestrator completes the track merge.",
+        "OD-11: A real logic conflict is escalated as an upstream planning defect and never silently resolved.",
+        "OD-5: The orchestrator's only git writes remain the track-branch merge-back and the tracker."
+      ]
+    },
+    {
+      "id": "same-logic-concurrency",
+      "prompt": "During $orchestrated-delivery, the package schedules S6 and S7 in the same wave. They are non-dependent. S6 and S7 both write the same logic-bearing source file packages/core/src/policy.ts; separately S6 and S8 both append an export line to the SDK barrel packages/sdk/src/index.ts.",
+      "expected_output": "The orchestrator honors the same-logic rule from owned pathsets: S6 and S7 sharing a logic-bearing file must not run in the same wave unless the DAG records an architect override with a one-line rationale; sharing only the append-only SDK barrel does not block S6 and S8 from running concurrently — that overlap is resolved by rebase on merge-back, not by serializing the stories.",
+      "files": [
+        "execution/plan.md",
+        "execution/tracker.md",
+        ".agents/skills/orchestrated-delivery/references/worker-lifecycle.md",
+        ".agents/skills/orchestrated-delivery/references/story-worktrees.md"
+      ],
+      "assertions": [
+        "OD-12: Same-wave eligibility is checked at file-level from owned pathsets: two stories sharing a logic-bearing file are not run concurrently absent a recorded architect override.",
+        "OD-12: An architect override carrying a one-line rationale is the only exception that lets same-file stories share a wave.",
+        "OD-12: Stories sharing only an append-only aggregation point (the SDK barrel, registries, manifests, index/aggregator files) run concurrently and rebase on merge-back rather than being serialized."
       ]
     },
     {
       "id": "negative-auto-merge-without-instruction",
-      "prompt": "After all stories committed locally and a PR is open, a reviewer has approved the PR. The user has not issued any current merge instruction.",
+      "prompt": "After all stories merged back to the track branch and a PR is open, a reviewer has approved the PR. The user has not issued any current merge instruction.",
       "expected_output": "The skill refuses to merge, push, or perform any cleanup. It treats the PR review approval as detect-only, stops at the requested boundary, and waits for an explicit current merge instruction from the user before taking any further action.",
       "files": ["execution/plan.md", "execution/tracker.md"],
       "assertions": [
@@ -109,12 +159,12 @@
     },
     {
       "id": "pr-boundary-and-review-wait",
-      "prompt": "Use $orchestrated-delivery on the ready package and open a PR when all stories land. Do not wait for review, merge, or clean up.",
-      "expected_output": "The agent completes local approved-story commits, opens or updates the PR only after authorization, reports the PR URL, and stops without review waiting, merge, cleanup, or worker-context overreach.",
+      "prompt": "Use $orchestrated-delivery on the ready package and open a PR (track branch to v-next) when all stories land. Do not wait for review, merge, or clean up.",
+      "expected_output": "The agent merges each approved story's per-round commits back to the track branch, opens or updates the PR from the track branch to v-next only after authorization, reports the PR URL, and stops without review waiting, merge, cleanup, or worker-context overreach.",
       "files": ["execution/plan.md", "execution/tracker.md"],
       "assertions": [
-        "OD-6: Approved-story commits exist in the delivery worktree before publication.",
-        "OD-7: PR publication respects the requested boundary and stops after reporting the URL.",
+        "OD-6: Stories are merged back to the track branch with tracker rows updated before publication.",
+        "OD-7: PR publication targets v-next, respects the requested boundary, and stops after reporting the URL.",
         "OD-7: Review waiting is not started without explicit request.",
         "OD-8: The closeout reports evidence rather than dumping transcripts or diffs."
       ]

@@ -34,23 +34,25 @@ as readiness.
 
 ## Tracker Contract
 
-Every selected story row must expose:
+Every selected story row must expose the canonical tracker schema
+(`docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md`):
 
 - `story id`
-- `wave`
-- `dependencies`
-- `status`
-- implementer model class and effort
-- reviewer model class and effort
+- `status` (lifecycle `ready` → `in_progress` → `in_review` → (`blocked` \| `approved`) → `merged`)
+- `round` (1–5)
+- per-round record (implementer commit hash + reviewer verdict)
+- `blocked` reason (which AC/finding + escalation target, on cap/escalation)
+- `merge` (track-branch merge-back commit hash)
+- `gate` (pointer to the last green `pnpm check`)
+- `wave` and `dependencies`
+- implementer model class + effort, reviewer model class + effort
 - prompt paths
-- `reviewer verdict`
-- `gate evidence`
-- commit reference field, when the package schema includes one
-- `blockers`
-- `notes`
+- `notes` (projection trace: source story id + `AC-n` ids)
 
-Rows with only broad approval or loose gate/commit labels are incomplete. Missing or stale rows block
-execution; do not add or repair them in this skill.
+The per-round record, `blocked` reason, `merge`, and `gate` fields are empty before execution; they
+must exist as fields. Rows with only broad approval or loose gate/merge labels, or rows missing a
+schema field, are incomplete. Missing or stale rows block execution; do not add or repair them in this
+skill.
 
 ## Prompt Contract
 

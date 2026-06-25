@@ -1,38 +1,39 @@
 # Story Worktrees
 
 Use this reference after package preflight and runtime binding, before launching workers for a story.
-The delivery worktree is the coordinator and integration tree. Story worktrees are disposable
-execution trees.
+The **track branch** is the delivery's integration line; the orchestrator works in a **track worktree**
+checked out on it. Story worktrees are disposable execution trees where implementers commit each round.
 
-## Delivery Worktree
+## Track Branch And Track Worktree
 
-The delivery worktree owns orchestration state, dependency ordering, branch publication, and final PR
-work. It must not accumulate uncommitted story implementation work.
+The track branch is a named collection branch that holds the delivery's stories; the model is: story
+worktree → merge-back to the track branch → later PR from the track branch to `v-next`. The
+orchestrator's track worktree owns orchestration state, dependency ordering, merge-back, the tracker,
+and final PR work. It must not accumulate uncommitted story implementation work; story changes arrive
+only as merged story-branch history.
 
 Before creating, merging, or cleaning up a story worktree:
 
-- confirm the shell path is the delivery worktree, not the primary checkout or another story tree;
-- confirm the delivery worktree has no unrelated uncommitted changes;
-- record the delivery branch and `HEAD`;
+- confirm the shell path is the track worktree, not the primary checkout or a story tree;
+- confirm the track worktree has no unrelated uncommitted changes;
+- record the track branch and its `HEAD`;
 - start only dependency-ready stories.
-
-The delivery worktree receives story changes only as committed story branch history.
 
 ## Story Worktree Creation
 
-Create one temporary local branch and worktree per story from the current delivery `HEAD`. Prefer a
-stable, collision-resistant branch name such as:
+Create one temporary local branch and worktree per story from the current track branch `HEAD`. Prefer
+a stable, collision-resistant branch name such as:
 
 ```text
 codex/orchestrated-delivery/<run-id>/<story-id>
 ```
 
 Create the worktree under the repo's `.worktrees/` directory unless the user or repo instruction names
-another location. Record the story id, worktree path, branch, base commit, and delivery `HEAD` in the
-ledger before launching the implementer.
+another location. Record the story id, worktree path, branch, base commit, and track branch `HEAD` in
+the ledger before launching the implementer.
 
-Do not use detached story worktrees for normal execution. Temporary branches give the coordinator a
-stable merge-back target and preserve the same commit hash when the delivery worktree can fast-forward.
+Use temporary branches, not detached story worktrees: they give the orchestrator a stable merge-back
+target and preserve the per-round commit hashes when the track branch can fast-forward.
 
 ## Worker Binding
 
@@ -40,53 +41,59 @@ Send each story's implementer and reviewer to that story's worktree path. The wo
 must name:
 
 - the story worktree path and branch;
-- the delivery worktree path for context only;
-- the allowed story pathset and tracker row;
-- current dependency approved-story commit hashes;
-- mutation limits and the rule that workers never stage, commit, push, PR, merge, or clean up.
+- the track worktree path for context only;
+- the allowed story pathset (including the story's own `index.ts` export line when it exposes a public
+  symbol);
+- current dependency merge-back commit hashes present on the track branch;
+- the commit rule (the implementer commits each round in its own pathset, gate-green, round trailer)
+  and the limits (no push, PR, merge, tracker edit, or cleanup).
 
 Reviewer findings route back to the existing implementer context in the same story worktree. The
-coordinator must not patch story implementation in response to review findings.
+orchestrator must not patch story implementation in response to review findings.
 
 ## Merge Back
 
-After reviewer approval, required gates, and the approved-story commit succeeds in the story worktree,
-merge the story branch back into the delivery worktree with:
+After reviewer APPROVE on the latest committed round and the required gate, merge the story branch's
+per-round commits onto the track branch with:
 
 ```sh
 git merge --ff-only <story-branch>
 ```
 
-Use `--ff-only` as the default because it preserves the approved-story commit hash and proves the story
-branch is a direct descendant of the delivery branch.
+Use `--ff-only` as the default because it preserves the per-round commit hashes and proves the story
+branch is a direct descendant of the track branch.
 
-If the delivery branch advanced while the story was active, rebase the story branch onto the current
-delivery `HEAD` before the approved-story commit whenever possible. If rebase or merge-back conflicts,
-stop story finalization, keep the story worktree, and route conflicts that touch story implementation
-to the existing implementer context in that story worktree. Do not resolve story implementation
-conflicts directly in the delivery worktree.
+If the track branch advanced while the story was active and the fast-forward fails, **message the
+persistent implementer to rebase the story branch onto the current track `HEAD` and re-prove** (gate
+green), then complete the merge-back. A trivial replay rebases cleanly. A **real logic conflict** means
+the same-logic rule was violated upstream in planning — **escalate** it as a planning defect; do not
+resolve story implementation conflicts directly in the track worktree.
 
 ## Cleanup
 
 Remove the story worktree and delete its temporary branch only after:
 
-- the approved-story commit is present in the delivery worktree;
-- downstream readiness has been recorded in the ledger;
+- the merge-back is present on the track branch;
+- downstream readiness has been recorded in the ledger and tracker;
 - the story's implementer/reviewer pair is closed or terminal.
 
 Leave blocked, conflicted, or under-review story worktrees in place and report their paths.
 
 ## Blocked Story Evidence
 
-Blocked stories do not produce approved-story commits. When `commit-tracker.md` allows blocked-story
-tracker evidence, land that tracker-only commit in the delivery worktree history under the coordinator
-commit lock, staging only the affected tracker row. If the blocker was first recorded in a story
-worktree, copy only the tracker row update into the delivery worktree; do not merge or cherry-pick
-story implementation WIP. The blocked evidence commit is durable stop evidence, not dependency
-substrate, and it never unlocks dependents.
+Blocked stories (5-round cap or source-contract blocker) produce no merge-back. The orchestrator writes
+the `blocked` tracker row on the track branch per `commit-tracker.md`, recording only the affected
+tracker row; it does not merge or cherry-pick story implementation WIP. The blocked evidence is durable
+stop evidence, not dependency substrate, and it never unlocks dependents.
 
 ## Concurrency
 
-Independent stories may run concurrently only in separate story worktrees with non-overlapping
-pathsets, within `worker-cap` and `implementer-cap`. Final merge-back uses a single coordinator commit
-lock. Before finalizing any story whose base is no longer the delivery `HEAD`, rebase or stop as above.
+Same-wave concurrency follows the **same-logic rule** (canonical in
+`authoring-standard/40-story-dag.md`): two non-dependent stories may run concurrently only when their
+owned pathsets share no logic-bearing file. Append-only aggregation points — the SDK barrel,
+registries, manifests, index/aggregator files — are not logic-bearing: concurrent stories share them
+and the orchestrator's merge-back rebases the line-level overlap, never serializing the stories.
+Planning guarantees same-logic stories never share a wave, so merge-back rebases stay trivial; a real
+logic conflict at merge-back is an upstream planning defect to escalate. Keep concurrent launches
+within `worker-cap` and `implementer-cap`. Before finalizing any story whose base is no longer the
+track branch `HEAD`, rebase via the implementer as above.

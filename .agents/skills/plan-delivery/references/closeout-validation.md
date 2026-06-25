@@ -69,8 +69,9 @@ Run deterministic checks appropriate to the package. At minimum, inspect for:
 - missing selected story prompt pairs;
 - unfinished marker text in package artifacts;
 - provider-specific runtime model IDs or runtime model alias/version strings;
-- fake commit hashes before execution;
-- tracker statuses outside the allowed set.
+- invented per-round or merge-back commit hashes before execution (the per-round record and `merge`
+  field stay empty until the execution run records real hashes);
+- tracker statuses outside the canonical lifecycle in `tracker-artifact.md`.
 
 Use repo docs navigation commands only when the repo requires them for new or moved Markdown files.
 If skipped, state why.

@@ -99,7 +99,8 @@ Tick every box; an empty box means not ready.
 - [ ] Zero unresolved option branches — including choices the design itself leaves open.
 - [ ] Cross-story contracts name exact shapes; catalog/invariant tokens cited verbatim.
 - [ ] Public exposure: each public SDK shape names its import path (export + barrel + `exports`) and a
-      public-import test; or the story states it exposes none — **substrate/config stories that expose no
+      public-import test, and the story **owns its own `index.ts` export line** — that line is in its
+      owned pathset; or the story states it exposes none — **substrate/config stories that expose no
       SDK surface satisfy this by construction.**
 - [ ] Cross-surface parity ACs are non-tautological: the comparison runs over distinct implementation
       files or varies a surface-specific input — never the same file compared against itself.
