@@ -57,6 +57,14 @@ inputs, or the wrong worktree.
   wave — file-level granularity checked from owned pathsets, with an architect override + one-line
   rationale where file-level over-serializes.
 
+The Gate-4 **[Proof-substrate match](../authoring-standard/50-story-contract.md#gate-4--authoring-ready)**
+and **[Predicate-input closure — relational &
+compound](../authoring-standard/50-story-contract.md#gate-4--authoring-ready)** boxes are the
+authoring-time form of `plan-delivery`'s two
+[readiness-contract preflights](./30-plan-delivery.md#readiness-contract-preflights): a contract that
+ticks these boxes passes packaging, and the preflights are the backstop that catches a box left unticked
+— not a second authority. Authoring-time and packaging-time read the same rule.
+
 Then stop and hand off to `plan-delivery`.
 
 ## Boundaries (never)
