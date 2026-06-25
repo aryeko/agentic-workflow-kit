@@ -82,6 +82,18 @@ operator UI, concrete provider behavior, or execution-package dispatch.
   append as allow.
 - Escalation: model append failure as explicit input and fail closed.
 
+### decision-facts-live-with-the-decider
+
+- Rationale: `ApprovalRiskClassified` and `ApprovalDecisionRecorded` live with the story that computes
+  the risk and decision values. Moving append responsibility to a later story would pass an
+  uncommitted decision value across a story seam before the event log makes it authoritative.
+- Design trace: approval README section 7 sequence appends `ApprovalRiskClassified` during
+  classification and `ApprovalDecisionRecorded` immediately after decision before Agent answer.
+- Falsification: a story other than `core-03-s2-normalize-risk-decision` appends those facts, or
+  `core-03-s2` lacks `RunWriter` in its frozen inputs.
+- Escalation: raise a story-contract defect; do not split decision computation from decision fact
+  recording.
+
 ### supervision-types-first
 
 - Rationale: liveness states, reasons, timer policy, wait request, event payloads, and termination fact
@@ -190,7 +202,11 @@ flowchart TB
 - Single producer per shared shape: approval values live in `core-03-s1`; supervision values live in
   `core-04-s1`; behavior stories consume them.
 - Acyclic labelled graph: four ordered bands; every edge names value-shape or behavior consumption.
-- Defensible sizing: each story owns one domain surface and focused, falsifiable ACs.
+- Defensible sizing: each story owns one domain surface and 5-9 falsifiable ACs, except
+  `core-03-s2-normalize-risk-decision`, which is intentionally larger to keep normalization, risk
+  classification, decision computation, and risk/decision fact recording in one cohesive full decision
+  path. Splitting it would reintroduce a cross-story decision handoff; its elevated tier and 95%
+  branch coverage quality bar absorb the load.
 - Dispatch-ready: every story has one path boundary and an `elevated` tier floor because each exposes
   public SDK surface through the export-aggregation owner.
 - Seams importable: every cross-story shape names `sdk` as the public import path; producer stories own
