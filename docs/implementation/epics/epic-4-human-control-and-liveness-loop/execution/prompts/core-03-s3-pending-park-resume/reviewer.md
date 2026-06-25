@@ -86,7 +86,7 @@ Check source story `core-03-s3-pending-park-resume` and source AC ids `AC-1`, `A
 
 ## Verdict Format
 
-Return `APPROVED` only when no blocking findings remain. Otherwise return severity-ordered findings. For each finding, include file and line reference, required fix, and the source `AC-n` or boundary violated.
+Return `APPROVE` only when no blocking findings remain. Otherwise return severity-ordered findings. For each finding, include file and line reference, required fix, and the source `AC-n` or boundary violated.
 
 ## Mutation Limits
 
