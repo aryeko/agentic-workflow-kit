@@ -8,7 +8,6 @@ import {
   hashText,
   planDependencies,
   ref,
-  requiredAttesters,
   scope,
 } from './resolve-credential.test-helpers.js';
 
@@ -24,7 +23,6 @@ describe('fnd-04-s2 resolve credential lifecycle', () => {
         refs: [ref],
         scope,
         egressSource,
-        requiredAttesters,
       },
       {
         hashText,

@@ -3,7 +3,6 @@ import {
   type CredentialRef,
   type EgressAttestation,
   type EgressPolicySource,
-  type RequiredAttesterRuntime,
 } from '../../../../src/index.js';
 import type { issueEgressPolicy } from '../../../../src/index.js';
 
@@ -65,14 +64,6 @@ export const egressSource: EgressPolicySource = {
   ],
 };
 
-export const requiredAttesters: readonly RequiredAttesterRuntime[] = [
-  {
-    driverId: 'local-host',
-    platform: 'darwin',
-    driverVersion: '1.0.0',
-  },
-];
-
 export const planDependencies = {
   hashText,
   now: '2026-06-22T10:01:00.000Z',
@@ -87,7 +78,6 @@ export const planDependencies = {
     materialHandle: 'memory://registry-read',
     fingerprintId: 'fp-registry-read',
   }),
-  requiredAttesters,
 };
 
 export const createPositiveAttestation = (policy: ReturnType<typeof issueEgressPolicy>): EgressAttestation => {
@@ -104,8 +94,8 @@ export const createPositiveAttestation = (policy: ReturnType<typeof issueEgressP
     scopeDigest: requiredAttester?.scopeDigest ?? 'missing-scope-digest',
     egressPolicyDigest: policy.value.egressPolicyDigest,
     freshnessKey: policy.value.freshnessKey,
-    platform: requiredAttester?.platform ?? 'darwin',
-    driverVersion: requiredAttester?.driverVersion ?? '1.0.0',
+    platform: 'darwin',
+    driverVersion: '1.0.0',
     expiresAt: '2026-06-22T10:02:30.000Z',
     evidenceRef: 'evidence://attestation-1',
     negativeProbeIds: [...policy.value.negativeProbeIds],
