@@ -49,9 +49,16 @@ Done means all are true:
 
 Run this seam pass **before** sizing nodes; node boundaries fall out of it, not the other way round.
 
-**Barrel ownership.** Do not include `packages/sdk/src/index.ts` in any story's owned pathset.
-Behavior stories declare public-exposure ACs (export + import path + public-import test) that state what
-must appear on the barrel; the barrel is updated per those ACs without a story owning the file.
+**Barrel ownership and same-logic concurrency.** The SDK barrel (`packages/sdk/src/index.ts`) is a
+normal owned file. Each public-symbol story **owns its own `index.ts` export line**: it declares a
+public-exposure AC (export + import path + public-import test) and **includes that export line in its
+owned pathset**. Concurrency is governed by the same-logic rule (canonical in
+`authoring-standard/40-story-dag.md`): two non-dependent stories may share a wave only when their owned
+pathsets share no logic-bearing file (file-level granularity); append-only aggregation points — the SDK
+barrel, registries, manifests, index/aggregator files — are not logic-bearing, so stories share them
+freely and a line-level overlap rebases when the orchestrator advances the wave, never serializing the
+stories. A file-level over-serialization may be lifted only by an architect override carrying a
+one-line rationale recorded on the DAG.
 
 **Whole-graph event/record producer reconciliation.** Before freezing the DAG, enumerate every event/record
 named in the design seams for this epic AND every event/record any story declares as consumed. Assert that

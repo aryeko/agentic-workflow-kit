@@ -1,7 +1,7 @@
 # plan-delivery Evals
 
 **Skill under test:** `plan-delivery`
-**Version pin (combined skill hash):** `d91e78fb66f5fcfb`
+**Version pin (combined skill hash):** `3e6dfe7df261390b`
 **Status:** active
 
 Recompute with:

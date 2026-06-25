@@ -1,7 +1,9 @@
 # Worker Lifecycle
 
-Use this reference after package preflight and runtime binding. Workers execute packaged prompts and
-report evidence; the coordinator owns all mutations and lifecycle decisions.
+Use this reference after package preflight and runtime binding. Implementers build and **commit each
+round** in their story worktree; reviewers review the latest committed round; the orchestrator
+coordinates the loop, merges approved stories back to the track branch, and writes the tracker. The
+orchestrator commits no story content.
 
 ## Dispatch
 
@@ -9,10 +11,13 @@ report evidence; the coordinator owns all mutations and lifecycle decisions.
   the surface supports them.
 - Name each worker before launch with a short role alias, and record the alias in the ledger.
 - Launch implementers only for dependency-ready stories. A dependency is ready for dispatch only when
-  its approved-story commit is present in the delivery worktree, and its implementer/reviewer pair is
-  closed or marked terminal.
-- Independent package stories may run concurrently from the first wave when pathsets do not conflict
-  and the launch keeps both total active worker sessions at or below `worker-cap` and active
+  its per-round commits are **merged back to the track branch**, its tracker row is `merged`, and its
+  implementer/reviewer pair is closed or marked terminal.
+- Same-wave concurrency is governed by the **same-logic rule** (canonical in
+  `authoring-standard/40-story-dag.md`; see `story-worktrees.md`): non-dependent stories may run
+  concurrently only when their owned pathsets share no logic-bearing file. Stories that share only an
+  append-only aggregation point (the SDK barrel, registries, manifests, index/aggregator files) may
+  run concurrently and rebase trivially on merge-back. Keep launches within `worker-cap` and active
   implementers at or below `implementer-cap`.
 - Keep `review-reserve` available for reviewers, rereviews, and fix-loop progress. Do not spend
   reviewer reserve on speculative implementer launches, even when more dependency-ready stories exist.
@@ -29,63 +34,73 @@ Do not run tight polling loops.
 
 ## Persistent Pair / Incremental Review Loop
 
-- After an implementer reports completion, the coordinator inspects the diff for pathset, dependency,
-  and obvious gate readiness before review. The coordinator does not perform the reviewer's
-  code-quality or AC-satisfaction role and does not patch implementation findings.
-- Start one independent reviewer for that story, created once for the story. The story now has exactly
-  one implementer context and one reviewer context.
-- For every fix round, message the existing implementer context. Do not spawn a replacement implementer
-  with copied context. Include the exact reviewer findings, the allowed pathset, and the required
-  response packet.
-- After the implementer reports a fix, inspect the latest diff and gate evidence, then message the
-  existing reviewer context for rereview. Do not spawn a replacement reviewer or restart the original
-  review prompt. Include the original scope/ACs by reference, the latest diff/evidence, and the specific
-  findings being rechecked.
-- Repeat until explicit `APPROVED`, a real blocker, or the review cap is reached.
+- The implementer makes the gate green and **commits** the story round in its worktree (impl-done
+  commit, then one commit per fix round, each with a `Story: <story-id>` / `Round: <n>` trailer).
+- Start one independent reviewer for that story, created once for the story. The reviewer reviews the
+  **latest committed round**, not a stash or draft. The story now has exactly one implementer context
+  and one reviewer context.
+- The reviewer returns APPROVE or BLOCKING (with finding refs) against that committed round.
+- For every BLOCKING round, message the **existing** implementer context with the exact findings, the
+  allowed pathset, and the required response packet. Do not spawn a replacement implementer with
+  copied context. The implementer fixes, re-proves the gate, and commits the next round.
+- After the implementer reports the next committed round, message the **existing** reviewer context
+  for rereview against that round. Do not spawn a replacement reviewer or restart the original review
+  prompt.
+- Repeat until APPROVE, a source-contract blocker, or the **5-round cap**.
+- The orchestrator does not perform the reviewer's code-quality or AC-satisfaction role, does not patch
+  implementation findings, and does not re-grade an APPROVE. On APPROVE it proceeds to merge-back per
+  `commit-tracker.md`.
 - If a worker context is lost, corrupted, or technically impossible to message, stop that story, record
-  the exception in the ledger/tracker notes, and ask for explicit coordinator action before replacing the
-  worker pair.
+  the exception in the ledger/tracker notes, and ask for explicit orchestrator action before replacing
+  the worker pair.
+
+## Five-Round Cap
+
+The review loop is capped at **5 rounds**. If round 5 returns BLOCKING (no APPROVE), **block and
+escalate that story** to the architect:
+
+- create no merge-back;
+- write the tracker row `blocked` with the round reached, the per-round record, the blocking AC or
+  finding, and the escalation target (architect), per `commit-tracker.md`;
+- keep dependents locked; block only the minimal set.
+
+Sibling stories that do not depend on the blocked story keep running. The package, repo instruction,
+or user may set a stricter cap; never a looser one without an explicit recorded exception.
 
 ## Source-Contract Blockers
 
 If an implementer or reviewer reports that a packaged story cannot be implemented or reviewed because
 the frozen contract is missing a required source fact, contradicts itself, or names a STOP condition
 that overlaps an AC or failure trigger, treat it as a planning blocker rather than a worker defect.
+This is a different trigger from the 5-round cap but produces the same blocked handling.
 
-Required coordinator behavior:
+Required orchestrator behavior:
 
 - inspect the report against the packaged story contract and prompt;
 - do not ask the worker to invent the missing source fact or continue with a guessed interpretation;
-- leave the story implementation uncommitted and do not start or unlock dependents;
-- update the tracker blocker/notes fields with the affected AC or failure row, missing fact, worker
-  alias, and route-back target (`$plan-epic` for frozen story defects, `$plan-delivery` for package-only
+- create no merge-back and do not start or unlock dependents;
+- write the tracker row `blocked` with the affected AC or failure row, missing fact, worker alias, and
+  route-back target (`$plan-epic` for frozen story defects, `$plan-delivery` for package-only
   projection defects);
-- make a tracker-only evidence commit when the repo workflow allows tracker commits for blocked
-  stories, otherwise report the uncommitted tracker blocker explicitly.
+- record the blocked tracker evidence on the track branch per `commit-tracker.md`.
 
-Default review cap is five rounds unless the package, repo instruction, or user sets a stricter cap.
-If the cap is reached without approval, stop that story, leave it uncommitted, and report the open
-findings.
+## Role Boundary
 
-## Coordinator-Only Mutations
-
-Workers must not stage, commit, push, create or update PRs, merge, archive, close, or mark stories
-complete. The coordinator performs those actions after independent inspection and required gates.
+Implementers commit each round within their owned pathset in their own story worktree and rebase on
+the orchestrator's request; they never push, open or update PRs, merge, archive, close, mark stories
+complete, or edit the tracker. Reviewers only inspect the latest committed round and return a verdict.
 Workers hold NO Forge credentials (per AGENTS.md AD-12 worker/runner isolation); only the
-coordinator/runner holds push/PR/merge authority.
+orchestrator/runner holds push/PR/merge authority.
 
-Reviewer approval is advisory. The coordinator still verifies scope control, changed files, checks,
-and dependency boundaries before a commit, without re-characterizing or expanding the work.
-
-The coordinator may edit `execution/tracker.md` at the approved-story or blocked-story boundary and
-may resolve mechanical commit/tracker issues inside the story worktree. The coordinator must not
-directly implement story code, patch reviewer findings, or make opportunistic tooling fixes inside a
-story branch. Repo tooling fixes outside story pathsets require an explicit separate repair step.
+The orchestrator's only git writes are the **track-branch merge-back** and the **tracker** (per
+`commit-tracker.md`). It must not directly implement story code, patch reviewer findings, re-grade an
+APPROVE, or make opportunistic tooling fixes inside a story branch. Repo tooling fixes outside story
+pathsets require an explicit separate repair step.
 
 ## Closing Workers
 
 Keep a story's implementer and reviewer open through every fix/rereview round and through the
-coordinator commit and merge-back sequence. Close or archive only that story's pair after its
-approved-story commit is present in the delivery worktree. Leave unrelated worker pairs untouched.
+orchestrator's merge-back and tracker write. Close or archive only that story's pair after its
+merge-back is present on the track branch. Leave unrelated worker pairs untouched.
 
 If the surface cannot close or archive contexts, mark only that story's pair terminal in the ledger.

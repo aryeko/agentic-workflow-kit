@@ -30,7 +30,8 @@ implementer and reviewer. Do not record runtime model IDs.
 ### Execution Waves
 
 Record the topological order from the DAG. State that a dependent story can start only after every
-dependency is `done` in `tracker.md`.
+dependency is `merged` in `tracker.md` — its per-round commits merged back to the track branch and
+its merge-back recorded.
 
 ### Prompt Inventory
 
@@ -47,8 +48,10 @@ Record what the execution stage must honor:
 
 - model class, effort, reasoning tier, and routing rationale are abstract plan decisions;
 - provider-specific runtime model IDs are selected later;
-- dependency validity comes from tracker `done` state and committed dependency inputs;
-- tracker update authority belongs to the execution stage;
+- dependency validity comes from tracker `merged` state and the producer's track-branch merge-back;
+- tracker write authority belongs to the orchestrator in the execution stage;
+- the implementer commits each round in its story worktree; the orchestrator merges approved stories
+  back to the track branch and writes the tracker — it commits no story content itself;
 - commit boundaries follow owned pathsets;
 - verifiable evidence wins over worker prose.
 

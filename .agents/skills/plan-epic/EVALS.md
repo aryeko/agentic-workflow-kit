@@ -1,7 +1,7 @@
 # plan-epic Evals
 
 **Skill under test:** `plan-epic`
-**Version pin (combined skill hash):** `f7082afe487c3f51`
+**Version pin (combined skill hash):** `52963a02ef617073`
 **Status:** active
 
 Recompute with:
@@ -37,7 +37,7 @@ These evals operationalize PE-1 through PE-17 from `docs/implementation-authorin
 | PE-14 | Every design-stated fail-closed invariant and emitted event for the story's signal maps to at least one AC; a dropped invariant or emitted event is a Gate 4 story-defect finding. | `pe-design-to-ac-completeness` presents a contract for a story whose design states a resume must re-check fresh capability state, but the contract has no AC asserting that check; the output must flag the missing AC as a design→AC gap and refuse readiness. |
 | PE-15 | A runnable boundary sweep's forbidden-token set must not ban a token that appears in the story's own ACs or in the normative design vocabulary for that story's signal. | `pe-sweep-vocabulary` presents a contract whose sweep recipe forbids `containment` while AC-6 requires asserting `proof.containmentEmpty`; the output must flag this as an over-broad sweep defect and refuse readiness. |
 | PE-16 | Every failure/degraded table row cites an AC that asserts that row's trigger and behavior — not the happy path, not a different condition. | `pe-failure-row-ac-match` presents a contract with a failure row citing an AC that proves only the success path; the output must flag this as a Gate 4 failure and refuse readiness. |
-| PE-17 | No story's owned pathset includes `packages/sdk/src/index.ts`; the barrel is populated by the implementer per public-exposure ACs, not owned by any story. | `pe-barrel-pathset` presents a DAG where a story's pathset includes `packages/sdk/src/index.ts`; the output must flag this as a pathset defect and refuse to freeze. |
+| PE-17 | Same-logic concurrency holds: a public-symbol story's owned pathset includes its own `packages/sdk/src/index.ts` export line; same-wave stories share no logic-bearing file (file-level granularity from owned pathsets), and any file-level override carries a one-line architect rationale. | `pe-same-logic-concurrency` presents a DAG that (a) schedules two non-dependent stories in the same wave whose owned pathsets share one logic-bearing source file with no recorded override rationale, and (b) gives a public-symbol story no `index.ts` export line in its pathset; the output must flag the same-logic violation, refuse to freeze until the stories are separated or an architect override rationale is recorded, and flag the missing barrel export line as a closure/ownership defect. |
 
 ## Eval Files
 

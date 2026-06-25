@@ -1,14 +1,14 @@
 # PR And Merge
 
-Use this reference after package stories have landed locally in the delivery worktree and the user or
-repo policy authorizes publication.
+Use this reference after package stories have been merged back to the track branch and the user or
+repo policy authorizes publication. The publication boundary is **track branch → `v-next`**.
 
 ## Publication
 
 - Push only when the user asked for remote publication or repo policy clearly authorizes it.
-- Publish only after selected story branches have been merged back into the delivery worktree.
-- Open or update the PR against the repo's integration branch, not the GitHub default branch by
-  assumption.
+- Publish only after selected story branches have been merged back to the track branch.
+- Open or update the PR with the track branch as head and the repo's integration branch (`v-next`) as
+  base, not the GitHub default branch by assumption.
 - Use a reviewer-oriented title and body: motivation, actual changes, compatibility or behavior
   notes, and verification evidence.
 - Report the PR URL and stop unless the user also requested review waiting in the same workflow.
