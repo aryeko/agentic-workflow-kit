@@ -161,6 +161,15 @@ export {
   recordApprovalDecision,
   recordApprovalRiskClassified,
 } from './core/approval/decision/index.js';
+export {
+  expireApproval,
+  parkApproval,
+  recordApprovalPending,
+  resumePendingApproval,
+} from './core/approval/pending/index.js';
+export { foldApprovalProjection } from './core/approval/projections/index.js';
+export { answerApprovalDecision, mapPolicyGrantToScopedGrant } from './core/approval/grants/index.js';
+export { recordApprovalOutcome } from './core/approval/outcomes/index.js';
 export type {
   ApprovalAutoGrantGate,
   ApprovalDecisionComputation,
@@ -181,6 +190,26 @@ export type {
   RecordApprovalDecisionInput,
   RecordApprovalRiskClassifiedInput,
 } from './core/approval/decision/index.js';
+export type {
+  AnswerApprovalDecisionCommit,
+  AnswerApprovalDecisionFailure,
+  AnswerApprovalDecisionInput,
+  AnswerApprovalDecisionResult,
+  ApprovalDenyPlan,
+  ApprovalGrantMappingFailure,
+  ApprovalGrantMappingResult,
+  ApprovalRelay,
+  DenyDisposition,
+  MapPolicyGrantInput,
+} from './core/approval/grants/index.js';
+export type {
+  ApprovalOutcomeIdGenerator,
+  ApprovalOutcomeKind,
+  ApprovalOutcomeRecordCommit,
+  ApprovalOutcomeRecordFailure,
+  ApprovalOutcomeWriter,
+  RecordApprovalOutcomeInput,
+} from './core/approval/outcomes/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
