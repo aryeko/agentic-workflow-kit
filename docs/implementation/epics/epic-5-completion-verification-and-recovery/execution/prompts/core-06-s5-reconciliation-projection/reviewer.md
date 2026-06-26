@@ -48,9 +48,9 @@
 - Covers signals: blocked reconciliation records and recovery projection signals.
 - Depends on: `core-06-s1`, `core-06-s2`, `core-06-s3`, `core-06-s4`, core-01 replay/projection contracts.
 - Depended on by: Epic 7 operator attention, inspect, explain, and recovery surfaces.
-- Shared shapes consumed: `RecoveryClassified`, `StoryLaunchLeaseAcquired`, `DuplicateLaunchBlocked`,
-  `StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`, `RecoveryActionPlanned`,
-  `RecoveryActionApplied`, `ReconciliationBlocked`.
+- Shared shapes consumed: committed `RecoveryClassified`, `StoryLaunchLeaseAcquired`,
+  `DuplicateLaunchBlocked`, `StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`,
+  `RecoveryActionPlanned`, `RecoveryActionApplied`, `ReconciliationBlocked`.
 - Decision inputs consumed: event envelope type, event sequence/cursor, event payload fields, recovery
   state, parked reason/severity, evidence refs.
 
