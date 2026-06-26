@@ -3,11 +3,11 @@
 ## Source Baseline
 
 - Repo path: `/Users/aryekogan/repos/workflow-kit`
-- Worktree path: `/Users/aryekogan/repos/workflow-kit/.worktrees/plan-delivery-epic5`
-- Base branch: `origin/v-next`
-- HEAD inspected: `9ee76b0`
+- Worktree path: `/Users/aryekogan/repos/workflow-kit/.worktrees/plan-delivery-epic5-replan`
+- Base branch: `v-next`
+- HEAD inspected: `06929773b73e797a748fde4abea56edb9806b106`
 - Epic slug: `epic-5-completion-verification-and-recovery`
-- Package author/date: Codex, 2026-06-26
+- Package author/date: Codex, 2026-06-27
 - Source inventory: frozen DAG plus all ten selected ready story contracts.
 - Source files read:
   - `AGENTS.md`
@@ -29,11 +29,24 @@
 
 Verdict: `ready` for package projection. Gate 1 source readiness passed: the Epic 5 DAG frontmatter is `status: "story-dag: frozen"`, all ten selected story contracts are `status: "story: ready"`, every story has stable AC ids, owned pathsets, dependencies, and elevated suggested-tier floors, and no selected STOP condition overlaps a selected AC in a way that requires source repair.
 
-Source-readiness preflights passed for package projection:
+Source-readiness preflights passed for package projection against the current `plan-delivery`
+contract:
 
 - PD-9 substrate presence: catalog-producing stories require runtime-frozen `as const` values plus coverage or type fixtures where coverage lanes are named.
 - PD-10 predicate inputs: story predicate matrices name concrete request fields, producer fields, event/projection inputs, or owned resolver outputs for selected ACs.
 - PD-11 failure-token/catalog closure: core-05 tokens are owned by `core-05-s1-completion-contracts`; core-06 recovery/action/safety tokens are owned by `core-06-s1-recovery-contracts`; consumers cite those producers.
+- PD-12 manifest/gate-lane coverage: each selected story's coverage matrix maps spec-surface items to
+  `AC-n` ids and standing gate lanes (`type:fixtures`, `typecheck`, or `coverage:baseline`), and
+  evidence packs name the required fixture or public-import evidence.
+- Phantom-consumer scoping: every current-DAG consumer named by the shared-shape table has a labelled
+  dependency edge and a consumed shape or predicate source in the DAG edge matrix; prior-epic inputs are
+  covered by the whole-graph producer reconciliation table.
+- Pure/value classifier boundary: `core-06-s2-recovery-classifier` is pure over supplied snapshot values
+  and produces only return payloads; writer/apply obligations are owned by `core-06-s4` and projection
+  obligations by `core-06-s5`.
+- Safety-action provenance: every unattended recovery, retry, clear, or apply action is traced to
+  `core-06-s2` pure classification, `core-06-s4` committed `RecoveryClassified` barrier event, and the
+  committed `auto-recover` gate/record required before apply.
 
 ## Projection Summary
 
@@ -47,7 +60,7 @@ Source-readiness preflights passed for package projection:
 | `core-06-s1-recovery-contracts` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9 | Produce recovery snapshot, classifier, plan, event payload, lease-key, projection, action, safety, and failure catalog types. | 2 | `core-05-s1-completion-contracts` | `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases`, `core-06-s4-recovery-plan-apply`, `core-06-s5-reconciliation-projection` | `packages/sdk/src/core/recovery/contracts/**`, `packages/sdk/tests/core/recovery/contracts/**`, own `packages/sdk/src/index.ts` export lines | elevated | implementer: strong-coder/high/elevated; reviewer: frontier-reviewer/high/elevated. Rationale: core-06-s1-recovery-contracts covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9 and has DAG floor elevated; minimal compliant routing is elevated because public recovery contract and catalog producer consumed by all recovery behavior stories. |
 | `core-06-s2-recovery-classifier` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 | Implement pure stable-order recovery classifier, action-safety matrix, resume/restart eligibility, and deterministic plan-id inputs. | 3 | `core-06-s1-recovery-contracts`, `core-05-s1-completion-contracts` | `core-06-s4-recovery-plan-apply`, `core-06-s5-reconciliation-projection` | `packages/sdk/src/core/recovery/classifier/**`, `packages/sdk/tests/core/recovery/classifier/**`, own `packages/sdk/src/index.ts` export lines | elevated | implementer: strong-coder/high/elevated; reviewer: frontier-reviewer/high/elevated. Rationale: core-06-s2-recovery-classifier covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 and has DAG floor elevated; minimal compliant routing is elevated because pure recovery classifier safety boundary with stable rule order and fail-closed ambiguity handling. |
 | `core-06-s3-launch-leases` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6 | Enforce story-launch lease acquisition, duplicate blocking, and stale launch clearance requests. | 3 | `core-06-s1-recovery-contracts` | `core-06-s4-recovery-plan-apply`, `core-06-s5-reconciliation-projection` | `packages/sdk/src/core/recovery/leases/**`, `packages/sdk/tests/core/recovery/leases/**`, own `packages/sdk/src/index.ts` export lines | elevated | implementer: strong-coder/high/elevated; reviewer: frontier-reviewer/high/elevated. Rationale: core-06-s3-launch-leases covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6 and has DAG floor elevated; minimal compliant routing is elevated because lease coordination safety boundary with epoch fencing and duplicate launch prevention. |
-| `core-06-s4-recovery-plan-apply` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 | Plan recovery actions, require auto-recover gates for autonomous actions, hand off provider controls, and record applied actions/lifecycle recovery edges. | 4 | `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases` | `core-06-s5-reconciliation-projection` | `packages/sdk/src/core/recovery/plans/**`, `packages/sdk/tests/core/recovery/plans/**`, own `packages/sdk/src/index.ts` export lines | elevated | implementer: strong-coder/high/elevated; reviewer: frontier-reviewer/high/elevated. Rationale: core-06-s4-recovery-plan-apply covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 and has DAG floor elevated; minimal compliant routing is elevated because auto-recover gate enforcement and provider-control handoff boundary. |
+| `core-06-s4-recovery-plan-apply` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9 | Append committed recovery classification records, plan recovery actions, require auto-recover gates for autonomous actions, hand off provider controls, and record applied actions/lifecycle recovery edges. | 4 | `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases` | `core-06-s5-reconciliation-projection` | `packages/sdk/src/core/recovery/plans/**`, `packages/sdk/tests/core/recovery/plans/**`, own `packages/sdk/src/index.ts` export lines | elevated | implementer: strong-coder/high/elevated; reviewer: frontier-reviewer/high/elevated. Rationale: core-06-s4-recovery-plan-apply covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9 and has DAG floor elevated; minimal compliant routing is elevated because committed classification barrier provenance, auto-recover gate enforcement, and provider-control handoff boundary. |
 | `core-06-s5-reconciliation-projection` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 | Record blocked reconciliation and fold recovery projection fields for operator attention and downstream surfaces. | 5 | `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases`, `core-06-s4-recovery-plan-apply` | `Epic 7` | `packages/sdk/src/core/recovery/reconciliation/**`, `packages/sdk/src/core/recovery/projections/**`, `packages/sdk/tests/core/recovery/reconciliation/**`, `packages/sdk/tests/core/recovery/projections/**`, own `packages/sdk/src/index.ts` export lines | elevated | implementer: strong-coder/high/elevated; reviewer: frontier-reviewer/high/elevated. Rationale: core-06-s5-reconciliation-projection covers AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 and has DAG floor elevated; minimal compliant routing is elevated because event-log projection and blocked reconciliation safety boundary for operator surfaces. |
 
 ## Execution Waves
@@ -74,7 +87,7 @@ A dependent story can start only after every dependency is `merged` in `tracker.
 | `core-06-s1-recovery-contracts` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9 | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s1-recovery-contracts/implementer.md` | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s1-recovery-contracts/reviewer.md` |
 | `core-06-s2-recovery-classifier` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s2-recovery-classifier/implementer.md` | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s2-recovery-classifier/reviewer.md` |
 | `core-06-s3-launch-leases` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6 | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s3-launch-leases/implementer.md` | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s3-launch-leases/reviewer.md` |
-| `core-06-s4-recovery-plan-apply` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s4-recovery-plan-apply/implementer.md` | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s4-recovery-plan-apply/reviewer.md` |
+| `core-06-s4-recovery-plan-apply` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9 | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s4-recovery-plan-apply/implementer.md` | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s4-recovery-plan-apply/reviewer.md` |
 | `core-06-s5-reconciliation-projection` | AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7 | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s5-reconciliation-projection/implementer.md` | `docs/implementation/epics/epic-5-completion-verification-and-recovery/execution/prompts/core-06-s5-reconciliation-projection/reviewer.md` |
 
 ## Verification Policy
@@ -106,8 +119,12 @@ A later run resumes by reading existing tracker rows, per-round commit hashes, m
 
 - Sources reviewed: `docs/implementation/epics/epic-5-completion-verification-and-recovery/README.md`, `docs/implementation/epics/epic-5-completion-verification-and-recovery/story-dag.md`, all ten story contracts, repo `AGENTS.md`, and `CLAUDE.md`.
 - Selected stories covered: `core-05-s1-completion-contracts`, `core-05-s2-completion-evidence`, `core-05-s3-merge-readiness`, `core-05-s4-forge-intents-and-blockers`, `core-05-s5-post-merge-outcomes`, `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases`, `core-06-s4-recovery-plan-apply`, `core-06-s5-reconciliation-projection`.
-- Artifact checks performed before independent review: source status and AC/pathset/dependency inventory, routing floor check, prompt-pair completeness, tracker initial-state check, runtime model ID exclusion check, and PD-9/PD-10/PD-11 source-readiness preflight. Thread-aware PR follow-up added a content-integrity validator that round-trips every projected Acceptance Criteria and STOP/boundary section against the source story contracts.
-- Independent reviewer verdict: no blocking findings on the initial package. Subsequent live PR review found prompt truncation that the original file-presence validator missed; this follow-up repaired the generator output and verified AC and STOP/boundary round-trip integrity against source contracts.
+- Artifact checks performed before independent review: source status and AC/pathset/dependency inventory,
+  routing floor check, prompt-pair completeness, tracker initial-state check, runtime model ID exclusion
+  check, source-readiness preflight for PD-9, PD-10, PD-11, and PD-12, phantom-consumer edge closure,
+  pure/value classifier boundary closure, and safety-action provenance closure.
+- Independent reviewer verdict: no blocking findings after the `core-06-s4` AC-6 projection repair; the
+  reviewer returned a `ready_for_implementation` verdict for the repaired package.
 - Final verdict: `ready_for_implementation`.
 
 ## Stop Point

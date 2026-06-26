@@ -3,19 +3,19 @@
 ## Assigned Routing
 
 - Source story id: `core-06-s4-recovery-plan-apply`
-- Source AC ids: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8
+- Source AC ids: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9
 - Model class: `frontier-reviewer`
 - Effort: `high`
 - Suggested-tier floor: `elevated`
 - Reasoning tier: `elevated`
-- Routing rationale: review must independently verify AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8 for auto-recover gate enforcement and provider-control handoff boundary; reviewer routing is fixed to `frontier-reviewer` by package rules.
+- Routing rationale: review must independently verify AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9 for committed classification barrier provenance, auto-recover gate enforcement, and provider-control handoff boundary; reviewer routing is fixed to `frontier-reviewer` by package rules.
 
 ## Original Scope
 
 - Story id: `core-06-s4-recovery-plan-apply`
 - Epic slug: `epic-5-completion-verification-and-recovery`
 - Source story contract path: `docs/implementation/epics/epic-5-completion-verification-and-recovery/stories/core-06-s4-recovery-plan-apply.md`
-- Acceptance criteria: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8
+- Acceptance criteria: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9
 - Allowed pathset: `packages/sdk/src/core/recovery/plans/**`, `packages/sdk/tests/core/recovery/plans/**`, own `packages/sdk/src/index.ts` export lines
 - Dependencies: `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases`
 - Dependency inputs: `{{DEPENDENCY_COMMITS}}` plus producer contracts listed in the source story.
@@ -30,9 +30,15 @@
   applied without a committed matching `CapabilityGateRecord`; denied/missing/mismatched gates park
   rather than apply - evidence: `coverage:baseline` fixtures `auto-recover-gate-required`,
   `auto-recover-gate-mismatch-blocks`, and `manual-mode-no-autonomy`.
+- **AC-9** `recordRecoveryClassified` appends the `RecoveryClassified` payload returned by
+  `core-06-s2` with its classifier rule version, cursor, evidence refs, and source classification
+  values before any unattended `auto-recover` gate request, `RecoveryActionPlanned`, or
+  `RecoveryActionApplied` success - evidence: `coverage:baseline`
+  `recovery-classified-committed-before-plan-apply`.
 - **AC-3** `RecoveryActionPlanned` includes `runId`, `planId`, `selectedAction`, optional
   `requiredGate`, optional `lifecycleTarget`, optional `providerControl`, `plannedAt`, and
-  `sourceEventIds` - evidence: `coverage:baseline` `recovery-action-planned-fields`.
+  `sourceEventIds`, including the committed `RecoveryClassified` event id - evidence:
+  `coverage:baseline` `recovery-action-planned-fields`.
 - **AC-4** `RecoveryActionApplied` is recorded only with supported provider-control evidence refs for
   `agent-resume`, `host-terminate`, `forge-refresh`, or `work-source-release`, plus optional gate ref -
   evidence: `coverage:baseline` table `recovery-action-applied-control-matrix`.
@@ -44,18 +50,20 @@
 - **AC-5** Lifecycle recovery-edge requests are limited to the approved edges listed in design and cite
   recovery event ids; illegal edges fail closed - evidence: `coverage:baseline`
   `recovery-lifecycle-edge-allowlist`.
-- **AC-6** Append failures for plan/apply records return blocked/unwritable failure and no success record
-  - evidence: `coverage:baseline` `recovery-plan-apply-unwritable`.
+- **AC-6** Append failures for classification/plan/apply records return blocked/unwritable failure and
+  no success record - evidence: `coverage:baseline` `recovery-plan-apply-unwritable`.
 - **AC-7** Public SDK importability exposes planning/apply helpers through this story's export lines -
   evidence: `typecheck` public-import test.
 
 ### Dependencies And Frozen Inputs
 
-- Covers signals: recovery plan and applied action lifecycle recovery-edge signals.
+- Covers signals: committed recovery classification record, recovery plan, and applied action lifecycle
+  recovery-edge signals.
 - Depends on: `core-06-s1`, `core-06-s2`, `core-06-s3`, Epic 3 core-02 gate records, core-01 lifecycle
   rules.
 - Depended on by: `core-06-s5`, Epic 7.
-- Shared shapes consumed: `RecoveryClassification`, `RecoveryPlan`, lease records, `CapabilityGateRecord`.
+- Shared shapes consumed: `RecoveryClassification`, `RecoveryClassified` payload values,
+  `RecoveryPlan`, lease records, `CapabilityGateRecord`.
 - Decision inputs consumed: requested action, mode (`manual` or `assisted`), policy ref, capability
   scope, `evaluatedThrough`, classification state/action/safety, lease status, gate allow/deny,
   provider-control evidence refs, and stale-clearance request refs.
@@ -92,7 +100,7 @@
 
 Check all of the following against the original source story and runtime evidence:
 
-- AC coverage by source AC id: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8.
+- AC coverage by source AC id: AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9.
 - Each AC names and is re-proven by its standing gate lane; treat proof that is only manual, one-off, or outside the standing gate as BLOCKING.
 - Failure, degraded, and validation rows from the story contract.
 - Evidence pack completeness.
@@ -109,6 +117,7 @@ Check all of the following against the original source story and runtime evidenc
 |---|---|---|
 | Deterministic recovery plan | AC-1 | `coverage:baseline` |
 | `auto-recover` gate enforcement | AC-2 | `coverage:baseline` |
+| `RecoveryClassified` committed barrier event | AC-9 | `coverage:baseline` |
 | `RecoveryActionPlanned` fields | AC-3 | `coverage:baseline` |
 | `RecoveryActionApplied` fields/control evidence | AC-4 | `coverage:baseline` |
 | Gated stale-launch clear event | AC-8 | `coverage:baseline` |
@@ -121,7 +130,7 @@ Check all of the following against the original source story and runtime evidenc
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `operator-required` | autonomous gate absent or policy/mode does not permit autonomy | plan parks; no apply success | AC-2 |
-| `log-unwritable` | plan/apply append fails | return blocked/unwritable failure | AC-6 |
+| `log-unwritable` | classification/plan/apply append fails | return blocked/unwritable failure | AC-6 |
 
 ### Validation Failure Modes
 
@@ -133,7 +142,7 @@ Check all of the following against the original source story and runtime evidenc
 
 - Coverage scope and threshold: `packages/sdk/src/core/recovery/plans/**`, 95% branch.
 - Coverage command and instrumented lanes: `pnpm check` via `coverage:baseline`.
-- Required tests: AC-1..AC-8 and every failure row.
+- Required tests: AC-1..AC-9 and every failure row.
 - Public exposure: `sdk` import path plus AC-7 public-import test.
 - Determinism constraints: injected `plannedAt`/`appliedAt`; deterministic plan id; no ambient clock/random.
 - Dependency boundaries: provider controls are evidence refs only; no concrete provider imports or Work
@@ -141,8 +150,8 @@ Check all of the following against the original source story and runtime evidenc
 - File-size budget: 260 lines per file; split plan/apply/edge helpers before 400 lines; 800 hard cap.
 - Domain non-negotiables: auto-safe is not authorization; committed gate is required.
 
-- Plan determinism, gate enforcement, plan/apply field, gated stale-launch clear, lifecycle allowlist,
-  unwritable, and public-import tests.
+- Classification append ordering, plan determinism, gate enforcement, plan/apply field, gated
+  stale-launch clear, lifecycle allowlist, unwritable, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|AgentProvider|ExecutionHost|ForgeProvider|WorkSource|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/plans packages/sdk/tests/core/recovery/plans`
