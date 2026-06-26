@@ -27,6 +27,6 @@ last-reviewed: "2026-06-19"
 
 ---
 
-**↑ Up:** [documentation home](./README.md) · **← Prev:** [Orchestrated-Delivery Operator UX Design](./reviews/2026-06-26-orchestrated-delivery-operator-ux-design.md)
+**↑ Up:** [documentation home](./README.md) · **← Prev:** [PR #167 authoring hardening note](./reviews/2026-06-26-pr-167-authoring-hardening-note.md)
 
 <!-- /DOCS-NAV -->

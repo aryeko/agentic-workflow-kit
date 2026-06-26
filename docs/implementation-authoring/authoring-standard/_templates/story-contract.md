@@ -96,7 +96,8 @@ that supplies that value.
 Every responsibility and spec-surface item maps to a proving AC; every AC maps back to one, and every
 AC names the **standing gate lane** that re-proves it (a `pnpm check` leaf such as `type:fixtures`,
 `coverage:baseline`, `deps`, or `typecheck` — never a manual one-off). No responsibility crosses this
-story's assigned signal.
+story's assigned signal. A manifest item with no AC, or with an AC but no standing gate lane, is an
+orphaned obligation.
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -118,23 +119,25 @@ citations, or story ids as values unless the resolver is in scope.
 
 For every required field of every record/event this story appends, and every required public symbol it
 exposes, name the declared source. A required output with no reachable source is a **closure defect**
-and a Gate 4 blocker. If a field comes from an id-generator or minting rule, name the generator.
+and a Gate 4 blocker. If a field comes from an id-generator or minting rule, name the generator. If this
+story is pure/value/classifier/projection-only, it must not own a writer/append/persistence obligation
+unless the owned writer seam is named here.
 
-| Produced record/event/symbol | Required field or symbol | Declared source (input field / owned-pathset file / minting rule) | Verdict |
-|---|---|---|---|
-| <EventName or public symbol> | <field name> | <source> | closed |
+| Produced record/event/symbol | Required field or symbol | Declared source (input field / owned-pathset file / minting rule) | Writer seam, if any | Verdict |
+|---|---|---|---|---|
+| <EventName or public symbol> | <field name> | <source> | <writer seam or none> | closed |
 
 **Worked example — event appended by one story and consumed by another:**
 
 Suppose story `apr-s2-decide` must append `ApprovalDecisionRecorded` and story `apr-s3-classify` consumes
 it. The `apr-s2-decide` contract's produced-obligations table must read:
 
-| Produced record/event/symbol | Required field or symbol | Declared source | Verdict |
-|---|---|---|---|
-| `ApprovalDecisionRecorded` | `decisionId` | `IdGenerator.newId()` — owned port, injected at construction | closed |
-| `ApprovalDecisionRecorded` | `requestId` | `ApprovalRequest.requestId` — consumed input field | closed |
-| `ApprovalDecisionRecorded` | `decision` | `ApproveOrDenyCommand.decision` — consumed command field | closed |
-| `ApprovalDecisionRecorded` | `decidedAt` | `Clock()` — owned port, injected at construction | closed |
+| Produced record/event/symbol | Required field or symbol | Declared source | Writer seam, if any | Verdict |
+|---|---|---|---|---|
+| `ApprovalDecisionRecorded` | `decisionId` | `IdGenerator.newId()` — owned port, injected at construction | `ApprovalEventWriter.append` | closed |
+| `ApprovalDecisionRecorded` | `requestId` | `ApprovalRequest.requestId` — consumed input field | `ApprovalEventWriter.append` | closed |
+| `ApprovalDecisionRecorded` | `decision` | `ApproveOrDenyCommand.decision` — consumed command field | `ApprovalEventWriter.append` | closed |
+| `ApprovalDecisionRecorded` | `decidedAt` | `Clock()` — owned port, injected at construction | `ApprovalEventWriter.append` | closed |
 
 `apr-s3-classify` lists `ApprovalDecisionRecorded` as a consumed event in its dependencies and consumes its
 fields as declared source values in its own consumed-predicates table. The DAG must declare `apr-s2-decide`
@@ -167,6 +170,7 @@ assert the invalid fixture and required validation failure — verify the cited 
 - Dependency boundaries:
 - File-size budget (lines per file; default soft cap ~200):
 - Domain non-negotiables:
+- Unattended safety actions: <none, or action -> classification producer -> committed gate record>.
 
 ## Required reading
 
@@ -187,6 +191,7 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
 - Test name or artifact proving each failure/degraded outcome or validation-failure row.
 - Negative fixture or equivalent failing assertion for every rejection, fail-fast, or validation failure
   claim.
+- Manifest coverage evidence: each manifest item maps to an AC and standing gate lane.
 - `pnpm check` result, unless the gate is blocked by an unrelated repository issue that is named.
 - Coverage command, instrumented lane(s), and number for the stated scope.
 - Public-import test result for every shape the story exposes on the public SDK surface (imported through
@@ -200,6 +205,9 @@ The <package/module> providing <the surface from the manifest>, plus the evidenc
   Core stories may use recorded/mock attestations to prove gate predicates, but must not require real
   processes or network.
 - Provider `evidence/` appendix when the story depends on provider schema or live behavior.
+
+For non-command artifacts, name the exact file path and bounded line range, fixture id, or generated
+artifact id. Evidence that only names a directory or prose category is not reconstructable.
 
 ## Boundaries and STOP conditions
 

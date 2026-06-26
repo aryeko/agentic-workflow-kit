@@ -71,9 +71,17 @@ When several stories consume the same type / event / port (e.g. `core-02`..`core
 run event envelope), **exactly one** story is the **producer** that defines the shape; the rest are
 **consumers** that cite it verbatim. This is R5's "name the shape once" given a home:
 
-- Mark the producer node; put a dependency edge from every consumer to it.
+- Mark the producer node; when the producer is in the current DAG, put a dependency edge from every
+  current-DAG consumer to it. When the producer is from a prior frozen epic, record that source in the
+  dependency/shared-shape reconciliation instead of inventing an intra-DAG edge.
 - The shared shape lives in the **producer story's spec surface**. Consumers reference
   `<producer-story>/<type>` **verbatim** and never redeclare it.
+- A story may be listed as a consumer of a current-DAG producer only when the DAG records the dependency
+  edge **and** the dependency/shared-shape reconciliation records the consumed shape or predicate. A prior
+  frozen producer is valid when the reconciliation row names that frozen source. A claimed consumer with no
+  applicable current-DAG edge and no DAG-declared consumed shape/predicate use is a **phantom consumer
+  edge**: it can make a producer look needed, or a package look ordered, without a real dependency. Gate 3
+  rejects it as part of the whole-graph producer/consumer reconciliation.
 - Record the **public import path** the consumer will use (package export / barrel); exposing the shape on
   that path is part of the producer's public-exposure AC. A type a consumer cannot import through the
   intended path is **not delivered**, even if it exists privately.
@@ -148,6 +156,13 @@ must not be authored.
       node; consumers cite it, none redeclare.
 - [ ] **Acyclic, labelled edges.** The dependency graph is acyclic and every edge names the contract that
       creates it.
+- [ ] **No phantom consumers.** Every listed consumer of a current-DAG producer has both a labelled
+      dependency edge to that producer and a corresponding consumed shape/predicate in the DAG's
+      dependency/shared-shape reconciliation. Consumers of prior frozen producers are valid only when the
+      reconciliation row names the frozen source. A consumer named only in prose, without an applicable
+      edge and without DAG-declared consumed-shape/predicate use, is rejected as a whole-graph closure
+      defect. After contracts exist, Gate 4 and characterization review verify that the contract consumes
+      the DAG-declared shape/predicate rather than inventing or dropping it.
 - [ ] **Defensible sizing.** No node bundles unrelated signals; no node is too thin to carry a falsifiable
       AC.
 - [ ] **Dispatch-ready.** Each node names one owned pathset and sits in a topological band (its delivery

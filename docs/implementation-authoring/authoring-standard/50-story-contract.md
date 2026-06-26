@@ -31,7 +31,9 @@ proving `AC-n`, and every `AC-n` back to the **standing gate lane** that re-prov
 with no AC is an orphaned obligation; an AC with no manifest item is invented scope; an AC whose only
 proof is a manual one-off (not a named `pnpm check` / CI lane) is a manual-only proof that does not
 durably hold; a responsibility reaching into another story's signal is an ownership leak — move it to
-the owning story.
+the owning story. The matrix is complete only when each manifest item maps all the way to
+`manifest item -> AC-n -> standing gate lane`; a manifest item that maps to an AC but no lane is still
+orphaned for durability purposes.
 
 **Failure-token/catalog closure.** Every failure / degraded / validation token in a story must resolve to
 exactly one authoritative owner: the story-owned producer catalog, or an earlier frozen design / producer
@@ -74,6 +76,18 @@ producer reachable from declared inputs is a **closure defect** and a blocking g
 implementer's puzzle. The predicate-input matrix must therefore cover construction obligations (fields
 produced), not only predicates consumed.
 
+**Pure/value classifier boundary.** A story characterized as pure, value-only, classifier-only, or
+projection-only may produce return values and in-memory classifications, but it does **not** own writer,
+append, persistence, or event-log obligations unless the contract explicitly names the writer seam it owns.
+If the manifest or produced-obligations table requires an append/write while the story is classified as
+pure/value-only and no writer seam is owned, the contract is internally contradictory and Gate 4 fails.
+
+**Safety action provenance.** Any unattended recovery, clear, apply, auto-retry, or other safety action
+must name the classification producer that authorizes the action and the committed gate record that must
+exist before the action runs. A proposed action that relies on a stale classification, a prose safety
+label, or an uncommitted/manual check is a source gap: the contract must route through an explicit
+producer and recorded gate evidence, or mark the action manual-only.
+
 **Substrate/config variant.** A story whose deliverable is declarative substrate (`tsconfig`,
 `package.json`, workspace, dependency rules, CI, linters) — or, more generally, **any story whose owned
 pathset can be satisfied by erased TypeScript types alone** (a type-only contract producer) — must **not**
@@ -102,6 +116,9 @@ Tick every box; an empty box means not ready.
       stories use `Validated artifacts` + `Validation failure modes`, not invented types.
 - [ ] Covers its story-DAG node's signal(s); shared shapes cited by producer story, not redeclared.
 - [ ] Internal coverage holds both ways; no responsibility crosses the assigned signal.
+- [ ] Manifest coverage is durable: every manifest item maps to a proving `AC-n`, and that AC maps to a
+      standing `pnpm check` or named CI gate lane. A manifest item with no AC, or with an AC but no
+      standing lane, is an orphaned obligation and blocks readiness.
 - [ ] **Predicate-input closure — relational & compound** (*instance of [Readiness is reconstructed, not
       asserted](10-principles.md#readiness-is-reconstructed-not-asserted)*): every behavioral AC and every
       failure/degraded trigger names the concrete declared input, consumed event/projection, producer-owned
@@ -116,6 +133,9 @@ Tick every box; an empty box means not ready.
       symbol the story exposes names a declared source — an input field, an owned-pathset file, or an
       explicit producer/minting rule; a required output with no reachable producer is a blocking closure
       defect, not deferred to the implementer.
+- [ ] Pure/value classifier boundary holds: a story classified as pure, value-only, classifier-only, or
+      projection-only owns no writer/append/persistence/event-log obligation unless the contract explicitly
+      names the writer seam it owns. Otherwise the contract is a boundary contradiction.
 - [ ] Failure/degraded (or validation-failure) table present; **each row's cited AC actually asserts
       that row** — not the happy path, not a different condition.
 - [ ] **Failure-token/catalog closure:** every failure / degraded / validation token resolves to exactly
@@ -151,6 +171,10 @@ Tick every box; an empty box means not ready.
       constructs each public shape.
 - [ ] Safety invariants fail-closed **by construction** — the unsafe state is unrepresentable or
       rejected, proven by a fail-closed test, not left to caller discipline.
+- [ ] Unattended safety actions name provenance: every recovery, clear, apply, auto-retry, or similar
+      action names the classification producer and the committed gate record required before execution.
+      Missing producer or missing committed gate record means the action is manual-only or the story is
+      not ready.
 - [ ] Public-input / validator stories enumerate the negative-case matrix: missing-required,
       wrong-type, unknown-field, malformed-nested, unsafe-runtime; exported canonical catalogs
       runtime-frozen or justified.
@@ -171,7 +195,9 @@ a declared input/event/projection/producer shape/resolver; conformance evidence 
 (real-runtime attestation only for a real driver capability). No manifest item missing; no requirement
 invented beyond design. **An AC whose only proof is a command not invoked by `pnpm check` or a named CI
 lane is not gradable** — a manual one-off re-run by the reviewer is not a durable proof; name the
-standing gate lane that re-proves the AC, or the AC stays ungraded.
+standing gate lane that re-proves the AC, or the AC stays ungraded. Non-command artifacts must name the
+exact file path and bounded range, fixture id, or generated artifact id used as evidence; an evidence
+pack that omits the range or concrete artifact cannot be reconstructed and is incomplete under Gate 5.
 
 **Gate 6 — readiness matrix.** An implementation axis moves to `yes` only with cited executable
 evidence. Design approval, prose, migrated code, fixtures, or worker self-report justify `partial` only.

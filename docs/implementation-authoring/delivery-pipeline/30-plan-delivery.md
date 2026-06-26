@@ -44,14 +44,14 @@ stop and route it back to `plan-epic`; do not paper over it.
 
 Refuse, and route back to `plan-epic`, on a non-frozen DAG, any non-ready selected story, a contract too
 underspecified to project without inventing, or a self-blocking ready contract whose STOP conditions name
-a missing fact needed by one of its ACs or failure/degraded triggers. Three **readiness-contract
-preflights** - substrate-presence, predicate-input, and failure-token/catalog closure - also gate the
-verdict; see [Readiness-contract preflights](#readiness-contract-preflights). They read the frozen DAG,
-contracts, and manifests, never code on disk.
+a missing fact needed by one of its ACs or failure/degraded triggers. Four **readiness-contract
+preflights** - substrate-presence, predicate-input, failure-token/catalog closure, and manifest/gate-lane
+coverage - also gate the verdict; see [Readiness-contract preflights](#readiness-contract-preflights).
+They read the frozen DAG, contracts, and manifests, never code on disk.
 
 ## Readiness-contract preflights
 
-Three static checks run before `ready_for_implementation`, reading the frozen DAG, each selected
+Four static checks run before `ready_for_implementation`, reading the frozen DAG, each selected
 contract's **spec-surface manifest and AC text - never globbing the owned src pathset**. The pathset is *empty until
 implementation*, so a code-on-disk glob has nothing to read at plan time and would misfire on every
 contracts story; the manifest is the only artifact that exists at this layer, and the authoring standard
@@ -110,6 +110,20 @@ time, not a cheaper heuristic.
   Gate-4 box, the Gate-3
   **[Whole-graph failure-token/catalog reconciliation](../authoring-standard/40-story-dag.md#gate-3--ready-to-freeze)**
   box, and **LSN-31**.
+
+- **manifest/gate-lane coverage preflight.** Build the contract's manifest coverage chain from its
+  internal coverage matrix. Refuse `ready_for_implementation` if any manifest item lacks a proving AC, or
+  if the proving AC lacks a standing `pnpm check` leaf or named CI lane. A manual command, one-off review
+  note, or prose evidence category does not make the obligation durable. Also refuse if the evidence pack
+  cites a non-command artifact without a concrete file range, fixture id, or generated artifact id: the
+  proof cannot be reconstructed. Reason string emitted on refusal:
+  > `manifest coverage gap: manifest item <item> does not map to AC -> standing gate lane, or its evidence pack entry lacks a concrete range/artifact id. Route back to plan-epic; every manifest obligation must be durably re-proved by a named gate lane and reconstructable evidence.`
+
+  Cites the **[manifest coverage](../authoring-standard/50-story-contract.md#gate-4--authoring-ready)**
+  Gate-4 box and **LSN-34** for repeated orphaned manifest obligations. The evidence-pack
+  range/artifact-id refusal cites
+  **[Gate 5 evidence pack complete](../authoring-standard/50-story-contract.md#verification--freeze)**
+  and **LSN-15**.
 
 ## Output gate (done means)
 
@@ -172,8 +186,9 @@ to the track branch.
 | PD-9 | substrate-presence preflight: refuses `ready_for_implementation` when a quality bar names a statement/branch coverage lane while the spec-surface manifest declares no runtime-value export (a retained type-only marker alone does not trigger — an `as const` catalog passes); reads the manifest, not the pathset. | P1 | S/T |
 | PD-10 | predicate-input preflight: refuses when an AC closure row names an input category not a concrete `Producer/Type.field`, or any relational sub-predicate leaves an operand unsourced (per sub-predicate, not per AC); reads the manifest, not the pathset. | P1 | S/T |
 | PD-11 | failure-token/catalog closure preflight: refuses `ready_for_implementation` when any selected story consumes a failure / degraded / validation token that is unowned, ambiguous, absent from the cited producer catalog, stronger than design, or backed only by prose instead of enforced exact-literal fixtures / catalog tests. | P1 | S/T |
+| PD-12 | manifest/gate-lane coverage preflight: refuses `ready_for_implementation` when any spec-surface manifest item lacks the chain `manifest item -> AC -> standing gate lane`, or when non-command evidence lacks a concrete range, fixture id, or generated artifact id. | P1 | S/T |
 
-The skill's own `EVALS.md` (when authored) operationalizes PD-1..PD-11 as test cases with a version pin.
+The skill's own `EVALS.md` (when authored) operationalizes PD-1..PD-12 as test cases with a version pin.
 PD-2 is the load-bearing one: it is what keeps the bridge from bypassing the characterization gate.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
