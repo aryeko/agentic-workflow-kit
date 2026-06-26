@@ -87,6 +87,6 @@ triggers until trigger auth and transport contracts exist. No domain has a pendi
 
 ---
 
-**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Epic R1 - story DAG](./epics/epic-r1-closure-remediation/story-dag.md) · **Next →:** [Implementation planning — authoring standard](../implementation-authoring/README.md)
+**↑ Up:** [implementation contract](./README.md) · **← Prev:** [Epic R2 - story DAG](./epics/epic-r2-run-launch-workspace-fact/story-dag.md) · **Next →:** [Implementation planning — authoring standard](../implementation-authoring/README.md)
 
 <!-- /DOCS-NAV -->

@@ -27,7 +27,7 @@
 Acceptance criteria from the original source contract:
 
 - **AC-1** Primitive approval unions exactly match the design: ApprovalMode excludes auto, ApprovalRisk is low/medium/high, PolicyGrantScope has the four policy scopes, and ApprovalSubject includes protected-policy-change and network.
-- **AC-2** ApprovalRequest requires promptRef and requestedAt; ApprovalContext requires requestedAt and promptRef and has optional subjectOverride.
+- **AC-2** ApprovalRequest requires promptRef and requestedAt; ApprovalContext requires requestedAt and promptRef and has optional subjectOverride. Both ApprovalContext and ApprovalRequest also expose an optional worktreePath?: string (the run's trusted workspace root, matching the frozen design — orchestration-injected on ApprovalContext, copied by normalize onto ApprovalRequest; never the agent cwd), proven by a positive (WITH), an absent (WITHOUT), and a wrong-type negative (e.g. worktreePath: 123, fails typecheck) fixture for each type.
 - **AC-3** Decision, Outcome, ApprovalParkInput, ParkDecision, and ResumeDecision expose exact schema literals and required source fields, including ParkDecision.sourceEventIds and ResumeDecision outcome literals.
 - **AC-4** ApprovalDecisionRecordedPayload carries ProtectedPolicyApprovalBinding required iff the request subject is protected-policy-change, with the required run/head/snapshot fields and only optional newPolicyDigest.
 - **AC-5** All seven V1 approval event payloads expose exact schema literals and required event-source fields, including classifiedAt and parkedAt.
@@ -60,7 +60,7 @@ Check source story `core-03-s1-approval-contracts` and source AC ids `AC-1`, `AC
 - Stale names and sibling occurrences of any issue found.
 - Tests, sweeps, coverage, and source quality bar:
 - approval-unions.unit.test.ts and approval-mode-auto.fixture.ts
-- approval-request-context.unit.test.ts and missing-field fixtures
+- approval-request-context.unit.test.ts and missing-field fixtures; require both ApprovalContext and ApprovalRequest to expose the optional worktreePath?: string field matching the frozen design, proven by present/absent fixtures for each type
 - approval-decision-results.unit.test.ts
 - protected-policy-binding.unit.test.ts
 - approval-payloads.unit.test.ts
