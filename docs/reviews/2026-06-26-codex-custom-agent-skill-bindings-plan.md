@@ -325,3 +325,11 @@ state that it was not independent.
   rationale.
 - Independent review is complete, or the lack of independent review is stated with a separate manual
   review result.
+
+<!-- DOCS-NAV (generated — do not edit by hand) -->
+
+---
+
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./2026-06-25-producer-consumer-closure-audit.md) · **Next →:** [roadmap](../roadmap.md)
+
+<!-- /DOCS-NAV -->

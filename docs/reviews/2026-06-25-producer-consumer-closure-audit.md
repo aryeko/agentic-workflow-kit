@@ -169,6 +169,6 @@ the inputs or owned pathset. This is the single change that would have caught al
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Closure-Defect Remediation — Durable Execution Plan](./2026-06-25-closure-remediation-plan.md) · **Next →:** [roadmap](../roadmap.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Closure-Defect Remediation — Durable Execution Plan](./2026-06-25-closure-remediation-plan.md) · **Next →:** [Codex Custom-Agent Bindings and Orchestration Message Plan](./2026-06-26-codex-custom-agent-skill-bindings-plan.md)
 
 <!-- /DOCS-NAV -->

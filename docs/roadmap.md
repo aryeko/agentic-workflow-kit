@@ -27,6 +27,6 @@ last-reviewed: "2026-06-19"
 
 ---
 
-**↑ Up:** [documentation home](./README.md) · **← Prev:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./reviews/2026-06-25-producer-consumer-closure-audit.md)
+**↑ Up:** [documentation home](./README.md) · **← Prev:** [Codex Custom-Agent Bindings and Orchestration Message Plan](./reviews/2026-06-26-codex-custom-agent-skill-bindings-plan.md)
 
 <!-- /DOCS-NAV -->
