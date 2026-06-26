@@ -1,5 +1,6 @@
 import type { ResumeDecision } from '../../../../src/core/approval/contracts/index.js';
 
+// @ts-expect-error ResumeDecision requires sourceEventIds.
 const invalidResumeDecision: ResumeDecision = {
   schema: 'kit-vnext.approval-resume-decision.v1',
   requestId: 'request-01',

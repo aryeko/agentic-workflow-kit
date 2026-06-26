@@ -1,5 +1,6 @@
 import type { ApprovalContext } from '../../../../src/core/approval/contracts/index.js';
 
+// @ts-expect-error ApprovalContext requires requestedAt.
 const invalidContext: ApprovalContext = {
   runId: 'run-01',
   taskId: 'task-01',

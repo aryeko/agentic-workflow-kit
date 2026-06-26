@@ -1,5 +1,6 @@
 import type { ApprovalRequest } from '../../../../src/core/approval/contracts/index.js';
 
+// @ts-expect-error ApprovalRequest requires requestedAt.
 const invalidRequest: ApprovalRequest = {
   schema: 'kit-vnext.approval-request.v1',
   requestId: 'request-01',

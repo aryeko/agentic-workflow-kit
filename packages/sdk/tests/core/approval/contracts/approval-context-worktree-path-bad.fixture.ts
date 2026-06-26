@@ -9,6 +9,7 @@ const invalidContext: ApprovalContext = {
   agentRequestEventId: 'evt-agent-request-01',
   requestedAt: '2026-06-26T09:00:00.000Z',
   promptRef: 'artifact://prompt-01',
+  // @ts-expect-error worktreePath must be a string when present.
   worktreePath: 123,
 };
 

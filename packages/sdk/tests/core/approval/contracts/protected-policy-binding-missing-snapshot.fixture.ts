@@ -16,6 +16,7 @@ const invalidPayload: ApprovalDecisionRecordedPayload<'protected-policy-change'>
     decidedAt: '2026-06-26T09:01:00.000Z',
   },
   sourceEventIds: ['evt-requested-01', 'evt-risk-01'],
+  // @ts-expect-error Protected policy bindings require protectedPolicySnapshotEventId.
   protectedPolicyBinding: {
     runId: 'run-01',
     candidateHeadSha: 'abc123def456',
