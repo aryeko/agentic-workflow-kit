@@ -4,6 +4,7 @@ import { foldApprovalProjection, recordApprovalOutcome } from 'sdk';
 
 import {
   appendFailure,
+  appendReceipt,
   createDecision,
   createEvent,
   createRequest,
@@ -113,5 +114,27 @@ describe('recordApprovalOutcome', () => {
         appendFailure,
       },
     });
+  });
+
+  it('falls back to the event type when append receipt omits event ids', async () => {
+    const writer = createWriter(() => ({ ok: true, value: appendReceipt([]) }));
+    const result = await recordApprovalOutcome(
+      {
+        request: createRequest(),
+        decision: createDecision(),
+        outcome: 'resumed',
+        lifecycleEventId: 'evt-resumed-01',
+        sourceEventIds: [decisionEventId, 'evt-resumed-01'],
+        recordedAt,
+        ids: () => 'outcome-resumed-01',
+      },
+      writer,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.eventId).toBe('ApprovalOutcomeRecorded');
+      expect(result.value.payload.outcome.lifecycleEventId).toBe('evt-resumed-01');
+    }
   });
 });

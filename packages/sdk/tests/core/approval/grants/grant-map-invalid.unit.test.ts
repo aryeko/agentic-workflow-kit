@@ -116,6 +116,39 @@ describe('mapPolicyGrantToScopedGrant invalid mappings', () => {
     expect(result.ok).toBe(false);
   });
 
+  it.each([
+    ['empty session prefix', []],
+    ['blank session prefix part', ['pnpm', '']],
+  ] as const)('rejects %s when command session mapping would otherwise widen', (_name, commandPrefix) => {
+    const result = mapPolicyGrantToScopedGrant({
+      request: createRequest({ command: 'pnpm check', requestedScope: 'session' }),
+      grantPlan: createPlan({
+        scope: 'session',
+        sessionId: 'session-approval-01',
+        command: 'npm test',
+        commandPrefix,
+      }),
+      decisionEventId,
+      humanApproved: true,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.failureState).toBe('approval-grant-mapping-invalid');
+    }
+  });
+
+  it('rejects command session mappings when command evidence is absent', () => {
+    const result = mapPolicyGrantToScopedGrant({
+      request: createRequest({ command: undefined, requestedScope: 'session' }),
+      grantPlan: createPlan({ scope: 'session', sessionId: 'session-approval-01', command: undefined }),
+      decisionEventId,
+      humanApproved: true,
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
   it('rejects file-change session mappings without bounded relative file paths', () => {
     const missingPaths = mapPolicyGrantToScopedGrant({
       request: createRequest({ subject: 'file-change', command: undefined, filePaths: undefined }),

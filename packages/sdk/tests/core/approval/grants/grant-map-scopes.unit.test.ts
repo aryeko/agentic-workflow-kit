@@ -64,6 +64,31 @@ describe('mapPolicyGrantToScopedGrant scoped grants', () => {
     });
   });
 
+  it('maps human-approved command session grant with policy prefix evidence', () => {
+    const result = mapPolicyGrantToScopedGrant({
+      request: createRequest({ command: 'pnpm check -- --coverage', requestedScope: 'session' }),
+      grantPlan: createPlan({
+        scope: 'session',
+        sessionId,
+        command: 'npm test',
+        commandPrefix: ['pnpm', 'check'],
+      }),
+      decisionEventId,
+      humanApproved: true,
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        grantId: 'grant-01',
+        kind: 'command-session',
+        scope: 'session',
+        commandPrefix: ['pnpm', 'check'],
+        grantEventId: decisionEventId,
+      },
+    });
+  });
+
   it('maps human-approved file-change session grant with bounded file paths', () => {
     const result = mapPolicyGrantToScopedGrant({
       request: createRequest({

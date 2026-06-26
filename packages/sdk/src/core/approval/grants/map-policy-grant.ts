@@ -1,8 +1,9 @@
 import type { ScopedGrant } from '../../../providers/agent/index.js';
+import type { Result } from '../../run-lifecycle/contracts/index.js';
 
 import type { ApprovalRequest, PolicyGrantPlan } from '../contracts/index.js';
 
-import type { ApprovalGrantMappingResult, MapPolicyGrantInput } from './types.js';
+import type { ApprovalGrantMappingFailure, ApprovalGrantMappingResult, MapPolicyGrantInput } from './types.js';
 
 const invalid = (reason: string): ApprovalGrantMappingResult => ({
   ok: false,
@@ -71,19 +72,16 @@ const mapPerCommandPrefix = (
   plan: PolicyGrantPlan,
   decisionEventId: string,
 ): ApprovalGrantMappingResult => {
-  if (plan.commandPrefix === undefined || plan.commandPrefix.length === 0) {
-    return invalid('per-command-prefix requires policy commandPrefix evidence');
-  }
-
-  if (plan.commandPrefix.some((part) => part.trim() === '')) {
-    return invalid('per-command-prefix evidence must be non-empty argv parts');
+  const prefixValidation = validateCommandPrefix(plan.commandPrefix);
+  if (!prefixValidation.ok) {
+    return prefixValidation;
   }
 
   return okGrant({
     grantId: plan.grantId,
     kind: 'command-policy-amendment',
     scope: 'turn',
-    commandPrefix: [...plan.commandPrefix],
+    commandPrefix: [...prefixValidation.value],
     grantEventId: decisionEventId,
   });
 };
@@ -135,15 +133,17 @@ const mapSession = (
     return invalid('command session grants require command evidence');
   }
 
-  if (command !== request.command && plan.commandPrefix === undefined) {
-    return invalid('command session grants require exact command or policy prefix evidence');
+  const prefixValidation =
+    command === request.command ? undefined : validateCommandPrefix(plan.commandPrefix, 'command session');
+  if (prefixValidation !== undefined && !prefixValidation.ok) {
+    return prefixValidation;
   }
 
   return okGrant({
     grantId: plan.grantId,
     kind: 'command-session',
     scope: 'session',
-    ...(plan.commandPrefix === undefined ? { command } : { commandPrefix: [...plan.commandPrefix] }),
+    ...(prefixValidation?.ok === true ? { commandPrefix: [...prefixValidation.value] } : { command }),
     grantEventId: decisionEventId,
   });
 };
@@ -172,6 +172,26 @@ const mapFileChangeSession = (
 
 const isBoundedRelativePath = (value: string): boolean =>
   value.trim() !== '' && !value.startsWith('/') && !value.startsWith('../') && !value.includes('/../');
+
+const validateCommandPrefix = (
+  commandPrefix: PolicyGrantPlan['commandPrefix'],
+  context = 'per-command-prefix',
+): Result<readonly string[], ApprovalGrantMappingFailure> => {
+  if (commandPrefix === undefined || commandPrefix.length === 0) {
+    return invalidPrefix(`${context} requires policy commandPrefix evidence`);
+  }
+
+  if (commandPrefix.some((part) => part.trim() === '')) {
+    return invalidPrefix(`${context} evidence must be non-empty argv parts`);
+  }
+
+  return { ok: true, value: commandPrefix };
+};
+
+const invalidPrefix = (reason: string): Result<readonly string[], ApprovalGrantMappingFailure> => ({
+  ok: false,
+  error: { failureState: 'approval-grant-mapping-invalid', reason },
+});
 
 const okGrant = (grant: ScopedGrant): ApprovalGrantMappingResult => ({ ok: true, value: grant });
 
