@@ -22,15 +22,38 @@ export const containsUnsafeCommandSyntax = (command: string): boolean =>
   /(^|\s)(sudo|env\s+[A-Za-z_][A-Za-z0-9_]*=|rm\s+-rf|python\s+-c|node\s+-e|ruby\s+-e|bash\s+-c|sh\s+-c)\b/.test(
     command,
   ) ||
-  /&&|\|\||[;|]|>>?|<|\$\(|`/.test(command) ||
+  /&&|\|\||[;|&]|>>?|<|\$\(|`|\r|\n/.test(command) ||
   /\b(token|secret|password|credential)\b/i.test(command);
 
-const isPrivateIpv4 = (value: string): boolean => {
-  const parts = value.split('.').map((segment) => Number.parseInt(segment, 10));
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return false;
+const parseIpv4Parts = (value: string): readonly number[] | undefined => {
+  if (/^\d+$/.test(value)) {
+    const numeric = Number(value);
+    if (!Number.isInteger(numeric) || numeric < 0 || numeric > 0xff_ff_ff_ff) {
+      return undefined;
+    }
+
+    return [(numeric >>> 24) & 0xff, (numeric >>> 16) & 0xff, (numeric >>> 8) & 0xff, numeric & 0xff];
   }
 
+  const parts = value.split('.').map((segment) => {
+    if (/^0x[0-9a-f]+$/i.test(segment)) {
+      return Number.parseInt(segment, 16);
+    }
+
+    return /^\d+$/.test(segment) ? Number.parseInt(segment, 10) : Number.NaN;
+  });
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return undefined;
+  }
+
+  return parts;
+};
+
+const isPrivateIpv4 = (value: string): boolean => {
+  const parts = parseIpv4Parts(value);
+  if (parts === undefined) {
+    return false;
+  }
   const [a, b] = parts;
   return (
     a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a === 127 || (a === 169 && b === 254)
@@ -38,6 +61,10 @@ const isPrivateIpv4 = (value: string): boolean => {
 };
 
 const isPrivateIpv6 = (value: string): boolean => {
+  if (value.startsWith('::ffff:')) {
+    return isPrivateIpv4(value.slice('::ffff:'.length));
+  }
+
   if (value === '::1') {
     return true;
   }
@@ -78,6 +105,10 @@ export const isWildcardOrPrivateHost = (host: string | undefined): boolean => {
     return isPrivateIpv4(normalized);
   }
 
+  if (/^0x[0-9a-f]+(?:\.[0-9a-fx]+){3}$/i.test(normalized) || /^\d+$/.test(normalized)) {
+    return isPrivateIpv4(normalized);
+  }
+
   return false;
 };
 
@@ -115,7 +146,11 @@ const scopeMatchesSession = (scope: string, sessionId: string): boolean => {
     return true;
   }
 
-  return new RegExp(`(?:^|/)session/${escapeRegExp(sessionId)}(?:/|$)`).test(scope);
+  if (scope.includes('/session/')) {
+    return new RegExp(`(?:^|/)session/${escapeRegExp(sessionId)}(?:/|$)`).test(scope);
+  }
+
+  return scope.startsWith('agent:');
 };
 
 export interface AttestationEvaluation {

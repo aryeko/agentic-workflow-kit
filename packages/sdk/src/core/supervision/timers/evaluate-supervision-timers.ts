@@ -1,6 +1,7 @@
 import { SUPERVISION_TIMER_NAMES, type LivenessReason, type SupervisionTimerName } from '../contracts/index.js';
 import type { LivenessTimerExpiredPayload } from '../contracts/index.js';
 
+import { toEpochMs } from '../../capability/evaluator/timestamps.js';
 import { addMs } from '../liveness/fold-liveness-shared.js';
 
 import type { EvaluateSupervisionTimersInput, SupervisionTimerEvaluation, SupervisionTimerStatus } from './types.js';
@@ -72,7 +73,9 @@ const buildTimerStatus = (
     evidence?.basisAt !== undefined
       ? addMs(evidence.basisAt, timerDurationMs(input, timer))
       : input.projection.timers[timer].deadline;
-  const exceeded = armed && globalThis.Date.parse(input.sampledAt) > globalThis.Date.parse(deadline);
+  const sampledAt = toEpochMs(input.sampledAt);
+  const deadlineAt = toEpochMs(deadline);
+  const exceeded = armed && (sampledAt === undefined || deadlineAt === undefined || sampledAt > deadlineAt);
 
   return {
     armed,

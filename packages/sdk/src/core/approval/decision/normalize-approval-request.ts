@@ -15,6 +15,7 @@ export const normalizeApprovalRequest = (input: AgentApprovalRequest, context: A
   promptRef: context.promptRef,
   ...(input.command === undefined ? {} : { command: input.command }),
   ...(input.cwd === undefined ? {} : { cwd: input.cwd }),
+  ...(input.proposedGrant?.networkHost === undefined ? {} : { host: input.proposedGrant.networkHost }),
   ...(input.proposedGrant?.filePaths === undefined ? {} : { filePaths: [...input.proposedGrant.filePaths] }),
   ...(context.worktreePath === undefined ? {} : { worktreePath: context.worktreePath }),
   ...(requestedScopeFromRequest(input) === undefined ? {} : { requestedScope: requestedScopeFromRequest(input) }),

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { evaluateSupervisionTimers } from '../../../../src/core/supervision/timers/index.js';
 
-import { agentSessionLinked, fold, makeLifecycle, sessionLinked, workerSpawned } from './shared.js';
+import { agentSessionLinked, fold, makeLifecycle, progressObserved, sessionLinked, workerSpawned } from './shared.js';
 
 describe('core-04-s3 startup timer evaluation', () => {
   it('stops startup on current-session AgentSessionLinked', () => {
@@ -21,6 +21,24 @@ describe('core-04-s3 startup timer evaluation', () => {
 
     expect(result.timers.startup.armed).toBe(false);
     expect(result.timers.startup.exceeded).toBe(false);
+    expect(result.expired.filter((expired) => expired.timer === 'startup')).toEqual([]);
+  });
+
+  it('stops startup on first current-session progress even when AgentSessionLinked is absent', () => {
+    const liveness = fold([
+      makeLifecycle(1, 'worker-starting', 'workspace-ready'),
+      workerSpawned(2),
+      sessionLinked(3),
+      progressObserved(4),
+    ]);
+
+    const result = evaluateSupervisionTimers({
+      projection: liveness.projection,
+      sampledAt: '2026-06-25T10:03:00.000Z',
+      timerEvidence: liveness.timerEvidence,
+    });
+
+    expect(result.timers.startup.armed).toBe(false);
     expect(result.expired.filter((expired) => expired.timer === 'startup')).toEqual([]);
   });
 

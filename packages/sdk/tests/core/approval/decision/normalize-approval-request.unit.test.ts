@@ -45,6 +45,7 @@ describe('core-03-s2 normalizeApprovalRequest', () => {
 
     expect(normalized.subject).toBe('protected-policy-change');
     expect(normalized.requestedScope).toBe('per-host');
+    expect(normalized.host).toBe('api.example.com');
   });
 
   it('threads file paths from file-change grant requests into the normalized risk input', () => {

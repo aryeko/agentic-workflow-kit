@@ -47,6 +47,26 @@ describe('core-04-s3 approval SLA timer evaluation', () => {
     });
   });
 
+  it('fails closed when sampledAt cannot be parsed for an armed timer', () => {
+    const liveness = fold([
+      makeLifecycle(1, 'worker-starting', 'workspace-ready'),
+      workerSpawned(2),
+      sessionLinked(3),
+      agentSessionLinked(4),
+      progressObserved(5),
+      approvalRequested(6),
+    ]);
+
+    const result = evaluateSupervisionTimers({
+      projection: liveness.projection,
+      sampledAt: 'not-a-timestamp',
+      timerEvidence: liveness.timerEvidence,
+    });
+
+    expect(result.timers['approval-SLA'].exceeded).toBe(true);
+    expect(result.expired.map((expired) => expired.timer)).toContain('approval-SLA');
+  });
+
   it('stops approval-SLA on a recorded approval answer', () => {
     const liveness = fold([
       makeLifecycle(1, 'worker-starting', 'workspace-ready'),

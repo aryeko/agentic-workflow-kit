@@ -239,6 +239,48 @@ describe('core-04-s2 liveness coverage edges', () => {
     expect(result.projection.timers['max-runtime'].exceeded).toBe(false);
   });
 
+  it('does not mark stopped projection timers as exceeded after their old deadline', () => {
+    const result = fold(
+      [
+        makeLifecycle(1, 'worker-starting', 'workspace-ready'),
+        workerSpawned(2),
+        sessionLinked(3),
+        agentSessionLinked(4),
+        approvalRequested(5),
+        approvalAnswered(6),
+      ],
+      '2026-06-27T10:00:06.000Z',
+    );
+
+    expect(result.timerEvidence['approval-SLA']?.stoppedAt).toBe('2026-06-25T10:00:06.000Z');
+    expect(result.projection.timers['approval-SLA'].exceeded).toBe(false);
+  });
+
+  it('does not throw when malformed timestamps are used as timer bases', () => {
+    const result = fold(
+      [
+        makeLifecycle(1, 'worker-starting', 'workspace-ready'),
+        workerSpawned(2),
+        sessionLinked(3),
+        progressObserved(4, 'session-01', 'tool-01'),
+      ],
+      '2026-06-25T10:20:06.000Z',
+    );
+
+    expect(() =>
+      fold(
+        [
+          makeLifecycle(1, 'worker-starting', 'workspace-ready'),
+          workerSpawned(2),
+          sessionLinked(3),
+          progressObserved(4, 'session-01', 'tool-01'),
+        ].map((event) => (event.sequence === 4 ? { ...event, occurredAt: 'not-a-timestamp' } : event)),
+        '2026-06-25T10:20:06.000Z',
+      ),
+    ).not.toThrow();
+    expect(result.projection.timers.idle.exceeded).toBe(true);
+  });
+
   it('ignores malformed current-session tool observations without setting an unavailable reason', () => {
     const result = fold([
       makeLifecycle(1, 'worker-starting', 'workspace-ready'),

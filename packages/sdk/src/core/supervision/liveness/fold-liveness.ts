@@ -19,6 +19,7 @@ import {
   isRunLifecycleTransitionPayload,
   isTerminalLifecycleState,
   type LivenessFoldResult,
+  parseTimestamp,
   type ProjectionState,
   setTimerEvidence,
   stopTimerEvidence,
@@ -32,10 +33,16 @@ const buildProjectionTimer = (
   sampledAt: string,
   durationMs: number,
 ): LivenessProjection['timers'][SupervisionTimerName] => {
-  const deadline = addMs(state.timerEvidence[timer]?.basisAt ?? sampledAt, durationMs);
+  const evidence = state.timerEvidence[timer];
+  const deadline = addMs(evidence?.basisAt ?? sampledAt, durationMs);
+  const sampledEpoch = parseTimestamp(sampledAt);
+  const deadlineEpoch = parseTimestamp(deadline);
   return {
     deadline,
-    exceeded: !state.terminal && Date.parse(sampledAt) > Date.parse(deadline),
+    exceeded:
+      !state.terminal &&
+      evidence?.stoppedAt === undefined &&
+      (sampledEpoch === undefined || deadlineEpoch === undefined || sampledEpoch > deadlineEpoch),
   };
 };
 
@@ -152,6 +159,7 @@ export function foldLiveness(input: FoldLivenessInput): LivenessFoldResult {
         case 'worker-progress':
           state.state = state.terminal ? state.state : 'active';
           state.lastProgressSequence = event.sequence;
+          stopTimerEvidence(state.timerEvidence, 'startup', event.occurredAt, event.eventId);
           setTimerEvidence(state.timerEvidence, 'idle', {
             basisAt: event.occurredAt,
             sourceEventIds: [event.eventId],
@@ -166,6 +174,7 @@ export function foldLiveness(input: FoldLivenessInput): LivenessFoldResult {
         case 'tool-completion':
           state.state = state.terminal ? state.state : 'active';
           state.lastProgressSequence = event.sequence;
+          stopTimerEvidence(state.timerEvidence, 'startup', event.occurredAt, event.eventId);
           setTimerEvidence(state.timerEvidence, 'idle', {
             basisAt: event.occurredAt,
             sourceEventIds: [event.eventId],

@@ -1,4 +1,5 @@
 import type { RunEventEnvelope, RunLifecycleTransitionPayload } from '../../run-lifecycle/contracts/index.js';
+import { toEpochMs } from '../../capability/evaluator/timestamps.js';
 import { isTerminalLifecycleState as isCanonicalTerminalLifecycleState } from '../../run-lifecycle/lifecycle/transition-table.js';
 
 import type {
@@ -52,10 +53,12 @@ export interface ProjectionState {
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object');
 
-export const parseTimestamp = (value: string): number => globalThis.Date.parse(value);
+export const parseTimestamp = (value: string): number | undefined => toEpochMs(value);
 
-export const addMs = (timestamp: string, deltaMs: number): string =>
-  new globalThis.Date(parseTimestamp(timestamp) + deltaMs).toISOString();
+export const addMs = (timestamp: string, deltaMs: number): string => {
+  const parsed = parseTimestamp(timestamp);
+  return parsed === undefined ? timestamp : new globalThis.Date(parsed + deltaMs).toISOString();
+};
 
 export const isRunLifecycleTransitionPayload = (value: unknown): value is RunLifecycleTransitionPayload =>
   isRecord(value) && typeof value.to === 'string';
