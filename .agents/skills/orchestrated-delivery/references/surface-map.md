@@ -19,6 +19,7 @@ mutation or worker-control capability is unavailable.
 | `worker-close` | subagents close; visible threads archive | close/end agent context | mark only that pair terminal in the ledger |
 | `reasoning-tier` | detected effort field | detected effort field | closest supported level |
 | `model-routing` | provider profile plus model override when exposed | provider profile plus agent model field when exposed | inherit model and record fallback |
+| `custom-agent-binding` | `agent_type`: `implementer`, `reviewer`, `architect`, or `researcher` when supported | role-specific agent prompt/name; no portable `agent_type` field | use closest worker mechanism and record `agent_type unsupported` |
 | `prompt-contract` | packaged prompt verification plus ledger status | packaged prompt verification plus ledger status | coordinator executes only if package is complete |
 | `worker-cap` | tool or config cap, else 6 | practical parallel cap, else 6 | assume 6 |
 | `pr-review-wait` | global `watch-pr` skill | global `watch-pr` skill | inline detect-only review-state read |
@@ -28,6 +29,10 @@ mutation or worker-control capability is unavailable.
 The global skills live under `~/.agents/skills`. Preserve their boundaries: review waiting detects
 state only, review follow-up inspects unresolved threads and routes story-scope findings through the
 story worktree path, and merge cleanup requires explicit current user instruction.
+
+Codex `agent_type` is a launch-time surface field, not package data. It selects worker behavior only;
+model class, effort, reasoning tier, provider profile, and concrete model resolution still follow
+`runtime-binding.md` and the selected provider profile.
 
 ## Effort Mapping
 

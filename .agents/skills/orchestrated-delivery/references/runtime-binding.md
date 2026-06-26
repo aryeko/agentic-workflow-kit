@@ -9,8 +9,8 @@ Read `surface-map.md`, detect the current surface, and record the concrete mecha
 
 `plan-mode`, `exec-checklist`, `worker-spawn`, `worker-completion`, `worker-readdress`,
 `worker-naming`, `worker-isolation`, `worker-close`, `reasoning-tier`, `model-routing`,
-`prompt-contract`, `story-worktree`, `worker-cap`, `pr-review-wait`, `pr-thread-followup`, and
-`merge-cleanup`.
+`custom-agent-binding`, `prompt-contract`, `story-worktree`, `worker-cap`, `pr-review-wait`,
+`pr-thread-followup`, and `merge-cleanup`.
 
 On Plan-capable surfaces, enforce Plan Mode or an explicitly authorized read-only fallback before
 repo discovery, edits, dispatch, commits, pushes, PRs, or merges.
@@ -23,10 +23,29 @@ For each selected story, bind only:
 - story worktree path, temporary story branch, story branch base, and cleanliness;
 - provider profile and resolved concrete model for the package-declared model class;
 - actual effort supported by the worker surface for the package-declared tier;
-- worker alias and completion signal;
+- worker alias, Codex custom-agent `agent_type` when supported, and completion signal;
 - current dependency merge-back commit hashes present on the track branch.
 
 Unknown runtime facts stay `unknown pending inspection` until inspected. Do not invent them.
+
+## Codex Custom-Agent Binding
+
+On Codex surfaces that support custom agents, bind `agent_type` at worker launch or readdress time
+from the runtime role being delegated:
+
+| Runtime role | Codex `agent_type` | Applies when |
+|---|---|---|
+| implementation worker | `implementer` | launching or readdressing packaged implementer prompts |
+| implementation reviewer | `reviewer` | launching or readdressing packaged reviewer prompts, and final read-only reviews |
+| architecture judgment | `architect` | delegated source-contract blocker classification, five-round-cap escalation review, or architecture override review |
+| evidence gathering | `researcher` | bounded read-only scans, inventory, and current-state evidence gathering |
+
+`agent_type` is surface binding only. It must not be written into `plan-delivery` package artifacts,
+story DAGs, story contracts, tracker rows, or packaged worker prompts. It does not replace the package
+declared model class, effort, reasoning tier, routing rationale, provider profile, concrete model
+resolution, worker alias, or completion signal. If the current surface lacks custom-agent binding, run
+the same role with the closest supported worker mechanism and record `agent_type unsupported` in the
+runtime ledger.
 
 ## Provider Profiles
 
@@ -56,7 +75,8 @@ Resolve models in this order:
    unavailable; never silently downgrade.
 
 Record provider profile, model class, planned model, actual model or inherited model, effort, tier,
-and fallback or override reason before treating a worker as launched.
+Codex `agent_type` or unsupported fallback, and fallback or override reason before treating a worker as
+launched.
 
 ## Worker Cap
 

@@ -20,8 +20,9 @@ Execute from a checked-in execution package. The package owns scope, story order
 criteria, prompts, model class, effort, dependency graph, and implementation readiness evidence. The
 orchestrator verifies those artifacts and binds only runtime fields: repo/track worktree/story
 worktree/track branch/base, surface bindings, provider profile, concrete model resolved from the
-declared class, actual supported effort, completion signal, and current dependency merge-back commit
-hashes present on the track branch.
+declared class, actual supported effort, Codex custom-agent `agent_type` when supported by the current
+surface, completion signal, and current dependency merge-back commit hashes present on the track
+branch.
 
 In this model the **implementer commits each round in its story worktree**; the orchestrator commits no
 story content. The orchestrator's only git writes are the **track-branch merge-back** of an approved
@@ -38,7 +39,8 @@ Read only the reference files needed for the current step:
 - `references/package-preflight.md`: validate the existing execution package, deep readiness verdict,
   selected stories, tracker rows, prompt completeness, and refusal behavior.
 - `references/runtime-binding.md`: bind surface capabilities, provider profile, model class, actual
-  model, effort, worker cap, story worktree fields, and unavailable-model handling.
+  model, effort, Codex custom-agent `agent_type` where supported, worker cap, story worktree fields,
+  and unavailable-model handling.
 - `references/surface-map.md`: map abstract capabilities to Codex, Claude Code, or a closest
   analogue for another surface.
 - `references/story-worktrees.md`: create per-story worktrees and temporary branches, keep the track

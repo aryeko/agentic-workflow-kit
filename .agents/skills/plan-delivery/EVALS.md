@@ -1,7 +1,7 @@
 # plan-delivery Evals
 
 **Skill under test:** `plan-delivery`
-**Version pin (combined skill hash):** `0d3aa593720dbc14`
+**Version pin (combined skill hash):** `75a0f4a11e14f5a2`
 **Status:** active
 
 Recompute with:
@@ -45,6 +45,8 @@ For a passing positive run, inspect the generated package and require:
   catalog tests.
 - `plan.md`, `tracker.md`, and every prompt contain source story id and source `AC-n` ids.
 - Routing uses abstract model class, effort, suggested-tier floor, reasoning tier, and rationale only.
+- No Codex `agent_type` values appear in `plan.md`, `tracker.md`, packaged prompts, or source planning
+  artifacts; custom-agent role selection is runtime binding for `orchestrated-delivery`.
 - No provider-specific runtime model IDs appear.
 - The readiness verdict names sources, stories, per-artifact checks, and `ready_for_implementation`.
 - No file outside the target epic `execution/` package is changed.

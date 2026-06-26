@@ -9,7 +9,16 @@ orchestrator commits no story content.
 
 - Default to isolated subagents. Use visible threads only when the user explicitly requests them and
   the surface supports them.
-- Name each worker before launch with a short role alias, and record the alias in the ledger.
+- Name each worker before launch with a short role alias, bind the surface `agent_type` when supported,
+  and record both the alias and binding in the ledger.
+- On Codex, use `agent_type: "implementer"` for packaged implementer prompts and
+  `agent_type: "reviewer"` for packaged reviewer prompts. Use `agent_type: "architect"` only for
+  delegated source-contract blocker classification, five-round-cap escalation review, or architecture
+  override review; use `agent_type: "researcher"` only for bounded read-only inventory and evidence
+  gathering.
+- The `agent_type` binding is not package metadata and does not change model class, effort, reasoning
+  tier, provider profile, or concrete model resolution. If unsupported, record the fallback and proceed
+  with the closest available worker mechanism.
 - Launch implementers only for dependency-ready stories. A dependency is ready for dispatch only when
   its per-round commits are **merged back to the track branch**, its tracker row is `merged`, and its
   implementer/reviewer pair is closed or marked terminal.

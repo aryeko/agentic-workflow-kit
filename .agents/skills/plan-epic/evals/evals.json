@@ -17,7 +17,7 @@
         "Freezes the story DAG before authoring any story contract",
         "Sets `story: ready` only after characterization review evidence",
         "Backfills owning-story cells in the target epic README, not the global coverage rollup",
-        "Creates no feature code, execution package, dispatch prompt, PR, commit, push, merge, or model/effort assignment"
+        "Creates no feature code, execution package, dispatch prompt, PR, commit, push, merge, model/effort assignment, or Codex agent_type artifact field"
       ]
     },
     {
@@ -44,6 +44,7 @@
         "Keeps the stage boundary at Gate 1",
         "Refuses execution package files and dispatch prompts",
         "Refuses concrete model or effort assignment",
+        "Refuses to write Codex agent_type values into Gate 1 planning artifacts",
         "Names `plan-delivery` as the next stage after Gate 1"
       ]
     },

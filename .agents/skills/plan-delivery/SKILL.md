@@ -54,6 +54,17 @@ Read only the references needed for the current step:
 - `references/closeout-validation.md`: audit projection trace, package completeness, independent
   reviewer requirements, and `ready_for_implementation` evidence.
 
+## Conditional Delegation
+
+When the current surface supports Codex custom-agent role selection, use `researcher` for bounded
+read-only source/package inventory and `reviewer` for the required independent read-only package
+review. If a package defect needs classification beyond the projection rules, route it to the owning
+planning step rather than recording a Codex role in the package.
+
+These helper-role choices are execution-time delegation only. Generated execution packages remain
+provider-neutral and must not record Codex `agent_type` values. Package routing remains abstract:
+model class, effort, suggested-tier floor, reasoning tier, and rationale only.
+
 ## Workflow
 
 1. Start with `source-readiness.md`. Refuse missing Gate 1 tokens, ambiguous epic selection,
