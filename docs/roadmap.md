@@ -27,6 +27,6 @@ last-reviewed: "2026-06-19"
 
 ---
 
-**↑ Up:** [documentation home](./README.md) · **← Prev:** [Codex Custom-Agent Bindings and Orchestration Message Plan](./reviews/2026-06-26-codex-custom-agent-skill-bindings-plan.md)
+**↑ Up:** [documentation home](./README.md) · **← Prev:** [Orchestrated-Delivery Operator UX Design](./reviews/2026-06-26-orchestrated-delivery-operator-ux-design.md)
 
 <!-- /DOCS-NAV -->

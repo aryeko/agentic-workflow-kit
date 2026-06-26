@@ -74,16 +74,42 @@ merge-back hashes. These are facts, not decisions about the work.
 | OD-5 | On reviewer APPROVE, the coordinator merges the story's per-round commits back to the track branch and updates the tracker; it commits no story content itself and does not re-grade the diff. | P1 | E/T |
 | OD-6 | Durable sequence per story: the implementer's per-round commits, then the orchestrator's track-branch merge-back, then the tracker update; downstream readiness needs the merge-back + tracker. | P1 | E/T |
 | OD-7 | PR/merge boundary respected: detect-only review waiting; merge and cleanup only on explicit instruction; stop at the asked boundary. | P1 | E |
-| OD-8 | Sparse alias-first communication: worker transition summaries lead with alias/story/role/round context, keep raw worker ids as traceability metadata only, and avoid tight polling or transcript/diff dumps. | P2 | E |
+| OD-8 | Sparse, separable operator ledger: visible run/story updates use the fixed ledger grammar below, keep raw ids as traceability fields only, surface warning and wait state conservatively, and prove the transcript with a post-run communication audit. | P1 | E |
 | OD-9 | Worker-reported source-contract blockers are recorded as planning blockers, not merged as story work or bypassed; dependents remain locked until planning repair. | P1 | E/T |
 | OD-10 | A review loop that exhausts the 5-round cap without APPROVE is blocked + escalated to the architect and recorded in the tracker; only the minimal set is blocked and sibling stories keep running. | P1 | E/T |
 | OD-11 | Track-branch merge-back: a trivial replay triggers an orchestrator-requested implementer rebase + re-prove, then the track merge; a real logic conflict is escalated as an upstream planning defect, never silently resolved. | P1 | E/T |
 | OD-12 | Same-logic concurrency honored: same-wave stories share no logic-bearing file (file-level granularity from owned pathsets, plus any architect override); append-only aggregation points (the SDK barrel) are shared and rebased, not serialized. | P1 | E/T |
 
-This skill already ships an `EVALS.md` (at `.agents/skills/orchestrated-delivery/EVALS.md`) that
-operationalizes these as test cases with a version-pinned combined hash; that file must satisfy
-OD-1…OD-12. (Conforming the skill `EVALS.md` to the reformed OD-4/OD-5 semantics and the new OD-10…OD-12
-is Phase 2 skill work, not part of this design layer.)
+### OD-8 operator ledger contract
+
+`orchestrated-delivery` communicates run/story progress as a sparse operator ledger, separable from raw
+worker/tool events. Operator-visible updates use these forms:
+
+- `State: ... | next=...` for ordinary state transitions.
+- Paired `State:` + `Next:` lines when the next action or awaited event needs more detail than a compact
+  `next=` field can carry.
+- `Env:` for known diagnostics about the execution environment or expected tool noise.
+
+Raw process ids, worker ids, session ids, command ids, and tool ids are traceability fields only. They may
+appear after the operator-facing state, but they must never be the first-line identifier for a story or run
+transition.
+
+Warning handling is conservative: collapse only known-benign, allowlisted warnings. Unknown warnings
+surface once with the command context that produced them, then later repeats may refer back to that first
+surface instead of flooding the ledger.
+
+Waiting is quiet until it changes meaning. The coordinator emits no short-wait filler, updates immediately
+on a state change, and emits coarse liveness only after the runtime skill's pinned wait threshold is
+crossed.
+
+The run closes with a post-run communication audit over operator-visible updates. The audit verifies that
+visible updates used the ledger grammar, warning handling, and wait cadence above, and it records any
+deviation as a follow-up defect rather than treating transcript noise as harmless.
+
+The skill's `EVALS.md` (at `.agents/skills/orchestrated-delivery/EVALS.md`) is the implementation-level
+test spec for these OD requirements and must be updated before the live skill can claim conformance to
+the revised OD-8 contract. Conforming the skill references, evals, and fixtures to the revised OD
+requirements is Phase 2 skill work, not part of this design layer.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
