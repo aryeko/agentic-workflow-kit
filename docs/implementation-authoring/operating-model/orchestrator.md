@@ -40,6 +40,9 @@ Pure coordination. Move work; never judge it.
 - **Write the tracker** per the canonical schema in
   [`delivery-pipeline/30-plan-delivery.md`](../delivery-pipeline/30-plan-delivery.md): status, round,
   per-round implementer commit + reviewer verdict, block reason, merge-back commit, gate evidence.
+- **Report operator-visible run and story state as an actionable ledger.** Visible updates summarize the
+  current state, why it matters, and the next action or awaited event. Raw worker/tool events are evidence
+  behind the ledger, not the operator-facing state model.
 - **Close the worker pair; clean the story tree only on merge.** Once a story is merged back, close its
   implementer/reviewer pair and remove the disposable story worktree. On a **block/escalation** (5-round
   cap or source-contract blocker), **preserve the story worktree and report its path** so the architect
@@ -71,6 +74,8 @@ Pure coordination. Move work; never judge it.
 - BLOCKING findings routed back to the implementer; re-dispatched review until APPROVE or the 5-round cap.
 - Each approved story's per-round commits **merged back to the track branch**; the **tracker** written per
   the canonical schema; blocked stories escalated to the architect.
+- An operator-visible ledger of run/story state transitions, with each visible update naming the state,
+  its significance, and the next action or awaited event.
 
 ## Flow
 
@@ -98,6 +103,8 @@ An engine implements this role correctly when:
 - it triggers an implementer rebase on a merge-back conflict and **escalates a real logic conflict** rather
   than resolving it;
 - it points reviewers at the latest committed round, never a stashed tree;
+- its operator-visible updates are separable from raw worker/tool events and identify state, significance,
+  and next action or awaited event;
 - it never reviews code, fixes code, re-judges the "what", or expands scope.
 
 ## Acceptance
@@ -105,7 +112,8 @@ An engine implements this role correctly when:
 Correctly implemented when work advances by dependency waves, the implementer commits each round and the
 orchestrator merges only approved stories back to the track branch, no non-`ready` story is ever
 dispatched, the loop runs to APPROVE or blocks + escalates at the 5-round cap, and the tracker durably
-records each story's status, rounds, verdicts, and merge-back.
+records each story's status, rounds, verdicts, and merge-back. The operator can also reconstruct the live
+run posture from sparse state updates without reading raw worker/tool event streams.
 
 ## References
 

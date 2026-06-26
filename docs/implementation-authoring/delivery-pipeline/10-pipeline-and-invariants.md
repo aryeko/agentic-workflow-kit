@@ -96,7 +96,8 @@ owns the *test cases and the version pin*. Requirements here use four verificati
 
 - **S — static**: inspect the skill or an artifact without running it.
 - **P — planning run**: run the skill on a real input and inspect the planning output.
-- **E — execution / dry run**: run, or toy-repo dry-run, the delivery loop.
+- **E — execution / dry run**: run, or toy-repo dry-run, the delivery loop; for communication
+  requirements, audit the transcript or session output from that execution.
 - **T — trap**: feed a malformed or out-of-gate input and confirm refusal.
 
 A skill is *ready* only when every P1 requirement passes with shown evidence. Evidence over assertion: a
