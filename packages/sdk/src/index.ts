@@ -161,6 +161,13 @@ export {
   recordApprovalDecision,
   recordApprovalRiskClassified,
 } from './core/approval/decision/index.js';
+export {
+  expireApproval,
+  parkApproval,
+  recordApprovalPending,
+  resumePendingApproval,
+} from './core/approval/pending/index.js';
+export { foldApprovalProjection } from './core/approval/projections/index.js';
 export type {
   ApprovalAutoGrantGate,
   ApprovalDecisionComputation,
