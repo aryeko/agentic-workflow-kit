@@ -51,6 +51,36 @@ export * from './core/observability/telemetry/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
 export { waitRunEvents } from './core/run-lifecycle/cursor-wait/index.js';
+export type {
+  ApprovalContext,
+  ApprovalDecisionInput,
+  ApprovalDecisionRecordedPayload,
+  ApprovalEscalation,
+  ApprovalFailureState,
+  ApprovalMode,
+  ApprovalOutcomeInput,
+  ApprovalOutcomeRecordedPayload,
+  ApprovalParkInput,
+  ApprovalParkedPayload,
+  ApprovalPendingPersistedPayload,
+  ApprovalProjection,
+  ApprovalRequest,
+  ApprovalRequestedPayload,
+  ApprovalResumeInput,
+  ApprovalResumedPayload,
+  ApprovalRisk,
+  ApprovalRiskClassifiedPayload,
+  ApprovalState,
+  ApprovalSubject,
+  Decision,
+  Outcome,
+  ParkDecision,
+  PendingApprovalProjection,
+  PolicyGrantPlan,
+  PolicyGrantScope,
+  ProtectedPolicyApprovalBinding,
+  ResumeDecision,
+} from './core/approval/contracts/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
