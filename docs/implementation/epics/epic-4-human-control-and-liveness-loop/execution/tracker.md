@@ -15,6 +15,30 @@ Initial state for a later `orchestrated-delivery` run. Every row projects from `
 
 Merged semantics: a row is `merged` only after the latest reviewer verdict is `APPROVE`, the `gate` names green `pnpm check` evidence for that round, the implementer commits exist in the story worktree, and the orchestrator merged those commits back to the track branch and recorded the merge-back hash. Evidence conflicts resolve toward git state, check output, and live review truth over worker prose or stale notes.
 
+## Resume Evidence Correction - 2026-06-26
+
+The prior delivery was squash-merged to `v-next`, so the per-story worker commit hashes recorded in
+the merged rows above are historical round ledger entries, not object ids available in the current
+branch history. Resume dependency substrate for the already delivered Epic 4 rows is the live
+`v-next` history:
+
+- PR #162, `76c7b5a22241109a7854c1c87c5b60c6d4db8d14`
+  (`feat: deliver runnable Epic 4 approval and supervision slices`), merged with required `check`
+  status `SUCCESS`, contains the approved implementation for `core-03-s1-approval-contracts`,
+  `core-04-s1-supervision-contracts`, `core-03-s2-normalize-risk-decision`,
+  `core-04-s2-liveness-fold`, `core-04-s3-timers-wait`, and
+  `core-04-s4-termination-facts`.
+- PR #163, `6e0518f051d0a0e20dfb9a0d8da7e1decd62c4b8`
+  (`fix: repair approval failure catalog`), merged with required `check` status `SUCCESS`, repairs
+  the approval failure catalog and `core-03-s3-pending-park-resume` package/source mapping after the
+  previous source-contract blocker.
+
+For this continuation run, the dependency commit slot for `core-03-s3-pending-park-resume` is:
+`core-03-s1-approval-contracts` and `core-03-s2-normalize-risk-decision` supplied by
+`76c7b5a22241109a7854c1c87c5b60c6d4db8d14`, with the repaired failure catalog/source mapping supplied
+by `6e0518f051d0a0e20dfb9a0d8da7e1decd62c4b8`. `core-03-s4-grants-outcomes` remains locked until
+`core-03-s3-pending-park-resume` is implemented, reviewed, merged back, and recorded in this tracker.
+
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---
