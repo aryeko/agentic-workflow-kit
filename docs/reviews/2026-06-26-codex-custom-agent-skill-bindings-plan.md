@@ -34,6 +34,9 @@ The key design rule is:
 
 ### `plan-epic`
 
+When delegating on Codex, bind planning-stage assistant roles to Codex custom agents without making
+delegation mandatory on surfaces that do not support it:
+
 - Use `agent_type: "researcher"` for broad read-only source and evidence scans, such as source-doc
   traceability, existing DAG/story inventory, sibling symbol/path checks, and epic readiness evidence.
 - Use `agent_type: "architect"` for characterization review, architecture override, design-gap
@@ -44,10 +47,11 @@ The key design rule is:
 
 ### `plan-delivery`
 
-- Use optional `agent_type: "researcher"` for wide source-readiness evidence gathering when the
-  readiness surface is broad enough to benefit from bounded read-only delegation.
-- Use `agent_type: "reviewer"` for the independent package-quality and implementation-readiness
-  review after local closeout validation.
+- When delegating on Codex, use optional `agent_type: "researcher"` for wide source-readiness
+  evidence gathering when the readiness surface is broad enough to benefit from bounded read-only
+  delegation.
+- When delegating on Codex, use `agent_type: "reviewer"` for the independent package-quality and
+  implementation-readiness review after local closeout validation.
 - Keep generated execution package artifacts provider-neutral. Do not place Codex-specific
   `agent_type` values in `execution/plan.md`, `execution/tracker.md`, or packaged
   `execution/prompts/<story-id>/{implementer,reviewer}.md` files.
@@ -59,8 +63,12 @@ The key design rule is:
 - On Codex surfaces, runtime-bind packaged role prompts to Codex custom agents:
   - implementer prompt -> `agent_type: "implementer"`
   - reviewer prompt -> `agent_type: "reviewer"`
-  - source-contract blocker or five-round cap escalation -> `agent_type: "architect"`
+  - source-contract blocker classification or five-round cap escalation review ->
+    `agent_type: "architect"`
   - bounded read-only evidence task -> `agent_type: "researcher"`
+- Preserve durable route-back ownership for blockers: an `architect` escalation may classify the
+  issue, but tracker route-back targets remain `$plan-epic` for frozen story defects and
+  `$plan-delivery` for package-only projection defects.
 - Keep model class and effort routing separate from role binding. The package-declared model class
   still resolves through `references/providers/openai.md` or the active provider profile.
   `agent_type` controls the behavioral role; it does not replace abstract model routing.
@@ -76,9 +84,14 @@ A follow-up implementation should update the smallest useful set of skill docs:
 - `.agents/skills/orchestrated-delivery/references/runtime-binding.md`
 - `.agents/skills/orchestrated-delivery/references/surface-map.md`
 - `.agents/skills/orchestrated-delivery/references/worker-lifecycle.md`
+- `.agents/skills/orchestrated-delivery/EVALS.md`
+- `.agents/skills/orchestrated-delivery/evals/evals.json`
+- `.agents/skills/orchestrated-delivery/evals/trigger_queries.json`
 
-If existing evals assert role/routing behavior, update those evals to expect the new Codex custom
-agent binding while preserving provider-neutral package artifacts.
+The orchestrated-delivery eval updates are required because its runtime-binding requirements already
+assert surface and routing behavior. Update `plan-epic` or `plan-delivery` evals only if their skill
+text gains normative custom-agent dispatch behavior. All eval changes must preserve provider-neutral
+package artifacts.
 
 ## Non-Goals
 
