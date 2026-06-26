@@ -27,7 +27,8 @@ If these sources do not answer a contract question, this story is not ready.
 ## Spec Surface
 
 - Interfaces / types: `classifyRecovery`, `classifyActionSafety`, `deriveRecoveryPlanIdInput`.
-- Events / append intents: `RecoveryClassified`.
+- Events / append intents: none; this story returns pure `RecoveryClassification` and
+  `RecoveryClassified` payload values for a caller-owned append path.
 - Provider operations / commands: none.
 - Failure and degraded tokens: consumes `core-06-s1` recovery state/action/safety catalogs verbatim.
 - Evidence records / attestations: consumes `RecoveryEvidenceSnapshot`, liveness/termination facts,
@@ -43,8 +44,8 @@ If these sources do not answer a contract question, this story is not ready.
   conflicting terminal evidence.
 - Reject restart unless `safe-empty-restartable` evidence proves no active launch/writer/owner,
   no unverified termination, no pending approval, and Work Source claim empty or released.
-- Produce `RecoveryClassified` payloads with classifier rule version, cursor, evidence refs, and
-  `classifiedAt`.
+- Produce `RecoveryClassified` payload values with classifier rule version, cursor, evidence refs, and
+  caller-supplied `classifiedAt`; do not append them.
 - Define deterministic plan-id input values over `{runId, policyRef, requestedAction, scope,
   classification.state, evaluatedThrough}` without clock or random input.
 
@@ -88,10 +89,10 @@ If these sources do not answer a contract question, this story is not ready.
   supervision-stale, merge-outcome-ambiguous, provider-gap, and manual-edit conditions fail closed to the
   exact recovery state literals from `core-06-s1` - evidence: `coverage:baseline`
   `recovery-fail-closed-state-matrix`.
-- **AC-6** `RecoveryClassified` is appended with `runId`, `recoveryState`, `actionSafety`,
-  `recommendedAction`, `classifierRuleVersion`, `cursor`, `evidenceRefs`, and `classifiedAt`; append
-  failure never returns a success record - evidence: `coverage:baseline`
-  `recovery-classified-fields-and-unwritable`.
+- **AC-6** `RecoveryClassified` payload construction returns `runId`, `recoveryState`, `actionSafety`,
+  `recommendedAction`, `classifierRuleVersion`, `cursor`, `evidenceRefs`, and caller-supplied
+  `classifiedAt` without using `RunWriter`; append failure handling is outside this pure classifier story -
+  evidence: `coverage:baseline` `recovery-classified-payload-fields`.
 - **AC-7** Plan-id inputs exclude clock/random values and use only `{runId, policyRef, requestedAction,
   scope, classification.state, evaluatedThrough}` - evidence: `coverage:baseline`
   `plan-id-input-determinism` asserts identical inputs yield identical digest source and changed
@@ -108,7 +109,7 @@ If these sources do not answer a contract question, this story is not ready.
 | Resume eligibility | AC-3 | `coverage:baseline` |
 | Restart eligibility | AC-4 | `coverage:baseline` |
 | Fail-closed ambiguous/degraded states | AC-5 | `coverage:baseline` |
-| `RecoveryClassified` append | AC-6 | `coverage:baseline` |
+| `RecoveryClassified` payload construction | AC-6 | `coverage:baseline` |
 | Plan-id deterministic inputs | AC-7 | `coverage:baseline` |
 | Public exports | AC-8 | `typecheck` |
 
@@ -123,7 +124,7 @@ If these sources do not answer a contract question, this story is not ready.
 | AC-3 | current owned resumable session | snapshot launch/session linkage, liveness, provider resume evidence | core-01/core-04/provider evidence fields | decidable |
 | AC-4 | safe empty restart | lease status, owner/session/termination/approval/claim evidence | fnd-02, core-04, core-03, Work Source evidence | decidable |
 | AC-5 | ambiguous/degraded condition | explicit snapshot gap/health/ambiguity fields | snapshot fields | decidable |
-| AC-6 | append result | `RunWriter.appendBarrier` result | core-01 writer | decidable |
+| AC-6 | classified payload fields | classifier result, snapshot cursor/evidence refs, caller-supplied `classifiedAt` | owned classifier result + snapshot | decidable |
 | AC-7 | deterministic plan id source | request `runId`, `policyRef`, `requestedAction`, `scope`, classification state, cursor | request + classifier result | decidable |
 
 ### Produced Obligations
@@ -139,7 +140,7 @@ If these sources do not answer a contract question, this story is not ready.
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `lease-unavailable` | missing/stale/degraded lease guarantees | classify before ownership/restart rules | AC-1, AC-5 |
-| `log-unwritable` / `log-corrupt` | replay or append health unusable | classify fail closed | AC-1, AC-5 |
+| `log-unwritable` / `log-corrupt` | replay/log health unusable in the supplied snapshot | classify fail closed | AC-1, AC-5 |
 | `owner-ambiguous` | session linkage unknown or ambiguous | forbid resume/restart | AC-5 |
 | `termination-ambiguous` | termination evidence ambiguous | forbid restart/clear/kill | AC-5 |
 | `supervision-stale-ambiguous` | liveness/supervision stale ambiguity | operator-required/blocked classification | AC-5 |
@@ -172,7 +173,7 @@ The `packages/sdk/src/core/recovery/classifier/**` module, tests, fixtures, and 
 
 ## Evidence Pack
 
-- Stable rule order, action-safety, resume, restart, failure-state, append, and plan-id tests.
+- Stable rule order, action-safety, resume, restart, failure-state, classified-payload, and plan-id tests.
 - Public-import test in AC-8.
 - `pnpm check` result.
 - Boundary sweep:
@@ -192,7 +193,7 @@ The `packages/sdk/src/core/recovery/classifier/**` module, tests, fixtures, and 
 ## Characterization Review Evidence
 
 - Design -> AC completeness: stable order, action-safety, resume/restart, ambiguous/fail-closed modes,
-  classifier event, and plan-id determinism map to AC-1..AC-7.
+  classifier payload, and plan-id determinism map to AC-1..AC-7.
 - Producer closure: `RecoveryClassified` fields have sources above.
 - Sweep vocabulary: forbidden tokens do not ban normative recovery literals.
 - Failure-token/catalog closure: all consumed states/actions are produced by `core-06-s1`.

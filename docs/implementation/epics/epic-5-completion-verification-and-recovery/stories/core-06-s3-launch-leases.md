@@ -12,8 +12,8 @@ design:
 
 ## Purpose
 
-Coordinate repo-level story launches through fnd-02 leases, preventing duplicate launches and clearing
-stale launches only through fenced lease epochs plus appended recovery events.
+Coordinate repo-level story launches through fnd-02 leases, preventing duplicate launches and requesting
+stale-launch clearance only through fenced lease epochs plus appended recovery evidence.
 
 ## Normative Design
 
@@ -26,9 +26,9 @@ If these sources do not answer a contract question, this story is not ready.
 ## Spec Surface
 
 - Interfaces / types: `buildStoryLaunchKey`, `acquireStoryLaunchLease`,
-  `recordDuplicateLaunchBlocked`, `requestStaleLaunchClearance`, `recordStoryLaunchLeaseCleared`.
+  `recordDuplicateLaunchBlocked`, `requestStaleLaunchClearance`.
 - Events / append intents: `StoryLaunchLeaseAcquired`, `DuplicateLaunchBlocked`,
-  `StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`.
+  `StaleLaunchClearanceRequested`.
 - Provider operations / commands: fnd-02 `LeaseStore` operations only; no provider drivers.
 - Failure and degraded tokens: consumes `lease-unavailable`, `launch-duplicate-active`,
   `provider-evidence-gap`, and `manual-edits-forbidden` from `core-06-s1`.
@@ -42,20 +42,23 @@ If these sources do not answer a contract question, this story is not ready.
 - Append `StoryLaunchLeaseAcquired` with lease epoch and Task key after successful acquisition.
 - Append `DuplicateLaunchBlocked` when a live same-Task lease exists and a writer is available; otherwise
   refuse start before launch side effects.
-- Clear expired launches only after proof of no current writer, owner session, process tree, pending
-  approval, or Work Source claim, then fenced acquisition of the next epoch and appended events.
+- Request stale-launch clearance only after proof of no current writer, owner session, process tree,
+  pending approval, or Work Source claim, then fenced acquisition of the next epoch.
+- Never emit `StoryLaunchLeaseCleared`; `core-06-s4` records that event only after
+  `stale-launch-clearable` classification and a committed `auto-recover` gate.
 - Never use process liveness or manual file deletion as safety input.
 
 ## Out of Scope
 
 - Recovery state classification (`core-06-s2`), except consuming produced literals.
-- Recovery action planning/apply (`core-06-s4`) and projection fold (`core-06-s5`).
+- Recovery action planning/apply (`core-06-s4`) and projection fold (`core-06-s5`), including the gated
+  `StoryLaunchLeaseCleared` apply record.
 - Scheduler/admission design and concrete remote lease implementation.
 
 ## Dependencies and Frozen Inputs
 
 - Covers signals: `story-launch:<workSourceId>:<trackId>:<taskId>` lease acquisition, duplicate blocking,
-  and stale launch clearing records.
+  and stale launch clearance request records.
 - Depends on: `core-06-s1-recovery-contracts`, fnd-02 lease primitives, core-01 writer, prior frozen
   Work Source claim evidence shape.
 - Depended on by: `core-06-s4`, `core-06-s5`, Epic 7.
@@ -75,10 +78,10 @@ If these sources do not answer a contract question, this story is not ready.
 - **AC-3** Live same-Task lease appends `DuplicateLaunchBlocked` with incumbent epoch when a writer is
   available, or returns a start refusal before side effects when a writer is unavailable - evidence:
   `coverage:baseline` fixtures `duplicate-live-with-writer` and `duplicate-live-no-writer`.
-- **AC-4** Stale launch clearance requires expired lease evidence plus no current writer, owner session,
-  process tree, pending approval, or Work Source claim, then next lease epoch acquisition before
-  `StaleLaunchClearanceRequested` and `StoryLaunchLeaseCleared` - evidence: `coverage:baseline`
-  `stale-clearance-proof-matrix`.
+- **AC-4** Stale launch clearance request requires expired lease evidence plus no current writer, owner
+  session, process tree, pending approval, or Work Source claim, then next lease epoch acquisition before
+  `StaleLaunchClearanceRequested`; it never records `StoryLaunchLeaseCleared` - evidence:
+  `coverage:baseline` `stale-clearance-request-proof-matrix`.
 - **AC-5** Missing, stale, degraded, ambiguous, or manually edited lease/claim evidence never clears the
   lease and maps to the exact recovery failure state consumed from `core-06-s1` - evidence:
   `coverage:baseline` `lease-clearance-fail-closed-matrix`.
@@ -92,7 +95,7 @@ If these sources do not answer a contract question, this story is not ready.
 | Story-launch key construction | AC-1 | `coverage:baseline` |
 | Acquisition record fields/order | AC-2 | `coverage:baseline` |
 | Duplicate launch behavior | AC-3 | `coverage:baseline` |
-| Stale clearance proof and events | AC-4 | `coverage:baseline` |
+| Stale clearance request proof and event | AC-4 | `coverage:baseline` |
 | Lease fail-closed states | AC-5 | `coverage:baseline` |
 | Public exports | AC-6 | `typecheck` |
 
@@ -105,7 +108,7 @@ If these sources do not answer a contract question, this story is not ready.
 | AC-1 | key parts and delimiter safety | request `workSourceId`, `trackId`, `taskId` | request input | decidable |
 | AC-2 | lease acquired before launch side effects | lease acquire receipt, run creation event, no claim/launch refs yet | fnd-02 + core-01 replay | decidable |
 | AC-3 | live duplicate lease | `LeaseSnapshot.expiresAt`, holder, epoch, story key | fnd-02 lease snapshot | decidable |
-| AC-4 | stale clear proof | writer/owner/process/approval/claim evidence refs and next epoch receipt | fnd-02/core-01/core-03/provider/Work Source evidence | decidable |
+| AC-4 | stale clear request proof | writer/owner/process/approval/claim evidence refs and next epoch receipt | fnd-02/core-01/core-03/provider/Work Source evidence | decidable |
 | AC-5 | degraded/ambiguous/manual edit evidence | lease health and explicit evidence gap/manual edit markers | fnd-02 + snapshot fields | decidable |
 
 ### Produced Obligations
@@ -115,7 +118,6 @@ If these sources do not answer a contract question, this story is not ready.
 | `StoryLaunchLeaseAcquired` | `runId`, `storyLaunchKey`, `leaseEpoch`, `acquiredAt`, `sourceEventIds` | request input, key builder, lease acquire receipt, injected clock, evidence refs | closed |
 | `DuplicateLaunchBlocked` | `runId`, `storyLaunchKey`, `incumbentLeaseEpoch`, `blockedAt`, `sourceEventIds` | request input, lease snapshot, injected clock, evidence refs | closed |
 | `StaleLaunchClearanceRequested` | `runId`, `storyLaunchKey`, `expiredLeaseEpoch`, `nextLeaseEpoch`, `requestedAt`, `evidenceRefs` | stale snapshot, next acquire receipt, injected clock, evidence refs | closed |
-| `StoryLaunchLeaseCleared` | `runId`, `storyLaunchKey`, `clearedLeaseEpoch`, `clearedAt`, `sourceEventIds` | clear action result, injected clock, source refs | closed |
 | Public symbols | export lines | owned source plus SDK barrel lines | closed |
 
 ## Failure and Degraded Outcomes
@@ -124,8 +126,8 @@ If these sources do not answer a contract question, this story is not ready.
 |---|---|---|---|
 | `launch-duplicate-active` | live same-Task lease exists | block launch; append duplicate record when writer exists | AC-3 |
 | `lease-unavailable` | lease read/acquire health missing/stale/degraded | no acquire/clear success | AC-5 |
-| `provider-evidence-gap` | stale-clear proof lacks owner/process/claim evidence | no clear success | AC-4, AC-5 |
-| `manual-edits-forbidden` | manual deletion/edit detected | no clear/restart success | AC-5 |
+| `provider-evidence-gap` | stale-clear request proof lacks owner/process/claim evidence | no clearance request success | AC-4, AC-5 |
+| `manual-edits-forbidden` | manual deletion/edit detected | no clearance request or restart success | AC-5 |
 
 ## Quality Bar
 
@@ -151,7 +153,7 @@ The `packages/sdk/src/core/recovery/leases/**` module, tests, fixtures, and SDK 
 
 ## Evidence Pack
 
-- Key, acquisition, duplicate, stale-clear, fail-closed, and public-import tests.
+- Key, acquisition, duplicate, stale-clearance-request, fail-closed, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|fs\\.|unlink|rmSync|process\\.kill|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/leases packages/sdk/tests/core/recovery/leases`
@@ -164,12 +166,12 @@ The `packages/sdk/src/core/recovery/leases/**` module, tests, fixtures, and SDK 
   `packages/sdk/tests/core/recovery/leases/**`, and owned SDK export lines.
 - Forbidden dependencies: manual file deletion, concrete storage drivers, process tree probing as a
   safety predicate, Work Source state mutation.
-- STOP when stale clearance proof lacks a declared source for any required safety operand.
+- STOP when stale clearance request proof lacks a declared source for any required safety operand.
 
 ## Characterization Review Evidence
 
-- Design -> AC completeness: story-launch key, acquire, duplicate block, stale clear, manual-edit ban,
-  and lease degraded modes map to AC-1..AC-5.
+- Design -> AC completeness: story-launch key, acquire, duplicate block, stale-clearance request,
+  manual-edit ban, and lease degraded modes map to AC-1..AC-5.
 - Producer closure: all lease event payload fields have sources.
 - Sweep vocabulary: forbidden tokens do not ban normative lease names.
 - Failure-token/catalog closure: consumed recovery tokens are produced by `core-06-s1`.

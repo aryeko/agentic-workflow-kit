@@ -26,7 +26,7 @@ If these sources do not answer a contract question, this story is not ready.
 ## Spec Surface
 
 - Interfaces / types: `planRecoveryAction`, `recordRecoveryPlan`, `recordRecoveryActionApplied`.
-- Events / append intents: `RecoveryActionPlanned`, `RecoveryActionApplied`.
+- Events / append intents: `RecoveryActionPlanned`, `RecoveryActionApplied`, `StoryLaunchLeaseCleared`.
 - Provider operations / commands: provider-control handoff references only (`agent-resume`,
   `host-terminate`, `forge-refresh`, `work-source-release`); no concrete provider implementation.
 - Failure and degraded tokens: consumes `auto-recover` gate requirement, `RecoveryState`,
@@ -42,6 +42,9 @@ If these sources do not answer a contract question, this story is not ready.
 - Record `RecoveryActionPlanned` with selected action, required gate, lifecycle target, and provider
   control where applicable.
 - Record `RecoveryActionApplied` only after supported provider-control evidence is supplied.
+- Record `StoryLaunchLeaseCleared` only for a `stale-launch-clearable` classification whose
+  `clear-stale-launch` action has a committed matching `auto-recover` gate and a cited
+  `StaleLaunchClearanceRequested` event from `core-06-s3`.
 - Request only approved lifecycle recovery edges:
   `runner-verifying -> running`, `forge-waiting -> runner-verifying`,
   `merge-waiting -> forge-waiting`, `settling -> merge-waiting`, or terminal `blocked`/`failed`.
@@ -49,7 +52,7 @@ If these sources do not answer a contract question, this story is not ready.
 ## Out of Scope
 
 - Recovery classification (`core-06-s2`).
-- Lease acquire/stale-clear record production (`core-06-s3`).
+- Lease acquire/duplicate/stale-clearance request production (`core-06-s3`).
 - Provider-control execution, Work Source mutation, and lifecycle transition append; those remain behind
   provider/core-01 contracts.
 - ReconciliationBlocked/projection fold (`core-06-s5`).
@@ -63,7 +66,7 @@ If these sources do not answer a contract question, this story is not ready.
 - Shared shapes consumed: `RecoveryClassification`, `RecoveryPlan`, lease records, `CapabilityGateRecord`.
 - Decision inputs consumed: requested action, mode (`manual` or `assisted`), policy ref, capability
   scope, `evaluatedThrough`, classification state/action/safety, lease status, gate allow/deny,
-  provider-control evidence refs.
+  provider-control evidence refs, and stale-clearance request refs.
 
 ## Acceptance Criteria
 
@@ -81,6 +84,11 @@ If these sources do not answer a contract question, this story is not ready.
 - **AC-4** `RecoveryActionApplied` is recorded only with supported provider-control evidence refs for
   `agent-resume`, `host-terminate`, `forge-refresh`, or `work-source-release`, plus optional gate ref -
   evidence: `coverage:baseline` table `recovery-action-applied-control-matrix`.
+- **AC-8** `StoryLaunchLeaseCleared` is recorded only when the input classification state is
+  `stale-launch-clearable`, the selected action is `clear-stale-launch`, the source
+  `StaleLaunchClearanceRequested` key/epoch matches the active lease evidence, and a committed matching
+  `auto-recover` gate authorizes the assisted clear - evidence: `coverage:baseline`
+  `stale-launch-clear-gated-apply-matrix`.
 - **AC-5** Lifecycle recovery-edge requests are limited to the approved edges listed in design and cite
   recovery event ids; illegal edges fail closed - evidence: `coverage:baseline`
   `recovery-lifecycle-edge-allowlist`.
@@ -97,6 +105,7 @@ If these sources do not answer a contract question, this story is not ready.
 | `auto-recover` gate enforcement | AC-2 | `coverage:baseline` |
 | `RecoveryActionPlanned` fields | AC-3 | `coverage:baseline` |
 | `RecoveryActionApplied` fields/control evidence | AC-4 | `coverage:baseline` |
+| Gated stale-launch clear event | AC-8 | `coverage:baseline` |
 | Lifecycle recovery-edge allowlist | AC-5 | `coverage:baseline` |
 | Append unwritable behavior | AC-6 | `coverage:baseline` |
 | Public exports | AC-7 | `typecheck` |
@@ -111,6 +120,7 @@ If these sources do not answer a contract question, this story is not ready.
 | AC-2 | auto-recover gate matches action scope | `CapabilityGateRecord` scope, mode, evidence refs | Epic 3 core-02 | decidable |
 | AC-3 | plan event fields | plan result, source event ids, injected clock | owned planner | decidable |
 | AC-4 | applied control supported and evidenced | provider-control kind and evidence refs | provider seam evidence | decidable |
+| AC-8 | stale launch clear authorized | `stale-launch-clearable` classification, `clear-stale-launch` action, matching clearance request key/epoch, committed `auto-recover` gate | `core-06-s2`, `core-06-s3`, Epic 3 core-02 | decidable |
 | AC-5 | lifecycle edge legal | current/target lifecycle states and recovery event ids | core-01 lifecycle + owned plan | decidable |
 | AC-6 | append result | `RunWriter.appendBarrier` result | core-01 writer | decidable |
 
@@ -120,6 +130,7 @@ If these sources do not answer a contract question, this story is not ready.
 |---|---|---|---|
 | `RecoveryActionPlanned` | `runId`, `planId`, `selectedAction`, `requiredGate`, `lifecycleTarget`, `providerControl`, `plannedAt`, `sourceEventIds` | request, owned plan, classification, injected clock, source refs | closed |
 | `RecoveryActionApplied` | `runId`, `planId`, `appliedControl`, `gateRef`, `appliedEvidenceRefs`, `appliedAt`, `sourceEventIds` | plan, gate record, provider evidence refs, injected clock, source refs | closed |
+| `StoryLaunchLeaseCleared` | `runId`, `storyLaunchKey`, `clearedLeaseEpoch`, `clearedAt`, `sourceEventIds` | stale-clearance request, matching gate record, plan/apply result, injected clock, source refs | closed |
 | Public symbols | export lines | owned source plus SDK barrel lines | closed |
 
 ## Failure and Degraded Outcomes
@@ -135,12 +146,13 @@ If these sources do not answer a contract question, this story is not ready.
 |---|---|---|---|
 | illegal lifecycle edge | requested edge outside approved recovery set | reject the request and record no lifecycle request | AC-5 |
 | unsupported provider control | control outside four design literals or missing evidence refs | reject the request and record no applied action | AC-4 |
+| ungated stale launch clear | missing/mismatched gate, wrong classification/action, or mismatched lease epoch | reject the clear and record no `StoryLaunchLeaseCleared` | AC-8 |
 
 ## Quality Bar
 
 - Coverage scope and threshold: `packages/sdk/src/core/recovery/plans/**`, 95% branch.
 - Coverage command and instrumented lanes: `pnpm check` via `coverage:baseline`.
-- Required tests: AC-1..AC-7 and every failure row.
+- Required tests: AC-1..AC-8 and every failure row.
 - Public exposure: `sdk` import path plus AC-7 public-import test.
 - Determinism constraints: injected `plannedAt`/`appliedAt`; deterministic plan id; no ambient clock/random.
 - Dependency boundaries: provider controls are evidence refs only; no concrete provider imports or Work
@@ -160,7 +172,8 @@ The `packages/sdk/src/core/recovery/plans/**` module, tests, fixtures, and SDK e
 
 ## Evidence Pack
 
-- Plan determinism, gate enforcement, plan/apply field, lifecycle allowlist, unwritable, and public-import tests.
+- Plan determinism, gate enforcement, plan/apply field, gated stale-launch clear, lifecycle allowlist,
+  unwritable, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|AgentProvider|ExecutionHost|ForgeProvider|WorkSource|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/plans packages/sdk/tests/core/recovery/plans`
@@ -178,8 +191,8 @@ The `packages/sdk/src/core/recovery/plans/**` module, tests, fixtures, and SDK e
 
 ## Characterization Review Evidence
 
-- Design -> AC completeness: plan, gate, apply, provider control, lifecycle edge, and append failure
-  obligations map to AC-1..AC-6.
+- Design -> AC completeness: plan, gate, apply, gated stale-launch clear, provider control, lifecycle edge,
+  and append failure obligations map to AC-1..AC-8.
 - Producer closure: all plan/apply event fields have sources.
 - Sweep vocabulary: forbidden tokens do not ban normative provider-control names.
 - Failure-token/catalog closure: states/actions/safety classes are from `core-06-s1`.

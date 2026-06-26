@@ -107,6 +107,12 @@ If these sources do not answer a contract question, this story is not ready.
 - **AC-7** Runtime catalogs are frozen substrate, not erased-only type aliases - evidence:
   `coverage:baseline` asserts `Object.isFrozen(COMPLETION_DECISION_STATES) === true` and equivalent
   assertions for merge, post-merge, changed-file, and recovery-consumed blocker catalogs.
+- **AC-10** `CompletionMergeEvaluator`, `CompletionReplayAnchor`, and `CompletionEvidenceSet` require the
+  design fields used by downstream stories: evaluator input/output states, replay cursor/window fields,
+  exact-head evidence refs, verification refs, policy snapshot refs, and optional Forge refs - evidence:
+  `type:fixtures` positive constructors plus negative fixtures
+  `completion-replay-anchor-missing-cursor`, `completion-evidence-set-missing-head`, and
+  `completion-merge-evaluator-wrong-state-rejected`.
 
 ## Coverage Matrix
 
@@ -121,6 +127,7 @@ If these sources do not answer a contract question, this story is not ready.
 | Core-05 event payload schema names | AC-5 | `type:fixtures` |
 | Public SDK export/import path | AC-6 | `typecheck` |
 | Runtime-frozen catalog substrate | AC-7 | `coverage:baseline` |
+| Evaluator, replay anchor, and evidence set shapes | AC-10 | `type:fixtures` |
 
 ## Predicate-Input Matrix
 
@@ -133,6 +140,7 @@ If these sources do not answer a contract question, this story is not ready.
 | AC-4..AC-5 | required payload field presence | owned type declarations and fixtures | owned pathset files | decidable |
 | AC-6 | public import path | `packages/sdk/src/index.ts` owned export lines | owned pathset files | decidable |
 | AC-7 | runtime frozen catalog value | owned `as const` catalog exports | owned pathset files | decidable |
+| AC-10 | evaluator/replay/evidence field presence | design-declared input/output, cursor, head, and evidence-ref fields | owned type declarations and fixtures | decidable |
 
 ### Produced Obligations
 
@@ -155,13 +163,14 @@ failure tokens from another Epic 5 story.
 | changed-file class catalog mismatch | implementation omits, renames, or adds a changed-file class | `type:fixtures` fails exhaustiveness | AC-8 |
 | blocker eligibility catalog mismatch | implementation omits, renames, or adds a blocker-eligible state | `type:fixtures` fails exhaustiveness | AC-9 |
 | payload shape invalid | required payload field missing or provider-specific field added | named negative fixture fails | AC-4, AC-5 |
+| evaluator/replay/evidence shape invalid | required evaluator, replay anchor, or evidence-set field is missing or wrong-shaped | named negative fixture fails | AC-10 |
 
 ## Quality Bar
 
 - Coverage scope and threshold: contract catalog runtime values, 90% statement/branch minimum where
   runtime constants are emitted.
 - Coverage command and instrumented lanes: `pnpm check` via `coverage:baseline` and `type:fixtures`.
-- Required tests, catalogued by AC and failure row: AC-1..AC-9 fixtures above.
+- Required tests, catalogued by AC and failure row: AC-1..AC-10 fixtures above.
 - Public exposure: `sdk` import path plus public-import test in AC-6.
 - Determinism constraints: no ambient time, random ids, provider clients, filesystem, process, or network.
 - Dependency boundaries: may import only contracts from earlier frozen epics and foundation/provider
@@ -204,7 +213,8 @@ export lines.
 ## Characterization Review Evidence
 
 - Design -> AC completeness: all design-declared core-05 decision unions, changed-file classes, event
-  payloads, and public evaluator interfaces map to AC-1..AC-7.
+  payloads, blocker eligibility, replay/evidence shapes, and public evaluator interfaces map to
+  AC-1..AC-10.
 - Producer closure: every public symbol and runtime catalog has an owned source row above.
 - Sweep vocabulary: forbidden tokens do not ban normative completion/merge vocabulary.
 - Failure-token/catalog closure: this story owns the exact core-05 catalogs consumed by later stories,

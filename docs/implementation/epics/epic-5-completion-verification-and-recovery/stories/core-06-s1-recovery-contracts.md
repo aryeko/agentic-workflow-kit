@@ -94,6 +94,12 @@ If these sources do not answer a contract question, this story is not ready.
 - **AC-8** `RecoveryProjection` requires latest classification by Run, active `story-launch` lease ref,
   duplicate-launch status, latest recovery plan, and parked flag - evidence: `type:fixtures` positive
   projection constructor plus negative fixture `recovery-projection-missing-parked-flag`.
+- **AC-9** `RecoveryCoordinator`, `RecoveryPlanInput`, `RecoveryRecordInput`, and `RecoveryPlan` require the
+  design fields consumed by planning/apply stories: run/policy/scope inputs, requested action, source
+  classification, evaluated-through cursor, selected action, required gate, lifecycle target,
+  provider-control handoff, and source event ids - evidence: `type:fixtures` positive constructors plus
+  negative fixtures `recovery-plan-input-missing-policy`, `recovery-record-input-missing-source-events`,
+  `recovery-plan-missing-selected-action`, and `recovery-coordinator-wrong-method-shape`.
 - **AC-5** Runtime catalogs are frozen substrate, not erased-only aliases - evidence:
   `coverage:baseline` asserts `Object.isFrozen(RECOVERY_STATES) === true`, plus equivalent action and
   safety catalog assertions.
@@ -110,6 +116,7 @@ If these sources do not answer a contract question, this story is not ready.
 | Event payload shapes | AC-4 | `type:fixtures` |
 | Provider-control catalog | AC-7 | `type:fixtures` |
 | Recovery projection shape | AC-8 | `type:fixtures` |
+| Coordinator, plan input, record input, and plan shapes | AC-9 | `type:fixtures` |
 | Runtime-frozen catalogs | AC-5 | `coverage:baseline` |
 | Public SDK exports | AC-6 | `typecheck` |
 
@@ -124,6 +131,7 @@ If these sources do not answer a contract question, this story is not ready.
 | AC-4 | payload field presence | owned type declarations and fixtures | owned pathset files | decidable |
 | AC-7 | provider-control catalog membership | design provider-control literals | owned catalog constants | decidable |
 | AC-8 | projection field presence | design projection fields | owned type declarations and fixtures | decidable |
+| AC-9 | coordinator/plan/record field presence | design planning and record input fields consumed by `core-06-s4` | owned type declarations and fixtures | decidable |
 | AC-5 | runtime frozen catalog value | owned `as const` exports | owned pathset files | decidable |
 | AC-6 | public import path | SDK barrel export lines | owned pathset files | decidable |
 
@@ -148,13 +156,14 @@ and failure/degraded modes.
 | payload shape invalid | event payload lacks required design field or has lease epoch on wrong event | named negative fixture fails | AC-4 |
 | provider-control catalog mismatch | implementation omits, renames, or adds a provider-control literal | `type:fixtures` fails exhaustiveness | AC-7 |
 | recovery projection shape invalid | required projection field is missing | named negative fixture fails | AC-8 |
+| coordinator/plan shape invalid | required coordinator, plan input, record input, or plan field is missing | named negative fixture fails | AC-9 |
 
 ## Quality Bar
 
 - Coverage scope and threshold: contract runtime catalogs, 90% statement/branch minimum.
 - Coverage command and instrumented lanes: `pnpm check` via `type:fixtures`, `typecheck`, and
   `coverage:baseline`.
-- Required tests: AC-1..AC-8 plus every failure row.
+- Required tests: AC-1..AC-9 plus every failure row.
 - Public exposure: `sdk` import path plus AC-6 public-import test.
 - Determinism constraints: no ambient clock/random/provider clients; type/catalog only.
 - Dependency boundaries: consumes prior frozen value types and `core-05-s1` state unions; no behavior
@@ -196,8 +205,8 @@ export lines.
 
 ## Characterization Review Evidence
 
-- Design -> AC completeness: all recovery types, payloads, provider-control catalogs, and projection
-  surfaces map to AC-1..AC-8.
+- Design -> AC completeness: all recovery types, payloads, provider-control catalogs, projection
+  surfaces, coordinator, plan input, record input, and plan shapes map to AC-1..AC-9.
 - Producer closure: every public symbol and payload field has a source row.
 - Sweep vocabulary: forbidden tokens do not ban normative recovery literals.
 - Failure-token/catalog closure: this story owns the exact core-06 catalogs consumed by later stories.

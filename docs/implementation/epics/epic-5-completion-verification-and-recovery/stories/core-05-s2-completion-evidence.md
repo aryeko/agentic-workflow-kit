@@ -32,9 +32,9 @@ If these sources do not answer a contract question, this story is not ready.
 - Provider operations / commands: none; consumes recorded Workspace, Execution Host, Forge/claim, and
   approval evidence only as event refs and projections.
 - Failure and degraded tokens: consumes `core-05-s1` completion and changed-file catalogs verbatim.
-- Evidence records / attestations: consumes `LocalGitEvidenceRecorded`, `RunnerCommandCaptured`,
-  `HostOperationFailed`, `ApprovalDecisionRecorded(protected-policy-change)`, policy allowlist, and
-  `RunEventCursor`.
+- Evidence records / attestations: consumes `CompletionReplayAnchor`, `LocalGitEvidenceRecorded`,
+  `RunnerCommandCaptured`, `HostOperationFailed`, `ApprovalDecisionRecorded(protected-policy-change)`,
+  policy allowlist, and `RunEventCursor`.
 
 ## Responsibilities
 
@@ -64,13 +64,14 @@ If these sources do not answer a contract question, this story is not ready.
   fnd-01 policy/change allowlist; fnd-03 local git evidence; Execution Host command capture; Epic 4
   protected-policy approval facts.
 - Depended on by: `core-05-s3`, `core-05-s4`, Epic 7.
-- Shared shapes consumed: `core-05-s1/CompletionEvidenceSet`,
+- Shared shapes consumed: `core-05-s1/CompletionReplayAnchor`, `core-05-s1/CompletionEvidenceSet`,
   `core-05-s1/CompletionDecisionPayload`, `core-05-s1/CompletionDecisionState`, changed-file class
   catalog.
 - Decision inputs consumed: `evaluatedThrough.afterSequence`, `LocalGitEvidence.headSha`,
   `LocalGitEvidence.changedPaths`, `LocalGitEvidence.clean`, `RunnerCommandCaptured.exitCode`,
   `RunnerCommandCaptured.commandDigest`, `ProtectedPolicySnapshotRecorded.verifierCommandDigest`,
-  fnd-01 allowed path patterns, protected policy path-set digests, approval decision subject/state.
+  fnd-01 allowed path patterns, protected policy path-set digests, approval decision subject/state, and
+  `CompletionReplayAnchor` cursor/window fields.
 
 ## Acceptance Criteria
 
@@ -193,7 +194,8 @@ The `packages/sdk/src/core/completion/evidence/**` module, tests, fixtures, and 
 
 ## Evidence Pack
 
-- Table tests and negative fixtures named in AC-1..AC-6.
+- Table tests and negative fixtures named in AC-1..AC-9, including
+  `completion-pending-missing-independent-evidence` and `merge-claim-forge-evidence-unavailable`.
 - Public-import test in AC-7.
 - `pnpm check` result.
 - Boundary sweep:

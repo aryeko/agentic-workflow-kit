@@ -136,8 +136,8 @@ executes commands, mutates Work Source state, performs a real merge, or implemen
 | `core-05-s5-post-merge-outcomes` | Classify Forge merge action results into post-merge outcome facts and lifecycle targets. | `core-05` | Post-merge outcome classification into lifecycle targets. | `packages/sdk/src/core/completion/post-merge/**`, `packages/sdk/tests/core/completion/post-merge/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
 | `core-06-s1-recovery-contracts` | Produce recovery snapshot, classifier, plan, event payload, lease-key, projection, action, safety, and failure catalog types. | `core-06` | Recovery evidence snapshot and classifier result records (snapshot/contract part); recovery taxonomy/action-safety/plan/lease/reconciliation payload contract parts. | `packages/sdk/src/core/recovery/contracts/**`, `packages/sdk/tests/core/recovery/contracts/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
 | `core-06-s2-recovery-classifier` | Implement the pure stable-order recovery classifier, action-safety matrix, resume/restart eligibility, and deterministic `planId` inputs. | `core-06` | Recovery evidence snapshot and classifier result records (classifier behavior part); recovery state taxonomy and stable failure ordering; action-safety classes; resume eligibility; restart eligibility. | `packages/sdk/src/core/recovery/classifier/**`, `packages/sdk/tests/core/recovery/classifier/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
-| `core-06-s3-launch-leases` | Enforce `story-launch:<workSourceId>:<trackId>:<taskId>` lease acquisition, duplicate blocking, and stale launch clearing records. | `core-06` | Story-launch lease acquisition, duplicate blocking, and stale launch clearing records. | `packages/sdk/src/core/recovery/leases/**`, `packages/sdk/tests/core/recovery/leases/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
-| `core-06-s4-recovery-plan-apply` | Plan recovery actions, require `auto-recover` gates for autonomous actions, hand off provider controls, and record applied actions/lifecycle recovery edges. | `core-06` | Recovery plan and applied action lifecycle recovery-edge signals. | `packages/sdk/src/core/recovery/plans/**`, `packages/sdk/tests/core/recovery/plans/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-06-s3-launch-leases` | Enforce `story-launch:<workSourceId>:<trackId>:<taskId>` lease acquisition, duplicate blocking, and stale launch clearance requests. | `core-06` | Story-launch lease acquisition, duplicate blocking, and stale launch clearance request records. | `packages/sdk/src/core/recovery/leases/**`, `packages/sdk/tests/core/recovery/leases/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
+| `core-06-s4-recovery-plan-apply` | Plan recovery actions, require `auto-recover` gates for autonomous actions, hand off provider controls, and record applied actions/lifecycle recovery edges. | `core-06` | Recovery plan, gated stale-launch clear apply, and applied action lifecycle recovery-edge signals. | `packages/sdk/src/core/recovery/plans/**`, `packages/sdk/tests/core/recovery/plans/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
 | `core-06-s5-reconciliation-projection` | Record blocked reconciliation and fold recovery projection fields for operator attention and downstream surfaces. | `core-06` | Blocked reconciliation records and recovery projection signals. | `packages/sdk/src/core/recovery/reconciliation/**`, `packages/sdk/src/core/recovery/projections/**`, `packages/sdk/tests/core/recovery/reconciliation/**`, `packages/sdk/tests/core/recovery/projections/**`, `packages/sdk/src/index.ts` (own export lines) | elevated |
 
 ## Dependency Table
@@ -151,8 +151,8 @@ executes commands, mutates Work Source state, performs a real merge, or implemen
 | `core-05-s5-post-merge-outcomes` | `core-05-s1-completion-contracts`, `core-05-s4-forge-intents-and-blockers` | Consumes merge intent/action-result evidence and post-merge outcome catalog to produce `PostMergeOutcomeRecorded`. |
 | `core-06-s1-recovery-contracts` | `core-05-s1-completion-contracts` | Consumes core-05 state union types in `RecoveryEvidenceSnapshot`; produces core-06 contracts and catalogs. |
 | `core-06-s2-recovery-classifier` | `core-06-s1-recovery-contracts`, `core-05-s1-completion-contracts` | Consumes recovery snapshot value types and core-05 state catalogs to classify recovery and compute stable plan inputs. |
-| `core-06-s3-launch-leases` | `core-06-s1-recovery-contracts` | Consumes story-launch key/lease payload contracts and fnd-02 lease snapshots to produce lease acquisition, duplicate block, and stale-clear records. |
-| `core-06-s4-recovery-plan-apply` | `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases` | Consumes `RecoveryClassification`, lease status, and `RecoveryPlan` contracts to plan/apply supported actions. |
+| `core-06-s3-launch-leases` | `core-06-s1-recovery-contracts` | Consumes story-launch key/lease payload contracts and fnd-02 lease snapshots to produce lease acquisition, duplicate block, and stale-clearance request records. |
+| `core-06-s4-recovery-plan-apply` | `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases` | Consumes `RecoveryClassification`, lease status, stale-clearance requests, and `RecoveryPlan` contracts to plan/apply supported actions. |
 | `core-06-s5-reconciliation-projection` | `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases`, `core-06-s4-recovery-plan-apply` | Consumes recovery events and plans to record `ReconciliationBlocked` and fold recovery projection. |
 
 ## Shared Shapes
@@ -166,8 +166,8 @@ executes commands, mutates Work Source state, performs a real merge, or implemen
 | Post-merge outcome classification and `PostMergeOutcomeRecorded` behavior | `core-05-s5-post-merge-outcomes` | `sdk` | Epic 7; core-06 snapshot assemblers consume the produced fact shape via `core-05-s1` type and committed event evidence |
 | `RecoveryEvidenceSnapshot`, `RecoveryClassification`, `RecoveryPlan`, `RecoveryPlanInput`, `RecoveryRecordInput`, recovery state/action/safety catalogs, lease payloads, reconciliation payload, recovery projection types, and core-06 failure catalog | `core-06-s1-recovery-contracts` | `sdk` | `core-06-s2`, `core-06-s3`, `core-06-s4`, `core-06-s5`, Epic 7 |
 | `classifyRecovery`, stable rule order, action-safety matrix, resume/restart eligibility, and deterministic plan-id source values | `core-06-s2-recovery-classifier` | `sdk` | `core-06-s4`, `core-06-s5`, Epic 7 |
-| Story-launch lease key rules, duplicate launch blocking, stale launch clearance request/clear behavior | `core-06-s3-launch-leases` | `sdk` | `core-06-s4`, `core-06-s5`, Epic 7 |
-| Recovery plan/apply behavior, `auto-recover` gate requirement, provider-control handoff records, and lifecycle recovery-edge requests | `core-06-s4-recovery-plan-apply` | `sdk` | `core-06-s5`, Epic 7 |
+| Story-launch lease key rules, duplicate launch blocking, and stale launch clearance request behavior | `core-06-s3-launch-leases` | `sdk` | `core-06-s4`, `core-06-s5`, Epic 7 |
+| Recovery plan/apply behavior, `auto-recover` gate requirement, gated stale-launch clear records, provider-control handoff records, and lifecycle recovery-edge requests | `core-06-s4-recovery-plan-apply` | `sdk` | `core-06-s5`, Epic 7 |
 | Blocked reconciliation records and recovery projection fold | `core-06-s5-reconciliation-projection` | `sdk` | Epic 7 |
 
 ## Whole-Graph Event / Record Producer Reconciliation
@@ -189,9 +189,9 @@ executes commands, mutates Work Source state, performs a real merge, or implemen
 | `PostMergeOutcomeRecorded` | `core-05-s5-post-merge-outcomes` | core-06 snapshot assemblers, Epic 7 | one producer |
 | `StoryLaunchLeaseAcquired` | `core-06-s3-launch-leases` | `core-06-s5`, Epic 7 | one producer |
 | `DuplicateLaunchBlocked` | `core-06-s3-launch-leases` | `core-06-s5`, Epic 7 | one producer |
-| `StaleLaunchClearanceRequested` | `core-06-s3-launch-leases` | `core-06-s2`, `core-06-s4`, `core-06-s5` | one producer |
-| `StoryLaunchLeaseCleared` | `core-06-s3-launch-leases` | `core-06-s2`, `core-06-s5` | one producer |
-| `RecoveryClassified` | `core-06-s2-recovery-classifier` | `core-06-s4`, `core-06-s5`, Epic 7 | one producer |
+| `StaleLaunchClearanceRequested` | `core-06-s3-launch-leases` | `core-06-s4`, `core-06-s5` | one producer |
+| `StoryLaunchLeaseCleared` | `core-06-s4-recovery-plan-apply` | `core-06-s5` | one producer |
+| `RecoveryClassification` / `RecoveryClassified` payload value | `core-06-s2-recovery-classifier` | `core-06-s4`, `core-06-s5`, Epic 7 | one producer |
 | `RecoveryActionPlanned` | `core-06-s4-recovery-plan-apply` | `core-06-s5`, Epic 7 | one producer |
 | `RecoveryActionApplied` | `core-06-s4-recovery-plan-apply` | `core-06-s5`, Epic 7 | one producer |
 | `ReconciliationBlocked` | `core-06-s5-reconciliation-projection` | Epic 7 operator attention surfaces | one producer |
