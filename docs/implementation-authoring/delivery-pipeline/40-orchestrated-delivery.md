@@ -83,7 +83,7 @@ merge-back hashes. These are facts, not decisions about the work.
 ### OD-8 operator ledger contract
 
 `orchestrated-delivery` communicates run/story progress as a sparse operator ledger, separable from raw
-worker/tool events. Assistant-authored updates use these forms:
+worker/tool events. Operator-visible updates use these forms:
 
 - `State: ... | next=...` for ordinary state transitions.
 - Paired `State:` + `Next:` lines when the next action or awaited event needs more detail than a compact
@@ -106,10 +106,10 @@ The run closes with a post-run communication audit over operator-visible updates
 visible updates used the ledger grammar, warning handling, and wait cadence above, and it records any
 deviation as a follow-up defect rather than treating transcript noise as harmless.
 
-This skill already ships an `EVALS.md` (at `.agents/skills/orchestrated-delivery/EVALS.md`) that
-operationalizes these as test cases with a version-pinned combined hash; that file must satisfy
-OD-1…OD-12. (Conforming the skill `EVALS.md` to the reformed OD-4/OD-5 semantics and the new OD-10…OD-12
-is Phase 2 skill work, not part of this design layer.)
+The skill's `EVALS.md` (at `.agents/skills/orchestrated-delivery/EVALS.md`) is the implementation-level
+test spec for these OD requirements and must be updated before the live skill can claim conformance to
+the revised OD-8 contract. Conforming the skill references, evals, and fixtures to the revised OD
+requirements is Phase 2 skill work, not part of this design layer.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
