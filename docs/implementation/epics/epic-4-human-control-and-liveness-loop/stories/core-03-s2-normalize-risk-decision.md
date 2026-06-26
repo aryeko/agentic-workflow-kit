@@ -26,11 +26,10 @@ ladder against recorded policy and gate evidence.
 - Consumed frozen shapes: fnd-01 `ResolvedPolicy`, Epic 3 `RunReplay`, `RunProjections`,
   committed `CapabilityGateRecord`, Epic 2 Agent capability attestations.
 - Trusted workspace root: `core-03-s1/ApprovalRequest.worktreePath` — the run's trusted workspace
-  boundary, copied by `normalize` from `ApprovalContext.worktreePath`, whose value is the recorded
-  `RunLaunchProjection.worktreePath` run-launch fact produced by the cross-epic
-  `core-01-r2-run-launch-worktree-path` story (frozen earlier, in `epic-r2-run-launch-workspace-fact`).
-  It is never the agent-supplied `cwd` or any agent request path; it is the operand the workspace
-  containment rules in AC-3/AC-4 test against, and the rules fail closed when it is absent.
+  boundary, copied by `normalize` from `ApprovalContext.worktreePath`, whose value the approval
+  composition assembler resolves from the run's frozen `WorktreeLease.worktreePath`. It is never the
+  agent-supplied `cwd` or any agent request path; it is the operand the workspace containment rules in
+  AC-3/AC-4 test against, and the rules fail closed when it is absent.
 - Produced values and facts: normalized `ApprovalRequest`, `ApprovalRiskClassifiedPayload`,
   `ApprovalRiskClassified`, `Decision`, and `ApprovalDecisionRecorded`.
 
@@ -55,12 +54,10 @@ ladder against recorded policy and gate evidence.
 
 - Covers signals: deterministic risk classification, v1 mode ladder, risk/decision neutral records
   behavior, and policy/risk/gate failure behavior.
-- Depends on: `core-03-s1-approval-contracts`; and cross-epic on
-  `core-01-r2-run-launch-worktree-path` (in `epic-r2-run-launch-workspace-fact`, frozen earlier) for the
-  trusted `RunLaunchProjection.worktreePath` workspace boundary.
+- Depends on: `core-03-s1-approval-contracts`.
 - Frozen inputs: fnd-01 resolved policy, fnd-02 prompt persistence result supplied as
-  `ApprovalContext.promptRef`, the trusted `RunLaunchProjection.worktreePath` (from
-  `core-01-r2-run-launch-worktree-path`) supplied as `ApprovalContext.worktreePath` and copied to
+  `ApprovalContext.promptRef`, the trusted `WorktreeLease.worktreePath` supplied as
+  `ApprovalContext.worktreePath` by the approval composition assembler and copied to
   `ApprovalRequest.worktreePath`, injected SDK `IdGenerator`, Epic 2 Agent attestations, and Epic 3
   writer, capability gate records, and linkage.
 
@@ -68,7 +65,7 @@ ladder against recorded policy and gate evidence.
 
 - **AC-1** `normalizeApprovalRequest(input, context)` copies `runId`, `taskId`, `operationId`,
   `sessionId`, `policyRef`, `agentRequestEventId`, `requestedAt`, `promptRef`, and `worktreePath` exactly
-  from context (`worktreePath` is the trusted run-launch workspace boundary, copied from
+  from context (`worktreePath` is the trusted lease-origin workspace boundary, copied from
   `ApprovalContext.worktreePath` — never the agent-supplied `cwd`), and maps `kind` to subject unless
   `subjectOverride` is set - evidence: `normalize-approval-request.unit.test.ts` asserts copied values
   (including `worktreePath` from context and a fixture where the agent `cwd` differs from `worktreePath`),
@@ -80,8 +77,8 @@ ladder against recorded policy and gate evidence.
   session scope, unsafe command syntax, wildcard/private host, out-of-workspace file path, ambiguous
   session linkage, missing relay, and self-report-only evidence. The "file path outside the workspace"
   predicate tests `ApprovalRequest.filePaths` containment against the trusted
-  `ApprovalRequest.worktreePath` (copied by `normalize` from `ApprovalContext.worktreePath`, sourced from
-  the recorded `RunLaunchProjection.worktreePath` run-launch fact) — **never** the agent-supplied `cwd`.
+  `ApprovalRequest.worktreePath` (copied by `normalize` from `ApprovalContext.worktreePath`, resolved
+  from the run's `WorktreeLease.worktreePath`) — **never** the agent-supplied `cwd`.
   When `worktreePath` is absent, containment is unprovable, so the "outside the workspace" predicate
   triggers (fail closed), scoped to requests that carry `filePaths`; a request with no `filePaths` is
   unaffected. This fixes the prior P1 fail-open, which approximated the workspace root from the spoofable
@@ -89,8 +86,8 @@ ladder against recorded policy and gate evidence.
   and includes the rule id, including an absent-`worktreePath` fixture that carries `filePaths`.
 - **AC-4** Low risk is returned only for exact command requests whose `ApprovalRequest.cwd` is **provably
   contained** within the trusted `ApprovalRequest.worktreePath` (the workspace root copied by `normalize`
-  from `ApprovalContext.worktreePath`, sourced from the recorded `RunLaunchProjection.worktreePath` —
-  never the agent-supplied path), with no high rule, policy allowlist match, no broader-than-policy scope,
+  from `ApprovalContext.worktreePath`, resolved from the run's `WorktreeLease.worktreePath` — never the
+  agent-supplied path), with no high rule, policy allowlist match, no broader-than-policy scope,
   fresh positive relay attestation, persistable answer channel when parking may be needed, and current
   session linkage. When `worktreePath` is absent or `cwd` containment is not provable, the low-risk "cwd
   is inside the workspace" condition is **unmet** and there is no low-risk auto-grant - evidence:
@@ -145,8 +142,8 @@ ladder against recorded policy and gate evidence.
 | AC-1 | `subject` | `subjectOverride` or frozen kind mapping |
 | AC-2 | policy unavailable block | resolved policy/provenance input absence |
 | AC-3, AC-4 | risk (non-containment rules) | `core-03-s1/ApprovalRequest` fields, fnd-01 `ResolvedPolicy`, Epic 3 replay/projections, Epic 2 attestation facts |
-| AC-3 | workspace-containment predicate (relational, two operands) | tested point `core-03-s1/ApprovalRequest.filePaths`; boundary `core-03-s1/ApprovalRequest.worktreePath` (the trusted `RunLaunchProjection.worktreePath` from `core-01-r2-run-launch-worktree-path`, copied via `ApprovalContext.worktreePath`; absent → fail closed to "outside") |
-| AC-4 | workspace-containment predicate (relational, two operands) | tested point `core-03-s1/ApprovalRequest.cwd`; boundary `core-03-s1/ApprovalRequest.worktreePath` (the trusted `RunLaunchProjection.worktreePath` from `core-01-r2-run-launch-worktree-path`, copied via `ApprovalContext.worktreePath`; absent or not provably contained → low-risk condition unmet) |
+| AC-3 | workspace-containment predicate (relational, two operands) | tested point `core-03-s1/ApprovalRequest.filePaths`; boundary `core-03-s1/ApprovalRequest.worktreePath` (the trusted `WorktreeLease.worktreePath` copied via `ApprovalContext.worktreePath`; absent → fail closed to "outside") |
+| AC-4 | workspace-containment predicate (relational, two operands) | tested point `core-03-s1/ApprovalRequest.cwd`; boundary `core-03-s1/ApprovalRequest.worktreePath` (the trusted `WorktreeLease.worktreePath` copied via `ApprovalContext.worktreePath`; absent or not provably contained → low-risk condition unmet) |
 | AC-5, AC-6 | `classifiedAt` and risk fact | explicit function input, triggered rule ids, evidence event ids, `RunWriter.append` result |
 | AC-7, AC-8, AC-9 | ladder/gate branch | `ApprovalDecisionInput.mode`, risk, policy, committed gate event id or explicit append-failure input |
 | AC-10 | `PolicyGrantPlan` | request command/host/files/session, resolved policy grant rules, injected `IdGenerator` for `grantId` |
@@ -187,7 +184,7 @@ Stop if a branch requires a policy value, session value, gate value, prompt refe
 containment/boundary value (such as a workspace root) not produced by frozen inputs; do not infer it from
 story ids, hashes, prose, or the agent-supplied request. In particular, never source the workspace
 boundary from the agent `cwd` or any agent request path — the only admissible boundary is the trusted
-`ApprovalRequest.worktreePath` (the recorded `RunLaunchProjection.worktreePath`), and when it is absent
+`ApprovalRequest.worktreePath` (the lease-origin value copied from `ApprovalContext.worktreePath`), and when it is absent
 the containment predicates fail closed.
 
 ## Characterization Review

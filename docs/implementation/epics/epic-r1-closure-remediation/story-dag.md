@@ -139,6 +139,6 @@ flowchart TB
 
 ---
 
-**↑ Up:** [Epic R1 - Delivered-code closure remediation](./README.md) · **← Prev:** [fnd-04-r1-required-attester-source - drop runtime-only RequiredAttester facts and fix release-match](./stories/fnd-04-r1-required-attester-source.md) · **Next →:** [Epic R2 - Run-launch workspace fact](../epic-r2-run-launch-workspace-fact/README.md)
+**↑ Up:** [Epic R1 - Delivered-code closure remediation](./README.md) · **← Prev:** [fnd-04-r1-required-attester-source - drop runtime-only RequiredAttester facts and fix release-match](./stories/fnd-04-r1-required-attester-source.md) · **Next →:** [implementation coverage rollup](../../coverage.md)
 
 <!-- /DOCS-NAV -->

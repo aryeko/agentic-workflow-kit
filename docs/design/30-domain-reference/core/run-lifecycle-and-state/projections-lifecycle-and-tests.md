@@ -15,11 +15,9 @@ The canonical projections are pure replay functions:
   artifact refs.
 - `metrics`: counts, durations derived from recorded event timestamps, retry counts, parked time, and
   event health.
-- `launch`: resolved policy digest, task snapshot digest, the trusted workspace root
-  (`worktreePath`, folded from the `workspace-ready` barrier fact that records the run's
-  `WorktreeLease.worktreePath`), workspace/session linkage facts, and the minimal launch record
-  needed for resume/reconciliation. `worktreePath` is absent until a producer records that fact;
-  consumers fail closed when it is absent.
+- `launch`: resolved policy digest, task snapshot digest, workspace/session linkage facts, and the
+  minimal launch record needed for resume/reconciliation. Workspace roots are owned by
+  Workspace & Repository leases; core-01 launch projection does not fold or expose them.
 
 Projection input is only the ordered committed event stream plus fnd-02 replay health. Rebuild is
 `replay(logId) -> validate frames -> fold events through reducers`. Reducers are total: well-formed
