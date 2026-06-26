@@ -69,20 +69,20 @@ depends on Epic 5 before production operator composition.
 ## Per-domain expectations
 
 For each included domain, the table lists the `Story Group Signals` this epic claims. Story ownership
-stays `TBD` until the Epic 5 story DAG is frozen.
+is set by the frozen Epic 5 story DAG.
 
 ### `core-05` - Completion, Verification & Merge
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Candidate-head selection and exact-head evidence refs. | TBD | covered |
-| Protected policy snapshot records and changed-file policy signals. | TBD | covered |
-| Completion decision states and `claim-evidence-mismatch` handling. | TBD | covered |
-| Verification freshness from runner-owned captures and matching local git evidence. | TBD | covered |
-| Merge readiness predicate over policy, checks, review/thread evidence, branch freshness, protection, and capability gate records. | TBD | covered |
-| Forge operation intent and merge intent records with `expectedHeadSha`. | TBD | covered |
-| Blocker-evidence PR intent separation from task completion or merge readiness. | TBD | covered |
-| Post-merge outcome classification into lifecycle targets. | TBD | covered |
+| Candidate-head selection and exact-head evidence refs. | `core-05-s2-completion-evidence` | covered |
+| Protected policy snapshot records and changed-file policy signals. | `core-05-s2-completion-evidence` | covered |
+| Completion decision states and `claim-evidence-mismatch` handling. | `split(core-05-s1-completion-contracts: state/catalog producer; core-05-s2-completion-evidence: evaluator and decision record)` | split(state/catalog producer; evaluator and decision record) |
+| Verification freshness from runner-owned captures and matching local git evidence. | `core-05-s2-completion-evidence` | covered |
+| Merge readiness predicate over policy, checks, review/thread evidence, branch freshness, protection, and capability gate records. | `core-05-s3-merge-readiness` | covered |
+| Forge operation intent and merge intent records with `expectedHeadSha`. | `core-05-s4-forge-intents-and-blockers` | covered |
+| Blocker-evidence PR intent separation from task completion or merge readiness. | `core-05-s4-forge-intents-and-blockers` | covered |
+| Post-merge outcome classification into lifecycle targets. | `split(core-05-s1-completion-contracts: outcome catalog; core-05-s5-post-merge-outcomes: classifier and outcome record)` | split(outcome catalog; classifier and outcome record) |
 
 - Evidence expectation: Epic 5 stories leave completion, verification, and merge-readiness decisions
   that can be checked against recorded evidence and exact-head bindings, without trusting worker prose
@@ -92,13 +92,13 @@ stays `TBD` until the Epic 5 story DAG is frozen.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Recovery evidence snapshot and classifier result records. | TBD | covered |
-| Recovery state taxonomy and stable failure ordering. | TBD | covered |
-| Action-safety classes: auto-safe, operator-required, and forbidden. | TBD | covered |
-| `story-launch:<workSourceId>:<trackId>:<taskId>` lease acquisition, duplicate blocking, and stale launch clearing records. | TBD | covered |
-| Resume eligibility from owned, non-superseded session evidence. | TBD | covered |
-| Restart eligibility only from safe empty state with verified termination, owner, launch, approval, and claim evidence. | TBD | covered |
-| Recovery plan, applied action, blocked reconciliation, and lifecycle recovery-edge signals. | TBD | covered |
+| Recovery evidence snapshot and classifier result records. | `split(core-06-s1-recovery-contracts: snapshot/result contracts; core-06-s2-recovery-classifier: classifier result record)` | split(snapshot/result contracts; classifier result record) |
+| Recovery state taxonomy and stable failure ordering. | `split(core-06-s1-recovery-contracts: taxonomy/catalog producer; core-06-s2-recovery-classifier: stable-order behavior)` | split(taxonomy/catalog producer; stable-order behavior) |
+| Action-safety classes: auto-safe, operator-required, and forbidden. | `split(core-06-s1-recovery-contracts: safety catalog; core-06-s2-recovery-classifier: matrix behavior)` | split(safety catalog; matrix behavior) |
+| `story-launch:<workSourceId>:<trackId>:<taskId>` lease acquisition, duplicate blocking, and stale launch clearing records. | `core-06-s3-launch-leases` | covered |
+| Resume eligibility from owned, non-superseded session evidence. | `core-06-s2-recovery-classifier` | covered |
+| Restart eligibility only from safe empty state with verified termination, owner, launch, approval, and claim evidence. | `core-06-s2-recovery-classifier` | covered |
+| Recovery plan, applied action, blocked reconciliation, and lifecycle recovery-edge signals. | `split(core-06-s4-recovery-plan-apply: plan/applied action/lifecycle edge; core-06-s5-reconciliation-projection: blocked reconciliation and projection)` | split(plan/applied action/lifecycle edge; blocked reconciliation and projection) |
 
 - Evidence expectation: Epic 5 stories leave recovery classifications and coordination records that
   repeated processes can replay to the same safe action without editing logs, projections, Work Source
