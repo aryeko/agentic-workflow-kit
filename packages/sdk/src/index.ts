@@ -80,6 +80,41 @@ export type {
   SupervisionTimerEvaluation,
   SupervisionTimerStatus,
 } from './core/supervision/timers/index.js';
+export {
+  recordLivenessAdvanced,
+  recordLivenessStateChanged,
+  recordSupervisionLost,
+  recordTimerExpired,
+  recordWorkerTerminated,
+  requestWorkerTermination,
+  startSupervisor,
+  stopSupervisor,
+} from './core/supervision/termination/index.js';
+export type {
+  RecordLivenessAdvancedInput,
+  RecordLivenessAdvancedResult,
+  RecordLivenessStateChangedInput,
+  RecordLivenessStateChangedResult,
+  RecordSupervisionLostInput,
+  RecordSupervisionLostResult,
+  RecordTimerExpiredInput,
+  RecordTimerExpiredResult,
+  RecordWorkerTerminatedInput,
+  RecordWorkerTerminatedResult,
+  RequestWorkerTerminationCommit,
+  RequestWorkerTerminationInput,
+  RequestWorkerTerminationResult,
+  StartSupervisorInput,
+  StartSupervisorResult,
+  StopSupervisorCommit,
+  StopSupervisorInput,
+  StopSupervisorResult,
+  SupervisionFactCommit,
+  SupervisionFactFailure,
+  SupervisionFactGuard,
+  SupervisionFactWriter,
+  TerminationHost,
+} from './core/supervision/termination/index.js';
 export { wrapWaitRunEvents } from './core/supervision/wait/index.js';
 export type {
   SupervisionWaitRunner,
