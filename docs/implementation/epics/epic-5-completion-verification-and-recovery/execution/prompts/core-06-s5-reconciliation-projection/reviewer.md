@@ -95,7 +95,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -107,7 +107,7 @@ Check all of the following against the original source story and runtime evidenc
 | Append unwritable behavior | AC-6 | `coverage:baseline` |
 | Public exports | AC-7 | `typecheck` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
@@ -115,7 +115,7 @@ Check all of the following against the original source story and runtime evidenc
 | `forbidden` | action is forbidden by classification | append `ReconciliationBlocked` or leave terminal blocked | AC-2 |
 | `log-unwritable` | blocked record append fails | no success record and projection remains replay-only | AC-6 |
 
-## Validation Failure Modes
+### Validation Failure Modes
 
 | failure mode | invalid fixture | required validation | proven by |
 |---|---|---|---|
@@ -128,13 +128,15 @@ Check all of the following against the original source story and runtime evidenc
 - Public exposure: `sdk` import path plus AC-7 public-import test.
 - Determinism constraints: projection is pure replay; no wall-clock read except injected `blockedAt`.
 - Dependency boundaries: no provider/store/Work Source mutation; no operator rendering.
-- File-si
+- File-size budget: 260 lines per file; split reconciliation and projection modules before 400 lines;
+  800 hard cap.
+- Domain non-negotiables: projections are derived from the event log, not mutable state.
 
 - Reconciliation field, parking, projection, lease-clear, determinism, unwritable, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|LeaseStore|AgentProvider|ExecutionHost|ForgeProvider|WorkSource|fs\\.|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/reconciliation packages/sdk/src/core/recovery/projections packages/sdk/tests/core/recovery/reconciliation packages/sdk/tests/core/recovery/projections`
-  returns
+  returns zero matches except test-only fixtures.
 
 ## Verdict Format
 

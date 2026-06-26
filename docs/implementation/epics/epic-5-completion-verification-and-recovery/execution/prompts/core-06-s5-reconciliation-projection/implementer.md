@@ -98,7 +98,9 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 
 ## Implementation Constraints
 
-## Spec Surface
+The implementation constraints are the source-owned spec surface and responsibilities below. Do not introduce implementation choices outside this contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+
+### Spec Surface
 
 - Interfaces / types: `recordReconciliationBlocked`, `foldRecoveryProjection`.
 - Events / append intents: `ReconciliationBlocked`.
@@ -107,7 +109,7 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Evidence records / attestations: `RecoveryClassified`, story-launch lease records, recovery plan/apply
   records, evidence refs, cursor.
 
-## Responsibilities
+### Responsibilities
 
 - Append `ReconciliationBlocked` with `runId`, `recoveryState`, `parkedReason`, `severity`,
   `evidenceRefs`, `cursor`, and `blockedAt` when recovery cannot safely apply.
@@ -117,11 +119,11 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Never write projection state directly; projection is pure replay only.
 - Treat ambiguous/corrupt/unwritable inputs as blocked/parked rather than guessed.
 
-Do not introduce implementation choices outside the source contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
-
 ## Verification
 
-## Coverage Matrix
+The verification contract is the source-owned coverage matrix, quality bar, and evidence pack below. The repo gate is `pnpm check`; report exact command output or an explicit blocked reason.
+
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -140,15 +142,15 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - Public exposure: `sdk` import path plus AC-7 public-import test.
 - Determinism constraints: projection is pure replay; no wall-clock read except injected `blockedAt`.
 - Dependency boundaries: no provider/store/Work Source mutation; no operator rendering.
-- File-si
+- File-size budget: 260 lines per file; split reconciliation and projection modules before 400 lines;
+  800 hard cap.
+- Domain non-negotiables: projections are derived from the event log, not mutable state.
 
 - Reconciliation field, parking, projection, lease-clear, determinism, unwritable, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|LeaseStore|AgentProvider|ExecutionHost|ForgeProvider|WorkSource|fs\\.|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/reconciliation packages/sdk/src/core/recovery/projections packages/sdk/tests/core/recovery/reconciliation packages/sdk/tests/core/recovery/projections`
-  returns
-
-The repo gate is `pnpm check`. Report exact command output or an explicit blocked reason.
+  returns zero matches except test-only fixtures.
 
 ## Commit Cadence
 

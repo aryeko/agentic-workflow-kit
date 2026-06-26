@@ -74,7 +74,13 @@ Every other write is forbidden, including execution package files, tracker files
 
 - Covers signals: merge readiness predicate over policy, checks, review/thread evidence, branch
   freshness, protection, and capability gate records.
-- Depends on: `core-05-s1-completion-contracts`, `core-05-s2-completion-evidence`, prior fro
+- Depends on: `core-05-s1-completion-contracts`, `core-05-s2-completion-evidence`, prior frozen Forge
+  evidence DTOs, core-02 gate record contracts, fnd-01 merge policy.
+- Depended on by: `core-05-s4-forge-intents-and-blockers`.
+- Shared shapes consumed: `core-05-s1/MergeDecisionState`, `core-05-s2/CompletionDecisionRecorded`.
+- Decision inputs consumed: completion state/head, policy `runnerMayMerge`, selected merge method,
+  local git clean head, changed-file gate result, verification freshness, Forge PR/branch/protection
+  evidence heads, required checks, review approval, thread state, `CapabilityGateRecord` fields.
 
 Execution-time dependency commits: `core-05-s1-completion-contracts`, `core-05-s2-completion-evidence`. Runtime execution must provide {{DEPENDENCY_COMMITS}} for producer stories that have reached tracker status merged.
 
@@ -96,7 +102,9 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 
 ## Implementation Constraints
 
-## Spec Surface
+The implementation constraints are the source-owned spec surface and responsibilities below. Do not introduce implementation choices outside this contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+
+### Spec Surface
 
 - Interfaces / types: `evaluateMergeReadiness`, `mergeAllowed`.
 - Events / append intents: `MergeDecisionRecorded`.
@@ -105,7 +113,7 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Evidence records / attestations: `CompletionDecisionRecorded`, Forge PR/check/review/thread/protection
   evidence refs, policy evidence, branch freshness evidence, `CapabilityGateRecord(auto-merge)`.
 
-## Responsibilities
+### Responsibilities
 
 - Require a prior `completion-verified` decision for the same candidate head.
 - Check the entire design merge predicate as an all-true rule; any false, missing, stale,
@@ -117,11 +125,11 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Append `MergeDecisionRecorded` at barrier durability or return `merge-intent-unwritable` for append
   failure.
 
-Do not introduce implementation choices outside the source contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
-
 ## Verification
 
-## Coverage Matrix
+The verification contract is the source-owned coverage matrix, quality bar, and evidence pack below. The repo gate is `pnpm check`; report exact command output or an explicit blocked reason.
+
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -139,16 +147,15 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - Public exposure: `sdk` import path plus AC-6 public-import test.
 - Determinism constraints: injected `evaluatedAt`; no ambient clock or live Forge/CI/PR calls.
 - Dependency boundaries: consumes Forge evidence DTOs but never imports a concrete Forge driver.
-- File-si
+- File-size budget: 260 lines per source/test file; split predicate helpers before 400 lines; 800 hard cap.
+- Domain non-negotiables: any missing, stale, contradictory, ambiguous, or unwritable input fails closed.
 
 - Property/table tests for every merge predicate and deny state.
 - Public-import test in AC-6.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|@octokit|node:http|node:https|child_process|simple-git|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/completion/merge-readiness packages/sdk/tests/core/completion/merge-readiness`
-  returns
-
-The repo gate is `pnpm check`. Report exact command output or an explicit blocked reason.
+  returns zero matches except test-only fixtures.
 
 ## Commit Cadence
 

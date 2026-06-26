@@ -58,12 +58,25 @@
 - **AC-6** Public SDK importability exposes all symbols named in the Spec Surface from `sdk`, including
   this story's own `packages/sdk/src/index.ts` export lines - evidence: `typecheck` public-import test
   importing each symbol from `sdk`.
-- **AC-7** Runtime catalogs are fro
+- **AC-7** Runtime catalogs are frozen substrate, not erased-only type aliases - evidence:
+  `coverage:baseline` asserts `Object.isFrozen(COMPLETION_DECISION_STATES) === true` and equivalent
+  assertions for merge, post-merge, changed-file, and recovery-consumed blocker catalogs.
+- **AC-10** `CompletionMergeEvaluator`, `CompletionReplayAnchor`, and `CompletionEvidenceSet` require the
+  design fields used by downstream stories: evaluator input/output states, replay cursor/window fields,
+  exact-head evidence refs, verification refs, policy snapshot refs, and optional Forge refs - evidence:
+  `type:fixtures` positive constructors plus negative fixtures
+  `completion-replay-anchor-missing-cursor`, `completion-evidence-set-missing-head`, and
+  `completion-merge-evaluator-wrong-state-rejected`.
 
 ### Dependencies And Frozen Inputs
 
 - Covers signals: contract parts of all core-05 Story Group Signals.
-- Depends on: prior fro
+- Depends on: prior frozen `core-01-s1-event-contracts`, Epic 3 `core-02` gate contracts, Epic 1 policy
+  and workspace evidence contracts, and Epic 2 Forge/Execution Host port evidence contracts.
+- Depended on by: `core-05-s2`, `core-05-s3`, `core-05-s4`, `core-05-s5`, `core-06-s1`, `core-06-s2`.
+- Shared shapes consumed: `core-01-s1-event-contracts/RunEventCursor`,
+  `core-01-s1-event-contracts/EvidenceEventRef`, Epic 3 `core-02/CapabilityGateRecord`.
+- Decision inputs consumed: none; type-only producer.
 
 ### Non-Goals
 
@@ -81,7 +94,7 @@
 - Forbidden dependencies: concrete drivers, provider clients, process/network/filesystem calls,
   `testkit` imports from production source, and recovery modules.
 - STOP when any design-required state literal or required payload field cannot be represented without
-  inventing a type not owned by this story or an earlier fro
+  inventing a type not owned by this story or an earlier frozen producer.
 
 ## Runtime Slots
 
@@ -108,7 +121,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -120,9 +133,10 @@ Check all of the following against the original source story and runtime evidenc
 | Completion and merge payload required fields | AC-4 | `type:fixtures` |
 | Core-05 event payload schema names | AC-5 | `type:fixtures` |
 | Public SDK export/import path | AC-6 | `typecheck` |
-| Runtime-fro
+| Runtime-frozen catalog substrate | AC-7 | `coverage:baseline` |
+| Evaluator, replay anchor, and evidence set shapes | AC-10 | `type:fixtures` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 This is the authoritative producer catalog for core-05 failure/degraded/state tokens. It consumes no
 failure tokens from another Epic 5 story.
@@ -145,11 +159,19 @@ failure tokens from another Epic 5 story.
 - Required tests, catalogued by AC and failure row: AC-1..AC-10 fixtures above.
 - Public exposure: `sdk` import path plus public-import test in AC-6.
 - Determinism constraints: no ambient time, random ids, provider clients, filesystem, process, or network.
-- Dependency boundaries: may import only contracts from earlier fro
+- Dependency boundaries: may import only contracts from earlier frozen epics and foundation/provider
+  type surfaces allowed by the Dependency Rule.
+- File-size budget: 220 lines per source or test file; split catalog, payload, and public-import tests
+  before 400 lines; 800 hard cap.
+- Domain non-negotiables: evidence over prose; exact-head fields stay data only here.
 
 - Positive and negative `type:fixtures` for every catalog and payload.
 - Public-import test for every exported symbol.
-- `coverage:baseline` output for runtime-fro
+- `coverage:baseline` output for runtime-frozen catalogs.
+- `pnpm check` result.
+- Boundary sweep:
+  `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|child_process|node:net|node:http|node:https|@octokit|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/completion/contracts packages/sdk/tests/core/completion/contracts`
+  returns zero matches except test fixture imports explicitly under tests.
 
 ## Verdict Format
 

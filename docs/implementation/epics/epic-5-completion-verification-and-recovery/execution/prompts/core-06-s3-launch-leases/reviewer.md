@@ -46,7 +46,12 @@
 
 - Covers signals: `story-launch:<workSourceId>:<trackId>:<taskId>` lease acquisition, duplicate blocking,
   and stale launch clearance request records.
-- Depends on: `core-06-s1-recovery-contracts`, fnd-02 lease primitives, core-01 writer, prior fro
+- Depends on: `core-06-s1-recovery-contracts`, fnd-02 lease primitives, core-01 writer, prior frozen
+  Work Source claim evidence shape.
+- Depended on by: `core-06-s4`, `core-06-s5`, Epic 7.
+- Shared shapes consumed: `core-06-s1` lease payload types and failure catalogs.
+- Decision inputs consumed: `workSourceId`, `trackId`, `taskId`, `runId`, lease read/acquire result,
+  lease epoch/expiry, current writer/owner/session/approval/claim evidence refs.
 
 ### Non-Goals
 
@@ -89,7 +94,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -100,7 +105,7 @@ Check all of the following against the original source story and runtime evidenc
 | Lease fail-closed states | AC-5 | `coverage:baseline` |
 | Public exports | AC-6 | `typecheck` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
@@ -118,13 +123,14 @@ Check all of the following against the original source story and runtime evidenc
 - Determinism constraints: injected clock; no process liveness reads as safety inputs.
 - Dependency boundaries: fnd-02 `LeaseStore` contract only; no concrete storage driver or Work Source
   mutation.
-- File-si
+- File-size budget: 260 lines per file; split key/acquire/stale-clear helpers before 400 lines; 800 hard cap.
+- Domain non-negotiables: epoch fencing and evidence, not holder text or process absence, are safety.
 
 - Key, acquisition, duplicate, stale-clearance-request, fail-closed, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|fs\\.|unlink|rmSync|process\\.kill|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/leases packages/sdk/tests/core/recovery/leases`
-  returns
+  returns zero matches except test-only fixtures.
 
 ## Verdict Format
 

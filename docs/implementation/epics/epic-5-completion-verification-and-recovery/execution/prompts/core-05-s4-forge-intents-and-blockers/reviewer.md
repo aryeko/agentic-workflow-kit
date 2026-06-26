@@ -96,7 +96,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -107,7 +107,7 @@ Check all of the following against the original source story and runtime evidenc
 | Intent append unwritable behavior | AC-5 | `coverage:baseline` |
 | Public SDK exports | AC-6 | `typecheck` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
@@ -129,14 +129,15 @@ Check all of the following against the original source story and runtime evidenc
 - Public exposure: `sdk` import path plus AC-6 public-import test.
 - Determinism constraints: no ambient time except injected `recordedAt`; no Forge execution.
 - Dependency boundaries: may consume provider DTOs as evidence refs only; no concrete provider import.
-- File-si
+- File-size budget: 240 lines per file; split blocker matrix before 400 lines; 800 hard cap.
+- Domain non-negotiables: intent before action; exact-head binding; blocker PR is not completion/merge.
 
 - Intent kind, merge-ready, blocker-eligible, blocker-forbidden, and unwritable fixtures.
 - Public-import test in AC-6.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|@octokit|node:http|node:https|child_process|simple-git|merge\\(|enqueue\\(|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/completion/intents packages/sdk/tests/core/completion/intents`
-  returns
+  returns zero matches except test fixture names where asserted.
 
 ## Verdict Format
 

@@ -106,10 +106,8 @@ A later run resumes by reading existing tracker rows, per-round commit hashes, m
 
 - Sources reviewed: `docs/implementation/epics/epic-5-completion-verification-and-recovery/README.md`, `docs/implementation/epics/epic-5-completion-verification-and-recovery/story-dag.md`, all ten story contracts, repo `AGENTS.md`, and `CLAUDE.md`.
 - Selected stories covered: `core-05-s1-completion-contracts`, `core-05-s2-completion-evidence`, `core-05-s3-merge-readiness`, `core-05-s4-forge-intents-and-blockers`, `core-05-s5-post-merge-outcomes`, `core-06-s1-recovery-contracts`, `core-06-s2-recovery-classifier`, `core-06-s3-launch-leases`, `core-06-s4-recovery-plan-apply`, `core-06-s5-reconciliation-projection`.
-- Artifact checks performed before independent review: source status and AC/pathset/dependency inventory, routing floor check, prompt-pair completeness, tracker initial-state check, runtime model ID exclusion check, and PD-9/PD-10/PD-11 source-readiness preflight.
-- Independent reviewer verdict: no blocking findings; reviewer confirmed package completeness,
-  projection trace, PD-9/PD-10/PD-11 source-readiness claims, minimal elevated implementer routing,
-  reviewer routing, dependency unlock semantics, and absence of provider-specific runtime model ids.
+- Artifact checks performed before independent review: source status and AC/pathset/dependency inventory, routing floor check, prompt-pair completeness, tracker initial-state check, runtime model ID exclusion check, and PD-9/PD-10/PD-11 source-readiness preflight. Thread-aware PR follow-up added a content-integrity validator that round-trips every projected Acceptance Criteria and STOP/boundary section against the source story contracts.
+- Independent reviewer verdict: no blocking findings on the initial package. Subsequent live PR review found prompt truncation that the original file-presence validator missed; this follow-up repaired the generator output and verified AC and STOP/boundary round-trip integrity against source contracts.
 - Final verdict: `ready_for_implementation`.
 
 ## Stop Point

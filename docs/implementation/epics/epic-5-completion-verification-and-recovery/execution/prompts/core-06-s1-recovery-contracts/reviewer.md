@@ -53,13 +53,23 @@
   provider-control handoff, and source event ids - evidence: `type:fixtures` positive constructors plus
   negative fixtures `recovery-plan-input-missing-policy`, `recovery-record-input-missing-source-events`,
   `recovery-plan-missing-selected-action`, and `recovery-coordinator-wrong-method-shape`.
-- **AC-5** Runtime catalogs are fro
+- **AC-5** Runtime catalogs are frozen substrate, not erased-only aliases - evidence:
+  `coverage:baseline` asserts `Object.isFrozen(RECOVERY_STATES) === true`, plus equivalent action and
+  safety catalog assertions.
+- **AC-6** Public SDK importability exposes every Spec Surface symbol through this story's export lines -
+  evidence: `typecheck` public-import test.
 
 ### Dependencies And Frozen Inputs
 
 - Covers signals: recovery evidence snapshot and classifier result records (snapshot/contract part);
   recovery taxonomy/action-safety/plan/lease/reconciliation payload contract parts.
-- Depends on: `core-05-s1-completion-contracts`; prior fro
+- Depends on: `core-05-s1-completion-contracts`; prior frozen core-01, core-02, core-04, fnd-02, and
+  provider-seam value types.
+- Depended on by: `core-06-s2`, `core-06-s3`, `core-06-s4`, `core-06-s5`, Epic 7.
+- Shared shapes consumed: `core-05-s1/CompletionDecisionState`, `MergeDecisionState`,
+  `PostMergeOutcomeState`; core-01 `RunEventCursor`, `EvidenceEventRef`, projections; fnd-02
+  `LeaseSnapshot`, `StorageHealth`; core-02 `CapabilityGateRecord`.
+- Decision inputs consumed: none; type/catalog producer.
 
 ### Non-Goals
 
@@ -103,7 +113,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -114,9 +124,10 @@ Check all of the following against the original source story and runtime evidenc
 | Provider-control catalog | AC-7 | `type:fixtures` |
 | Recovery projection shape | AC-8 | `type:fixtures` |
 | Coordinator, plan input, record input, and plan shapes | AC-9 | `type:fixtures` |
-| Runtime-fro
+| Runtime-frozen catalogs | AC-5 | `coverage:baseline` |
+| Public SDK exports | AC-6 | `typecheck` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 This story is the authoritative producer catalog for core-06 recovery states, action classes, actions,
 and failure/degraded modes.
@@ -139,7 +150,11 @@ and failure/degraded modes.
 - Required tests: AC-1..AC-9 plus every failure row.
 - Public exposure: `sdk` import path plus AC-6 public-import test.
 - Determinism constraints: no ambient clock/random/provider clients; type/catalog only.
-- Dependency boundaries: consumes prior fro
+- Dependency boundaries: consumes prior frozen value types and `core-05-s1` state unions; no behavior
+  imports from core-05 or provider drivers.
+- File-size budget: 240 lines per source/test file; split catalogs and payload fixtures before 400
+  lines; 800 hard cap.
+- Domain non-negotiables: recovery facts are appended events; no manual repair shape.
 
 - Positive and negative `type:fixtures` for every catalog, snapshot, and payload.
 - Public-import test in AC-6.
@@ -147,7 +162,7 @@ and failure/degraded modes.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|child_process|node:net|node:http|node:https|@octokit|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/contracts packages/sdk/tests/core/recovery/contracts`
-  returns
+  returns zero matches except test-only fixtures.
 
 ## Verdict Format
 

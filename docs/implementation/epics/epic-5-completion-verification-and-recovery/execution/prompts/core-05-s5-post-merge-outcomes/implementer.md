@@ -90,7 +90,9 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 
 ## Implementation Constraints
 
-## Spec Surface
+The implementation constraints are the source-owned spec surface and responsibilities below. Do not introduce implementation choices outside this contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+
+### Spec Surface
 
 - Interfaces / types: `classifyPostMergeOutcome`, `recordPostMergeOutcome`.
 - Events / append intents: `PostMergeOutcomeRecorded`.
@@ -99,7 +101,7 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Evidence records / attestations: `MergeIntentRecorded`, Forge merge/refusal/action result evidence,
   exact-head refs.
 
-## Responsibilities
+### Responsibilities
 
 - Map Forge merged/queue success at `expectedHeadSha` to `post-merge-confirmed` and lifecycle target
   `completed`.
@@ -112,11 +114,11 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
   `post-merge-outcome-ambiguous` and lifecycle target `blocked`.
 - Append `PostMergeOutcomeRecorded` with exact head evidence and source action event id.
 
-Do not introduce implementation choices outside the source contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
-
 ## Verification
 
-## Coverage Matrix
+The verification contract is the source-owned coverage matrix, quality bar, and evidence pack below. The repo gate is `pnpm check`; report exact command output or an explicit blocked reason.
+
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -133,16 +135,15 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - Public exposure: `sdk` import path plus AC-6 public-import test.
 - Determinism constraints: injected `evaluatedAt`; no live Forge calls or ambient clock.
 - Dependency boundaries: consumes Forge action result DTOs only; no concrete Forge driver import.
-- File-si
+- File-size budget: 240 lines per file; split mapping tables before 400 lines; 800 hard cap.
+- Domain non-negotiables: completed is recorded only after exact-head merged evidence is durable.
 
 - Outcome mapping table tests and append field tests.
 - Public-import test in AC-6.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|@octokit|node:http|node:https|child_process|simple-git|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/completion/post-merge packages/sdk/tests/core/completion/post-merge`
-  returns
-
-The repo gate is `pnpm check`. Report exact command output or an explicit blocked reason.
+  returns zero matches except test-only fixtures.
 
 ## Commit Cadence
 

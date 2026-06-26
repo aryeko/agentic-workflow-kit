@@ -51,7 +51,15 @@ Downstream dependents: `core-06-s5-reconciliation-projection`. Dependency inputs
 - **AC-8** `StoryLaunchLeaseCleared` is recorded only when the input classification state is
   `stale-launch-clearable`, the selected action is `clear-stale-launch`, the source
   `StaleLaunchClearanceRequested` key/epoch matches the active lease evidence, and a committed matching
-  `auto-recover` gate authori
+  `auto-recover` gate authorizes the assisted clear - evidence: `coverage:baseline`
+  `stale-launch-clear-gated-apply-matrix`.
+- **AC-5** Lifecycle recovery-edge requests are limited to the approved edges listed in design and cite
+  recovery event ids; illegal edges fail closed - evidence: `coverage:baseline`
+  `recovery-lifecycle-edge-allowlist`.
+- **AC-6** Append failures for plan/apply records return blocked/unwritable failure and no success record
+  - evidence: `coverage:baseline` `recovery-plan-apply-unwritable`.
+- **AC-7** Public SDK importability exposes planning/apply helpers through this story's export lines -
+  evidence: `typecheck` public-import test.
 
 ## Allowed Writes
 
@@ -98,7 +106,9 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 
 ## Implementation Constraints
 
-## Spec Surface
+The implementation constraints are the source-owned spec surface and responsibilities below. Do not introduce implementation choices outside this contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+
+### Spec Surface
 
 - Interfaces / types: `planRecoveryAction`, `recordRecoveryPlan`, `recordRecoveryActionApplied`.
 - Events / append intents: `RecoveryActionPlanned`, `RecoveryActionApplied`, `StoryLaunchLeaseCleared`.
@@ -109,7 +119,7 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Evidence records / attestations: `RecoveryClassified`, story-launch records, `CapabilityGateRecord`,
   provider-control evidence refs, lifecycle cursor.
 
-## Responsibilities
+### Responsibilities
 
 - Build deterministic `RecoveryPlan` values from `RecoveryPlanInput` and `RecoveryClassification`.
 - Require a committed core-02 `auto-recover` gate for any autonomous `auto-safe` action before applied
@@ -124,11 +134,11 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
   `runner-verifying -> running`, `forge-waiting -> runner-verifying`,
   `merge-waiting -> forge-waiting`, `settling -> merge-waiting`, or terminal `blocked`/`failed`.
 
-Do not introduce implementation choices outside the source contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
-
 ## Verification
 
-## Coverage Matrix
+The verification contract is the source-owned coverage matrix, quality bar, and evidence pack below. The repo gate is `pnpm check`; report exact command output or an explicit blocked reason.
+
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -148,16 +158,15 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - Determinism constraints: injected `plannedAt`/`appliedAt`; deterministic plan id; no ambient clock/random.
 - Dependency boundaries: provider controls are evidence refs only; no concrete provider imports or Work
   Source mutation.
-- File-si
+- File-size budget: 260 lines per file; split plan/apply/edge helpers before 400 lines; 800 hard cap.
+- Domain non-negotiables: auto-safe is not authorization; committed gate is required.
 
 - Plan determinism, gate enforcement, plan/apply field, gated stale-launch clear, lifecycle allowlist,
   unwritable, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|AgentProvider|ExecutionHost|ForgeProvider|WorkSource|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/plans packages/sdk/tests/core/recovery/plans`
-  returns
-
-The repo gate is `pnpm check`. Report exact command output or an explicit blocked reason.
+  returns zero matches except type-only names in tests.
 
 ## Commit Cadence
 

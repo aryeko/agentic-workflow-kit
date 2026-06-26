@@ -69,7 +69,12 @@ Every other write is forbidden, including execution package files, tracker files
 
 - Covers signals: `story-launch:<workSourceId>:<trackId>:<taskId>` lease acquisition, duplicate blocking,
   and stale launch clearance request records.
-- Depends on: `core-06-s1-recovery-contracts`, fnd-02 lease primitives, core-01 writer, prior fro
+- Depends on: `core-06-s1-recovery-contracts`, fnd-02 lease primitives, core-01 writer, prior frozen
+  Work Source claim evidence shape.
+- Depended on by: `core-06-s4`, `core-06-s5`, Epic 7.
+- Shared shapes consumed: `core-06-s1` lease payload types and failure catalogs.
+- Decision inputs consumed: `workSourceId`, `trackId`, `taskId`, `runId`, lease read/acquire result,
+  lease epoch/expiry, current writer/owner/session/approval/claim evidence refs.
 
 Execution-time dependency commits: `core-06-s1-recovery-contracts`. Runtime execution must provide {{DEPENDENCY_COMMITS}} for producer stories that have reached tracker status merged.
 
@@ -91,7 +96,9 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 
 ## Implementation Constraints
 
-## Spec Surface
+The implementation constraints are the source-owned spec surface and responsibilities below. Do not introduce implementation choices outside this contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+
+### Spec Surface
 
 - Interfaces / types: `buildStoryLaunchKey`, `acquireStoryLaunchLease`,
   `recordDuplicateLaunchBlocked`, `requestStaleLaunchClearance`.
@@ -103,7 +110,7 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Evidence records / attestations: fnd-02 lease snapshots/epochs, core-01 writer, ownership/liveness/
   claim evidence refs.
 
-## Responsibilities
+### Responsibilities
 
 - Build lease keys exactly as `story-launch:<workSourceId>:<trackId>:<taskId>`.
 - Acquire story-launch after Run creation and before Work Source claim or worker launch.
@@ -116,11 +123,11 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
   `stale-launch-clearable` classification and a committed `auto-recover` gate.
 - Never use process liveness or manual file deletion as safety input.
 
-Do not introduce implementation choices outside the source contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
-
 ## Verification
 
-## Coverage Matrix
+The verification contract is the source-owned coverage matrix, quality bar, and evidence pack below. The repo gate is `pnpm check`; report exact command output or an explicit blocked reason.
+
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -138,15 +145,14 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - Determinism constraints: injected clock; no process liveness reads as safety inputs.
 - Dependency boundaries: fnd-02 `LeaseStore` contract only; no concrete storage driver or Work Source
   mutation.
-- File-si
+- File-size budget: 260 lines per file; split key/acquire/stale-clear helpers before 400 lines; 800 hard cap.
+- Domain non-negotiables: epoch fencing and evidence, not holder text or process absence, are safety.
 
 - Key, acquisition, duplicate, stale-clearance-request, fail-closed, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|fs\\.|unlink|rmSync|process\\.kill|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/leases packages/sdk/tests/core/recovery/leases`
-  returns
-
-The repo gate is `pnpm check`. Report exact command output or an explicit blocked reason.
+  returns zero matches except test-only fixtures.
 
 ## Commit Cadence
 

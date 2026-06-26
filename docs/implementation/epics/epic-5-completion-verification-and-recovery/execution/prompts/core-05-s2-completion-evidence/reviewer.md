@@ -66,7 +66,18 @@
 - Covers signals: candidate-head selection and exact-head evidence refs; protected policy snapshot
   records and changed-file policy signals; completion decision states and `claim-evidence-mismatch`;
   verification freshness.
-- Depends on: `core-05-s1-completion-contracts`; prior fro
+- Depends on: `core-05-s1-completion-contracts`; prior frozen run-log/replay/cursor/writer contracts;
+  fnd-01 policy/change allowlist; fnd-03 local git evidence; Execution Host command capture; Epic 4
+  protected-policy approval facts.
+- Depended on by: `core-05-s3`, `core-05-s4`, Epic 7.
+- Shared shapes consumed: `core-05-s1/CompletionReplayAnchor`, `core-05-s1/CompletionEvidenceSet`,
+  `core-05-s1/CompletionDecisionPayload`, `core-05-s1/CompletionDecisionState`, changed-file class
+  catalog.
+- Decision inputs consumed: `evaluatedThrough.afterSequence`, `LocalGitEvidence.headSha`,
+  `LocalGitEvidence.changedPaths`, `LocalGitEvidence.clean`, `RunnerCommandCaptured.exitCode`,
+  `RunnerCommandCaptured.commandDigest`, `ProtectedPolicySnapshotRecorded.verifierCommandDigest`,
+  fnd-01 allowed path patterns, protected policy path-set digests, approval decision subject/state, and
+  `CompletionReplayAnchor` cursor/window fields.
 
 ### Non-Goals
 
@@ -109,7 +120,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -123,7 +134,7 @@ Check all of the following against the original source story and runtime evidenc
 | Pending completion evidence state | AC-8 | `coverage:baseline` |
 | Forge evidence unavailable for merge-readiness claim | AC-9 | `coverage:baseline` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
@@ -132,7 +143,12 @@ Check all of the following against the original source story and runtime evidenc
 | `changed-file-policy-absent` | allowlist/protected path-set source is absent | fail closed before merge/intent eligibility | AC-3 |
 | `changed-files-outside-allowlist` | changed path matches none of the allowed/protected/evidence classes | fail closed | AC-3 |
 | `protected-policy-change-unapproved` | protected-policy path changed without recorded approval | fail closed | AC-3 |
-| `verification-failed` | complete verify capture exits non
+| `verification-failed` | complete verify capture exits nonzero | completion not verified | AC-4 |
+| `verification-uncertain` | incomplete capture, host failure, digest mismatch, or head mismatch | completion not verified | AC-4 |
+| `claim-evidence-mismatch` | worker claim lacks matching independent evidence | record mismatch state | AC-5 |
+| `completion-pending-evidence` | clean candidate head exists but required independent completion evidence is absent without a contradictory claim | record pending state | AC-8 |
+| `forge-evidence-unavailable` | worker claim explicitly asserts merge readiness but required Forge-side evidence is missing or unavailable | record Forge evidence unavailable for that claim | AC-9 |
+| `event-log-unwritable` | completion decision append fails | return unwritable failure, no success fact | AC-6 |
 
 
 
@@ -143,7 +159,10 @@ Check all of the following against the original source story and runtime evidenc
 - Determinism constraints: injected `evaluatedAt` only; no ambient clock, git reads, command execution,
   Forge calls, network, process APIs, or filesystem reads.
 - Dependency boundaries: no concrete driver imports; input evidence must be committed replay/projection
-  data or fro
+  data or frozen policy/port DTOs.
+- File-size budget: 260 lines per source/test file; split changed-file and verification helpers before
+  400 lines; 800 hard cap.
+- Domain non-negotiables: worker prose is never proof; missing/ambiguous evidence fails closed.
 
 - Table tests and negative fixtures named in AC-1..AC-9, including
   `completion-pending-missing-independent-evidence` and `merge-claim-forge-evidence-unavailable`.
@@ -151,7 +170,7 @@ Check all of the following against the original source story and runtime evidenc
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|execa|child_process|node:net|node:http|node:https|@octokit|spawn\\(|simple-git|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/completion/evidence packages/sdk/tests/core/completion/evidence`
-  returns
+  returns zero matches except test-only fixtures.
 
 ## Verdict Format
 

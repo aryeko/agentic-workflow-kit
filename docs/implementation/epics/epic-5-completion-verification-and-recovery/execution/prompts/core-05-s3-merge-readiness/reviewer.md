@@ -49,7 +49,13 @@
 
 - Covers signals: merge readiness predicate over policy, checks, review/thread evidence, branch
   freshness, protection, and capability gate records.
-- Depends on: `core-05-s1-completion-contracts`, `core-05-s2-completion-evidence`, prior fro
+- Depends on: `core-05-s1-completion-contracts`, `core-05-s2-completion-evidence`, prior frozen Forge
+  evidence DTOs, core-02 gate record contracts, fnd-01 merge policy.
+- Depended on by: `core-05-s4-forge-intents-and-blockers`.
+- Shared shapes consumed: `core-05-s1/MergeDecisionState`, `core-05-s2/CompletionDecisionRecorded`.
+- Decision inputs consumed: completion state/head, policy `runnerMayMerge`, selected merge method,
+  local git clean head, changed-file gate result, verification freshness, Forge PR/branch/protection
+  evidence heads, required checks, review approval, thread state, `CapabilityGateRecord` fields.
 
 ### Non-Goals
 
@@ -92,7 +98,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -104,7 +110,7 @@ Check all of the following against the original source story and runtime evidenc
 | Public exports | AC-6 | `typecheck` |
 | Policy disabled and ambiguous head deny states | AC-7 | `coverage:baseline` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
@@ -128,14 +134,15 @@ Check all of the following against the original source story and runtime evidenc
 - Public exposure: `sdk` import path plus AC-6 public-import test.
 - Determinism constraints: injected `evaluatedAt`; no ambient clock or live Forge/CI/PR calls.
 - Dependency boundaries: consumes Forge evidence DTOs but never imports a concrete Forge driver.
-- File-si
+- File-size budget: 260 lines per source/test file; split predicate helpers before 400 lines; 800 hard cap.
+- Domain non-negotiables: any missing, stale, contradictory, ambiguous, or unwritable input fails closed.
 
 - Property/table tests for every merge predicate and deny state.
 - Public-import test in AC-6.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|@octokit|node:http|node:https|child_process|simple-git|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/completion/merge-readiness packages/sdk/tests/core/completion/merge-readiness`
-  returns
+  returns zero matches except test-only fixtures.
 
 ## Verdict Format
 

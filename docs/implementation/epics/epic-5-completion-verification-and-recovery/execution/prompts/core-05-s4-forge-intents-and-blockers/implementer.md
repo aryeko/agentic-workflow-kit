@@ -97,7 +97,9 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 
 ## Implementation Constraints
 
-## Spec Surface
+The implementation constraints are the source-owned spec surface and responsibilities below. Do not introduce implementation choices outside this contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+
+### Spec Surface
 
 - Interfaces / types: `recordForgeOperationIntent`, `recordMergeIntent`,
   `recordBlockerEvidenceIntent`.
@@ -107,7 +109,7 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Evidence records / attestations: consumes exact-head completion and merge decisions, clean local git
   evidence, push/PR policy booleans, `auto-merge` gate event id, and Forge refs.
 
-## Responsibilities
+### Responsibilities
 
 - Record `push-branch`, `upsert-pr`, `publish-blocker-evidence`, and `update-branch` Forge operation
   intents with `expectedHeadSha`.
@@ -118,11 +120,11 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
   unavailable write paths, or any merge operation.
 - Fail closed when intent append is unwritable.
 
-Do not introduce implementation choices outside the source contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
-
 ## Verification
 
-## Coverage Matrix
+The verification contract is the source-owned coverage matrix, quality bar, and evidence pack below. The repo gate is `pnpm check`; report exact command output or an explicit blocked reason.
+
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -139,16 +141,15 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - Public exposure: `sdk` import path plus AC-6 public-import test.
 - Determinism constraints: no ambient time except injected `recordedAt`; no Forge execution.
 - Dependency boundaries: may consume provider DTOs as evidence refs only; no concrete provider import.
-- File-si
+- File-size budget: 240 lines per file; split blocker matrix before 400 lines; 800 hard cap.
+- Domain non-negotiables: intent before action; exact-head binding; blocker PR is not completion/merge.
 
 - Intent kind, merge-ready, blocker-eligible, blocker-forbidden, and unwritable fixtures.
 - Public-import test in AC-6.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|@octokit|node:http|node:https|child_process|simple-git|merge\\(|enqueue\\(|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/completion/intents packages/sdk/tests/core/completion/intents`
-  returns
-
-The repo gate is `pnpm check`. Report exact command output or an explicit blocked reason.
+  returns zero matches except test fixture names where asserted.
 
 ## Commit Cadence
 

@@ -56,7 +56,14 @@
 - Covers signals: classifier behavior part of recovery evidence snapshot and classifier result records;
   recovery taxonomy and stable failure ordering; action-safety classes; resume eligibility; restart
   eligibility.
-- Depends on: `core-06-s1-recovery-contracts`, `core-05-s1-completion-contracts`, prior fro
+- Depends on: `core-06-s1-recovery-contracts`, `core-05-s1-completion-contracts`, prior frozen
+  liveness/termination facts and core-01 projections.
+- Depended on by: `core-06-s4`, `core-06-s5`, Epic 7.
+- Shared shapes consumed: `core-06-s1/RecoveryEvidenceSnapshot`, `RecoveryClassification`,
+  `RecoveryState`, `ActionSafetyClass`, `RecoveryAction`.
+- Decision inputs consumed: snapshot lifecycle state, replay/log health, lease health, story-launch
+  lease expiry/holder, session linkage, liveness, termination evidence, completion/merge/post-merge
+  states, provider gaps, Work Source claim evidence, `observedAt`.
 
 ### Non-Goals
 
@@ -71,7 +78,8 @@
   `packages/sdk/tests/core/recovery/classifier/**`, and owned SDK export lines.
 - Forbidden dependencies: live providers, storage stores, run writer, mutable projections, ambient clock,
   random ids, process/network/filesystem APIs.
-- STOP when any classifier branch value is not present in `RecoveryEvidenceSnapshot` or a fro
+- STOP when any classifier branch value is not present in `RecoveryEvidenceSnapshot` or a frozen
+  producer field.
 
 ## Runtime Slots
 
@@ -98,7 +106,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -111,7 +119,7 @@ Check all of the following against the original source story and runtime evidenc
 | Plan-id deterministic inputs | AC-7 | `coverage:baseline` |
 | Public exports | AC-8 | `typecheck` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
@@ -133,14 +141,16 @@ Check all of the following against the original source story and runtime evidenc
 - Determinism constraints: explicit `observedAt` input; no ambient clock/random/provider clients.
 - Dependency boundaries: pure function over snapshot values; no lease store, run writer, provider, or
   core-05 evaluator calls.
-- File-si
+- File-size budget: 260 lines per file; split rule-order and action-safety helpers before 400 lines;
+  800 hard cap.
+- Domain non-negotiables: no blind relaunch; ambiguous evidence fails closed.
 
 - Stable rule order, action-safety, resume, restart, failure-state, classified-payload, and plan-id tests.
 - Public-import test in AC-8.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|LeaseStore|RunWriter|AgentProvider|ExecutionHost|ForgeProvider|WorkSource|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/classifier packages/sdk/tests/core/recovery/classifier`
-  returns
+  returns zero matches except type-only imports where explicitly allowed by tests.
 
 ## Verdict Format
 

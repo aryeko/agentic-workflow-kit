@@ -71,7 +71,8 @@ Downstream dependents: `core-06-s4-recovery-plan-apply`, `core-06-s5-reconciliat
   `packages/sdk/tests/core/recovery/classifier/**`, and owned SDK export lines.
 - Forbidden dependencies: live providers, storage stores, run writer, mutable projections, ambient clock,
   random ids, process/network/filesystem APIs.
-- STOP when any classifier branch value is not present in `RecoveryEvidenceSnapshot` or a fro
+- STOP when any classifier branch value is not present in `RecoveryEvidenceSnapshot` or a frozen
+  producer field.
 
 Every other write is forbidden, including execution package files, tracker files, source planning artifacts, repo-wide cleanup, dependency churn, generated files outside the owned pathset, and unrelated SDK surfaces.
 
@@ -80,7 +81,14 @@ Every other write is forbidden, including execution package files, tracker files
 - Covers signals: classifier behavior part of recovery evidence snapshot and classifier result records;
   recovery taxonomy and stable failure ordering; action-safety classes; resume eligibility; restart
   eligibility.
-- Depends on: `core-06-s1-recovery-contracts`, `core-05-s1-completion-contracts`, prior fro
+- Depends on: `core-06-s1-recovery-contracts`, `core-05-s1-completion-contracts`, prior frozen
+  liveness/termination facts and core-01 projections.
+- Depended on by: `core-06-s4`, `core-06-s5`, Epic 7.
+- Shared shapes consumed: `core-06-s1/RecoveryEvidenceSnapshot`, `RecoveryClassification`,
+  `RecoveryState`, `ActionSafetyClass`, `RecoveryAction`.
+- Decision inputs consumed: snapshot lifecycle state, replay/log health, lease health, story-launch
+  lease expiry/holder, session linkage, liveness, termination evidence, completion/merge/post-merge
+  states, provider gaps, Work Source claim evidence, `observedAt`.
 
 Execution-time dependency commits: `core-06-s1-recovery-contracts`, `core-05-s1-completion-contracts`. Runtime execution must provide {{DEPENDENCY_COMMITS}} for producer stories that have reached tracker status merged.
 
@@ -95,13 +103,16 @@ Execution-time dependency commits: `core-06-s1-recovery-contracts`, `core-05-s1-
   `packages/sdk/tests/core/recovery/classifier/**`, and owned SDK export lines.
 - Forbidden dependencies: live providers, storage stores, run writer, mutable projections, ambient clock,
   random ids, process/network/filesystem APIs.
-- STOP when any classifier branch value is not present in `RecoveryEvidenceSnapshot` or a fro
+- STOP when any classifier branch value is not present in `RecoveryEvidenceSnapshot` or a frozen
+  producer field.
 
 Also STOP and report if source gaps, missing dependency inputs, required writes outside the owned pathset, or any need to reinterpret an AC appears.
 
 ## Implementation Constraints
 
-## Spec Surface
+The implementation constraints are the source-owned spec surface and responsibilities below. Do not introduce implementation choices outside this contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+
+### Spec Surface
 
 - Interfaces / types: `classifyRecovery`, `classifyActionSafety`, `deriveRecoveryPlanIdInput`.
 - Events / append intents: none; this story returns pure `RecoveryClassification` and
@@ -112,7 +123,7 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
   core-05 completion/merge/post-merge states, lease snapshots, provider evidence refs, and core-02
   `auto-recover` gate concept as snapshot values.
 
-## Responsibilities
+### Responsibilities
 
 - Classify snapshots according to the stable rule order, returning the first matching recovery state.
 - Apply the action-safety matrix exactly, with `auto-safe` only as a candidate requiring a later
@@ -126,11 +137,11 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Define deterministic plan-id input values over `{runId, policyRef, requestedAction, scope,
   classification.state, evaluatedThrough}` without clock or random input.
 
-Do not introduce implementation choices outside the source contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
-
 ## Verification
 
-## Coverage Matrix
+The verification contract is the source-owned coverage matrix, quality bar, and evidence pack below. The repo gate is `pnpm check`; report exact command output or an explicit blocked reason.
+
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -150,16 +161,16 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - Determinism constraints: explicit `observedAt` input; no ambient clock/random/provider clients.
 - Dependency boundaries: pure function over snapshot values; no lease store, run writer, provider, or
   core-05 evaluator calls.
-- File-si
+- File-size budget: 260 lines per file; split rule-order and action-safety helpers before 400 lines;
+  800 hard cap.
+- Domain non-negotiables: no blind relaunch; ambiguous evidence fails closed.
 
 - Stable rule order, action-safety, resume, restart, failure-state, classified-payload, and plan-id tests.
 - Public-import test in AC-8.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|LeaseStore|RunWriter|AgentProvider|ExecutionHost|ForgeProvider|WorkSource|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/classifier packages/sdk/tests/core/recovery/classifier`
-  returns
-
-The repo gate is `pnpm check`. Report exact command output or an explicit blocked reason.
+  returns zero matches except type-only imports where explicitly allowed by tests.
 
 ## Commit Cadence
 

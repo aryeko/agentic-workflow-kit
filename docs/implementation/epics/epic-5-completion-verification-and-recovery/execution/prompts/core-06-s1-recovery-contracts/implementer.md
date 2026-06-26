@@ -30,7 +30,7 @@ Downstream dependents: `core-06-s2-recovery-classifier`, `core-06-s3-launch-leas
 - `docs/implementation/epics/epic-5-completion-verification-and-recovery/story-dag.md`
 - Core-06 design files.
 - `core-05-s1-completion-contracts`.
-- Prior fro
+- Prior frozen core-01/core-02/core-04/fnd-02 contracts.
 - Runtime dependency commits: `{{DEPENDENCY_COMMITS}}` for producer stories listed below.
 
 ## Acceptance Criteria
@@ -66,7 +66,11 @@ Downstream dependents: `core-06-s2-recovery-classifier`, `core-06-s3-launch-leas
   provider-control handoff, and source event ids - evidence: `type:fixtures` positive constructors plus
   negative fixtures `recovery-plan-input-missing-policy`, `recovery-record-input-missing-source-events`,
   `recovery-plan-missing-selected-action`, and `recovery-coordinator-wrong-method-shape`.
-- **AC-5** Runtime catalogs are fro
+- **AC-5** Runtime catalogs are frozen substrate, not erased-only aliases - evidence:
+  `coverage:baseline` asserts `Object.isFrozen(RECOVERY_STATES) === true`, plus equivalent action and
+  safety catalog assertions.
+- **AC-6** Public SDK importability exposes every Spec Surface symbol through this story's export lines -
+  evidence: `typecheck` public-import test.
 
 ## Allowed Writes
 
@@ -84,7 +88,13 @@ Every other write is forbidden, including execution package files, tracker files
 
 - Covers signals: recovery evidence snapshot and classifier result records (snapshot/contract part);
   recovery taxonomy/action-safety/plan/lease/reconciliation payload contract parts.
-- Depends on: `core-05-s1-completion-contracts`; prior fro
+- Depends on: `core-05-s1-completion-contracts`; prior frozen core-01, core-02, core-04, fnd-02, and
+  provider-seam value types.
+- Depended on by: `core-06-s2`, `core-06-s3`, `core-06-s4`, `core-06-s5`, Epic 7.
+- Shared shapes consumed: `core-05-s1/CompletionDecisionState`, `MergeDecisionState`,
+  `PostMergeOutcomeState`; core-01 `RunEventCursor`, `EvidenceEventRef`, projections; fnd-02
+  `LeaseSnapshot`, `StorageHealth`; core-02 `CapabilityGateRecord`.
+- Decision inputs consumed: none; type/catalog producer.
 
 Execution-time dependency commits: `core-05-s1-completion-contracts`. Runtime execution must provide {{DEPENDENCY_COMMITS}} for producer stories that have reached tracker status merged.
 
@@ -107,7 +117,9 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 
 ## Implementation Constraints
 
-## Spec Surface
+The implementation constraints are the source-owned spec surface and responsibilities below. Do not introduce implementation choices outside this contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+
+### Spec Surface
 
 - Interfaces / types: `RecoveryCoordinator`, `RecoveryEvidenceSnapshot`, `RecoveryClassification`,
   `RecoveryPlanInput`, `RecoveryRecordInput`, `RecoveryPlan`, `RecoveryProjection`, `RecoveryState`,
@@ -121,16 +133,20 @@ Also STOP and report if source gaps, missing dependency inputs, required writes 
 - Evidence records / attestations: consumes core-01 cursor/evidence refs/projections, core-05 state
   unions, fnd-02 lease snapshot/storage health, and core-02 gate records as value types.
 
-## Responsibilities
+### Responsibilities
 
 - Declare the recovery snapshot and classifier/plan/record interfaces exactly once.
-- Export runtime-fro
-
-Do not introduce implementation choices outside the source contract. Preserve deterministic, fail-closed, event-log, dependency-boundary, and public-import constraints exactly as written.
+- Export runtime-frozen catalogs for recovery states, actions, action-safety classes, provider-control
+  kinds, and failure/degraded modes.
+- Declare all core-06 event payload shapes and recovery projection fields.
+- Expose every public symbol through the SDK entrypoint and prove importability.
+- Provide positive and negative type fixtures plus catalog exhaustiveness checks.
 
 ## Verification
 
-## Coverage Matrix
+The verification contract is the source-owned coverage matrix, quality bar, and evidence pack below. The repo gate is `pnpm check`; report exact command output or an explicit blocked reason.
+
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -141,7 +157,8 @@ Do not introduce implementation choices outside the source contract. Preserve de
 | Provider-control catalog | AC-7 | `type:fixtures` |
 | Recovery projection shape | AC-8 | `type:fixtures` |
 | Coordinator, plan input, record input, and plan shapes | AC-9 | `type:fixtures` |
-| Runtime-fro
+| Runtime-frozen catalogs | AC-5 | `coverage:baseline` |
+| Public SDK exports | AC-6 | `typecheck` |
 
 - Coverage scope and threshold: contract runtime catalogs, 90% statement/branch minimum.
 - Coverage command and instrumented lanes: `pnpm check` via `type:fixtures`, `typecheck`, and
@@ -149,7 +166,11 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - Required tests: AC-1..AC-9 plus every failure row.
 - Public exposure: `sdk` import path plus AC-6 public-import test.
 - Determinism constraints: no ambient clock/random/provider clients; type/catalog only.
-- Dependency boundaries: consumes prior fro
+- Dependency boundaries: consumes prior frozen value types and `core-05-s1` state unions; no behavior
+  imports from core-05 or provider drivers.
+- File-size budget: 240 lines per source/test file; split catalogs and payload fixtures before 400
+  lines; 800 hard cap.
+- Domain non-negotiables: recovery facts are appended events; no manual repair shape.
 
 - Positive and negative `type:fixtures` for every catalog, snapshot, and payload.
 - Public-import test in AC-6.
@@ -157,9 +178,7 @@ Do not introduce implementation choices outside the source contract. Preserve de
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|child_process|node:net|node:http|node:https|@octokit|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/contracts packages/sdk/tests/core/recovery/contracts`
-  returns
-
-The repo gate is `pnpm check`. Report exact command output or an explicit blocked reason.
+  returns zero matches except test-only fixtures.
 
 ## Commit Cadence
 

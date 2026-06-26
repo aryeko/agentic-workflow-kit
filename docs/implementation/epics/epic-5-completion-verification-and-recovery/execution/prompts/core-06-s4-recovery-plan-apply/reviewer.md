@@ -39,7 +39,15 @@
 - **AC-8** `StoryLaunchLeaseCleared` is recorded only when the input classification state is
   `stale-launch-clearable`, the selected action is `clear-stale-launch`, the source
   `StaleLaunchClearanceRequested` key/epoch matches the active lease evidence, and a committed matching
-  `auto-recover` gate authori
+  `auto-recover` gate authorizes the assisted clear - evidence: `coverage:baseline`
+  `stale-launch-clear-gated-apply-matrix`.
+- **AC-5** Lifecycle recovery-edge requests are limited to the approved edges listed in design and cite
+  recovery event ids; illegal edges fail closed - evidence: `coverage:baseline`
+  `recovery-lifecycle-edge-allowlist`.
+- **AC-6** Append failures for plan/apply records return blocked/unwritable failure and no success record
+  - evidence: `coverage:baseline` `recovery-plan-apply-unwritable`.
+- **AC-7** Public SDK importability exposes planning/apply helpers through this story's export lines -
+  evidence: `typecheck` public-import test.
 
 ### Dependencies And Frozen Inputs
 
@@ -95,7 +103,7 @@ Check all of the following against the original source story and runtime evidenc
 - Scope control against allowed writes.
 - Repo conventions and mutation limits.
 
-## Coverage Matrix
+### Coverage Matrix
 
 | Responsibility / spec-surface item | Proven by | Standing gate lane |
 |---|---|---|
@@ -108,14 +116,14 @@ Check all of the following against the original source story and runtime evidenc
 | Append unwritable behavior | AC-6 | `coverage:baseline` |
 | Public exports | AC-7 | `typecheck` |
 
-## Failure and Degraded Outcomes
+### Failure and Degraded Outcomes
 
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `operator-required` | autonomous gate absent or policy/mode does not permit autonomy | plan parks; no apply success | AC-2 |
 | `log-unwritable` | plan/apply append fails | return blocked/unwritable failure | AC-6 |
 
-## Validation Failure Modes
+### Validation Failure Modes
 
 | failure mode | invalid fixture | required validation | proven by |
 |---|---|---|---|
@@ -130,14 +138,15 @@ Check all of the following against the original source story and runtime evidenc
 - Determinism constraints: injected `plannedAt`/`appliedAt`; deterministic plan id; no ambient clock/random.
 - Dependency boundaries: provider controls are evidence refs only; no concrete provider imports or Work
   Source mutation.
-- File-si
+- File-size budget: 260 lines per file; split plan/apply/edge helpers before 400 lines; 800 hard cap.
+- Domain non-negotiables: auto-safe is not authorization; committed gate is required.
 
 - Plan determinism, gate enforcement, plan/apply field, gated stale-launch clear, lifecycle allowlist,
   unwritable, and public-import tests.
 - `pnpm check` result.
 - Boundary sweep:
   `grep -REn "Date\\.now|new Date\\(|Math\\.random|crypto\\.randomUUID|AgentProvider|ExecutionHost|ForgeProvider|WorkSource|child_process|node:net|node:http|node:https|from \"testkit\"|from \"@kit/testkit\"" packages/sdk/src/core/recovery/plans packages/sdk/tests/core/recovery/plans`
-  returns
+  returns zero matches except type-only names in tests.
 
 ## Verdict Format
 
