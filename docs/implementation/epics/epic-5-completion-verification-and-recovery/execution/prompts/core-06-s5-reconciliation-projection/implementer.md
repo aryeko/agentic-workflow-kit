@@ -72,9 +72,9 @@ Every other write is forbidden, including execution package files, tracker files
 - Covers signals: blocked reconciliation records and recovery projection signals.
 - Depends on: `core-06-s1`, `core-06-s2`, `core-06-s3`, `core-06-s4`, core-01 replay/projection contracts.
 - Depended on by: Epic 7 operator attention, inspect, explain, and recovery surfaces.
-- Shared shapes consumed: `RecoveryClassified`, `StoryLaunchLeaseAcquired`, `DuplicateLaunchBlocked`,
-  `StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`, `RecoveryActionPlanned`,
-  `RecoveryActionApplied`, `ReconciliationBlocked`.
+- Shared shapes consumed: committed `RecoveryClassified`, `StoryLaunchLeaseAcquired`,
+  `DuplicateLaunchBlocked`, `StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`,
+  `RecoveryActionPlanned`, `RecoveryActionApplied`, `ReconciliationBlocked`.
 - Decision inputs consumed: event envelope type, event sequence/cursor, event payload fields, recovery
   state, parked reason/severity, evidence refs.
 
@@ -106,8 +106,8 @@ The implementation constraints are the source-owned spec surface and responsibil
 - Events / append intents: `ReconciliationBlocked`.
 - Provider operations / commands: none.
 - Failure and degraded tokens: consumes `RecoveryState` and failure modes from `core-06-s1`.
-- Evidence records / attestations: `RecoveryClassified`, story-launch lease records, recovery plan/apply
-  records, evidence refs, cursor.
+- Evidence records / attestations: committed `RecoveryClassified` events from `core-06-s4`,
+  story-launch lease records, recovery plan/apply records, evidence refs, cursor.
 
 ### Responsibilities
 
