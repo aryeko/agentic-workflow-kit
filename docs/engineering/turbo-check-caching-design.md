@@ -6,9 +6,9 @@ owner: tooling
 relates-to: docs/engineering/check-gate.md
 ---
 
-> **Implementation note (2026-06-23).** Phase 0 (redundancy fix), Phase 1 (Turbo
-> root-task port), and Phase 2a (CI cache via `actions/cache`) have landed on branch
-> `chore/turbo-check-caching`. Phase 2b (Vercel Remote Cache) and Phase 3
+> **Implementation note (2026-06-26).** Phase 0 (redundancy fix), Phase 1 (Turbo
+> root-task port), and Phase 2a (CI cache via `actions/cache@v6`) have landed. Phase 2b
+> (Vercel Remote Cache) and Phase 3
 > (per-package granularity) remain deferred. Measure Phase 2a hit rates before
 > deciding on 2b.
 
@@ -16,8 +16,9 @@ relates-to: docs/engineering/check-gate.md
 
 ## Why
 
-`pnpm check` runs nine steps sequentially, fail-fast (`docs/engineering/check-gate.md`).
-Two problems, both in the **open** verify-gate-composition layer (so fair to change):
+The earlier `pnpm check` ran nine steps sequentially, fail-fast
+(`docs/engineering/check-gate.md`). Two problems, both in the **open**
+verify-gate-composition layer, drove the Turbo port:
 
 1. **Redundant test work.** The gate runs `test:unit && test:int && test:conf` and then
    `coverage:baseline`, which re-runs the **same three** projects under V8 coverage. The
@@ -147,9 +148,13 @@ changes — Turbo does not make a single Vitest run incremental. The wins are:
 ### Phase 2 — CI cache
 
 **2a (default, no new infra).** Persist Turbo's local cache between CI runs with
-`actions/cache` on `.turbo`, keyed by lockfile + source hash with restore-keys for partial
-hits. This makes the wins above survive across CI runs (notably PR pushes that touch only
-docs/config, and re-runs of an unchanged SHA).
+`actions/cache@v6` on `.turbo`, keyed by commit SHA with restore-keys for partial hits.
+This makes the wins above survive across CI runs (notably PR pushes that touch only
+docs/config, and re-runs of an unchanged SHA). CI also caches the checkout-local
+`.pnpm-store` directly and passes the configured store explicitly to pnpm commands.
+Install uses `--store-dir`; script commands use `--config.store-dir`. That explicit
+configuration avoids `pnpm/action-setup@v6`'s `PNPM_HOME` taking precedence when pnpm
+resolves its global virtual store path.
 
 **2b (opt-in).** Vercel Remote Cache (`turbo login` / `turbo link`, `TURBO_TOKEN` +
 `TURBO_TEAM` secrets) to share artifacts **across** branches/PRs and between local and CI.
@@ -181,6 +186,7 @@ root Vitest projects and is out of scope here. Track separately.
 | Coverage thresholds via cache | A hit means inputs are identical → same coverage result; correct by construction. |
 | New dev dependency / tool surface | Single well-maintained tool (Turbo 2.x), already proven in on-class-web; pin the version. |
 | `.turbo` noise | git-ignore `.turbo/`; CI cache dir is ephemeral. |
+| pnpm virtual-store confusion | The repo-root `.pnpm-store` is the configured pnpm store. With `enableGlobalVirtualStore`, pnpm's virtual-store links live under `<store-path>/links`; those links are not the content-addressable package store itself. |
 
 ## Rollout
 
@@ -190,6 +196,8 @@ root Vitest projects and is out of scope here. Track separately.
    verify cold run matches Phase 0, warm re-run is all cache hits, and a docs-only edit
    skips tests.
 3. **Phase 2a** — add `.turbo` to `actions/cache` in `.github/workflows/check.yml`.
+   Cache `${{ github.workspace }}/.pnpm-store` directly and pass it explicitly so install
+   and gate commands use the repo-root store.
 4. Measure hit rates; decide on **2b** and **Phase 3** from data.
 
 ## Expected outcome

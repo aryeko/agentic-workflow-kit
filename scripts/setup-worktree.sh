@@ -8,7 +8,8 @@
 #   2. enable corepack
 #   3. seed .turbo cache     (copy from primary checkout if source exists and
 #                             local .turbo is absent; turbo creates one on first run)
-#   4. install dependencies  (pnpm install --frozen-lockfile --prefer-offline)
+#   4. install dependencies  (pnpm install --frozen-lockfile --prefer-offline
+#                             using the primary checkout's .pnpm-store)
 #
 # Options
 #   --warn-as-error   exit 1 when a non-fatal warning is issued
@@ -100,8 +101,21 @@ seed_turbo_cache() {
 }
 
 install_deps() {
-  pnpm install --frozen-lockfile --prefer-offline
-  log "pnpm store: $(pnpm store path)"
+  local store_dir="$1"
+
+  pnpm --store-dir "$store_dir" install --frozen-lockfile --prefer-offline
+  log "pnpm store: $(pnpm --store-dir "$store_dir" store path)"
+}
+
+resolve_pnpm_store_dir() {
+  local primary="$1"
+
+  if [[ -n "$primary" && -d "$primary" ]]; then
+    printf '%s/.pnpm-store\n' "$primary"
+    return
+  fi
+
+  printf '%s/.pnpm-store\n' "$repo_root"
 }
 
 # ---------------------------------------------------------------------------
@@ -110,5 +124,6 @@ install_deps() {
 
 validate_env
 enable_corepack
-seed_turbo_cache "$(find_primary_checkout)"
-install_deps
+primary_checkout="$(find_primary_checkout)"
+seed_turbo_cache "$primary_checkout"
+install_deps "$(resolve_pnpm_store_dir "$primary_checkout")"

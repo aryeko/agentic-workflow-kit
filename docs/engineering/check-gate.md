@@ -62,9 +62,20 @@ Smoke tests and pack dry-run are intentionally excluded from `pnpm check`.
 
 ## CI Cache
 
-CI persists `.turbo` between runs using `actions/cache@v4`, keyed on the lockfile hash
-plus `github.sha`. On a PR push that only touches docs or config, the test and typecheck
-tasks replay from cache, and the gate completes in seconds.
+CI persists `.turbo` between runs using `actions/cache@v6`, keyed by OS and
+`github.sha` with OS-level restore keys for partial hits. On a PR push that only touches
+docs or config, the test and typecheck tasks replay from cache, and the gate completes
+in seconds.
+
+The CI jobs set `PNPM_STORE_DIR` to `${{ github.workspace }}/.pnpm-store`, cache
+that directory directly with `actions/cache@v6`, and pass the configured store
+explicitly to pnpm commands. Install uses `--store-dir "$PNPM_STORE_DIR"`; gate,
+pack, and smoke script commands use `--config.store-dir="$PNPM_STORE_DIR"`. This is
+required because `pnpm/action-setup@v6` sets `PNPM_HOME`, and pnpm's global virtual store
+resolves `pnpm store path` under `PNPM_HOME` unless the repo store wins explicitly.
+`pnpm-workspace.yaml` enables pnpm's global virtual store; the virtual-store links live
+under `<store-path>/links` and are distinct from pnpm's content-addressable package
+store.
 
 `pnpm check:ci` runs with `--force` (recomputes all tasks, still populates the cache
 for downstream local hits) and is available when a guaranteed cold run is required.

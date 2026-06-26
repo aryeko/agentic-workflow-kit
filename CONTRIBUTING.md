@@ -15,6 +15,18 @@ Install once:
 pnpm install
 ```
 
+For a fresh linked worktree, prefer the repo bootstrap:
+
+```bash
+bash scripts/setup-worktree.sh
+```
+
+It seeds `.turbo/` from the primary `v-next` checkout when available and installs with
+an explicit repo-root `.pnpm-store`. The primary checkout's store is preferred; the
+current checkout's `.pnpm-store` is the fallback. The workspace enables pnpm's global
+virtual store, which places virtual-store links under `<store-path>/links`; those links
+are distinct from pnpm's content-addressable package store.
+
 ## Branch and PR flow
 
 - Branch from `v-next`.
@@ -37,15 +49,16 @@ For non-trivial work, use a worktree under `.worktrees/<name>` cut from
 pnpm check
 ```
 
-It runs seven fail-fast steps:
+It runs the Turbo check gate. Turbo schedules the seven cacheable leaf tasks
+concurrently and replays unchanged results from `.turbo/`:
 
 1. `pnpm format:check`
 2. `pnpm lint`
 3. `pnpm deps`
 4. `pnpm typecheck`
-5. `pnpm test:unit`
-6. `pnpm test:int`
-7. `pnpm test:conf`
+5. `pnpm type:fixtures`
+6. `pnpm docs:nav:check`
+7. `pnpm coverage:baseline`
 
 CI runs the same gate in the required `check` job and then runs
 `pnpm pack:dry-run`. The separate `smoke` job runs `pnpm test:smoke`; it is
