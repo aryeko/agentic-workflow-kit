@@ -16,7 +16,7 @@ Implement `core-03-s2-normalize-risk-decision` for epic `epic-4-human-control-an
 
 ## Why It Matters
 
-This story is in wave 2. Its direct dependencies are `core-03-s1-approval-contracts` and its dependents are `core-03-s3-pending-park-resume`, `core-03-s4-grants-outcomes`. The story provides the source-defined approval or supervision surface named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s2-normalize-risk-decision.md`; later stories and later epics must consume these facts and public `sdk` imports without redeclaring shapes, inventing provider behavior, or using worker prose as evidence.
+This story is in wave 2. Its direct dependencies are `core-03-s1-approval-contracts` (intra-epic) and, cross-epic, `core-01-r2-run-launch-worktree-path` (in `epic-r2-run-launch-workspace-fact`, frozen earlier) for the trusted `RunLaunchProjection.worktreePath` workspace boundary; its dependents are `core-03-s3-pending-park-resume`, `core-03-s4-grants-outcomes`. The story provides the source-defined approval or supervision surface named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s2-normalize-risk-decision.md`; later stories and later epics must consume these facts and public `sdk` imports without redeclaring shapes, inventing provider behavior, or using worker prose as evidence. The AC-3/AC-4 workspace-containment rules test path containment against the trusted `ApprovalRequest.worktreePath` (the recorded `RunLaunchProjection.worktreePath`), never the agent-supplied `cwd`; this closes the P1 fail-open.
 
 ## Required Reading
 
@@ -27,16 +27,17 @@ This story is in wave 2. Its direct dependencies are `core-03-s1-approval-contra
 - `docs/design/30-domain-reference/core/approval-and-escalation/interfaces-events-and-tests.md`
 - `docs/engineering/check-gate.md`
 - `docs/engineering/test-lanes.md`
-- Runtime dependency commits slot: `{{DEPENDENCY_COMMITS}}` for `core-03-s1-approval-contracts`.
+- Source story (amended workspace→approval seam): `docs/implementation/epics/epic-r2-run-launch-workspace-fact/stories/core-01-r2-run-launch-worktree-path.md` — the cross-epic producer of the trusted `RunLaunchProjection.worktreePath`.
+- Runtime dependency commits slot: `{{DEPENDENCY_COMMITS}}` for `core-03-s1-approval-contracts` (intra-epic) and `core-01-r2-run-launch-worktree-path` (cross-epic, `epic-r2-run-launch-workspace-fact`).
 
 ## Acceptance Criteria
 
 Source story: `core-03-s2-normalize-risk-decision`. Source AC ids: `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`, `AC-8`, `AC-9`, `AC-10`, `AC-11`, `AC-12`, `AC-13`, `AC-14`.
 
-- **AC-1** normalizeApprovalRequest copies run/task/operation/session/policy/request event ids, requestedAt, and promptRef from context and maps kind to subject unless subjectOverride is set.
+- **AC-1** `normalizeApprovalRequest(input, context)` copies `runId`, `taskId`, `operationId`, `sessionId`, `policyRef`, `agentRequestEventId`, `requestedAt`, `promptRef`, and `worktreePath` exactly from context (`worktreePath` is the trusted run-launch workspace boundary, copied from `ApprovalContext.worktreePath` — never the agent-supplied `cwd`), and maps `kind` to subject unless `subjectOverride` is set — evidence: `normalize-approval-request.unit.test.ts` asserts copied values (including `worktreePath` from context and a fixture where the agent `cwd` differs from `worktreePath`), command-kind mapping, and protected policy override precedence.
 - **AC-2** Missing resolved policy or provenance returns approval-policy-unavailable before classification or decision and appends no risk or decision fact.
-- **AC-3** High-risk rules run before medium/low and classify named high-risk session, command, network, workspace, linkage, relay, and self-report-only cases.
-- **AC-4** Low risk is returned only for exact command requests with policy allowlist, bounded scope, fresh relay attestation, persistable channel when needed, and current linkage.
+- **AC-3** High-risk rules are evaluated before medium/low and return `ApprovalRisk = "high"` for session scope, unsafe command syntax, wildcard/private host, out-of-workspace file path, ambiguous session linkage, missing relay, and self-report-only evidence. The "file path outside the workspace" predicate tests `ApprovalRequest.filePaths` containment against the trusted `ApprovalRequest.worktreePath` (copied by `normalize` from `ApprovalContext.worktreePath`, sourced from the recorded `RunLaunchProjection.worktreePath` run-launch fact) — **never** the agent-supplied `cwd`. When `worktreePath` is absent, containment is unprovable, so the "outside the workspace" predicate triggers (fail closed), scoped to requests that carry `filePaths`; a request with no `filePaths` is unaffected. This fixes the prior P1 fail-open, which approximated the workspace root from the spoofable agent `cwd` — evidence: `classify-high-risk.unit.test.ts` asserts each named fixture returns `"high"` and includes the rule id, including an absent-`worktreePath` fixture that carries `filePaths`.
+- **AC-4** Low risk is returned only for exact command requests whose `ApprovalRequest.cwd` is **provably contained** within the trusted `ApprovalRequest.worktreePath` (the workspace root copied by `normalize` from `ApprovalContext.worktreePath`, sourced from the recorded `RunLaunchProjection.worktreePath` — never the agent-supplied path), with no high rule, policy allowlist match, no broader-than-policy scope, fresh positive relay attestation, persistable answer channel when parking may be needed, and current session linkage. When `worktreePath` is absent or `cwd` containment is not provable, the low-risk "cwd is inside the workspace" condition is **unmet** and there is no low-risk auto-grant — evidence: `classify-low-risk.unit.test.ts` asserts the positive fixture returns `"low"` and each missing guarantee fixture (including absent-`worktreePath` and non-contained-`cwd`) returns `"medium"` or `"high"` as specified.
 - **AC-5** classifyApprovalRisk uses explicit classifiedAt and never ambient time.
 - **AC-6** recordApprovalRiskClassified appends durable payload with exact risk, rule ids, evidence event ids, and classifiedAt.
 - **AC-7** Manual mode always yields human-required; assisted mode also yields human-required for high risk.
@@ -67,8 +68,9 @@ Every other write is forbidden, including package files, tracker files, source p
 
 ## Dependency Inputs
 
-- Producer story ids: `core-03-s1-approval-contracts`.
+- Producer story ids: `core-03-s1-approval-contracts` (intra-epic); `core-01-r2-run-launch-worktree-path` (cross-epic, `epic-r2-run-launch-workspace-fact`) for the trusted `RunLaunchProjection.worktreePath` workspace boundary.
 - Dependency commit evidence: `{{DEPENDENCY_COMMITS}}`.
+- Trusted workspace boundary: consume `RunLaunchProjection.worktreePath` (produced by `core-01-r2-run-launch-worktree-path`) supplied as `ApprovalContext.worktreePath` and copied by `normalize` to `ApprovalRequest.worktreePath`. It is the only admissible operand for the AC-3/AC-4 containment predicates; never source the workspace boundary from the agent-supplied `cwd` or any agent request path, and fail closed when it is absent.
 - Public import path: `sdk` for every public symbol this story exposes or consumes.
 - Shared shapes and events must be consumed from committed dependency sources named by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/story-dag.md` and `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s2-normalize-risk-decision.md`; do not redeclare them.
 
@@ -76,7 +78,7 @@ Every other write is forbidden, including package files, tracker files, source p
 
 Non-goals: do not implement concrete provider behavior, completion or recovery decisions, operator UI, PR/merge behavior, or another story's scope.
 
-Source STOP condition for `core-03-s2-normalize-risk-decision`: Stop if a branch requires a policy value, session value, gate value, or prompt reference not produced by frozen inputs.
+Source STOP condition for `core-03-s2-normalize-risk-decision`: Stop if a branch requires a policy value, session value, gate value, prompt reference, or any workspace containment/boundary value (such as a workspace root) not produced by frozen inputs; do not infer it from story ids, hashes, prose, or the agent-supplied request. In particular, never source the workspace boundary from the agent `cwd` or any agent request path — the only admissible boundary is the trusted `ApprovalRequest.worktreePath` (the recorded `RunLaunchProjection.worktreePath` from `core-01-r2-run-launch-worktree-path`), and when it is absent the containment predicates fail closed.
 
 Also stop and report if dependency commits are missing, a required source value is absent, an AC requires writes outside the owned pathset, or implementation would require reinterpreting a source AC.
 

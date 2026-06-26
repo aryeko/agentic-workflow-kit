@@ -21,6 +21,12 @@ event payloads, projections, protected-policy binding, and the approval failure 
 - Types and interfaces: `ApprovalEscalation`, `ApprovalContext`, `ApprovalDecisionInput`,
   `ApprovalOutcomeInput`, `ApprovalResumeInput`, `ApprovalParkInput`, `ParkDecision`,
   `ResumeDecision`, `ApprovalProjection`, `PendingApprovalProjection`.
+- Workspace root: `ApprovalContext` and `ApprovalRequest` each carry an optional
+  `worktreePath?: string` — the run's trusted workspace root. On `ApprovalContext` it is
+  orchestration-injected from `RunLaunchProjection.worktreePath`; on `ApprovalRequest` it is copied by
+  `normalize` from `ApprovalContext.worktreePath`. It is never the agent `cwd`. Matches the frozen
+  design (`interfaces-events-and-tests.md` `ApprovalContext.worktreePath`, `decision-model.md`
+  `ApprovalRequest.worktreePath`).
 - DTOs and unions: `ApprovalMode`, `ApprovalRisk`, `ApprovalState`, `ApprovalSubject`,
   `PolicyGrantScope`, `PolicyGrantPlan`, `Decision`, `Outcome`, `ProtectedPolicyApprovalBinding`.
 - Event payloads: `ApprovalRequestedPayload`, `ApprovalPendingPersistedPayload`,
@@ -55,9 +61,15 @@ event payloads, projections, protected-policy binding, and the approval failure 
   `approval-unions.unit.test.ts` uses exhaustive switches and `approval-mode-auto.fixture.ts` fails
   typecheck.
 - **AC-2** `ApprovalRequest` requires `promptRef` and `requestedAt`, and `ApprovalContext` requires
-  `requestedAt` and `promptRef` with optional `subjectOverride?: ApprovalSubject` - evidence:
-  `approval-request-context.unit.test.ts` constructs command, protected-policy, and network fixtures;
-  missing-field fixtures for `promptRef` and `requestedAt` fail typecheck.
+  `requestedAt` and `promptRef` with optional `subjectOverride?: ApprovalSubject`; both `ApprovalContext`
+  and `ApprovalRequest` also expose an optional `worktreePath?: string` (the run's trusted workspace
+  root, matching the frozen design — orchestration-injected on `ApprovalContext`, copied by `normalize`
+  onto `ApprovalRequest`; never the agent `cwd`) - evidence: `approval-request-context.unit.test.ts`
+  constructs command, protected-policy, and network fixtures; missing-field fixtures for `promptRef` and
+  `requestedAt` fail typecheck; a positive fixture constructs each of `ApprovalContext` and
+  `ApprovalRequest` WITH `worktreePath`, and an absent fixture constructs each WITHOUT it (optional field
+  present and absent both typecheck), and a wrong-type negative fixture (e.g. `worktreePath: 123`) fails
+  typecheck for each type.
 - **AC-3** `Decision`, `Outcome`, `ApprovalParkInput`, `ParkDecision`, and `ResumeDecision` expose the
   exact schema literals and required source fields, including `ParkDecision.sourceEventIds` and
   `ResumeDecision.outcome = "resume" | "expired" | "blocked"` - evidence:
@@ -91,6 +103,7 @@ event payloads, projections, protected-policy binding, and the approval failure 
 | `ApprovalRequest.requestedAt` | `ApprovalContext.requestedAt`, copied from `AgentApprovalRequested.at` |
 | `ApprovalRequest.promptRef` | fnd-02 `ArtifactRef.id` supplied as `ApprovalContext.promptRef` |
 | `ApprovalRequest.subject` | `ApprovalContext.subjectOverride` when present; otherwise the frozen `AgentApprovalRequest.kind` mapping |
+| `ApprovalContext.worktreePath` and `ApprovalRequest.worktreePath` declared optional | this story declares both as optional fields of the owned types (source: frozen PR #159 design — `interfaces-events-and-tests.md` and `decision-model.md`); downstream `core-03-s2-normalize-risk-decision` consumes them |
 | Answer-channel fields | `AgentApprovalRequest.answerChannel` |
 | `ApprovalRiskClassifiedPayload.classifiedAt` | explicit `classifiedAt` input to the classifier |
 | `ProtectedPolicyApprovalBinding` | Operator approval event plus protected-policy snapshot event id |

@@ -35,7 +35,7 @@ This story is in wave 1. Its direct dependencies are none and its dependents are
 Source story: `core-03-s1-approval-contracts`. Source AC ids: `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`.
 
 - **AC-1** Primitive approval unions exactly match the design: ApprovalMode excludes auto, ApprovalRisk is low/medium/high, PolicyGrantScope has the four policy scopes, and ApprovalSubject includes protected-policy-change and network.
-- **AC-2** ApprovalRequest requires promptRef and requestedAt; ApprovalContext requires requestedAt and promptRef and has optional subjectOverride.
+- **AC-2** ApprovalRequest requires promptRef and requestedAt; ApprovalContext requires requestedAt and promptRef and has optional subjectOverride. Both ApprovalContext and ApprovalRequest also expose an optional worktreePath?: string (the run's trusted workspace root, matching the frozen design — orchestration-injected on ApprovalContext, copied by normalize onto ApprovalRequest; never the agent cwd). Prove with a positive fixture constructing each WITH worktreePath, an absent fixture constructing each WITHOUT it, and a wrong-type negative fixture (e.g. worktreePath: 123) that fails typecheck for each type.
 - **AC-3** Decision, Outcome, ApprovalParkInput, ParkDecision, and ResumeDecision expose exact schema literals and required source fields, including ParkDecision.sourceEventIds and ResumeDecision outcome literals.
 - **AC-4** ApprovalDecisionRecordedPayload carries ProtectedPolicyApprovalBinding required iff the request subject is protected-policy-change, with the required run/head/snapshot fields and only optional newPolicyDigest.
 - **AC-5** All seven V1 approval event payloads expose exact schema literals and required event-source fields, including classifiedAt and parkedAt.
@@ -77,7 +77,7 @@ Honor the story contract exactly: public exports through this story owned `packa
 
 Run the targeted checks and evidence required by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-03-s1-approval-contracts.md` for source AC ids `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`:
 - approval-unions.unit.test.ts and approval-mode-auto.fixture.ts
-- approval-request-context.unit.test.ts and missing-field fixtures
+- approval-request-context.unit.test.ts and missing-field fixtures, plus worktreePath present/absent fixtures for ApprovalContext and ApprovalRequest
 - approval-decision-results.unit.test.ts
 - protected-policy-binding.unit.test.ts
 - approval-payloads.unit.test.ts

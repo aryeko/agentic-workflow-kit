@@ -97,6 +97,25 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 - Escalation: raise a story-contract defect; do not split decision computation from decision fact
   recording.
 
+### workspace-boundary-via-frozen-run-launch-fact
+
+- Rationale: `core-03-s2` approval risk classification tests workspace containment
+  (`ApprovalRequest.cwd` for the low-risk rule, `ApprovalRequest.filePaths` for the high-risk rule)
+  against the trusted `RunLaunchProjection.worktreePath` — produced by the frozen inter-epic R2 story
+  `core-01-r2-run-launch-worktree-path` and copied into `ApprovalRequest.worktreePath` via
+  `ApprovalContext.worktreePath` — never the agent-supplied `cwd`. When `worktreePath` is absent,
+  containment is unprovable and the rules fail closed. This closes the prior P1 fail-open that
+  approximated the workspace root from the spoofable agent `cwd`.
+- Design trace: the PR #159 workspace→approval seam —
+  `decision-model.md` (`ApprovalRequest.worktreePath`, the "Workspace containment" classifier paragraph,
+  and the `worktreePath ← context.worktreePath` field-provenance construction row) and
+  `interfaces-events-and-tests.md` (`ApprovalContext.worktreePath` and the normalize-copy prose).
+- Falsification: `core-03-s2` sources the workspace boundary from the agent request (or the agent `cwd`),
+  or cites `RunLaunchProjection.worktreePath` without depending on the `core-01-r2-run-launch-worktree-path`
+  producer.
+- Escalation: if the R2 producer `core-01-r2-run-launch-worktree-path` is not frozen, STOP — `core-03-s2`
+  cannot be planned `ready` against an unfrozen workspace boundary.
+
 ### supervision-types-first
 
 - Rationale: liveness states, reasons, timer policy, wait request, event payloads, and termination fact
@@ -169,7 +188,7 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 |---|---|---|
 | `core-03-s1-approval-contracts` | none | Produces approval values, payloads, projections, interfaces, and failure catalog. |
 | `core-04-s1-supervision-contracts` | none | Produces supervision values, payloads, projections, interfaces, and failure catalog. |
-| `core-03-s2-normalize-risk-decision` | `core-03-s1-approval-contracts` | Consumes approval contract values and produces normalization/risk/decision behavior plus `ApprovalRiskClassified` and `ApprovalDecisionRecorded` facts. |
+| `core-03-s2-normalize-risk-decision` | `core-03-s1-approval-contracts`; `core-01-r2-run-launch-worktree-path` (cross-epic, `epic-r2-run-launch-workspace-fact`, frozen earlier) | Consumes approval contract values and the trusted `RunLaunchProjection.worktreePath` (the workspace boundary for risk containment, copied into `ApprovalRequest.worktreePath`), and produces normalization/risk/decision behavior plus `ApprovalRiskClassified` and `ApprovalDecisionRecorded` facts. |
 | `core-04-s2-liveness-fold` | `core-04-s1-supervision-contracts` | Consumes supervision values and produces liveness fold behavior. |
 | `core-03-s3-pending-park-resume` | `core-03-s1-approval-contracts`, `core-03-s2-normalize-risk-decision` | Consumes approval payloads, `Decision`, `ParkDecision`, `ResumeDecision`, and pending/projection behavior. |
 | `core-04-s3-timers-wait` | `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold` | Consumes timer policy, liveness projection, wait request, and liveness output. |
@@ -188,6 +207,27 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 | Liveness fold and event-class catalog | `core-04-s2-liveness-fold` | `sdk` | `core-04-s3`, `core-04-s4`, Epic 5 |
 | Timer evaluation and wait wrapper | `core-04-s3-timers-wait` | `sdk` | `core-04-s4`, Epic 7 |
 | Supervisor and termination fact recording | `core-04-s4-termination-facts` | `sdk` | Epic 5, Epic 7 |
+| `RunLaunchProjection.worktreePath` (consumed cross-epic; the trusted workspace boundary) | `core-01-r2-run-launch-worktree-path` (`epic-r2-run-launch-workspace-fact`, frozen earlier) | `sdk` | `core-03-s2-normalize-risk-decision` |
+
+Worktree-path producer closure (two hops, both closed):
+
+1. Intra-epic field-type declaration. The optional fields `ApprovalContext.worktreePath` and
+   `ApprovalRequest.worktreePath` are **produced** (declared) by `core-03-s1-approval-contracts` — which
+   owns the approval value types under `packages/sdk/src/core/approval/contracts/**` — and **consumed** by
+   `core-03-s2-normalize-risk-decision` (which copies `ApprovalContext.worktreePath` onto
+   `ApprovalRequest.worktreePath` in `normalize` and tests workspace containment against it). `core-03-s1`
+   is the wave-1 root producer and `core-03-s2` its wave-2 consumer, so this hop is closed within the epic
+   with no unproduced-consumed defect; `core-03-s2` never redeclares the field.
+2. Cross-epic value injection. The trusted workspace-root value `RunLaunchProjection.worktreePath` is
+   **consumed** by `core-03-s2-normalize-risk-decision` (as the workspace-containment boundary, ultimately
+   copied into `ApprovalRequest.worktreePath`) and **produced** by `core-01-r2-run-launch-worktree-path` in
+   `epic-r2-run-launch-workspace-fact`, which is frozen earlier than this epic. This consumed shape resolves
+   to an already-frozen earlier epic — there is no forward reference and no unproduced-consumed defect.
+   `core-03-s2` consumes the field verbatim and never redeclares it.
+
+Forward note (composition, Epic 7): the eventual `ApprovalContext` assembler injects `worktreePath` from
+`RunLaunchProjection.worktreePath` (R2's output) — recorded here so the dependency is not lost when the
+assembler is planned.
 
 ## Story Graph
 
