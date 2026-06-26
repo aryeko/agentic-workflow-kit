@@ -181,9 +181,15 @@ const mapFileChangeSession = (
   });
 };
 
-// Approval file paths are POSIX-style relative paths at the approval contract boundary.
-const isBoundedRelativePath = (value: string): boolean =>
-  value.trim() !== '' && !value.startsWith('/') && !value.split('/').includes('..');
+const isBoundedRelativePath = (value: string): boolean => {
+  const normalized = value.replaceAll('\\', '/');
+  return (
+    normalized.trim() !== '' &&
+    !normalized.startsWith('/') &&
+    !/^[A-Za-z]:\//.test(normalized) &&
+    !normalized.split('/').includes('..')
+  );
+};
 
 const validateCommandPrefix = (
   commandPrefix: PolicyGrantPlan['commandPrefix'],

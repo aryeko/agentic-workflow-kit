@@ -211,6 +211,8 @@ describe('mapPolicyGrantToScopedGrant invalid mappings', () => {
     ['..'],
     ['src/..'],
     ['src/../secret.txt'],
+    ['src\\..\\secret.txt'],
+    ['C:\\workspace\\secret.txt'],
   ] as const)('rejects parent-directory file-change session path %s', (filePath) => {
     const result = mapPolicyGrantToScopedGrant({
       request: createRequest({ subject: 'file-change', command: undefined, filePaths: [filePath] }),

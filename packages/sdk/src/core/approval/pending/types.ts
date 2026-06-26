@@ -25,6 +25,8 @@ export interface RecordApprovalPendingInput {
   readonly recordedAt: string;
   readonly decisionWindowMs?: number;
   readonly liveAnswerDeadline?: string;
+  readonly replay?: RunReplay;
+  readonly approvalProjection?: ApprovalProjection;
 }
 
 export interface ApprovalPendingCommit {

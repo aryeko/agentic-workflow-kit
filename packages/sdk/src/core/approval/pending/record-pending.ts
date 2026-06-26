@@ -14,6 +14,10 @@ export const recordApprovalPending = async (
   writer: PendingWriter,
 ): Promise<Result<ApprovalPendingCommit, ApprovalPendingFailure>> => {
   const requestEventId = `evt-ApprovalRequested-${input.request.requestId}`;
+  if (hasRecordedRequest(input)) {
+    return duplicateRequestFailure(input.request.requestId);
+  }
+
   const requestedPayload: ApprovalRequestedPayload = {
     schema: 'kit-vnext.approval-requested.v1',
     request: input.request,
@@ -67,3 +71,31 @@ export const recordApprovalPending = async (
     },
   };
 };
+
+const hasRecordedRequest = (input: RecordApprovalPendingInput): boolean => {
+  if (input.approvalProjection?.pendingByRequestId[input.request.requestId] !== undefined) {
+    return true;
+  }
+
+  return (
+    input.replay?.events.some(
+      (event) =>
+        (event.type === 'ApprovalRequested' &&
+          (event.payload as ApprovalRequestedPayload).request?.requestId === input.request.requestId) ||
+        (event.type === 'ApprovalPendingPersisted' &&
+          (event.payload as ApprovalPendingPersistedPayload).requestId === input.request.requestId),
+    ) ?? false
+  );
+};
+
+const duplicateRequestFailure = (requestId: string): Result<never, ApprovalPendingFailure> => ({
+  ok: false,
+  error: {
+    reason: 'approval-request-unrecordable',
+    appendFailure: {
+      code: 'sequence-conflict',
+      message: `Approval request ${requestId} has already been recorded.`,
+      retryable: true,
+    },
+  },
+});
