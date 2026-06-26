@@ -39,7 +39,7 @@ Source story: `core-03-s3-pending-park-resume`. Source AC ids: `AC-1`, `AC-2`, `
 - **AC-4** Parking for live-window elapsed or live-only channel records ApprovalParked without expired outcome before final decisionDeadline.
 - **AC-5** resumePendingApproval returns resume only for non-expired, current, non-ambiguous, owned/owned-remote sessions with committed grant and fresh positive resume/relay/persistable-channel attestations as needed.
 - **AC-6** Expired pending requests return expired and record ApprovalOutcomeRecordedPayload failureState approval-expired.
-- **AC-7** Ambiguous linkage, observe-only ownership, missing/stale/negative attestations, lost channel, or replay/append unavailability fail closed with exact token and no ApprovalResumed.
+- **AC-7** Ambiguous linkage, observe-only ownership, missing/stale/negative/wrong-scope canResumeOwned, missing/stale/negative/wrong-scope canRelayApproval, missing required persistable-channel attestation, lost channel, or replay/append unavailability fail closed with exact token and no ApprovalResumed.
 - **AC-8** foldApprovalProjection deterministically rebuilds pending rows, latest decisions/outcomes, operator attention, and failure maps from committed approval events.
 - **AC-9** Public SDK exports recordApprovalPending, parkApproval, resumePendingApproval, expireApproval, and foldApprovalProjection through this story owned index.ts lines.
 
@@ -49,6 +49,7 @@ Failure and degraded outcomes from `docs/implementation/epics/epic-4-human-contr
 - approval-session-ambiguous
 - approval-owner-missing
 - approval-resume-capability-missing
+- approval-relay-missing
 - approval-expired
 - approval-event-log-unavailable
 
@@ -80,7 +81,7 @@ Also stop and report if dependency commits are missing, a required source value 
 
 ## Implementation Constraints
 
-Honor the story contract exactly: public exports through this story owned `packages/sdk/src/index.ts` lines, deterministic explicit inputs for time/id/randomness, provider-port boundaries, append-only event-log authority, failure tokens named above, and the Dependency Rule from `AGENTS.md`. Do not introduce provider-specific runtime model ids, concrete driver imports, ambient clock reads, process/network calls, or shape redeclarations prohibited by the source story.
+Honor the story contract exactly: public exports through this story owned `packages/sdk/src/index.ts` lines, deterministic explicit inputs for time/id/randomness, provider-port boundaries, append-only event-log authority, failure tokens named above, and the Dependency Rule from `AGENTS.md`. Map missing/stale/negative/wrong-scope `canResumeOwned` to `approval-resume-capability-missing`; map missing/stale/negative/wrong-scope `canRelayApproval` or required `canPersistApprovalAnswerChannel` to `approval-relay-missing`; reserve `approval-answer-channel-lost` for an actually unavailable captured answer channel after park/resume or answer attempt. Do not introduce provider-specific runtime model ids, concrete driver imports, ambient clock reads, process/network calls, or shape redeclarations prohibited by the source story.
 
 ## Verification
 

@@ -70,9 +70,10 @@ fold approval projections from committed events.
 - **AC-6** Expired pending requests return `ResumeDecision.outcome = "expired"` and record
   `ApprovalOutcomeRecordedPayload.outcome.failureState = "approval-expired"` - evidence:
   `expire-pending.unit.test.ts` asserts exact outcome and failure token.
-- **AC-7** Ambiguous linkage, observe-only ownership, missing/stale/negative resume or relay
-  attestation, missing required persistable-channel attestation, lost answer channel, or unavailable
-  replay/append fails closed with the exact token and no `ApprovalResumed` event - evidence:
+- **AC-7** Ambiguous linkage, observe-only ownership, missing/stale/negative/wrong-scope
+  `canResumeOwned`, missing/stale/negative/wrong-scope `canRelayApproval`, missing required
+  persistable-channel attestation, lost answer channel, or unavailable replay/append fails closed with
+  the exact token and no `ApprovalResumed` event - evidence:
   `resume-fail-closed.unit.test.ts` table-tests all fixtures.
 - **AC-8** `foldApprovalProjection` rebuilds pending rows, latest decisions/outcomes, operator
   attention, and failure maps deterministically from committed approval events - evidence:
@@ -102,10 +103,11 @@ fold approval projections from committed events.
 | token | trigger | required behavior | proven by |
 |---|---|---|---|
 | `approval-request-unrecordable` | request or pending append fails | no decision; block | AC-1 negative fixture |
-| `approval-answer-channel-lost` | channel unavailable after park/resume | no resume event | AC-7 |
 | `approval-session-ambiguous` | current session cannot be proven | block resume | AC-7 |
 | `approval-owner-missing` | ownership absent or observe-only | block resume | AC-7 |
-| `approval-resume-capability-missing` | resume, relay, or required persistable-channel attestation absent/stale/negative | block resume | AC-7 |
+| `approval-resume-capability-missing` | `canResumeOwned` absent/stale/negative/wrong-scope | block resume | AC-7 |
+| `approval-relay-missing` | `canRelayApproval` absent/stale/negative/wrong-scope, or required `canPersistApprovalAnswerChannel` absent/stale/negative/wrong-scope | block resume | AC-7 |
+| `approval-answer-channel-lost` | previously captured channel unavailable after park/resume or answer attempt | no resume event | AC-7 |
 | `approval-expired` | sampled time exceeds final deadline | expired outcome | AC-6 |
 | `approval-event-log-unavailable` | replay/projection/append unavailable | block | AC-7 |
 

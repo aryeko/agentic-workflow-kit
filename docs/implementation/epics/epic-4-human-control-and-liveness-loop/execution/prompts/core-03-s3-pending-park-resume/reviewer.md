@@ -34,7 +34,7 @@ Acceptance criteria from the original source contract:
 - **AC-4** Parking for live-window elapsed or live-only channel records ApprovalParked without expired outcome before final decisionDeadline.
 - **AC-5** resumePendingApproval returns resume only for non-expired, current, non-ambiguous, owned/owned-remote sessions with committed grant and fresh positive resume/relay/persistable-channel attestations as needed.
 - **AC-6** Expired pending requests return expired and record ApprovalOutcomeRecordedPayload failureState approval-expired.
-- **AC-7** Ambiguous linkage, observe-only ownership, missing/stale/negative attestations, lost channel, or replay/append unavailability fail closed with exact token and no ApprovalResumed.
+- **AC-7** Ambiguous linkage, observe-only ownership, missing/stale/negative/wrong-scope canResumeOwned, missing/stale/negative/wrong-scope canRelayApproval, missing required persistable-channel attestation, lost channel, or replay/append unavailability fail closed with exact token and no ApprovalResumed.
 - **AC-8** foldApprovalProjection deterministically rebuilds pending rows, latest decisions/outcomes, operator attention, and failure maps from committed approval events.
 - **AC-9** Public SDK exports recordApprovalPending, parkApproval, resumePendingApproval, expireApproval, and foldApprovalProjection through this story owned index.ts lines.
 
@@ -44,6 +44,7 @@ Failure and degraded rows to verify:
 - approval-session-ambiguous
 - approval-owner-missing
 - approval-resume-capability-missing
+- approval-relay-missing
 - approval-expired
 - approval-event-log-unavailable
 
@@ -64,6 +65,7 @@ Check source story `core-03-s3-pending-park-resume` and source AC ids `AC-1`, `A
 - AC coverage by original source `AC-n` id.
 - Each AC is re-proven by a standing gate step such as `type:fixtures`, `coverage:baseline`, `deps`, `typecheck`, relevant unit tests, or `pnpm check`; treat manual-only proof or fixtures outside the build graph as blocking.
 - Failure and degraded rows above.
+- Exact token mapping: missing/stale/negative/wrong-scope canResumeOwned maps to approval-resume-capability-missing; missing/stale/negative/wrong-scope canRelayApproval or required canPersistApprovalAnswerChannel maps to approval-relay-missing; an actually unavailable captured answer channel maps to approval-answer-channel-lost.
 - Evidence pack completeness and exact command output.
 - Public API and `sdk` import paths.
 - Dependency boundaries and committed dependency inputs from `{{DEPENDENCY_COMMITS}}`.

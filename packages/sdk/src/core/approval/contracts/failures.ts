@@ -1,6 +1,7 @@
 export type ApprovalFailureState =
   | 'approval-request-unrecordable'
   | 'approval-relay-missing'
+  | 'approval-resume-capability-missing'
   | 'approval-answer-channel-lost'
   | 'approval-session-ambiguous'
   | 'approval-owner-missing'
