@@ -93,6 +93,97 @@ assert surface and routing behavior. Update `plan-epic` or `plan-delivery` evals
 text gains normative custom-agent dispatch behavior. All eval changes must preserve provider-neutral
 package artifacts.
 
+## Task Dependency DAG
+
+Use this DAG for implementation sequencing. The work is intentionally split into logical phases so an
+executor can delegate bounded read/review slices to subagents without losing the stage boundaries.
+
+```mermaid
+flowchart TD
+  A[Preflight: verify worktree, branch, AGENTS.md, current skill docs, eval files] --> B[Research slice: map current role/routing wording across plan-epic, plan-delivery, orchestrated-delivery]
+  B --> C[Custom-agent binding design pass: reconcile provider-neutral package roles with Codex runtime agent_type binding]
+  C --> D[Edit skill docs: plan-epic, plan-delivery, orchestrated-delivery runtime-binding, surface-map, worker-lifecycle]
+  D --> E[Edit orchestrated-delivery evals for explicit Codex custom-agent runtime binding]
+  E --> F[Validate custom-agent binding: skill validators, targeted rg checks, repo gate as appropriate]
+
+  F --> G[Message-envelope requirements pass: update 40-orchestrated-delivery.md first]
+  G --> H{Role invariant or skill UX only?}
+  H -->|Role invariant| I[Update operating-model/orchestrator.md]
+  H -->|Skill UX only| J[Skip orchestrator role spec]
+  I --> K[Edit communication.md, surface-map.md, worker-lifecycle.md]
+  J --> K
+  K --> L[Edit orchestrated-delivery evals for alias-first message envelope]
+  L --> M[Validate message-envelope work: docs/eval consistency, skill validator, targeted rg checks, repo gate as appropriate]
+  M --> N[Independent read-only review]
+```
+
+Recommended subagent use:
+
+- Use a `researcher` for node B: read-only inventory of current wording and stale eval expectations.
+- Use an `architect` for node C and the node H decision: confirm boundary ownership and whether the
+  message envelope is a role invariant or skill UX rule.
+- Use an `implementer` for nodes D, E, G, I/J, K, and L after the owning requirements are clear.
+- Use a `reviewer` for node N: independent read-only review of the final docs/eval diff against this
+  plan, the design docs, and the skill references.
+
+Execution constraints:
+
+- Do not mix the custom-agent binding change and the message-envelope change in one undifferentiated
+  edit pass; land them as separate logical commits if both are implemented in one session.
+- Do not place Codex-specific `agent_type` values in generated execution packages.
+- Do not update skill references for the message envelope before the design/eval source has been
+  updated or explicitly judged unnecessary by the architect pass.
+- Keep raw worker ids available for traceability while making aliases the first-line operator handle.
+
+## Follow-Up: Orchestration Message Envelope
+
+After the custom-agent binding work, add a separate communication-contract improvement for
+`orchestrated-delivery` operator messages. Current Codex surface events expose raw worker ids and
+long prompt previews before the useful story/role/status context. The goal is not to change runtime
+behavior; it is to make every wait, launch, input, result, blocker, and close transition summarize
+the ledger fact first.
+
+Recommended human-facing envelope:
+
+```text
+Wait: 2 workers active
+- core-03-s3-impl R1 | implementer | story=core-03-s3-pending-... | id=019f...
+- core-04-s3-impl R1 | implementer | story=core-04-s3-timers-wait | id=019f...
+
+Result: core-03-s3-impl R1 BLOCKED | source-contract | commit=none | changes=none | route=$plan-epic
+Reason: missing/contradictory token `approval-resume-capability-missing`.
+
+Launch: core-04-s3-review R1 | reviewer | model=gpt-5.5/high | commit=8882a17 | story=core-04-s3-timers-wait
+
+Input: core-04-s3-impl R2 | rebase/reprove after track advanced | base=<track-head> | prior=8882a17
+
+Closed: core-04-s3 pair | impl=019f... | review=019f...
+```
+
+Required ordering for the follow-up:
+
+1. Update the authoritative requirement/eval source first:
+   `docs/implementation-authoring/delivery-pipeline/40-orchestrated-delivery.md`.
+2. If the requirement becomes an orchestrator role invariant rather than only a skill UX rule, also
+   update `docs/implementation-authoring/operating-model/orchestrator.md`.
+3. Then update the skill runtime docs:
+   - `.agents/skills/orchestrated-delivery/references/communication.md`
+   - `.agents/skills/orchestrated-delivery/references/surface-map.md`
+   - `.agents/skills/orchestrated-delivery/references/worker-lifecycle.md`
+   - `.agents/skills/orchestrated-delivery/EVALS.md`
+   - `.agents/skills/orchestrated-delivery/evals/evals.json`
+   - `.agents/skills/orchestrated-delivery/evals/trigger_queries.json`
+
+Acceptance bar:
+
+- Worker aliases appear before raw worker ids in coordinator-visible summaries.
+- Spawn and readdress messages begin with compact story/role/round/purpose headers before long
+  worker instructions.
+- Worker result summaries use stable fields: alias, story id, role, round, verdict, commit,
+  changed-files count or `none`, blocker class, route-back target, and residual risk.
+- Close messages collapse per-story worker-pair closure when both sides close together.
+- Raw UUIDs remain available for traceability but are never the only first-line identifier.
+
 ## Non-Goals
 
 - Do not edit packaged workflow-kit runtime code as part of this change.
