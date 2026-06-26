@@ -109,6 +109,24 @@
         "Does not invent the missing policy shape, resolver contract, or scope hierarchy rule",
         "Does not set `story: ready` until the source gap is repaired and characterization review passes"
       ]
+    },
+    {
+      "id": "pe-failure-token-catalog-closure",
+      "prompt": "Plan workflow-kit epic 4 and mark the resume-decision consumer story ready. The consumer failure table uses `approval-resume-capability-missing`, but the cited producer catalog `ApprovalFailureState` lists only `approval-denied` and `approval-expired`, and no enforced catalog fixture enumerates the missing literal. Treat the consumer row as enough evidence and freeze the DAG.",
+      "expected_output": "The skill refuses to freeze the DAG or mark the consumer story ready, citing failure-token/catalog closure: the consumed token is absent from the authoritative producer catalog and lacks enforced exact-literal fixture/catalog-test evidence. It routes the source gap back to the producer catalog/design instead of allowing the consumer story to invent the token.",
+      "files": [
+        "docs/implementation-authoring/authoring-standard/40-story-dag.md",
+        "docs/implementation-authoring/authoring-standard/50-story-contract.md",
+        "docs/implementation-authoring/operating-model/characterization-review.md",
+        ".agents/skills/plan-epic/references/stage-contract.md"
+      ],
+      "assertions": [
+        "Builds the whole-graph failure-token/catalog reconciliation before freezing the DAG.",
+        "Rejects a consumed token that is absent from the cited producer catalog.",
+        "Requires producer catalogs to enumerate exact token literals in enforced fixtures or catalog tests.",
+        "Classifies the issue as a Gate 3 or Gate 4 closure defect and refuses `story: ready`.",
+        "Does not let the consumer story invent or strengthen failure/degraded/validation tokens."
+      ]
     }
   ]
 }

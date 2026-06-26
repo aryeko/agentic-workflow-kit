@@ -26,6 +26,10 @@ Audit every package artifact against the source inventory:
 - source-vague elements stop with a `$plan-epic` route-back instead of invention;
 - self-blocking ready contracts stop with a `$plan-epic` route-back when STOP conditions or unresolved
   predicate inputs overlap selected ACs or failure/degraded triggers;
+- source-readiness preflights passed before package readiness, including substrate-presence (PD-9),
+  predicate-input (PD-10), and failure-token/catalog closure (PD-11);
+- no package artifact invents, rewrites, or strengthens failure / degraded / validation tokens beyond the
+  exact producer catalog ownership recorded in the source inventory;
 - provider-specific runtime model IDs are absent;
 - reasoning tier is greater than or equal to the carried suggested-tier floor;
 - reviewer routing uses `frontier-reviewer`.
@@ -84,6 +88,7 @@ checks pass and the independent reviewer returns no blocking findings. The verdi
 - sources reviewed;
 - selected stories covered;
 - per-artifact checks performed;
+- source-readiness preflight results, including failure-token/catalog closure;
 - independent reviewer verdict;
 - final verdict.
 
@@ -104,6 +109,7 @@ Report:
 - changed files;
 - docs navigation command/result, or why skipped;
 - deterministic package validation command/result;
+- source-readiness preflight result, including failure-token/catalog closure;
 - projection audit result;
 - independent reviewer verdict;
 - `ready_for_implementation` or `blocked`;

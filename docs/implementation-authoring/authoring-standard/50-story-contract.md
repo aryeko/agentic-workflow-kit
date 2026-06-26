@@ -33,6 +33,14 @@ proof is a manual one-off (not a named `pnpm check` / CI lane) is a manual-only 
 durably hold; a responsibility reaching into another story's signal is an ownership leak — move it to
 the owning story.
 
+**Failure-token/catalog closure.** Every failure / degraded / validation token in a story must resolve to
+exactly one authoritative owner: the story-owned producer catalog, or an earlier frozen design / producer
+catalog. A consumer story cannot invent a token by naming it in its failure table. If the story consumes a
+union / catalog, each token in its failure table must be a member of that producer catalog, cited
+verbatim, and the producer story must enumerate the exact literals in enforced fixtures / catalog tests.
+A token with no owner, multiple owners, or a stronger meaning than design is a source gap, not an
+implementation choice.
+
 **Negative claims need negative fixtures.** A green happy-path tool exit (`tsc -b`, `pnpm deps`,
 `pnpm check`) proves only *acceptance*. Every rejection / fail-fast / degraded / validation-failure AC
 names its own failing fixture or artifact — and that fixture must be **invoked by a named gate lane**
@@ -110,6 +118,10 @@ Tick every box; an empty box means not ready.
       defect, not deferred to the implementer.
 - [ ] Failure/degraded (or validation-failure) table present; **each row's cited AC actually asserts
       that row** — not the happy path, not a different condition.
+- [ ] **Failure-token/catalog closure:** every failure / degraded / validation token resolves to exactly
+      one authoritative producer catalog (story-owned or prior frozen); consumer rows cite producer tokens
+      verbatim and cannot invent tokens; producer catalogs enumerate exact literals in enforced fixtures /
+      catalog tests; no consumed token is unowned, ambiguous, or stronger than design.
 - [ ] Every negative AC has a failing fixture, and that fixture is **invoked by a named gate lane**
       (e.g. `type:fixtures`) inside `pnpm check` — not only by a manual one-off; no green tool exit cited
       for a rejection, no fixture left outside the `tsc -b` build graph.

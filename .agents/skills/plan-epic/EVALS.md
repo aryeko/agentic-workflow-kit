@@ -1,7 +1,7 @@
 # plan-epic Evals
 
 **Skill under test:** `plan-epic`
-**Version pin (combined skill hash):** `1e062ff7b7f6c34e`
+**Version pin (combined skill hash):** `cacc34af802d0fff`
 **Status:** active
 
 Recompute with:
@@ -16,7 +16,7 @@ find SKILL.md references agents evals -type f 2>/dev/null | LC_ALL=C sort |
 
 ## Scope
 
-These evals operationalize PE-1 through PE-17 from `docs/implementation-authoring/delivery-pipeline/20-plan-epic.md`. A passing result needs concrete artifact evidence, not a bare PASS claim.
+These evals operationalize PE-1 through PE-18 from `docs/implementation-authoring/delivery-pipeline/20-plan-epic.md`. A passing result needs concrete artifact evidence, not a bare PASS claim.
 
 ## Requirements Matrix
 
@@ -26,8 +26,8 @@ These evals operationalize PE-1 through PE-17 from `docs/implementation-authorin
 | PE-2 | Produces only Layer-3 and Layer-4 markdown. | Static assertions reject code, packages, execution package files, model/effort assignment, dispatch, commits, PRs, and merges. |
 | PE-3 | Sets `story: ready` only after characterization review passes. | Output must include review evidence before readiness and must not accept self-asserted readiness. `pe-ac-depth-and-falsifiable-review` requires named scope decisions with rationale, design-line trace, falsification criterion, and escalation path — not a bare checklist. |
 | PE-4 | Closes coverage exactly once and backfills the epic charter README owning-story cells, not the domain rollup. | Output must identify the epic README as the oracle and refuse edits to global story ownership rollups. |
-| PE-5 | Freezes the DAG before authoring contracts. | Output sequence must block contracts while DAG is draft and cite Gate 3 (including the value-type / single-producer seam pass and the whole-graph event/record producer reconciliation) before Layer 4 work. `pe-value-type-seam` checks that value types are hoisted into one type-only contract story and that value-type consumers depend on the contract story, not a behavior story. |
-| PE-6 | Every contract passes Gates 4-6. | Assertions inspect for AC evidence clauses, failure rows (each cited AC asserts that row's trigger and behavior), predicate-input coverage (consumed predicates + produced-obligations), public exposure/import tests, numeric file-size budget, and runnable sweeps. `pe-ac-depth-and-falsifiable-review` rejects bare test-file-path ACs, requires a concrete falsifiable assertion or named negative fixture per AC, and maps each failure token to one owning AC. |
+| PE-5 | Freezes the DAG before authoring contracts. | Output sequence must block contracts while DAG is draft and cite Gate 3 (including the value-type / single-producer seam pass, whole-graph event/record producer reconciliation, and whole-graph failure-token/catalog reconciliation) before Layer 4 work. `pe-value-type-seam` checks that value types are hoisted into one type-only contract story and that value-type consumers depend on the contract story, not a behavior story. |
+| PE-6 | Every contract passes Gates 4-6. | Assertions inspect for AC evidence clauses, failure rows (each cited AC asserts that row's trigger and behavior), failure-token/catalog closure, predicate-input coverage (consumed predicates + produced-obligations), public exposure/import tests, numeric file-size budget, and runnable sweeps. `pe-ac-depth-and-falsifiable-review` rejects bare test-file-path ACs, requires a concrete falsifiable assertion or named negative fixture per AC, and maps each failure token to one owning AC. |
 | PE-7 | Every AC traces to frozen design; missing requirements are design gaps. | Trap prompts require escalation instead of invented requirements. `pe-refuse-forward-reference` requires deferring or escalating later-epic-owned types rather than declaring or forward-referencing them. |
 | PE-8 | Output is Gate 1 and the skill stops before package creation. | Output must hand off to `plan-delivery` and not create execution artifacts. |
 | PE-9 | Never edits `docs/design/`; design gaps are escalated. | Static and trap checks reject design edits. |
@@ -39,6 +39,7 @@ These evals operationalize PE-1 through PE-17 from `docs/implementation-authorin
 | PE-15 | A runnable boundary sweep's forbidden-token set must not ban a token that appears in the story's own ACs or in the normative design vocabulary for that story's signal. | `pe-sweep-vocabulary` presents a contract whose sweep recipe forbids `containment` while AC-6 requires asserting `proof.containmentEmpty`; the output must flag this as an over-broad sweep defect and refuse readiness. |
 | PE-16 | Every failure/degraded table row cites an AC that asserts that row's trigger and behavior — not the happy path, not a different condition. | `pe-failure-row-ac-match` presents a contract with a failure row citing an AC that proves only the success path; the output must flag this as a Gate 4 failure and refuse readiness. |
 | PE-17 | Same-logic concurrency holds: a public-symbol story's owned pathset includes its own `packages/sdk/src/index.ts` export line; same-wave stories share no logic-bearing file (file-level granularity from owned pathsets), and any file-level override carries a one-line architect rationale. | `pe-same-logic-concurrency` presents a DAG that (a) schedules two non-dependent stories in the same wave whose owned pathsets share one logic-bearing source file with no recorded override rationale, and (b) gives a public-symbol story no `index.ts` export line in its pathset; the output must flag the same-logic violation, refuse to freeze until the stories are separated or an architect override rationale is recorded, and flag the missing barrel export line as a closure/ownership defect. |
+| PE-18 | DAG frozen and stories marked `ready` only after failure-token/catalog closure: every consumed failure / degraded / validation token maps to exactly one authoritative producer catalog, and producer stories enumerate exact literals in enforced fixtures / catalog tests. | `pe-failure-token-catalog-closure` presents a consumer story that uses a token missing from the cited producer catalog; the output must flag a Gate 3/Gate 4 closure defect, refuse to freeze or mark ready, and route the source gap back to the producer catalog/design instead of letting the consumer invent the token. |
 
 ## Eval Files
 

@@ -44,15 +44,15 @@ stop and route it back to `plan-epic`; do not paper over it.
 
 Refuse, and route back to `plan-epic`, on a non-frozen DAG, any non-ready selected story, a contract too
 underspecified to project without inventing, or a self-blocking ready contract whose STOP conditions name
-a missing fact needed by one of its ACs or failure/degraded triggers. Two **readiness-contract
-preflights** — substrate-presence and predicate-input — also gate the verdict; see
-[Readiness-contract preflights](#readiness-contract-preflights). Both read the contract/manifest, never
-code on disk.
+a missing fact needed by one of its ACs or failure/degraded triggers. Three **readiness-contract
+preflights** - substrate-presence, predicate-input, and failure-token/catalog closure - also gate the
+verdict; see [Readiness-contract preflights](#readiness-contract-preflights). They read the frozen DAG,
+contracts, and manifests, never code on disk.
 
 ## Readiness-contract preflights
 
-Two static checks run per story before `ready_for_implementation`, both reading the contract's
-**spec-surface manifest and AC text — never globbing the owned src pathset**. The pathset is *empty until
+Three static checks run before `ready_for_implementation`, reading the frozen DAG, each selected
+contract's **spec-surface manifest and AC text - never globbing the owned src pathset**. The pathset is *empty until
 implementation*, so a code-on-disk glob has nothing to read at plan time and would misfire on every
 contracts story; the manifest is the only artifact that exists at this layer, and the authoring standard
 makes the contract *declare* there what these checks read. Each preflight is a mechanical instance of
@@ -96,6 +96,20 @@ time, not a cheaper heuristic.
   Cites the **[Predicate-input closure — relational &
   compound](../authoring-standard/50-story-contract.md#gate-4--authoring-ready)** Gate-4 box (strengthened
   R6) and **LSN-30**.
+
+- **failure-token/catalog closure preflight.** Build an inventory for the selected package: every shared
+  failure / degraded / validation catalog or union named in the frozen DAG, every producer story catalog,
+  and every token consumed by selected story failure tables. Refuse `ready_for_implementation` if any
+  consumer token is unowned, maps to multiple producers, is not a member of the cited producer catalog, or
+  carries a stronger meaning than the frozen design / catalog. Also refuse if the producer story does not
+  enumerate the exact literals in enforced fixtures / catalog tests; a catalog described only by prose is
+  not package-ready. Reason string emitted on refusal:
+  > `failure-token/catalog closure gap: token <token> consumed by <story> is unowned, ambiguous, absent from the cited producer catalog, stronger than design, or the producer catalog lacks enforced exact-literal fixtures/tests. Route back to plan-epic; consumers cannot invent failure/degraded/validation tokens during packaging or implementation.`
+
+  Cites the **[Failure-token/catalog closure](../authoring-standard/50-story-contract.md#gate-4--authoring-ready)**
+  Gate-4 box, the Gate-3
+  **[Whole-graph failure-token/catalog reconciliation](../authoring-standard/40-story-dag.md#gate-3--ready-to-freeze)**
+  box, and **LSN-31**.
 
 ## Output gate (done means)
 
@@ -157,8 +171,9 @@ to the track branch.
 | PD-8 | Refuses a `story: ready` contract whose STOP conditions, unresolved predicate inputs, or package-blocking vagueness overlap selected ACs; routes the source repair to `plan-epic` before packaging. | P1 | S/T |
 | PD-9 | substrate-presence preflight: refuses `ready_for_implementation` when a quality bar names a statement/branch coverage lane while the spec-surface manifest declares no runtime-value export (a retained type-only marker alone does not trigger — an `as const` catalog passes); reads the manifest, not the pathset. | P1 | S/T |
 | PD-10 | predicate-input preflight: refuses when an AC closure row names an input category not a concrete `Producer/Type.field`, or any relational sub-predicate leaves an operand unsourced (per sub-predicate, not per AC); reads the manifest, not the pathset. | P1 | S/T |
+| PD-11 | failure-token/catalog closure preflight: refuses `ready_for_implementation` when any selected story consumes a failure / degraded / validation token that is unowned, ambiguous, absent from the cited producer catalog, stronger than design, or backed only by prose instead of enforced exact-literal fixtures / catalog tests. | P1 | S/T |
 
-The skill's own `EVALS.md` (when authored) operationalizes PD-1…PD-10 as test cases with a version pin.
+The skill's own `EVALS.md` (when authored) operationalizes PD-1..PD-11 as test cases with a version pin.
 PD-2 is the load-bearing one: it is what keeps the bridge from bypassing the characterization gate.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

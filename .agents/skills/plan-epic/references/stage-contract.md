@@ -39,6 +39,9 @@ Done means all are true:
 - Every owned Story Group Signal maps exactly once to a story id or named `split`.
 - The target epic charter README, not the global coverage rollup, has the owning-story cells backfilled.
 - No design requirements were invented, and every AC traces to frozen design.
+- Whole-graph event/record producer reconciliation and failure-token/catalog reconciliation are recorded
+  in the DAG, with every consumed event/record and every consumed failure / degraded / validation token
+  mapped to exactly one authoritative producer.
 - An independent read-only review inspected the finished planning diff for source traceability, DAG
   correctness, story-contract quality, charter ownership, docs-nav reachability,
   implementation-readiness, and hard-boundary compliance; every reviewer finding is fixed or
@@ -66,6 +69,16 @@ exactly one story (this epic or a prior frozen epic) declares each as a produced
 reconciliation table in the DAG. An event consumed by any story but produced by none is a DAG-level closure
 defect — per-story closure checks cannot catch it. Gate 3 fails until every consumed event/record has a
 declared producer or is escalated as a design gap.
+
+**Whole-graph failure-token/catalog reconciliation.** Before freezing the DAG, enumerate every shared
+failure / degraded / validation catalog or union named in the design seams, every producer story catalog,
+and every token any story failure table consumes. Assert that each consumed token resolves to exactly one
+authoritative owner: a story-owned producer catalog in this DAG, or a prior frozen design / producer
+catalog. Consumer stories cannot invent tokens by naming them in failure tables. Producer catalogs must
+enumerate the exact token literals in enforced fixtures / catalog tests. A consumed token that is unowned,
+maps to multiple producers, is absent from the cited producer catalog, carries a stronger meaning than the
+frozen design/catalog, or is backed only by prose is a DAG-level closure defect. Gate 3 fails until the
+token is assigned to one authoritative producer catalog or escalated as a design gap.
 
 **Value-type vs runtime-object seam.** For each shared shape, decide how its consumers use it:
 
@@ -109,6 +122,11 @@ directory not traceable to the design package decomposition.
   file X" fails Gate 4.
 - Each failure/degraded/validation token maps to exactly one owning AC; the failure table cites that AC.
   The cited AC must assert **this row's trigger and behavior** — not the happy path, not a different token.
+- **Failure-token/catalog closure.** Every failure / degraded / validation token resolves to exactly one
+  authoritative producer catalog recorded in the DAG or already frozen source. Consumer rows cite producer
+  tokens verbatim and cannot invent tokens; producer stories enumerate exact literals in enforced fixtures /
+  catalog tests. A token that is unowned, ambiguous, absent from its cited catalog, stronger than design, or
+  prose-only blocks `story: ready`.
 - Every behavioral AC and every failure/degraded trigger has predicate-input coverage. The contract must
   name the request field, consumed event/projection, producer-owned field, or in-scope resolver that
   supplies each runtime branch value. A ref, hash, citation, or story id is provenance only. If an AC
@@ -135,17 +153,23 @@ not asserted* and mirror the `plan-delivery` readiness-contract preflights at pa
 
 - **Proof-substrate match** (mirrors substrate-presence preflight, PD-9)
 - **Predicate-input closure — relational & compound** (mirrors predicate-input preflight, PD-10)
+- **Failure-token/catalog closure** (mirrors failure-token/catalog closure preflight, PD-11)
 
 ## Characterization Review
 
 Review the authored DAG and contracts before setting readiness:
 
 - Gate 3 for the DAG, **including the seam pass above**: value-type seam, single-producer / no-collapse,
+  whole-graph event/record producer reconciliation, whole-graph failure-token/catalog reconciliation,
   cross-epic forward-reference, pathset convention.
 - Gates 4-6 for every story contract, including AC depth and predicate-input coverage above.
+- Failure-token/catalog closure for the story and DAG: each story token resolves to exactly one
+  authoritative producer catalog, consumer stories invent none, and producer catalogs enumerate exact
+  literals in enforced fixtures / catalog tests.
 - Record each **load-bearing scope decision** (node boundaries, single-producer hoists, value-type seams,
-  cross-epic deferrals) as a named entry carrying: the rationale, the design line it traces to, the
-  falsification criterion, and the escalation path if violated. A bare `[x]` checklist or a post-hoc
+  catalog/invariant ownership splits, cross-epic deferrals) as a named entry carrying: the rationale, the
+  design line it traces to, the falsification criterion, and the escalation path if violated. A bare `[x]`
+  checklist or a post-hoc
   "all checks passed" summary does **not** satisfy the gate — readiness set on an unevidenced self-check
   is a defect.
 - Findings quote the source design line or AC they contradict.

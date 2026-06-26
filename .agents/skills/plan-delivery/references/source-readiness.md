@@ -53,6 +53,13 @@ Refuse and route back to `$plan-epic` when any condition holds:
   unsourced (decompose compound ACs; both operands cite a field, counted per sub-predicate not per AC).
   Full rules in
   `docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md#readiness-contract-preflights`.
+- **failure-token/catalog closure preflight** (PD-11): build the selected package inventory from the
+  frozen DAG, spec-surface manifests, and failure/degraded/validation tables. Refuse if any consumed token
+  is unowned, maps to multiple producers, is absent from the cited producer catalog, carries a stronger
+  meaning than the frozen design/catalog, or if the producer catalog is prose-only and does not enumerate
+  exact literals in enforced fixtures / catalog tests. Route the source repair back to `$plan-epic`; do
+  not invent or normalize tokens during packaging. Full rules in
+  `docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md#readiness-contract-preflights`.
 
 This is a boolean gate check, not a second characterization review. Do not repair or improve the
 source artifacts here.
@@ -65,6 +72,9 @@ Before writing package files, build a source inventory with:
 - one row per story: story id, job, wave, dependencies, dependents, owned pathset, suggested-tier
   floor, source story contract path, and all `AC-n` ids;
 - dependency contracts and public import paths named by the DAG or story contracts;
+- failure-token/catalog closure inventory: shared failure / degraded / validation catalogs or unions named
+  by the DAG, producer story catalogs, consumed story tokens, the exact authoritative producer for each
+  consumed token, and the enforced fixture / catalog-test evidence for producer exact literals;
 - any package-blocking vagueness, reported with the exact source file and missing fact.
 - any self-blocking STOP condition or unresolved predicate input, reported with the exact source file,
   affected AC/failure row, missing value source, and `$plan-epic` route-back.

@@ -1,7 +1,7 @@
 # plan-delivery Evals
 
 **Skill under test:** `plan-delivery`
-**Version pin (combined skill hash):** `ba719f35d5cf24f5`
+**Version pin (combined skill hash):** `0d3aa593720dbc14`
 **Status:** active
 
 Recompute with:
@@ -14,7 +14,7 @@ find SKILL.md references agents evals -type f 2>/dev/null | LC_ALL=C sort |
   shasum -a 256 | cut -c1-16
 ```
 
-These evals operationalize PD-1 through PD-10 from
+These evals operationalize PD-1 through PD-11 from
 `docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md`.
 
 ## Coverage Matrix
@@ -31,6 +31,7 @@ These evals operationalize PD-1 through PD-10 from
 | PD-8: self-blocking ready contracts route back before packaging | `negative-refuse-self-blocking-ready-contract` |
 | PD-9: substrate-presence preflight: refuses `ready_for_implementation` when a coverage lane is named but the spec-surface manifest declares no runtime-value export — a retained type-only marker alone does **not** trigger (an `as const` catalog passes); reads the manifest, not the pathset | `negative-refuse-type-only-coverage-lane`, `positive-allow-as-const-catalog-type-only-marker` |
 | PD-10: predicate-input preflight: refuses when an AC closure row names an input category not a concrete `Producer/Type.field`, or any relational sub-predicate leaves an operand unsourced (counted **per sub-predicate, not per AC** — a compound AC with ≥2 fields in total still refuses if one sub-predicate operand is unsourced); reads the manifest, not the pathset | `negative-refuse-unsourced-relational-predicate`, `negative-refuse-compound-ac-unsourced-suboperand` |
+| PD-11: failure-token/catalog closure preflight: refuses `ready_for_implementation` when any selected story consumes a failure / degraded / validation token that is unowned, ambiguous, absent from the cited producer catalog, stronger than design, or backed only by prose instead of enforced exact-literal fixtures / catalog tests | `negative-refuse-unowned-failure-token` |
 
 ## Expected Evidence
 
@@ -39,6 +40,9 @@ For a passing positive run, inspect the generated package and require:
 - Gate 1 evidence names the frozen DAG and every ready story contract read.
 - Source readiness refuses any selected ready story whose STOP conditions or unresolved predicate inputs
   overlap selected ACs or failure/degraded triggers.
+- Source readiness refuses any selected ready story whose consumed failure / degraded / validation token
+  does not close against exactly one authoritative producer catalog with enforced exact-literal fixtures /
+  catalog tests.
 - `plan.md`, `tracker.md`, and every prompt contain source story id and source `AC-n` ids.
 - Routing uses abstract model class, effort, suggested-tier floor, reasoning tier, and rationale only.
 - No provider-specific runtime model IDs appear.
