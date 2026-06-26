@@ -91,7 +91,7 @@ traceability metadata.
 The alias-first envelope is necessary but not sufficient. After PR #164, the message shape is no
 longer regressed, but the operator still has to reconstruct run state from a stream of transitions,
 waits, tool output, and local verification chatter. The next iteration should make the coordinator's
-visible surface a sparse run ledger rather than a transition log.
+visible surface a sparse, separable run ledger rather than a transition log.
 
 Operator-visible updates should prefer story-state snapshots and next-decision summaries:
 
@@ -105,6 +105,10 @@ core-03-s4 | locked | waits on core-03-s3 merge-back
 Rules for the next refinement:
 
 - Keep the PR #164 alias-first envelope as the transition baseline.
+- Make assistant-authored ledger lines visually and structurally separable from immutable Codex CLI
+  telemetry by using stable prefixes and field order.
+- Define a fixed line grammar for milestone updates, such as `State: ... | next=...` or a paired
+  `State:` plus `Next:` block, so the communication policy is checkable after a run.
 - Make empty waits silent unless the user asks for status, a configured timeout threshold is crossed,
   or new evidence changes the ledger.
 - Every visible transition update must include the next orchestrator decision or action, using a
@@ -128,8 +132,11 @@ The eval suite should include a transcript-derived regression from the Epic 4 co
 
 - fail if an empty wait produces filler prose;
 - fail if a status update lacks a next decision/action;
+- fail if assistant-authored milestone updates do not match the fixed ledger grammar;
 - fail if non-blocking command warnings are surfaced as primary operator evidence;
 - require a compact run-ledger snapshot at launch/result/merge-back boundaries.
+- include a post-run communication audit that checks assistant-authored lines for the ledger grammar,
+  next-action coverage, warning allowlist use, and raw-id placement.
 
 ### R8: Treat `fnm` Multishell Warnings as Sandbox Diagnostics, Not Operator Evidence
 
@@ -161,6 +168,8 @@ In the orchestrated-delivery skill, treat this class as a local diagnostic:
 - do not repeat the raw warning in operator status;
 - escalate only if `fnm` exits non-zero or a dependent `node`, `pnpm`, or setup command fails;
 - keep the real failure evidence tied to the failing command, not to the shell-startup warning.
+- collapse warnings only from a known-benign allowlist. Unknown warning classes must surface at least
+  once with command context until classified.
 
 ### R9: Separate CLI Event Telemetry from Orchestrator Messages
 
@@ -343,11 +352,16 @@ Target files:
 
 Implementation requirements:
 
-- Define a sparse run-ledger snapshot format for operator updates.
+- Define a sparse and separable run-ledger snapshot format for operator updates.
+- Define the fixed milestone grammar, including approved prefixes such as `State:`, `Next:`, and
+  `Env:`.
 - Require every visible transition summary to include the next decision/action.
 - Require silent empty waits unless the user asks for status or a threshold/new-evidence condition is
   met.
-- Require local shell/tool noise filtering, especially for repeated non-blocking warnings.
+- Resolve the long-wait cadence in the skill contract: no unchanged short-wait filler, immediate
+  updates on state changes, and one coarse liveness line after a configured threshold.
+- Require local shell/tool noise filtering only through a known-benign allowlist, especially for the
+  verified `fnm` multishell sandbox diagnostic.
 - Keep raw tool output out of coordinator-visible status unless the output is the evidence being
   reported.
 - Preserve raw ids for traceability, but show story alias and worker nickname first when available.
@@ -361,13 +375,21 @@ Acceptance requirements:
 
 - Long waits do not produce filler messages such as "No result yet" unless a threshold policy requires
   an explicit status update.
+- Long waits emit a separable liveness update at the configured threshold so the run does not read as
+  hung.
 - Launch/result/merge-back updates can be read as a coherent ledger without scanning tool calls.
 - Every status update answers what changed, what is blocked or unlocked, and what the coordinator will
   do next.
-- Repeated non-blocking shell warnings are summarized once or omitted from operator updates.
+- Every assistant-authored milestone update conforms to the fixed ledger grammar or is explicitly
+  justified as a free-form operator response.
+- Repeated non-blocking shell warnings are summarized once or omitted from operator updates only when
+  the warning class is on the known-benign allowlist.
 - CLI event rows are treated as immutable client telemetry; the design reduces redundant actions and
   improves the assistant-authored summaries around them instead of trying to style those rows.
 - Evals fail on the Epic 4 continuation anti-patterns and pass on ledger-style replacements.
+- A post-run retro-audit check can determine whether assistant-authored updates carried next actions,
+  followed the ledger grammar, handled warnings conservatively, and avoided raw worker ids as leading
+  identifiers.
 
 ## Subagent Plan
 
@@ -476,6 +498,6 @@ state that it was not independent.
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./2026-06-25-producer-consumer-closure-audit.md) · **Next →:** [roadmap](../roadmap.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./2026-06-25-producer-consumer-closure-audit.md) · **Next →:** [Orchestrated-Delivery Operator UX Design](./2026-06-26-orchestrated-delivery-operator-ux-design.md)
 
 <!-- /DOCS-NAV -->
