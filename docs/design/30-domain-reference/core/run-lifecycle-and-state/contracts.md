@@ -63,6 +63,14 @@ type RunSummaryProjection = { runId: string; taskId?: string; status: RunLifecyc
 type RunMetricsProjection = { eventCount: number; retryCount: number; parkedMs: number;
   firstRecordedAt?: string; lastRecordedAt?: string; };
 type RunLaunchProjection = { policyDigest?: string; taskSnapshotDigest?: string;
+  // `worktreePath` is the run's trusted workspace root (an absolute path), folded from the
+  // `workspace-ready` launch fact — the run's `WorktreeLease.worktreePath` (owned by the
+  // workspace-and-repository domain), recorded in the run log as a sibling-domain barrier fact at
+  // the `workspace-ready` transition (see projections-lifecycle-and-tests.md). It is a recorded,
+  // replayable run-launch fact, never an agent-supplied value. A producer story must emit it; a
+  // consumer (e.g. approval risk classification) tests request `cwd`/`filePaths` containment against
+  // it. Absent until the producer records the fact — consumers must fail closed when it is absent.
+  worktreePath?: string;
   linkage: "known" | "unknown" | "ambiguous"; currentSession?: SessionLinkedPayload;
   linkHistory: SessionLinkedPayload[]; };
 type RunAppendFailureCode = "stale-writer-fenced" | "sequence-conflict" |
