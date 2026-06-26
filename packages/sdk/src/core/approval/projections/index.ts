@@ -82,7 +82,11 @@ const foldDecision = (
   const { decision } = event.payload;
   const pending = projection.pendingByRequestId[decision.requestId];
   const nextState: ApprovalState =
-    decision.decision === 'human-required' ? 'human-required' : (pending?.state ?? 'pending');
+    decision.decision === 'human-required'
+      ? 'human-required'
+      : decision.decision === 'grant'
+        ? 'auto-granted'
+        : (pending?.state ?? 'pending');
 
   return {
     ...projection,

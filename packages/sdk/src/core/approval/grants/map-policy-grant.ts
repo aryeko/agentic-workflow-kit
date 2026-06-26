@@ -2,6 +2,7 @@ import type { ScopedGrant } from '../../../providers/agent/index.js';
 import type { Result } from '../../run-lifecycle/contracts/index.js';
 
 import type { ApprovalRequest, PolicyGrantPlan } from '../contracts/index.js';
+import { defaultRequestedScope, isScopeBroaderThan } from '../decision/policy-helpers.js';
 
 import type { ApprovalGrantMappingFailure, ApprovalGrantMappingResult, MapPolicyGrantInput } from './types.js';
 
@@ -17,6 +18,10 @@ export const mapPolicyGrantToScopedGrant = (input: MapPolicyGrantInput): Approva
 
   if (input.grantPlan === undefined) {
     return invalid('grant plan is required');
+  }
+
+  if (isScopeBroaderThan(input.grantPlan.scope, defaultRequestedScope(input.request))) {
+    return invalid('grant plan scope must not widen requested approval scope');
   }
 
   const mapper = scopeMappers[input.grantPlan.scope];
@@ -176,6 +181,7 @@ const mapFileChangeSession = (
   });
 };
 
+// Approval file paths are POSIX-style relative paths at the approval contract boundary.
 const isBoundedRelativePath = (value: string): boolean =>
   value.trim() !== '' && !value.startsWith('/') && !value.split('/').includes('..');
 

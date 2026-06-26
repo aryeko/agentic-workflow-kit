@@ -74,6 +74,23 @@ describe('mapPolicyGrantToScopedGrant invalid mappings', () => {
     expect(result.ok).toBe(false);
   });
 
+  it.each([
+    ['per-command-prefix', createPlan({ scope: 'per-command-prefix', command: undefined, commandPrefix: ['pnpm'] })],
+    ['session', createPlan({ scope: 'session', sessionId })],
+  ] as const)('rejects %s grant plans that widen the requested scope', (_name, grantPlan) => {
+    const result = mapPolicyGrantToScopedGrant({
+      request: createRequest({ requestedScope: 'per-command' }),
+      grantPlan,
+      decisionEventId,
+      humanApproved: true,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.failureState).toBe('approval-grant-mapping-invalid');
+    }
+  });
+
   it('rejects a missing grant plan when no deny disposition is supplied', () => {
     const result = mapPolicyGrantToScopedGrant({
       request: createRequest(),

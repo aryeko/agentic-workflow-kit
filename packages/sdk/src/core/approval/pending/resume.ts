@@ -3,6 +3,7 @@ import type {
   ApprovalFailureState,
   ApprovalPendingPersistedPayload,
   ApprovalResumedPayload,
+  ApprovalState,
   Decision,
   PendingApprovalProjection,
 } from '../contracts/index.js';
@@ -156,7 +157,7 @@ const resumeBlocker = (
 const findPending = (input: ResumePendingApprovalInput): PendingApprovalProjection | undefined => {
   const projected = input.approvalProjection?.pendingByRequestId[input.requestId];
   if (projected !== undefined) {
-    return projected;
+    return isTerminalApprovalState(projected.state) ? undefined : projected;
   }
 
   const event = input.replay.events
@@ -186,6 +187,10 @@ const findPending = (input: ResumePendingApprovalInput): PendingApprovalProjecti
     policyRef: event.payload.policyRef,
   };
 };
+
+const terminalApprovalStates: readonly ApprovalState[] = ['answered', 'denied', 'expired', 'blocked', 'failed'];
+
+const isTerminalApprovalState = (state: ApprovalState): boolean => terminalApprovalStates.includes(state);
 
 const evaluateLinkage = (input: ResumePendingApprovalInput): ApprovalFailureState | undefined => {
   const current = input.projections.launch.currentSession;

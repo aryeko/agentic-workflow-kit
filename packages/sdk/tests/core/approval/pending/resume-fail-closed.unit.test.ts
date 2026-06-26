@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resumePendingApproval } from '../../../../src/core/approval/pending/index.js';
+import type { ApprovalState } from '../../../../src/core/approval/contracts/index.js';
 
 import {
   createAttestationEvent,
@@ -16,6 +17,14 @@ import {
   runId,
   sessionId,
 } from './fixtures.js';
+
+const terminalStates = [
+  'answered',
+  'denied',
+  'expired',
+  'blocked',
+  'failed',
+] as const satisfies readonly ApprovalState[];
 
 const decisionEvent = () =>
   createEvent({
@@ -234,6 +243,60 @@ describe('resumePendingApproval fail-closed behavior', () => {
 
     expect(result.ok).toBe(true);
     expect(result.value.decision).toMatchObject({ outcome: 'blocked', failureState: fixture.failureState });
+    expect(writer.appendCalls.flat().some((intent) => intent.type === 'ApprovalResumed')).toBe(false);
+  });
+
+  it.each(terminalStates)('ignores terminal projected %s rows before resume eligibility', async (state) => {
+    const writer = createWriter();
+    const result = await resumePendingApproval(
+      {
+        requestId,
+        runId,
+        sessionId,
+        decisionEventId,
+        evaluatedAt,
+        replay: createReplay([
+          createEvent({
+            eventId: 'evt-pending-01',
+            sequence: 1,
+            type: 'ApprovalPendingPersisted',
+            payload: createPendingPayload(),
+          }),
+          decisionEvent(),
+          createAttestationEvent('evt-resume-01', 3, 'canResumeOwned'),
+          createAttestationEvent('evt-relay-01', 4, 'canRelayApproval'),
+          createAttestationEvent('evt-persist-01', 5, 'canPersistApprovalAnswerChannel'),
+        ]),
+        projections: createProjections(),
+        approvalProjection: {
+          runId,
+          pendingByRequestId: {
+            [requestId]: {
+              requestId,
+              runId,
+              sessionId,
+              state,
+              requestEventId: 'evt-requested-01',
+              pendingEventId: 'evt-pending-01',
+              answerChannelRef: 'channel-01',
+              answerChannelPersistable: true,
+              decisionDeadline: '2026-06-23T10:15:00.000Z',
+              policyRef: 'policy:approval',
+            },
+          },
+          latestDecisionByRequestId: {},
+          latestOutcomeByRequestId: {},
+          failureStateByRequestId: {},
+        },
+      },
+      writer,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.value.decision).toMatchObject({
+      outcome: 'blocked',
+      failureState: 'approval-event-log-unavailable',
+    });
     expect(writer.appendCalls.flat().some((intent) => intent.type === 'ApprovalResumed')).toBe(false);
   });
 });

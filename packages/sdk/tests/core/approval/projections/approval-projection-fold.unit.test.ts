@@ -183,6 +183,30 @@ describe('foldApprovalProjection', () => {
     expect(projection.failureStateByRequestId).toEqual({});
   });
 
+  it('folds grant decisions into auto-granted rows before outcome recording', () => {
+    const decision = createDecision();
+    const projection = foldApprovalProjection(runId, [
+      createEvent({
+        eventId: 'evt-pending-01',
+        sequence: 1,
+        type: 'ApprovalPendingPersisted',
+        payload: createPendingPayload(),
+      }),
+      createEvent({
+        eventId: decisionEventId,
+        sequence: 2,
+        type: 'ApprovalDecisionRecorded',
+        payload: { schema: 'kit-vnext.approval-decision-recorded.v1', decision, sourceEventIds: ['evt-pending-01'] },
+      }),
+    ]);
+
+    expect(projection.pendingByRequestId[requestId]).toMatchObject({
+      state: 'auto-granted',
+      latestDecisionEventId: decisionEventId,
+    });
+    expect(projection.latestDecisionByRequestId[requestId]).toEqual(decision);
+  });
+
   it('folds unknown, orphan decision, and orphan outcome events without pending rows', () => {
     const decision = createDecision({ requestId: 'unknown-request' });
     const projection = foldApprovalProjection(runId, [
