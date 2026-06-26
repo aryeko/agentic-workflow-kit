@@ -20,6 +20,7 @@ done
 
 PASS=0; FAIL=0
 WT_FILE=""   # set by new_sandbox; written directly by add_wt_entry
+PNPM_LOG=""  # set by new_sandbox; records stubbed pnpm invocations
 
 # ---------------------------------------------------------------------------
 # Harness
@@ -34,6 +35,7 @@ assert_stderr_has()  { echo "$RUN_STDERR" | grep -qF "$2" && pass "$1" || fail "
 assert_exists()      { [[ -e "$2" ]]                       && pass "$1" || fail "$1" "$2 exists"          "missing"; }
 assert_absent()      { [[ ! -e "$2" ]]                     && pass "$1" || fail "$1" "$2 absent"          "present ($(ls -ld "$2" 2>/dev/null | awk '{print $1}'))"; }
 assert_real_dir()    { [[ -d "$2" && ! -L "$2" ]]          && pass "$1" || fail "$1" "$2 is a real dir"   "symlink -> $(readlink "$2" 2>/dev/null || echo n/a)"; }
+assert_pnpm_log_has() { grep -qF -- "$2" "$PNPM_LOG"       && pass "$1" || fail "$1" "pnpm log has '$2'"  "$(cat "$PNPM_LOG")"; }
 
 # Create a resolved sandbox so macOS /tmp -> /private/tmp doesn't skew pwd -P comparisons.
 new_sandbox() {
@@ -42,7 +44,9 @@ new_sandbox() {
   mkdir -p "$SANDBOX/scripts" "$SANDBOX/bin"
   ln -sf "$REAL_SCRIPT" "$SANDBOX/scripts/setup-worktree.sh"
   WT_FILE="$SANDBOX/.git-wt-output"
+  PNPM_LOG="$SANDBOX/.pnpm-invocations"
   touch "$WT_FILE"
+  touch "$PNPM_LOG"
   # Stub defaults — override before calling run(); append entries with add_wt_entry()
   STUB_NODE_VERSION=24
   STUB_GIT_IN_TREE=true
@@ -63,10 +67,18 @@ write_stubs() {
 echo "$STUB_NODE_VERSION"
 EOF
 
-  # pnpm — no-op install; returns stub store path
+  # pnpm — records invocations; store path reflects the explicit --store-dir
   cat > "$SANDBOX/bin/pnpm" <<'EOF'
 #!/usr/bin/env bash
-if [[ "${1:-}" == "store" && "${2:-}" == "path" ]]; then echo "/stub/pnpm/store"; fi
+printf '%s\n' "$*" >> "$PNPM_LOG"
+store_dir=""
+if [[ "${1:-}" == "--store-dir" ]]; then
+  store_dir="$2"
+  shift 2
+fi
+if [[ "${1:-}" == "store" && "${2:-}" == "path" ]]; then
+  printf '%s/v11\n' "$store_dir"
+fi
 EOF
 
   # corepack — no-op
@@ -94,7 +106,7 @@ run() {
   write_stubs
   local stderr_f; stderr_f=$(mktemp)
   set +e
-  RUN_STDOUT=$(PATH="$SANDBOX/bin:$PATH" bash "$SANDBOX/scripts/setup-worktree.sh" "$@" 2>"$stderr_f")
+  RUN_STDOUT=$(PNPM_LOG="$PNPM_LOG" PATH="$SANDBOX/bin:$PATH" bash "$SANDBOX/scripts/setup-worktree.sh" "$@" 2>"$stderr_f")
   RUN_EXIT=$?
   RUN_STDERR=$(cat "$stderr_f"); rm -f "$stderr_f"
   set -e
@@ -187,6 +199,8 @@ run
 assert_exit       "primary has no .turbo → exit 0"                     0
 assert_stdout_has "primary has no .turbo → logged skip"                "turbo will create on first run"
 assert_absent     "primary has no .turbo → no .turbo locally"          "$SANDBOX/.turbo"
+assert_pnpm_log_has "primary has no .turbo → install uses primary store" "--store-dir $FAKE/.pnpm-store install"
+assert_stdout_has "primary has no .turbo → primary store logged"        "pnpm store: $FAKE/.pnpm-store/v11"
 cleanup
 
 # Primary has .turbo → copy it; result must be a real dir, not a symlink
@@ -202,6 +216,8 @@ assert_stdout_has "primary has .turbo → seeded log"                    "seeded
 assert_exists     "primary has .turbo → .turbo created"                "$SANDBOX/.turbo"
 assert_real_dir   "primary has .turbo → .turbo is a real dir"          "$SANDBOX/.turbo"
 assert_exists     "primary has .turbo → contents copied"               "$SANDBOX/.turbo/cache/entry"
+assert_pnpm_log_has "primary has .turbo → install uses primary store"   "--store-dir $FAKE/.pnpm-store install"
+assert_stdout_has "primary has .turbo → primary store logged"           "pnpm store: $FAKE/.pnpm-store/v11"
 cleanup
 
 # ---------------------------------------------------------------------------
@@ -226,6 +242,8 @@ STUB_GIT_IN_TREE=false
 run
 assert_exit   "not in git repo → exit 0"                               0
 assert_absent "not in git repo → no .turbo"                            "$SANDBOX/.turbo"
+assert_pnpm_log_has "not in git repo → install uses current store"      "--store-dir $SANDBOX/.pnpm-store install"
+assert_stdout_has "not in git repo → current store logged"              "pnpm store: $SANDBOX/.pnpm-store/v11"
 cleanup
 
 # ---------------------------------------------------------------------------

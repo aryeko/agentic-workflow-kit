@@ -16,26 +16,35 @@ jobs:
     # Job name == required status-check context "check" (matches v-next protection).
     name: check
     runs-on: ubuntu-latest
+    env:
+      PNPM_STORE_DIR: ${{ github.workspace }}/.pnpm-store
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 11.5.1
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v6
+        with:
+          path: .pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm --store-dir "$PNPM_STORE_DIR" install --frozen-lockfile
 
       - name: Cache Turbo artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ github.sha }}
@@ -43,10 +52,10 @@ jobs:
             turbo-${{ runner.os }}-
 
       - name: check gate (format · lint · deps · typecheck · coverage:baseline)
-        run: pnpm check
+        run: pnpm --config.store-dir="$PNPM_STORE_DIR" check
 
       - name: Pack dry-run (publishability check)
-        run: pnpm pack:dry-run
+        run: pnpm --config.store-dir="$PNPM_STORE_DIR" pack:dry-run
 
   # ── Smoke lane (gated placeholder) ────────────────────────────────────────
   # This lane is inert until real drivers and the native containment helper
@@ -56,26 +65,35 @@ jobs:
   smoke:
     name: smoke
     runs-on: ubuntu-latest
+    env:
+      PNPM_STORE_DIR: ${{ github.workspace }}/.pnpm-store
     if: >-
       github.event_name == 'push' ||
       contains(github.event.pull_request.labels.*.name, 'smoke')
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 11.5.1
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
+
+      - name: Cache pnpm store
+        uses: actions/cache@v6
+        with:
+          path: .pnpm-store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm --store-dir "$PNPM_STORE_DIR" install --frozen-lockfile
 
       - name: smoke tests (real drivers + network — inert until packages land)
-        run: pnpm test:smoke
+        run: pnpm --config.store-dir="$PNPM_STORE_DIR" test:smoke

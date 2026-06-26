@@ -12,16 +12,12 @@
 
 Required local gate:
 
-- [ ] `pnpm format:check`
-- [ ] `pnpm lint`
-- [ ] `pnpm deps`
-- [ ] `pnpm typecheck`
-- [ ] `pnpm test:unit`
-- [ ] `pnpm test:int`
-- [ ] `pnpm test:conf`
+- [ ] `pnpm check`
 
-CI also runs `pnpm pack:dry-run` in the required `check` job. The `smoke` job
-runs `pnpm test:smoke` only when gated by push or the `smoke` label.
+`pnpm check` runs the Turbo gate: `docs:nav:check`, `format:check`, `lint`, `deps`,
+`typecheck`, `type:fixtures`, and `coverage:baseline`. CI also runs
+`pnpm pack:dry-run` in the required `check` job. The `smoke` job runs
+`pnpm test:smoke` only when gated by push or the `smoke` label.
 
 ## Type of change
 

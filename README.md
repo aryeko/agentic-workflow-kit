@@ -41,6 +41,19 @@ Use Node 24+ and the pinned pnpm version from `package.json`:
 pnpm install
 ```
 
+Fresh linked worktrees should use the repository setup script instead:
+
+```bash
+bash scripts/setup-worktree.sh
+```
+
+The script seeds `.turbo/` from the primary `v-next` checkout when available and installs
+with an explicit repo-root pnpm store. The primary checkout's `.pnpm-store` is preferred;
+if no primary checkout is discoverable, the current checkout's `.pnpm-store` is used.
+`pnpm-workspace.yaml` enables pnpm's global virtual store, so pnpm places virtual-store
+links under `<store-path>/links`; that is distinct from the content-addressable package
+store under the same repo-local store path.
+
 ## Verify
 
 Run the local gate before committing or opening a PR:
@@ -49,17 +62,18 @@ Run the local gate before committing or opening a PR:
 pnpm check
 ```
 
-`pnpm check` runs these steps in order and stops on the first failure:
+`pnpm check` runs via Turbo. Turbo schedules the cacheable leaf tasks concurrently,
+replays unchanged results from `.turbo/`, and preserves failure exit codes on cache hits.
 
 | Step | Command | Purpose |
 | --- | --- | --- |
+| Docs nav | `pnpm docs:nav:check` | Generated docs navigation freshness |
 | Format | `pnpm format:check` | Biome formatting check (`biome format .`) |
 | Lint | `pnpm lint` | Biome lint check |
 | Dependencies | `pnpm deps` | Dependency Rule enforcement over `packages`, `tooling`, and `tests` |
 | Typecheck | `pnpm typecheck` | TypeScript project references |
-| Unit tests | `pnpm test:unit` | Hermetic unit lane |
-| Integration tests | `pnpm test:int` | Hermetic integration lane |
-| Conformance tests | `pnpm test:conf` | Mock-driver conformance lane |
+| Type fixtures | `pnpm type:fixtures` | Public and negative compile-time fixture proofs |
+| Coverage baseline | `pnpm coverage:baseline` | Unit, integration, and conformance-mock suites under V8 coverage |
 
 CI also runs `pnpm pack:dry-run` in the required `check` job. The gated `smoke`
 job runs `pnpm test:smoke`; it is the only lane intended for real processes and
