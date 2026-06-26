@@ -131,12 +131,23 @@ Refuse or pause if the checkout is not
 `/Users/aryekogan/repos/workflow-kit/.worktrees/codex-custom-agent-skill-bindings`, if the branch is
 not the expected work branch, or if unrelated user changes overlap the target files.
 
+The branch has been rebased over `origin/v-next` commit `6e0518f` (`fix: repair approval failure
+catalog`). Any edits to `plan-epic` or `plan-delivery` must preserve that upstream change's
+failure-token/catalog closure rules, source-readiness refusal routing, same-logic/public-barrel
+ownership wording, and existing route-back semantics.
+
 ### Phase 1: Custom-Agent Binding Track
 
 Target files:
 
 - `.agents/skills/plan-epic/SKILL.md`
+- `.agents/skills/plan-epic/EVALS.md`
+- `.agents/skills/plan-epic/evals/evals.json`
+- `.agents/skills/plan-epic/evals/trigger_queries.json` if activation-boundary behavior changes
 - `.agents/skills/plan-delivery/SKILL.md`
+- `.agents/skills/plan-delivery/EVALS.md`
+- `.agents/skills/plan-delivery/evals/evals.json`
+- `.agents/skills/plan-delivery/evals/trigger_queries.json` if activation-boundary behavior changes
 - `.agents/skills/orchestrated-delivery/references/runtime-binding.md`
 - `.agents/skills/orchestrated-delivery/references/surface-map.md`
 - `.agents/skills/orchestrated-delivery/references/worker-lifecycle.md`
@@ -154,8 +165,10 @@ Implementation requirements:
 - Bind bounded read-only evidence tasks to `agent_type: "researcher"` where delegated on Codex.
 - Explicitly state that `agent_type` does not replace model class, effort, reasoning tier, provider
   profiles, or concrete model resolution.
-- Add or update eval expectations for runtime binding so stale evals cannot pass without the new
-  Codex custom-agent behavior.
+- Inspect and update `plan-epic`, `plan-delivery`, and `orchestrated-delivery` eval expectations where
+  normative behavior changes, so stale evals cannot pass without the new Codex custom-agent behavior.
+  If a planning-skill eval file does not need a content change after inspection, record the no-change
+  rationale in the implementation summary.
 
 Preferred commit boundary:
 
@@ -247,6 +260,7 @@ Run targeted checks:
 rg -n 'agent_type: "(reviewer|architect|researcher|implementer)"|agent_type' .agents/skills
 rg -n 'agent_type' docs/implementation/epics
 rg -n 'Wait:|Launch:|Input:|Result:|Closed:|worker alias|alias-first|raw worker' docs/implementation-authoring .agents/skills/orchestrated-delivery
+rg -n 'failure-token/catalog|PD-11|PE-18|same-logic|public-barrel|packages/sdk/src/index.ts' .agents/skills/plan-epic .agents/skills/plan-delivery docs/implementation-authoring
 ```
 
 Expected targeted-check outcomes:
@@ -256,6 +270,8 @@ Expected targeted-check outcomes:
 - `agent_type` does not appear in generated execution packages under `docs/implementation/epics`.
 - Message-envelope terms appear in the authoritative design/eval source and in the
   `orchestrated-delivery` communication/runtime references.
+- The `6e0518f` planning-skill rules for failure-token/catalog closure, source-readiness refusal,
+  same-logic concurrency, and public-barrel ownership remain present after edits.
 
 Run repository verification:
 
