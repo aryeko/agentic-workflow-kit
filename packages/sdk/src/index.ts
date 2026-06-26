@@ -106,6 +106,33 @@ export type {
   ProtectedPolicyApprovalBinding,
   ResumeDecision,
 } from './core/approval/contracts/index.js';
+export {
+  classifyApprovalRisk,
+  decideApproval,
+  normalizeApprovalRequest,
+  recordApprovalDecision,
+  recordApprovalRiskClassified,
+} from './core/approval/decision/index.js';
+export type {
+  ApprovalAutoGrantGate,
+  ApprovalDecisionComputation,
+  ApprovalDecisionFailure,
+  ApprovalDecisionIdGenerator,
+  ApprovalDecisionRecordCommit,
+  ApprovalDecisionRecordFailure,
+  ApprovalDecisionResult,
+  ApprovalRecordIntent,
+  ApprovalRecordWriter,
+  ApprovalRiskClassification,
+  ApprovalRiskClassificationFailure,
+  ApprovalRiskClassificationInput,
+  ApprovalRiskClassificationResult,
+  ApprovalRiskRecordCommit,
+  ApprovalRiskRecordFailure,
+  DecideApprovalInput,
+  RecordApprovalDecisionInput,
+  RecordApprovalRiskClassifiedInput,
+} from './core/approval/decision/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
