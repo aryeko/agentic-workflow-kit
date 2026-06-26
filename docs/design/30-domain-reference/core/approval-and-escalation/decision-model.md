@@ -34,6 +34,12 @@ interface ApprovalRequest {
   cwd?: string;
   host?: string;
   filePaths?: string[];
+  // `worktreePath` is the run's trusted workspace root, copied by `normalize` from
+  // `ApprovalContext.worktreePath` (sourced from `RunLaunchProjection.worktreePath`) — never from the
+  // agent request. Risk classification tests `cwd`/`filePaths` containment against this value, not an
+  // agent-supplied path. Absent when the run-launch fact has not been recorded → containment is
+  // unprovable and the rules fail closed (see Deterministic risk classification).
+  worktreePath?: string;
   requestedScope?: PolicyGrantScope;
   answerChannelRef: string;
   answerChannelPersistable: boolean;
@@ -98,6 +104,7 @@ function. Every required `ApprovalRequest` field has a declared source:
 |---|---|
 | `requestId`, `command`, `cwd` | `input.requestId`, `input.command`, `input.cwd` |
 | `runId`, `taskId`, `sessionId`, `operationId`, `policyRef`, `agentRequestEventId` | `context.*` (copied) |
+| `worktreePath` | `context.worktreePath` (the trusted `RunLaunchProjection.worktreePath`) — **never** `input.cwd` or any agent-supplied path; this is the entire workspace-containment safety property |
 | `requestedAt` | `context.requestedAt` (the `AgentApprovalRequested` envelope `.at`) |
 | `promptRef` | `context.promptRef` (fnd-02 `ArtifactRef.id` of the prompt persisted before `normalize`) |
 | `answerChannelRef`, `answerChannelPersistable`, `expiresAt` | `input.answerChannel.{channelRef, persistable, expiresAt}` |
@@ -124,6 +131,20 @@ precedence over this table:
 Risk is the maximum triggered rule. Rules are evaluated in this stable order: high, then medium, then
 low. The classifier is a pure function of `ApprovalRequest`, resolved policy, recorded Agent
 capability attestations, and recorded request evidence.
+
+**Workspace containment.** "The workspace" in the rules below is the run's trusted
+`ApprovalRequest.worktreePath` — copied by `normalize` from `RunLaunchProjection.worktreePath` (a
+recorded run-launch fact), **not** the agent-supplied `cwd`. Reading it from the recorded
+`ApprovalRequest` keeps the decision a pure function of recorded evidence, so it replays
+deterministically. A path is "inside the workspace" only when it is **provably contained** within
+`worktreePath`. Each containment predicate **fails closed to its own safe side** when `worktreePath`
+is absent or containment is not provable: the low-risk "cwd is inside the workspace" condition is then
+**unmet** (no low-risk auto-grant), and the high-risk "file paths absolute outside the workspace" and
+"destructive operations outside the workspace" predicates treat the path as **outside**. This fail-closed
+behavior is **scoped to the predicate's subject field** — it fires only for requests that carry `cwd` /
+`filePaths`; a request with no path field is unaffected by workspace containment. This closes the prior
+fail-open where containment was approximated against the agent-supplied `cwd` (spoofable to the parent of
+a sensitive path).
 
 High risk:
 
