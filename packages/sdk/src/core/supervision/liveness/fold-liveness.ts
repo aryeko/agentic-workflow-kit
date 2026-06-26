@@ -1,12 +1,5 @@
-import type { RunEventEnvelope, RunLifecycleTransitionPayload } from '../../run-lifecycle/contracts/index.js';
 import { resolveSessionLinkage } from '../../run-lifecycle/lifecycle/linkage-resolver.js';
-import type {
-  LivenessAdvancedPayload,
-  LivenessProjection,
-  LivenessReason,
-  SupervisionTimerName,
-  SupervisionTimerPolicy,
-} from '../contracts/index.js';
+import type { LivenessProjection } from '../contracts/index.js';
 
 import {
   classifyLivenessAdvance,
@@ -18,84 +11,19 @@ import {
   type LivenessAdvanceContext,
   toolObservationForClassification,
 } from './event-classification.js';
+import {
+  addMs,
+  type FoldLivenessInput,
+  isRecord,
+  isRunLifecycleTransitionPayload,
+  isTerminalLifecycleState,
+  type LivenessFoldResult,
+  type ProjectionState,
+  setTimerEvidence,
+  stopTimerEvidence,
+} from './fold-liveness-shared.js';
 
-export interface FoldLivenessInput {
-  readonly runId: string;
-  readonly events: readonly RunEventEnvelope[];
-  readonly sampledAt: string;
-  readonly timerPolicy: SupervisionTimerPolicy;
-}
-
-export interface LivenessTimerEvidence {
-  readonly basisAt?: string;
-  readonly sourceEventIds: readonly string[];
-  readonly sourceSequence?: number;
-  readonly stoppedAt?: string;
-  readonly stopSourceEventIds?: readonly string[];
-  readonly itemId?: string;
-}
-
-export interface LivenessFoldResult {
-  readonly projection: LivenessProjection;
-  readonly advances: readonly LivenessAdvancedPayload[];
-  readonly timerEvidence: Readonly<Partial<Record<SupervisionTimerName, LivenessTimerEvidence>>>;
-  readonly linkage: ReturnType<typeof resolveSessionLinkage>['classification'];
-  readonly linkedSessionIds: readonly string[];
-}
-
-type ProjectionState = {
-  state: LivenessProjection['state'];
-  reason?: LivenessReason;
-  currentSessionId?: string;
-  workerHandleId?: string;
-  lastWorkerEventSequence?: number;
-  lastProgressSequence?: number;
-  terminal: boolean;
-  sawStartup: boolean;
-  progressGuaranteeLost: boolean;
-  advances: LivenessAdvancedPayload[];
-  stableToolItemIds: Set<string>;
-  linkedSessionIds: Set<string>;
-  timerEvidence: Partial<Record<SupervisionTimerName, LivenessTimerEvidence>>;
-};
-
-const TERMINAL_LIFECYCLE_STATES = new Set(['completed', 'blocked', 'failed', 'canceled']);
-
-const parseTimestamp = (value: string): number => globalThis.Date.parse(value);
-
-const addMs = (timestamp: string, deltaMs: number): string =>
-  new globalThis.Date(parseTimestamp(timestamp) + deltaMs).toISOString();
-
-const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object');
-
-const isRunLifecycleTransitionPayload = (value: unknown): value is RunLifecycleTransitionPayload =>
-  isRecord(value) && typeof value.to === 'string';
-
-const setTimerEvidence = (
-  timerEvidence: Partial<Record<SupervisionTimerName, LivenessTimerEvidence>>,
-  timer: SupervisionTimerName,
-  evidence: LivenessTimerEvidence,
-): void => {
-  timerEvidence[timer] = evidence;
-};
-
-const stopTimerEvidence = (
-  timerEvidence: Partial<Record<SupervisionTimerName, LivenessTimerEvidence>>,
-  timer: SupervisionTimerName,
-  stoppedAt: string,
-  eventId: string,
-): void => {
-  const prior = timerEvidence[timer];
-  if (!prior) {
-    return;
-  }
-
-  timerEvidence[timer] = {
-    ...prior,
-    stoppedAt,
-    stopSourceEventIds: [eventId],
-  };
-};
+export type { FoldLivenessInput, LivenessFoldResult, LivenessTimerEvidence } from './fold-liveness-shared.js';
 
 export function foldLiveness(input: FoldLivenessInput): LivenessFoldResult {
   const timerPolicy = input.timerPolicy;
@@ -292,7 +220,7 @@ export function foldLiveness(input: FoldLivenessInput): LivenessFoldResult {
     if (
       event.type === 'RunLifecycleTransitioned' &&
       isRunLifecycleTransitionPayload(event.payload) &&
-      TERMINAL_LIFECYCLE_STATES.has(event.payload.to)
+      isTerminalLifecycleState(event.payload.to)
     ) {
       stopTimerEvidence(state.timerEvidence, 'max-runtime', event.occurredAt, event.eventId);
     }
