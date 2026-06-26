@@ -54,7 +54,7 @@ Check source story `core-04-s1-supervision-contracts` and source AC ids `AC-1`, 
 
 - AC coverage by original source `AC-n` id.
 - Each AC is re-proven by a standing gate step such as `type:fixtures`, `coverage:baseline`, `deps`, `typecheck`, relevant unit tests, or `pnpm check`; treat manual-only proof or fixtures outside the build graph as blocking.
-- Proof-substrate match (per `docs/engineering/testing-policy.md#proof-substrate`): confirm the enumerable catalogs `SupervisionTimerName`, `LivenessAdvanceClass`, `LivenessState`, and `LivenessReason` are exported as runtime `as const` arrays (`SUPERVISION_TIMER_NAMES`, `LIVENESS_ADVANCE_CLASSES`, `LIVENESS_STATES`, `LIVENESS_REASONS`) plus derived union types, and each event-payload `schema` literal is exported as an `as const` constant — this is the runtime substrate that makes the coverage lane meaningful; pure interfaces stay interfaces. With this substrate the lane is genuinely measurable, so require the coverage proof over the real arrays. Block if the catalogs are rendered as bare erased `type` unions (no runtime substrate → the `95%` lane is a vacuous `0/0`→100%). Do not accept, nor demand, a coverage artifact the substrate cannot produce.
+- Proof-substrate match (per `docs/engineering/testing-policy.md#proof-substrate`): confirm the enumerable catalogs `SupervisionTimerName`, `LivenessAdvanceClass`, `LivenessState`, and `LivenessReason` are exported as runtime `as const` arrays (`SUPERVISION_TIMER_NAMES`, `LIVENESS_ADVANCE_CLASSES`, `LIVENESS_STATES`, `LIVENESS_REASONS`) plus derived union types — these four arrays are the runtime substrate that makes the coverage lane meaningful; pure interfaces stay interfaces and event-payload `schema` fields stay pinned string-literal types (not separately exported runtime constants — flag any new public schema-constant symbols as scope/manifest creep). With this substrate the lane is genuinely measurable, so require the coverage proof over the real arrays. Block if the catalogs are rendered as bare erased `type` unions (no runtime substrate → the `95%` lane is a vacuous `0/0`→100%). Do not accept, nor demand, a coverage artifact the substrate cannot produce.
 - Failure and degraded rows above.
 - Evidence pack completeness and exact command output.
 - Public API and `sdk` import paths.
@@ -68,7 +68,7 @@ Check source story `core-04-s1-supervision-contracts` and source AC ids `AC-1`, 
 - supervision-catalogs.unit.test.ts iterating the `SUPERVISION_TIMER_NAMES`/`LIVENESS_ADVANCE_CLASSES` runtime arrays
 - supervision-payloads.unit.test.ts and negative fixtures
 - supervision-public-import.unit.test.ts
-- 95% statements/branches for supervision contracts (measured over the real `as const` catalog arrays + exported `schema` literals — not a vacuous `0/0`→100%)
+- 95% statements/branches for supervision contracts (measured over the real `as const` catalog arrays — not a vacuous `0/0`→100%)
 - boundary sweep for provider/testkit/process/time/network imports
 - pnpm check
 - Scope control against allowed writes.

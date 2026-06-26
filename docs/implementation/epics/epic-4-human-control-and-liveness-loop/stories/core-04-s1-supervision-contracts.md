@@ -30,10 +30,12 @@ event payloads, termination facts, and fail-closed reason catalog.
   permitted authoring upgrade — members exactly as design lists, none added — justified by the AC-2/AC-5
   exhaustive-membership proofs and downstream liveness-fold/timers consumption (per
   `docs/engineering/testing-policy.md#proof-substrate`).
-- Event payloads (interfaces; each `schema` literal also exported as an `as const` constant so the
-  pathset emits runtime substrate): `SupervisorStartedPayload`, `LivenessAdvancedPayload`,
+- Event payloads (interfaces; the `schema` field is a pinned string-literal type per design — not a
+  separately exported runtime constant): `SupervisorStartedPayload`, `LivenessAdvancedPayload`,
   `LivenessTimerExpiredPayload`, `LivenessStateChangedPayload`, `SupervisionLostPayload`,
   `SupervisorTerminationRequestedPayload`, `WorkerTerminatedPayload`, `SupervisorStoppedPayload`.
+  The coverage-lane substrate is the four `as const` catalog arrays above; the payload interfaces stay
+  erased (no new public symbols beyond the manifest).
 - Consumed but not redeclared: Epic 3 `RunEventLog`, `RunWriter`, `RunEventCursor`; Epic 2 Agent and
   Execution Host provider types.
 
@@ -110,8 +112,9 @@ This story declares liveness reasons but raises none at runtime. Behavior storie
 
 - Coverage: 95% statements/branches for `packages/sdk/src/core/supervision/contracts/**`. This lane is
   legitimate per the **Proof-substrate match** Gate-4 box: the owned pathset is guaranteed to emit runtime
-  substrate (the `as const` catalog arrays + the exported `schema` literals), so V8 measures real
-  statements rather than a vacuous `0/0`→100%. See `docs/engineering/testing-policy.md#proof-substrate`.
+  substrate — the four `as const` catalog arrays — so V8 measures real statements (proven by the AC-2/AC-5
+  exhaustive-membership tests over those arrays) rather than a vacuous `0/0`→100%. See
+  `docs/engineering/testing-policy.md#proof-substrate`.
 - Gate lane: `pnpm check`.
 - Public exposure: AC-7.
 - Barrel ownership: this story owns its own export line(s) in `packages/sdk/src/index.ts` — a normal

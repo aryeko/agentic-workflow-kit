@@ -12,7 +12,7 @@
 
 ## Exact Task
 
-Implement `core-04-s1-supervision-contracts` for epic `epic-4-human-control-and-liveness-loop`: Produce supervision/liveness value types, timer/wait inputs, event payloads, projections, and reason catalog. Mint the enumerable catalogs as runtime `as const` arrays + derived union types (not bare erased `type` unions) and export each event-payload `schema` literal as an `as const` constant; pure interfaces stay interfaces. Keep the result limited to source story `core-04-s1-supervision-contracts` and source AC ids `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`.
+Implement `core-04-s1-supervision-contracts` for epic `epic-4-human-control-and-liveness-loop`: Produce supervision/liveness value types, timer/wait inputs, event payloads, projections, and reason catalog. Mint the enumerable catalogs as runtime `as const` arrays + derived union types (not bare erased `type` unions); pure interfaces stay interfaces and event-payload `schema` fields stay pinned string-literal types (no separately exported runtime constant). Keep the result limited to source story `core-04-s1-supervision-contracts` and source AC ids `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`.
 
 ## Why It Matters
 
@@ -74,7 +74,7 @@ Also stop and report if dependency commits are missing, a required source value 
 
 Honor the story contract exactly: public exports through this story owned `packages/sdk/src/index.ts` lines, deterministic explicit inputs for time/id/randomness, provider-port boundaries, append-only event-log authority, failure tokens named above, and the Dependency Rule from `AGENTS.md`. Do not introduce provider-specific runtime model ids, concrete driver imports, ambient clock reads, process/network calls, or shape redeclarations prohibited by the source story.
 
-Substrate (required, not optional): mint the enumerable catalogs `SupervisionTimerName` (`SUPERVISION_TIMER_NAMES`), `LivenessAdvanceClass` (`LIVENESS_ADVANCE_CLASSES`), `LivenessState` (`LIVENESS_STATES`), and `LivenessReason` (`LIVENESS_REASONS`) as runtime `as const` arrays plus derived union types — `export const LIVENESS_REASONS = [...] as const; export type LivenessReason = (typeof LIVENESS_REASONS)[number];` — with members exactly as design lists and none added. Export each event-payload `schema` literal as an `as const` constant so the owned pathset emits runtime substrate. Pure interfaces (`Clock`, `SupervisionInputs`, `SupervisionTimerPolicy`, `SupervisionWaitRequest`, `LivenessProjection`) stay interfaces. Do not render the catalogs as bare erased `type` unions — that erased rendering produces no runtime substrate and vacuously satisfies the coverage lane.
+Substrate (required, not optional): mint the enumerable catalogs `SupervisionTimerName` (`SUPERVISION_TIMER_NAMES`), `LivenessAdvanceClass` (`LIVENESS_ADVANCE_CLASSES`), `LivenessState` (`LIVENESS_STATES`), and `LivenessReason` (`LIVENESS_REASONS`) as runtime `as const` arrays plus derived union types — `export const LIVENESS_REASONS = [...] as const; export type LivenessReason = (typeof LIVENESS_REASONS)[number];` — with members exactly as design lists and none added; the four catalog arrays are the coverage-lane substrate. Pure interfaces (`Clock`, `SupervisionInputs`, `SupervisionTimerPolicy`, `SupervisionWaitRequest`, `LivenessProjection`) stay interfaces, and event-payload `schema` fields stay pinned string-literal types per design (do not mint them as separately exported runtime constants — that would add public SDK symbols beyond the manifest). Do not render the catalogs as bare erased `type` unions — that erased rendering produces no runtime substrate and vacuously satisfies the coverage lane.
 
 ## Verification
 
@@ -86,7 +86,7 @@ Run the targeted checks and evidence required by `docs/implementation/epics/epic
 - supervision-catalogs.unit.test.ts iterating the `SUPERVISION_TIMER_NAMES`/`LIVENESS_ADVANCE_CLASSES` runtime arrays
 - supervision-payloads.unit.test.ts and negative fixtures
 - supervision-public-import.unit.test.ts
-- 95% statements/branches for supervision contracts (measured over the real `as const` catalog arrays + exported `schema` literals — not a vacuous `0/0`→100%)
+- 95% statements/branches for supervision contracts (measured over the real `as const` catalog arrays — not a vacuous `0/0`→100%)
 - boundary sweep for provider/testkit/process/time/network imports
 - pnpm check
 

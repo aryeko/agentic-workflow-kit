@@ -113,7 +113,7 @@
     {
       "id": "negative-refuse-unsourced-relational-predicate",
       "prompt": "Use $plan-delivery for workflow-kit epic lambda. The DAG is frozen and lambda-01 is story: ready. AC-4 states 'deny when cwd is outside the workspace' and the closure row for AC-4 names 'normalized request' as the input source. The declared frozen inputs expose only cwd?: string with no workspace root field. Package it anyway.",
-      "expected_output": "The skill refuses before marking ready_for_implementation, citing the predicate-input preflight (PD-10): AC-4 closure row names an input category ('normalized request') not a concrete Producer/Type.field, and the relational predicate 'outside the workspace' names fewer than two declared fields. The skill routes the repair back to $plan-epic.",
+      "expected_output": "The skill refuses before marking ready_for_implementation, citing the predicate-input preflight (PD-10): AC-4 closure row names an input category ('normalized request') not a concrete Producer/Type.field, and the relational sub-predicate 'cwd outside the workspace' leaves the workspace-root operand unsourced. The skill routes the repair back to $plan-epic.",
       "files": [
         "docs/implementation/epics/epic-lambda/story-dag.md",
         "docs/implementation/epics/epic-lambda/stories/lambda-01.md",
@@ -124,6 +124,38 @@
         "The blocker cites the predicate-input preflight (PD-10) and names the unsourced relational operand or input-category closure row.",
         "The output routes the source repair back to $plan-epic.",
         "No package is marked ready_for_implementation."
+      ]
+    },
+    {
+      "id": "positive-allow-as-const-catalog-type-only-marker",
+      "prompt": "Use $plan-delivery for workflow-kit epic mu. The DAG is frozen and mu-01 is story: ready. The mu-01 quality bar states 'Coverage: 95% statements/branches for src/mu/contracts/'. The story prose retains a type-only marker — 'declares reasons but raises none at runtime' — but the spec-surface manifest declares runtime-value exports: 'export const MU_REASONS = [...] as const' plus a derived union type 'MuReason = (typeof MU_REASONS)[number]'. Package it.",
+      "expected_output": "The skill does NOT raise a substrate-presence (PD-9) refusal: the manifest declares a runtime-value export (the `as const` catalog), so the coverage lane has real substrate and the retained type-only marker is corroborating only, not an independent trigger. Packaging proceeds for mu-01 on the substrate dimension (it is not routed back for a proof-substrate mismatch).",
+      "files": [
+        "docs/implementation/epics/epic-mu/story-dag.md",
+        "docs/implementation/epics/epic-mu/stories/mu-01.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md"
+      ],
+      "assertions": [
+        "The output does NOT emit a substrate-presence (PD-9) / proof-substrate-mismatch refusal for mu-01.",
+        "The reasoning recognizes the `as const` catalog (MU_REASONS) as a runtime-value export that gives the coverage lane real substrate.",
+        "The retained type-only marker alone does not trigger a refusal.",
+        "mu-01 is not routed back to $plan-epic for a proof-substrate mismatch."
+      ]
+    },
+    {
+      "id": "negative-refuse-compound-ac-unsourced-suboperand",
+      "prompt": "Use $plan-delivery for workflow-kit epic nu. The DAG is frozen and nu-01 is story: ready. AC-5 is compound: 'return low risk only when (a) the command cwd is inside the workspace AND (b) the requested file path matches the allowlist pattern.' The AC-5 closure row names three concrete declared fields in total — ApprovalRequest.cwd, ApprovalRequest.filePaths, and ResolvedPolicy.allowlistPattern — but no workspace-root field, so sub-predicate (a)'s workspace operand is unsourced while sub-predicate (b)'s operands are both sourced. Package it anyway.",
+      "expected_output": "The skill refuses before marking ready_for_implementation, citing the predicate-input preflight (PD-10) at per-sub-predicate granularity: AC-5's sub-predicate (a) 'cwd inside the workspace' leaves the workspace-root operand unsourced even though the AC's closure row names three declared fields in total — a per-AC field count would wrongly pass it, but the rule counts per sub-predicate. The skill routes the repair back to $plan-epic.",
+      "files": [
+        "docs/implementation/epics/epic-nu/story-dag.md",
+        "docs/implementation/epics/epic-nu/stories/nu-01.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md"
+      ],
+      "assertions": [
+        "The output refuses even though the AC-5 closure row names two or more declared fields in total.",
+        "The blocker cites PD-10 per-sub-predicate granularity and identifies the unsourced workspace-root operand of sub-predicate (a).",
+        "The reasoning states a per-AC field count would have wrongly passed AC-5.",
+        "The output routes the source repair back to $plan-epic and marks no package ready_for_implementation."
       ]
     }
   ]

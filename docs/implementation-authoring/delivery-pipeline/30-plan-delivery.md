@@ -59,14 +59,21 @@ makes the contract *declare* there what these checks read. Each preflight is a m
 *[Readiness is reconstructed, not
 asserted](../authoring-standard/10-principles.md#readiness-is-reconstructed-not-asserted)* — the verdict
 is rebuilt from the manifest, not taken from a prose claim — and mirrors a Gate-4 box the architect
-already ticked, so authoring-time and packaging-time agree. Each is the same shape as the existing
-self-blocking-contract refusal: a cheap static predicate over contract text gating the readiness verdict.
+already ticked, so authoring-time and packaging-time agree. Each is the packaging-time **reconstruction**
+of the Gate-4 box it mirrors — the verdict rebuilt from the contract text and spec-surface manifest, not
+asserted — the same reconstruct-don't-assert discipline the existing self-blocking-contract refusal
+applies; it is the same per-sub-predicate / substrate-emission work as the box, run again at packaging
+time, not a cheaper heuristic.
 
 - **substrate-presence preflight.** Refuse `ready_for_implementation` if a quality bar names a coverage
-  lane (matches `coverage … statements|branches`) while the spec-surface manifest declares only
-  types/interfaces / event-payload interfaces with **no declared runtime-value export** — no
-  `export const` catalog, `as const`, enum, or function in the manifest — and/or the prose carries a
-  type-only marker (`type-only producer`, "declares … raises none at runtime"). Erased types give V8
+  lane (matches `coverage … statements|branches`) while the spec-surface manifest declares **no
+  runtime-value export** — no `export const` catalog, `as const`, enum, or function in the manifest
+  (only types/interfaces / event-payload interfaces). A retained type-only marker (`type-only producer`,
+  "declares … raises none at runtime") is **corroborating context, not an independent trigger**: a story
+  that mints runtime `as const` catalogs but keeps the marker — the blessed *Value, not behavior* pattern
+  ([testing-policy.md](../../engineering/testing-policy.md#proof-substrate)) — has a runtime-value export
+  and **passes**. Keying the refusal on substrate emission (not the marker) is what keeps the preflight
+  aligned with the Gate-4 **Proof-substrate match** box, which keys off the same. Erased types give V8
   `0/0` → 100% ≥ the threshold: a **vacuously green** lane that proves nothing, undetectable by any
   threshold or runtime gate. Reason string emitted on refusal:
   > `proof-substrate mismatch: AC quality bar names a statement/branch coverage lane but the spec-surface manifest declares only types/interfaces with no runtime-value export (no export const / as const / enum / function); erased types give V8 0/0 → 100%, a vacuously green lane. Route back to plan-epic to amend the source story to either (a) mint runtime as const catalogs + derived union types, or (b) drop the coverage lane for type:fixtures + public-import + negative compile fixtures.`
@@ -76,11 +83,15 @@ self-blocking-contract refusal: a cheap static predicate over contract text gati
   ([engineering/testing-policy.md](../../engineering/testing-policy.md#proof-substrate)), and **LSN-29**.
 
 - **predicate-input preflight.** Refuse if any AC closure row names an input **category** ("normalized
-  request", "replay/projections") instead of a concrete `Producer/Type.field`, **or** if a relational
-  keyword (`inside|within|outside|contained|matches|broader-than|subset-of`) appears in an AC whose
-  closure row names fewer than two declared fields — a two-operand predicate with one operand unsourced,
-  which a tests-passing approximation silently **fails open** on. Reason string emitted on refusal:
-  > `predicate-input gap: AC <id> closure row names an input category, not a concrete Producer/Type.field — or its relational predicate names fewer than two declared fields (one operand unsourced). Route back to plan-epic; closure rows must cite a concrete Producer/Type.field for BOTH operands of every relational/compound sub-predicate.`
+  request", "replay/projections") instead of a concrete `Producer/Type.field`, **or** if any relational
+  sub-predicate is unsourced. Decompose every compound AC into its sub-predicates first; for each
+  relational sub-predicate (keyword `inside|outside|contained|matches|broader-than|subset-of`, matching
+  the Gate-4 list) **both** operands must cite a concrete declared field in the closure row. Count **per
+  sub-predicate, not per AC**: a compound AC whose row names ≥2 fields *in total* but leaves one operand
+  of one sub-predicate unsourced still refuses — a per-AC field count would wrongly pass it. A two-operand
+  predicate with one operand unsourced is what a tests-passing approximation silently **fails open** on.
+  Reason string emitted on refusal:
+  > `predicate-input gap: AC <id> closure row names an input category, not a concrete Producer/Type.field — or a relational sub-predicate leaves an operand unsourced (counted per sub-predicate, not per AC). Route back to plan-epic; closure rows must cite a concrete Producer/Type.field for BOTH operands of every relational/compound sub-predicate.`
 
   Cites the **[Predicate-input closure — relational &
   compound](../authoring-standard/50-story-contract.md#gate-4--authoring-ready)** Gate-4 box (strengthened
@@ -144,8 +155,8 @@ to the track branch.
 | PD-6 | Never writes code, dispatches workers, or edits artifacts outside the package. | P1 | S |
 | PD-7 | The package is durable — self-contained and resumable from recorded evidence, not session prose. | P2 | S |
 | PD-8 | Refuses a `story: ready` contract whose STOP conditions, unresolved predicate inputs, or package-blocking vagueness overlap selected ACs; routes the source repair to `plan-epic` before packaging. | P1 | S/T |
-| PD-9 | substrate-presence preflight: refuses `ready_for_implementation` when a quality bar names a statement/branch coverage lane while the spec-surface manifest declares only types/interfaces with no runtime-value export (and/or a type-only marker); reads the manifest, not the pathset. | P1 | S/T |
-| PD-10 | predicate-input preflight: refuses when an AC closure row names an input category not a concrete `Producer/Type.field`, or a relational keyword appears in an AC whose closure row names fewer than two declared fields; reads the manifest, not the pathset. | P1 | S/T |
+| PD-9 | substrate-presence preflight: refuses `ready_for_implementation` when a quality bar names a statement/branch coverage lane while the spec-surface manifest declares no runtime-value export (a retained type-only marker alone does not trigger — an `as const` catalog passes); reads the manifest, not the pathset. | P1 | S/T |
+| PD-10 | predicate-input preflight: refuses when an AC closure row names an input category not a concrete `Producer/Type.field`, or any relational sub-predicate leaves an operand unsourced (per sub-predicate, not per AC); reads the manifest, not the pathset. | P1 | S/T |
 
 The skill's own `EVALS.md` (when authored) operationalizes PD-1…PD-10 as test cases with a version pin.
 PD-2 is the load-bearing one: it is what keeps the bridge from bypassing the characterization gate.
