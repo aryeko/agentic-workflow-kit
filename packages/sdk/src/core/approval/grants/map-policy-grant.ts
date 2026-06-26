@@ -68,13 +68,16 @@ const mapPerCommand = (
 };
 
 const mapPerCommandPrefix = (
-  _request: ApprovalRequest,
+  request: ApprovalRequest,
   plan: PolicyGrantPlan,
   decisionEventId: string,
 ): ApprovalGrantMappingResult => {
   const prefixValidation = validateCommandPrefix(plan.commandPrefix);
   if (!prefixValidation.ok) {
     return prefixValidation;
+  }
+  if (!commandMatchesPrefix(request.command, prefixValidation.value)) {
+    return invalid('per-command-prefix evidence must match recorded command evidence');
   }
 
   return okGrant({
@@ -138,6 +141,9 @@ const mapSession = (
   if (prefixValidation !== undefined && !prefixValidation.ok) {
     return prefixValidation;
   }
+  if (prefixValidation?.ok === true && !commandMatchesPrefix(request.command, prefixValidation.value)) {
+    return invalid('command session prefix evidence must match recorded command evidence');
+  }
 
   return okGrant({
     grantId: plan.grantId,
@@ -171,7 +177,7 @@ const mapFileChangeSession = (
 };
 
 const isBoundedRelativePath = (value: string): boolean =>
-  value.trim() !== '' && !value.startsWith('/') && !value.startsWith('../') && !value.includes('/../');
+  value.trim() !== '' && !value.startsWith('/') && !value.split('/').includes('..');
 
 const validateCommandPrefix = (
   commandPrefix: PolicyGrantPlan['commandPrefix'],
@@ -192,6 +198,14 @@ const invalidPrefix = (reason: string): Result<readonly string[], ApprovalGrantM
   ok: false,
   error: { failureState: 'approval-grant-mapping-invalid', reason },
 });
+
+const commandMatchesPrefix = (command: string | undefined, commandPrefix: readonly string[]): boolean => {
+  if (command === undefined) {
+    return false;
+  }
+  const prefix = commandPrefix.join(' ');
+  return command === prefix || command.startsWith(`${prefix} `);
+};
 
 const okGrant = (grant: ScopedGrant): ApprovalGrantMappingResult => ({ ok: true, value: grant });
 

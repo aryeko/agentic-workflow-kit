@@ -52,7 +52,12 @@ export const createWriter = (
     appendCalls,
     append(batch) {
       appendCalls.push(batch);
-      return appendImpl?.(batch) ?? { ok: true, value: appendReceipt(batch.map((intent) => `evt-${intent.type}`)) };
+      return (
+        appendImpl?.(batch) ?? {
+          ok: true,
+          value: appendReceipt(batch.map((intent) => intent.eventId ?? `evt-${intent.type}`)),
+        }
+      );
     },
     renew() {
       return { ok: true, value: writer };

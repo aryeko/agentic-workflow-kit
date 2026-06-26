@@ -21,5 +21,5 @@ export const deadlineFor = (request: ApprovalRequest, decisionWindowMs = DEFAULT
 export const isExpired = (deadline: string, evaluatedAt: string): boolean => {
   const deadlineMs = toEpochMs(deadline);
   const evaluatedMs = toEpochMs(evaluatedAt);
-  return deadlineMs !== undefined && evaluatedMs !== undefined && evaluatedMs > deadlineMs;
+  return deadlineMs !== undefined && evaluatedMs !== undefined && evaluatedMs >= deadlineMs;
 };

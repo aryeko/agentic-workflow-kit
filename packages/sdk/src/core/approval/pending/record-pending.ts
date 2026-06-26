@@ -13,6 +13,7 @@ export const recordApprovalPending = async (
   input: RecordApprovalPendingInput,
   writer: PendingWriter,
 ): Promise<Result<ApprovalPendingCommit, ApprovalPendingFailure>> => {
+  const requestEventId = `evt-ApprovalRequested-${input.request.requestId}`;
   const requestedPayload: ApprovalRequestedPayload = {
     schema: 'kit-vnext.approval-requested.v1',
     request: input.request,
@@ -29,7 +30,7 @@ export const recordApprovalPending = async (
     ...(input.liveAnswerDeadline === undefined ? {} : { liveAnswerDeadline: input.liveAnswerDeadline }),
     decisionDeadline: deadlineFor(input.request, input.decisionWindowMs),
     policyRef: input.request.policyRef,
-    sourceRequestEventId: input.request.agentRequestEventId,
+    sourceRequestEventId: requestEventId,
     recordedAt: input.recordedAt,
   };
   const batch: AppendIntent[] = [
@@ -37,6 +38,7 @@ export const recordApprovalPending = async (
       domain: 'core-03',
       type: 'ApprovalRequested',
       durability: 'barrier',
+      eventId: requestEventId,
       payload: requestedPayload,
       occurredAt: input.recordedAt,
     },

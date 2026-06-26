@@ -11,6 +11,10 @@ describe('mapPolicyGrantToScopedGrant invalid mappings', () => {
       'per-command-prefix empty prefix part',
       createPlan({ scope: 'per-command-prefix', command: undefined, commandPrefix: ['pnpm', ''] }),
     ],
+    [
+      'per-command-prefix mismatched command evidence',
+      createPlan({ scope: 'per-command-prefix', command: undefined, commandPrefix: ['npm', 'test'] }),
+    ],
     ['per-host missing host', createPlan({ scope: 'per-host', command: undefined, host: undefined })],
     ['per-host wildcard host', createPlan({ scope: 'per-host', command: undefined, host: '*' })],
     ['session missing session id', createPlan({ scope: 'session', sessionId: undefined })],
@@ -116,6 +120,25 @@ describe('mapPolicyGrantToScopedGrant invalid mappings', () => {
     expect(result.ok).toBe(false);
   });
 
+  it('rejects command session mappings when prefix evidence does not match the recorded command', () => {
+    const result = mapPolicyGrantToScopedGrant({
+      request: createRequest({ command: 'pnpm check', requestedScope: 'session' }),
+      grantPlan: createPlan({
+        scope: 'session',
+        sessionId: 'session-approval-01',
+        command: 'npm test',
+        commandPrefix: ['npm', 'test'],
+      }),
+      decisionEventId,
+      humanApproved: true,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.failureState).toBe('approval-grant-mapping-invalid');
+    }
+  });
+
   it.each([
     ['empty session prefix', []],
     ['blank session prefix part', ['pnpm', '']],
@@ -165,5 +188,23 @@ describe('mapPolicyGrantToScopedGrant invalid mappings', () => {
 
     expect(missingPaths.ok).toBe(false);
     expect(absolutePath.ok).toBe(false);
+  });
+
+  it.each([
+    ['..'],
+    ['src/..'],
+    ['src/../secret.txt'],
+  ] as const)('rejects parent-directory file-change session path %s', (filePath) => {
+    const result = mapPolicyGrantToScopedGrant({
+      request: createRequest({ subject: 'file-change', command: undefined, filePaths: [filePath] }),
+      grantPlan: createPlan({ scope: 'session', command: undefined, sessionId: 'session-approval-01' }),
+      decisionEventId,
+      humanApproved: true,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.failureState).toBe('approval-grant-mapping-invalid');
+    }
   });
 });

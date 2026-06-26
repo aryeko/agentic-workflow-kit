@@ -12,6 +12,7 @@ import {
   createWriter,
   appendFailure,
   appendReceipt,
+  decisionDeadline,
   decisionEventId,
   evaluatedAt,
   grant,
@@ -61,6 +62,48 @@ describe('resumePendingApproval', () => {
       'evt-persist-01',
     ]);
     expect(writer.appendCalls[0]?.map((intent) => intent.type)).toEqual(['ApprovalResumed']);
+  });
+
+  it('expires instead of resuming at the exact decision deadline', async () => {
+    const writer = createWriter();
+    const replay = createReplay([
+      createEvent({
+        eventId: 'evt-pending-01',
+        sequence: 1,
+        type: 'ApprovalPendingPersisted',
+        payload: createPendingPayload(),
+      }),
+      createEvent({
+        eventId: decisionEventId,
+        sequence: 2,
+        type: 'ApprovalDecisionRecorded',
+        payload: {
+          schema: 'kit-vnext.approval-decision-recorded.v1',
+          decision: createDecision(),
+          sourceEventIds: ['evt-pending-01'],
+        },
+      }),
+      createAttestationEvent('evt-resume-01', 3, 'canResumeOwned'),
+      createAttestationEvent('evt-relay-01', 4, 'canRelayApproval'),
+      createAttestationEvent('evt-persist-01', 5, 'canPersistApprovalAnswerChannel'),
+    ]);
+
+    const result = await resumePendingApproval(
+      {
+        requestId,
+        runId,
+        sessionId,
+        decisionEventId,
+        evaluatedAt: decisionDeadline,
+        replay,
+        projections: createProjections(),
+      },
+      writer,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.value.decision).toMatchObject({ outcome: 'expired', failureState: 'approval-expired' });
+    expect(writer.appendCalls[0]?.map((intent) => intent.type)).toEqual(['ApprovalOutcomeRecorded']);
   });
 
   it('can resume from a folded approval projection without requiring a persistable-channel attestation', async () => {

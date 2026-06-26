@@ -19,6 +19,8 @@ describe('recordApprovalPending', () => {
     ]);
     expect(writer.appendCalls[0]?.every((intent) => intent.durability === 'barrier')).toBe(true);
     expect(writer.appendCalls[0]?.some((intent) => intent.type === 'ApprovalDecisionRecorded')).toBe(false);
+    expect(writer.appendCalls[0]?.[0]?.eventId).toBe(result.value.requestEventId);
+    expect(result.value.pendingPayload.sourceRequestEventId).toBe(result.value.requestEventId);
   });
 
   it('fails closed when the request or pending batch cannot be recorded', async () => {
