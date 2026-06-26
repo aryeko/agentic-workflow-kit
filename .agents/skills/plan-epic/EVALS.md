@@ -1,7 +1,7 @@
 # plan-epic Evals
 
 **Skill under test:** `plan-epic`
-**Version pin (combined skill hash):** `cacc34af802d0fff`
+**Version pin (combined skill hash):** `1a99cfd2dcc6bb08`
 **Status:** active
 
 Recompute with:
@@ -48,4 +48,4 @@ These evals operationalize PE-1 through PE-18 from `docs/implementation-authorin
 
 ## Grading Notes
 
-Use the current repo as the source of truth. Grade refusal cases as passing only when the response names the violated gate and avoids file edits. Grade planning cases as passing only when the output proves Gate 1 with artifact-specific evidence.
+Use the current repo as the source of truth. Grade refusal cases as passing only when the response names the violated gate and avoids file edits. Grade planning cases as passing only when the output proves Gate 1 with artifact-specific evidence. Codex custom-agent role selection, when available, is execution-time delegation only; DAGs and story contracts must not record `agent_type`, provider runtime bindings, model class, effort, or reasoning tier.

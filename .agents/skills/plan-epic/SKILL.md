@@ -43,6 +43,20 @@ Read `references/stage-contract.md` before authoring. It names the live source d
 
 Do not work from memory or prior examples alone. The current repo artifacts win.
 
+## Conditional Delegation
+
+When the current surface supports Codex custom-agent role selection, use `researcher` for bounded
+read-only source inventory, `architect` for characterization judgment, design-gap escalation, and
+architecture override review, and `reviewer` for the independent read-only final planning review. If
+custom-agent role selection is unavailable but generic subagents are available, dispatch the same
+passes as ordinary subagents with explicit role instructions. If sub-agent tooling itself is
+unavailable, perform the same passes inline and state that independent subagent review was
+unavailable when applicable.
+
+These helper-role choices are execution-time delegation only. Do not write Codex `agent_type` values,
+provider runtime bindings, model class, effort, or reasoning tier into the story DAG, story contracts,
+or Gate 1 evidence.
+
 ## Workflow
 
 1. Verify location with `pwd`, `git rev-parse --show-toplevel`, and `git status --short --branch`; ensure writes will happen in the requested worktree.

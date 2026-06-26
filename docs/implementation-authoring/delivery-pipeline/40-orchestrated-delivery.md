@@ -74,7 +74,7 @@ merge-back hashes. These are facts, not decisions about the work.
 | OD-5 | On reviewer APPROVE, the coordinator merges the story's per-round commits back to the track branch and updates the tracker; it commits no story content itself and does not re-grade the diff. | P1 | E/T |
 | OD-6 | Durable sequence per story: the implementer's per-round commits, then the orchestrator's track-branch merge-back, then the tracker update; downstream readiness needs the merge-back + tracker. | P1 | E/T |
 | OD-7 | PR/merge boundary respected: detect-only review waiting; merge and cleanup only on explicit instruction; stop at the asked boundary. | P1 | E |
-| OD-8 | Sparse communication; no tight polling or transcript/diff dumps. | P2 | E |
+| OD-8 | Sparse alias-first communication: worker transition summaries lead with alias/story/role/round context, keep raw worker ids as traceability metadata only, and avoid tight polling or transcript/diff dumps. | P2 | E |
 | OD-9 | Worker-reported source-contract blockers are recorded as planning blockers, not merged as story work or bypassed; dependents remain locked until planning repair. | P1 | E/T |
 | OD-10 | A review loop that exhausts the 5-round cap without APPROVE is blocked + escalated to the architect and recorded in the tracker; only the minimal set is blocked and sibling stories keep running. | P1 | E/T |
 | OD-11 | Track-branch merge-back: a trivial replay triggers an orchestrator-requested implementer rebase + re-prove, then the track merge; a real logic conflict is escalated as an upstream planning defect, never silently resolved. | P1 | E/T |
