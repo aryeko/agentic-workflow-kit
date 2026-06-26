@@ -27,9 +27,9 @@ interface ApprovalContext {
   policyRef: string;
   agentRequestEventId: string;
   // `worktreePath` is the run's trusted workspace root, resolved by the core-03 orchestration from
-  // `RunLaunchProjection.worktreePath` (a recorded run-launch fact) and injected here so `normalize`
-  // copies it onto the recorded `ApprovalRequest`. Never read from the agent request. Absent until the
-  // run-launch fact is recorded; consumers fail closed when absent.
+  // the run's `WorktreeLease.worktreePath` (foundation, frozen), keyed by `runId`, and injected here
+  // so `normalize` copies it onto the recorded `ApprovalRequest`. Never read from the agent request.
+  // Consumers fail closed when absent.
   worktreePath?: string;
   // Injected by the core-03 orchestration so `normalize` stays a pure total function and
   // never reads ambient time. `requestedAt` is the enclosing `AgentApprovalRequested`
@@ -128,7 +128,8 @@ not run and the request records `approval-policy-unavailable`.
 
 Construction & provenance. `normalize` copies `runId`, `taskId`, `operationId`, `sessionId`,
 `policyRef`, `agentRequestEventId`, `requestedAt`, `promptRef`, and `worktreePath` from `ApprovalContext`
-(`worktreePath` is the trusted `RunLaunchProjection.worktreePath`, **never** the agent-supplied `cwd`); maps
+(`worktreePath` is the trusted `WorktreeLease.worktreePath` injected into context, **never** the
+agent-supplied `cwd`); maps
 `AgentApprovalRequest.kind` to `ApprovalSubject` via the table in `decision-model.md` (the
 `protected-policy-change` subject is set from policy/changed-path context, which has no `kind`
 antecedent); copies `command`/`cwd` from the request; and projects `answerChannelRef`,

@@ -10,6 +10,7 @@ depends-on:
   - "core-02-capability-and-safety"
   - "fnd-01-configuration-and-policy"
   - "fnd-02-storage-and-artifacts"
+  - "fnd-03-workspace-and-repository"
   - "seam-agent-contract-mock"
 ---
 
@@ -40,13 +41,15 @@ FR-4 (approval relay), NFR-SAFE, NFR-DET.
 
 ### Dependencies (Dependency Rule)
 - Depends on: core-01 (events), core-02 (the `orchestrator-decide` / `escalation-auto-grant` gates),
-  fnd-01 (resolved approval/escalation policy via `ResolvedPolicy`), and prov-01 (the Agent contract
-  neutral request/decision/grant shapes).
+  fnd-01 (resolved approval/escalation policy via `ResolvedPolicy`), fnd-02 (prompt persistence),
+  fnd-03 (the run's `WorktreeLease.worktreePath` workspace boundary), and prov-01 (the Agent
+  contract neutral request/decision/grant shapes).
 - Must NOT: depend on the Codex driver or its enums directly.
 
 ### Required reading
 Standard set + [core-02](../capability-and-safety/README.md),
-[fnd-01](../../foundation/configuration-and-policy/README.md), and the Agent contract in
+[fnd-01](../../foundation/configuration-and-policy/README.md),
+[fnd-03](../../foundation/workspace-and-repository/README.md), and the Agent contract in
 [prov-01](../../providers/agent-execution/README.md).
 
 ### Deliverable
@@ -91,6 +94,8 @@ mock-only Control plane tests.
 - [core-02 design](../capability-and-safety/README.md) and its capability registry and gate
   record subfiles
 - [fnd-01 design](../../foundation/configuration-and-policy/README.md) and its policy interfaces subfiles
+- [fnd-03 design](../../foundation/workspace-and-repository/README.md) and its worktree lease
+  lifecycle/events subfiles
 - [prov-01 design](../../providers/agent-execution/README.md) and its Agent contract/capability subfiles
 
 No later core-domain drafts and no concrete Driver designs were read or used.
@@ -106,6 +111,7 @@ flowchart LR
     SUP["Supervision & Liveness"]
   end
   CFG["Configuration & Policy"]
+  WR["Workspace & Repository"]
   AG["Agent contract"]
   OP["Operator & Entry Surface"]
 
@@ -114,13 +120,15 @@ flowchart LR
   APR -->|"append request/decision/outcome + park/resume facts"| RL
   APR -->|"evaluate escalation-auto-grant / orchestrator-decide"| CAP
   APR -->|"read resolved approval + escalation policy"| CFG
+  APR -->|"resolve WorktreeLease.worktreePath by runId"| WR
   OP -->|"recorded human decision"| APR
   APR -->|"parked approval state"| SUP
 ```
 
 Dependency Rule statement: `core-03` depends only on `core-01`, `core-02`, `fnd-01`, `fnd-02`
-(`ArtifactStore` for prompt persistence), and the host-neutral Agent contract. It introduces no dependency on Codex, GitHub, Markdown, Local, mock, or
-any concrete Driver behavior.
+(`ArtifactStore` for prompt persistence), `fnd-03` (the run's `WorktreeLease.worktreePath` workspace
+boundary), and the host-neutral Agent contract. It introduces no dependency on Codex, GitHub,
+Markdown, Local, mock, or any concrete Driver behavior.
 
 ## 4. Design
 
@@ -168,7 +176,8 @@ Core decisions:
 Core-03 exposes host-neutral `ApprovalRequest`, `Decision`, `Outcome`, failure states, policy-level
 grant planning, Agent grant mapping, and pure classification/decision functions. It consumes core-01
 `RunWriter`, replay, projections, lifecycle, and session linkage; core-02 `CapabilityGateRecord`;
-fnd-01 resolved approval and escalation policy; and the Agent contract's neutral approval
+fnd-01 resolved approval and escalation policy; fnd-03 `WorktreeLease.worktreePath` as the trusted
+workspace boundary injected into `ApprovalContext`; and the Agent contract's neutral approval
 request/answer channel and `ScopedGrant`. The canonical Agent seam dependency is the SDK
 `AgentProvider` contract plus testkit mock/conformance surface; concrete Codex mapping is
 production-readiness work outside core-03's build/test prerequisite.
