@@ -3,6 +3,7 @@ import type { RunEventEnvelope } from '../../run-lifecycle/contracts/index.js';
 import { capabilityContainmentFloor } from '../registry/index.js';
 import type { RecordedEvidence } from './evidence-records.js';
 import { isEvidenceAmbiguous, isEvidenceReplayable } from './evidence-records.js';
+import { toEpochMs } from './timestamps.js';
 import type {
   AttestationRef,
   CapabilityGateFailureReason,
@@ -111,11 +112,6 @@ const sortAttestationRefs = (refs: readonly AttestationRef[]): AttestationRef[] 
 
 const sortEvidenceRefs = (evidenceRefs: readonly string[]): string[] =>
   [...evidenceRefs].sort((left, right) => left.localeCompare(right));
-
-const toEpochMs = (timestamp: string): number | undefined => {
-  const parsed = Date.parse(timestamp);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
 
 const isFreshAt = (candidate: ValidAttestationCandidate, evaluatedAt: string): boolean => {
   const attestedAt = toEpochMs(candidate.attestation.at);

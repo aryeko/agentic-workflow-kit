@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { CapabilityAttestation } from '../../../providers/attestation/index.js';
 import type { RunEventEnvelope, RunProjections, RunReplay } from '../../run-lifecycle/contracts/index.js';
 import { collectRecordedEvidence, isEvidenceSelfReportOnly } from '../../capability/evaluator/evidence-records.js';
+import { toEpochMs } from '../../capability/evaluator/timestamps.js';
 
 import type { ApprovalRequest } from '../contracts/index.js';
 
@@ -80,15 +81,10 @@ export const isWildcardOrPrivateHost = (host: string | undefined): boolean => {
   return false;
 };
 
-const toEpoch = (timestamp: string): number | undefined => {
-  const parsed = Date.parse(timestamp);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
-
 const isCommittedBy = (event: RunEventEnvelope, evaluatedAt: string): boolean => {
-  const occurredAt = toEpoch(event.occurredAt);
-  const recordedAt = toEpoch(event.recordedAt);
-  const gateTime = toEpoch(evaluatedAt);
+  const occurredAt = toEpochMs(event.occurredAt);
+  const recordedAt = toEpochMs(event.recordedAt);
+  const gateTime = toEpochMs(evaluatedAt);
 
   return (
     occurredAt !== undefined &&
@@ -147,9 +143,9 @@ export const evaluateAgentCapability = (
         isCommittedBy(event, evaluatedAt),
     )
     .filter((event) => {
-      const attestedAt = toEpoch(event.payload.at);
-      const expiresAt = toEpoch(event.payload.expiry);
-      const gateTime = toEpoch(evaluatedAt);
+      const attestedAt = toEpochMs(event.payload.at);
+      const expiresAt = toEpochMs(event.payload.expiry);
+      const gateTime = toEpochMs(evaluatedAt);
       return (
         attestedAt !== undefined &&
         expiresAt !== undefined &&

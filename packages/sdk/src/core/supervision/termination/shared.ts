@@ -1,4 +1,5 @@
 import type { CapabilityAttestation } from '../../../providers/attestation/index.js';
+import { toEpochMs } from '../../capability/evaluator/timestamps.js';
 import type { AppendIntent, Result, RunAppendReceipt } from '../../run-lifecycle/contracts/index.js';
 import type { LivenessReason, SupervisionLostPayload } from '../contracts/index.js';
 
@@ -46,9 +47,9 @@ export const isFreshPositiveCanKill = (
     return false;
   }
 
-  const expiry = globalThis.Date.parse(canKill.expiry);
-  const evaluatedAt = globalThis.Date.parse(asOf);
-  if (!Number.isFinite(expiry) || !Number.isFinite(evaluatedAt)) {
+  const expiry = toEpochMs(canKill.expiry);
+  const evaluatedAt = toEpochMs(asOf);
+  if (expiry === undefined || evaluatedAt === undefined) {
     return false;
   }
 
