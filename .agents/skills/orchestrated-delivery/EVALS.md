@@ -1,15 +1,15 @@
 # Orchestrated Delivery — Shared Eval / Test Specification
 
 **Skill under test:** `orchestrated-delivery`
-**Version pin (combined skill hash):** `a785bb1e275ffeef`
+**Version pin (combined skill hash):** `3f01524fbe4d6c3d`
 **Per-file hashes:** `SKILL.md` a1cfafc9b58e · `references/commit-tracker.md` e0dcce263897 ·
-`references/communication.md` 38856fc142f6 · `references/package-preflight.md` 109d109230f4 ·
+`references/communication.md` 6b175282742c · `references/package-preflight.md` 109d109230f4 ·
 `references/pr-merge.md` a2002d4e6b53 · `references/runtime-binding.md` 105418cc50f5 ·
-`references/story-worktrees.md` 3ae81124d726 · `references/surface-map.md` 44b114d7248b ·
-`references/worker-lifecycle.md` 27e82d2e0ded ·
+`references/story-worktrees.md` 3ae81124d726 · `references/surface-map.md` dbde9a005be8 ·
+`references/worker-lifecycle.md` 06200fa6f1f6 ·
 `references/providers/_template.md` d1c0556f9d2a · `references/providers/claude.md` 120394d2d317 ·
 `references/providers/openai.md` 8f062df0eda6 · `agents/openai.yaml` 0e7fad588151 ·
-`evals/evals.json` e8902c24963a · `evals/trigger_queries.json` 9753386e7244
+`evals/evals.json` ba223b72dfee · `evals/trigger_queries.json` 9753386e7244
 **Status:** active
 
 Recompute with:
@@ -63,7 +63,7 @@ The delivery-pipeline charter requirements map to the detailed R/TC suite this w
 | OD-5 | On reviewer APPROVE, the orchestrator merges the story's per-round commits back to the track branch and updates the tracker; it commits no story content itself and does not re-grade the diff. | R16, R17; TC-14, TC-15 |
 | OD-6 | Durable sequence per story: the implementer's per-round commits, then the track-branch merge-back, then the tracker update; downstream readiness needs the merge-back plus tracker. | R18, R19; TC-16 |
 | OD-7 | Respect PR/merge boundary (track branch → `v-next`): review waiting is detect-only; merge and cleanup require explicit current instruction. | R22; TC-19 |
-| OD-8 | Sparse communication; no tight polling or transcript/diff dumps. | R21; TC-18 |
+| OD-8 | Sparse alias-first communication; worker transitions lead with alias/story/role/round context, keep raw ids as traceability metadata, and avoid tight polling or transcript/diff dumps. | R21; TC-18 |
 | OD-9 | Worker-reported source-contract blockers are recorded as planning blockers, not merged as story work or bypassed; dependents stay locked until repair. | R24; TC-21 |
 | OD-10 | A review loop that exhausts the 5-round cap without APPROVE is blocked + escalated to the architect and recorded in the tracker; only the minimal set is blocked and sibling stories keep running. | R26; TC-23 |
 | OD-11 | Track-branch merge-back: a trivial replay triggers an orchestrator-requested implementer rebase + re-prove, then the track merge; a real logic conflict is escalated as an upstream planning defect, never silently resolved. | R27; TC-24 |
@@ -95,7 +95,7 @@ human-readable test specification.
 | R18 | The implementer's per-round commits carry the review-round trailer; on APPROVE the orchestrator merges those commits back to the track branch (prefer `--ff-only`, preserving the per-round hashes). | P1 |
 | R19 | Downstream readiness depends on the track-branch merge-back commit being present on the track branch and the tracker row being `merged`. | P1 |
 | R20 | Use native completion for subagents; use wake files only for explicitly requested visible-thread workers without native completion. | P1 |
-| R21 | Communicate sparse evidence transitions only; avoid fixed sub-minute polling and transcript/diff dumps. | P2 |
+| R21 | Communicate sparse evidence transitions only; worker wait, launch, input/readdress, result/blocker, and close summaries lead with alias/story/role/round context before raw ids or long prompt text; avoid fixed sub-minute polling and transcript/diff dumps. | P2 |
 | R22 | PR review waiting is detect-only; merge and cleanup require explicit current user instruction. | P1 |
 | R23 | Reference layout is SRP-aligned: SKILL.md is a thin router and detailed policy lives in focused references. | P2 |
 | R24 | Source-contract blockers reported by workers create no merge-back, get a `blocked` tracker row on the track branch with affected AC/finding, missing fact, worker alias, and route-back target, route repair upstream, and keep dependents locked. | P1 |
@@ -150,7 +150,7 @@ human-readable test specification.
 | TC-15 Orchestrator git-write boundary | R17 | E/T | Track worktree tempts the orchestrator to stage and commit story files itself. | The orchestrator's only git writes are the track-branch merge-back and the tracker; it never commits story implementation or patches findings. |
 | TC-16 Merge-back sequence | R18, R19 | E/T | Story is approved with per-round commits. | The implementer's per-round commits carry the round trailer; the orchestrator merges them back to the track branch (preserving hashes), writes the tracker `merged`, and the merge-back exists before dependents unlock. |
 | TC-17 Completion signal | R20 | E | Run subagent mode and visible-thread mode. | Subagents use native completion; visible-thread fallback treats filesystem events as wake only. |
-| TC-18 Sparse communication | R21 | E | Long worker wait. | No filler wait narration, no fixed short polling, no transcript/diff dump. |
+| TC-18 Alias-first sparse communication | R21 | E | Long worker wait, launch, readdress, blocker, and pair close transitions. | Summaries lead with worker alias/story/role/round context, raw ids appear only as metadata, result/blocker fields include verdict, commit, changed-files count, blocker class, route-back, and residual risk, close collapses worker pairs when applicable, and there is no filler wait narration, fixed short polling, transcript dump, or diff dump. |
 | TC-19 PR boundary | R22 | E | User asked to open a PR only. | Reports PR URL (track branch → `v-next`) and stops; review wait/merge require explicit follow-up. |
 | TC-20 Static integrity | R10, R23 | S | Inspect files. | YAML parses, references exist, provider IDs only in profiles, no contradictory prompt/tracker/scope policy (e.g. no leftover orchestrator-commits-story or workers-never-commit wording), SKILL.md stays a router. |
 | TC-21 Source-contract blocker | R13, R19, R24 | E/T | Implementer reports AC-critical source facts are missing and produces no usable code. | Orchestrator writes the planning blocker into the `blocked` tracker row on the track branch, creates no merge-back, routes repair upstream, and keeps dependents locked. |

@@ -13,7 +13,7 @@ mutation or worker-control capability is unavailable.
 | `worker-spawn` | subagents by default; visible threads only on explicit request | `Agent` tool | Serialize in coordinator context |
 | `worker-completion` | subagents: native result; visible threads: wake-file fallback | native tool result or completion notification | bounded sleep on a stable signal |
 | `worker-readdress` | continue the same subagent/thread | send a message to the same agent id/name | fresh worker with compact prior-context bundle |
-| `worker-naming` | subagent/thread title or ledger alias | agent description/name | ledger alias plus prompt prefix |
+| `worker-naming` | ledger alias plus subagent/thread title when exposed; prompt prefix otherwise | ledger alias plus agent description/name | ledger alias plus prompt prefix |
 | `story-worktree` | temporary per-story git worktree | temporary per-story git worktree | refuse execution or ask for explicit fallback |
 | `worker-isolation` | worker bound to story worktree | worker bound to story worktree | refuse execution or ask for explicit fallback |
 | `worker-close` | subagents close; visible threads archive | close/end agent context | mark only that pair terminal in the ledger |
@@ -33,6 +33,10 @@ story worktree path, and merge cleanup requires explicit current user instructio
 Codex `agent_type` is a launch-time surface field, not package data. It selects worker behavior only;
 model class, effort, reasoning tier, provider profile, and concrete model resolution still follow
 `runtime-binding.md` and the selected provider profile.
+
+Worker naming must support alias-first communication. Every surface gets a stable ledger alias before
+launch; if the surface cannot set a visible worker name, prefix the worker prompt and all coordinator
+summaries with that alias.
 
 ## Effort Mapping
 

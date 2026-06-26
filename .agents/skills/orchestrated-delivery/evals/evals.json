@@ -22,7 +22,7 @@
         "OD-5: On reviewer APPROVE the orchestrator merges the story's per-round commits back to the track branch and updates the tracker; it commits no story content and does not re-grade the diff.",
         "OD-6: The durable sequence per story is the implementer's per-round commits, then the track-branch merge-back, then the tracker update.",
         "OD-7: The agent stops at the requested merge-back boundary before PR publication.",
-        "OD-8: Updates are sparse and evidence-based."
+        "OD-8: Updates are sparse, evidence-based, and worker transitions lead with alias/story/role/round context before raw ids or long prompt text."
       ]
     },
     {
@@ -43,6 +43,23 @@
         "OD-2: Implementer prompts use agent_type implementer and reviewer prompts use agent_type reviewer on Codex surfaces that support custom agents.",
         "OD-2: agent_type does not replace model class, effort, reasoning tier, provider profile, concrete model resolution, or routing rationale.",
         "OD-2: agent_type is not written into package artifacts, story DAGs, story contracts, tracker rows, or packaged worker prompts."
+      ]
+    },
+    {
+      "id": "alias-first-worker-transitions",
+      "prompt": "During $orchestrated-delivery, two implementers are active, one reviewer is launched for story core-04-s3, one implementer is readdressed for round 2 after the track branch advanced, another worker reports a source-contract blocker, and an approved story's implementer/reviewer pair is closed.",
+      "expected_output": "The coordinator reports sparse transition summaries whose first visible identifiers are ledger aliases with story, role, and round context. Wait lines show active aliases before raw ids. Launch and readdress messages begin with alias/story/role/round/purpose before long instructions. Result/blocker summaries include alias, story id, role, round, verdict, commit or none, changed-files count or none, blocker class, route-back target, and residual risk. Close collapses a story's implementer/reviewer pair into one line when both close together. Raw worker ids remain available only as traceability metadata and are never the sole first-line identifier.",
+      "files": [
+        ".agents/skills/orchestrated-delivery/references/communication.md",
+        ".agents/skills/orchestrated-delivery/references/surface-map.md",
+        ".agents/skills/orchestrated-delivery/references/worker-lifecycle.md"
+      ],
+      "assertions": [
+        "OD-8: Wait summaries list aliases before raw worker ids.",
+        "OD-8: Launch and readdress summaries begin with alias, story id, role, round, and purpose before long worker instructions.",
+        "OD-8: Result and blocker summaries include alias, story id, role, round, verdict, commit, changed-files count, blocker class, route-back target, and residual risk when known.",
+        "OD-8: Close summaries collapse an implementer/reviewer pair into one line when both close together.",
+        "OD-8: Raw worker ids are traceability metadata only and never the sole first-line identifier."
       ]
     },
     {

@@ -10,7 +10,7 @@ orchestrator commits no story content.
 - Default to isolated subagents. Use visible threads only when the user explicitly requests them and
   the surface supports them.
 - Name each worker before launch with a short role alias, bind the surface `agent_type` when supported,
-  and record both the alias and binding in the ledger.
+  and record alias, story id, role, round, purpose, raw id, and binding in the ledger.
 - On Codex, use `agent_type: "implementer"` for packaged implementer prompts and
   `agent_type: "reviewer"` for packaged reviewer prompts. Use `agent_type: "architect"` only for
   delegated source-contract blocker classification, five-round-cap escalation review, or architecture
@@ -32,6 +32,9 @@ orchestrator commits no story content.
   reviewer reserve on speculative implementer launches, even when more dependency-ready stories exist.
 - Send each worker the packaged prompt plus a narrow runtime envelope for that story worktree. Do not
   alter the packaged prompt body.
+- Coordinator-visible launch, readdress, result, blocker, and close messages use the alias-first
+  envelope in `communication.md`. Long worker instructions or raw ids never precede alias/story/role/
+  round context.
 
 ## Completion
 
@@ -55,6 +58,8 @@ Do not run tight polling loops.
 - After the implementer reports the next committed round, message the **existing** reviewer context
   for rereview against that round. Do not spawn a replacement reviewer or restart the original review
   prompt.
+- Every readdress message names the existing alias, story id, role, next round, purpose, prior commit,
+  and current track base before the findings or instructions.
 - Repeat until APPROVE, a source-contract blocker, or the **5-round cap**.
 - The orchestrator does not perform the reviewer's code-quality or AC-satisfaction role, does not patch
   implementation findings, and does not re-grade an APPROVE. On APPROVE it proceeds to merge-back per
@@ -113,3 +118,5 @@ orchestrator's merge-back and tracker write. Close or archive only that story's 
 merge-back is present on the track branch. Leave unrelated worker pairs untouched.
 
 If the surface cannot close or archive contexts, mark only that story's pair terminal in the ledger.
+When closing both sides together, report one collapsed pair line with the story alias prefix and each
+raw worker id as metadata.
