@@ -124,4 +124,45 @@ describe('core-04-s3 approval SLA timer evaluation', () => {
     });
     expect(result.expired.filter((expired) => expired.timer === 'approval-SLA')).toEqual([]);
   });
+
+  it('suppresses every armed timer when the projection is already terminal', () => {
+    const projection: LivenessProjection = {
+      runId: 'run-supervision-timers-01',
+      state: 'terminated',
+      currentSessionId: 'session-01',
+      workerHandleId: 'worker-01',
+      timers: {
+        startup: { deadline: '2026-06-25T10:02:01.000Z', exceeded: false },
+        idle: { deadline: '2026-06-25T10:15:06.000Z', exceeded: false },
+        'no-progress': { deadline: '2026-06-25T10:45:05.000Z', exceeded: false },
+        'per-tool': { deadline: '2026-06-25T10:30:05.000Z', exceeded: false },
+        'approval-SLA': { deadline: '2026-06-26T10:00:06.000Z', exceeded: false },
+        'max-runtime': { deadline: '2026-06-25T18:00:01.000Z', exceeded: false },
+      },
+      terminal: true,
+    };
+
+    const result = evaluateSupervisionTimers({
+      projection,
+      sampledAt: '2026-06-26T10:00:07.000Z',
+      timerEvidence: {
+        startup: { basisAt: '2026-06-25T10:00:01.000Z', sourceEventIds: ['evt-worker-spawned-01'] },
+        idle: { basisAt: '2026-06-25T10:00:06.000Z', sourceEventIds: ['evt-progress-01'] },
+        'no-progress': { basisAt: '2026-06-25T10:00:05.000Z', sourceEventIds: ['evt-progress-01'] },
+        'per-tool': { basisAt: '2026-06-25T10:00:05.000Z', sourceEventIds: ['evt-tool-01'] },
+        'approval-SLA': { basisAt: '2026-06-25T10:00:06.000Z', sourceEventIds: ['evt-approval-01'] },
+        'max-runtime': { basisAt: '2026-06-25T10:00:01.000Z', sourceEventIds: ['evt-worker-spawned-01'] },
+      },
+    });
+
+    expect(Object.values(result.timers).map((timer) => timer.armed)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+    expect(result.expired).toEqual([]);
+  });
 });

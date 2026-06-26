@@ -47,6 +47,24 @@ describe('core-03-s2 normalizeApprovalRequest', () => {
     expect(normalized.requestedScope).toBe('per-host');
   });
 
+  it('threads file paths from file-change grant requests into the normalized risk input', () => {
+    const normalized = normalizeApprovalRequest(
+      createAgentRequest({
+        kind: 'apply-patch',
+        proposedGrant: {
+          grantId: 'grant-file-change-01',
+          kind: 'file-change-session',
+          scope: 'session',
+          filePaths: ['/etc/passwd', 'packages/sdk/src/index.ts'],
+          grantEventId: 'evt-grant-file-change-01',
+        },
+      }),
+      createContext({ worktreePath: '/workspace/story' }),
+    );
+
+    expect(normalized.filePaths).toEqual(['/etc/passwd', 'packages/sdk/src/index.ts']);
+  });
+
   it('omits optional fields when the agent request does not provide them', () => {
     const normalized = normalizeApprovalRequest(
       createAgentRequest({

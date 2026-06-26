@@ -66,12 +66,23 @@ export const allowRuleForCommand = (
     return undefined;
   }
 
+  const commandMatchesPrefix = (prefix: string): boolean => {
+    if (!command.startsWith(prefix)) {
+      return false;
+    }
+    if (command.length === prefix.length || /\s$/.test(prefix)) {
+      return true;
+    }
+
+    return /\s/.test(command[prefix.length] ?? '');
+  };
+
   for (const rule of policy.policy.escalationPolicy.grantRules) {
     if (rule.scope === 'per-command' && rule.prefixes?.some((prefix) => prefix === command)) {
       return rule;
     }
 
-    if (rule.scope === 'per-command-prefix' && rule.prefixes?.some((prefix) => command.startsWith(prefix))) {
+    if (rule.scope === 'per-command-prefix' && rule.prefixes?.some(commandMatchesPrefix)) {
       return rule;
     }
   }

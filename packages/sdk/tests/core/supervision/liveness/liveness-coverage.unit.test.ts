@@ -220,6 +220,25 @@ describe('core-04-s2 liveness coverage edges', () => {
     expect(result.projection.timers['max-runtime'].deadline).toBe('2026-06-25T18:30:00.000Z');
   });
 
+  it('marks projection timers exceeded from the sampled clock and timer evidence', () => {
+    const result = fold(
+      [
+        makeLifecycle(1, 'worker-starting', 'workspace-ready'),
+        workerSpawned(2),
+        sessionLinked(3),
+        agentSessionLinked(4),
+        progressObserved(5),
+      ],
+      '2026-06-25T10:20:06.000Z',
+    );
+
+    expect(result.projection.timers.idle).toEqual({
+      deadline: '2026-06-25T10:15:05.000Z',
+      exceeded: true,
+    });
+    expect(result.projection.timers['max-runtime'].exceeded).toBe(false);
+  });
+
   it('ignores malformed current-session tool observations without setting an unavailable reason', () => {
     const result = fold([
       makeLifecycle(1, 'worker-starting', 'workspace-ready'),

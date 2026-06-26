@@ -41,12 +41,13 @@ const timerDurationMs = (input: EvaluateSupervisionTimersInput, timer: Supervisi
   }
 };
 
-const isTerminalStopTimer = (timer: SupervisionTimerName): boolean =>
-  timer === 'approval-SLA' || timer === 'max-runtime';
-
 const isTimerArmed = (input: EvaluateSupervisionTimersInput, timer: SupervisionTimerName): boolean => {
   const evidence = input.timerEvidence?.[timer];
   if (!evidence?.basisAt) {
+    return false;
+  }
+
+  if (input.projection.terminal) {
     return false;
   }
 
@@ -55,10 +56,6 @@ const isTimerArmed = (input: EvaluateSupervisionTimersInput, timer: SupervisionT
   }
 
   if (timer === 'per-tool' && input.projection.reason === 'tool-tracking-unavailable') {
-    return false;
-  }
-
-  if (input.projection.terminal && isTerminalStopTimer(timer)) {
     return false;
   }
 

@@ -1,4 +1,5 @@
 import type { RunEventEnvelope, RunLifecycleTransitionPayload } from '../../run-lifecycle/contracts/index.js';
+import { isTerminalLifecycleState as isCanonicalTerminalLifecycleState } from '../../run-lifecycle/lifecycle/transition-table.js';
 
 import type {
   LivenessAdvancedPayload,
@@ -48,8 +49,6 @@ export interface ProjectionState {
   timerEvidence: Partial<Record<SupervisionTimerName, LivenessTimerEvidence>>;
 }
 
-const TERMINAL_LIFECYCLE_STATE_SET = new Set(['completed', 'blocked', 'failed', 'canceled']);
-
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object');
 
@@ -61,7 +60,8 @@ export const addMs = (timestamp: string, deltaMs: number): string =>
 export const isRunLifecycleTransitionPayload = (value: unknown): value is RunLifecycleTransitionPayload =>
   isRecord(value) && typeof value.to === 'string';
 
-export const isTerminalLifecycleState = (value: string): boolean => TERMINAL_LIFECYCLE_STATE_SET.has(value);
+export const isTerminalLifecycleState = (value: RunLifecycleTransitionPayload['to']): boolean =>
+  isCanonicalTerminalLifecycleState(value);
 
 export const setTimerEvidence = (
   timerEvidence: Partial<Record<SupervisionTimerName, LivenessTimerEvidence>>,

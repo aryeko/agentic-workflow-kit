@@ -1,6 +1,8 @@
 import type { ApprovalRiskClassificationResult } from './types.js';
 import type { ApprovalRiskClassificationInput } from './types.js';
 
+import { collectRecordedEvidence } from '../../capability/evaluator/evidence-records.js';
+
 import {
   allowRuleForCommand,
   buildClassification,
@@ -89,7 +91,14 @@ export const classifyApprovalRisk = (input: ApprovalRiskClassificationInput): Ap
     };
   }
 
-  const relay = evaluateAgentCapability(input.replay, 'canRelayApproval', input.request.sessionId, input.classifiedAt);
+  const recordedEvidence = collectRecordedEvidence(input.replay.events, input.classifiedAt);
+  const relay = evaluateAgentCapability(
+    input.replay,
+    'canRelayApproval',
+    input.request.sessionId,
+    input.classifiedAt,
+    recordedEvidence,
+  );
   evidenceEventIds.push(...relay.eventIds, ...relay.evidenceEventIds);
   if (!relay.freshPositive) {
     return {
@@ -98,7 +107,12 @@ export const classifyApprovalRisk = (input: ApprovalRiskClassificationInput): Ap
     };
   }
 
-  const selfReportOnly = hasSelfReportOnlyEvidence(input.replay, input.requestEvidenceRefs, input.classifiedAt);
+  const selfReportOnly = hasSelfReportOnlyEvidence(
+    input.replay,
+    input.requestEvidenceRefs,
+    input.classifiedAt,
+    recordedEvidence,
+  );
   evidenceEventIds.push(...selfReportOnly.evidenceEventIds);
   if (selfReportOnly.highRisk) {
     return {
@@ -113,6 +127,7 @@ export const classifyApprovalRisk = (input: ApprovalRiskClassificationInput): Ap
     'canPersistApprovalAnswerChannel',
     input.request.sessionId,
     input.classifiedAt,
+    recordedEvidence,
   );
   evidenceEventIds.push(...persistCapability.eventIds, ...persistCapability.evidenceEventIds);
 

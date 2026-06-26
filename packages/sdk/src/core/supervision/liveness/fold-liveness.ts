@@ -1,5 +1,6 @@
 import { resolveSessionLinkage } from '../../run-lifecycle/lifecycle/linkage-resolver.js';
 import type { LivenessProjection } from '../contracts/index.js';
+import type { SupervisionTimerName } from '../contracts/index.js';
 
 import {
   classifyLivenessAdvance,
@@ -24,6 +25,19 @@ import {
 } from './fold-liveness-shared.js';
 
 export type { FoldLivenessInput, LivenessFoldResult, LivenessTimerEvidence } from './fold-liveness-shared.js';
+
+const buildProjectionTimer = (
+  state: ProjectionState,
+  timer: SupervisionTimerName,
+  sampledAt: string,
+  durationMs: number,
+): LivenessProjection['timers'][SupervisionTimerName] => {
+  const deadline = addMs(state.timerEvidence[timer]?.basisAt ?? sampledAt, durationMs);
+  return {
+    deadline,
+    exceeded: !state.terminal && Date.parse(sampledAt) > Date.parse(deadline),
+  };
+};
 
 export function foldLiveness(input: FoldLivenessInput): LivenessFoldResult {
   const timerPolicy = input.timerPolicy;
@@ -259,30 +273,12 @@ export function foldLiveness(input: FoldLivenessInput): LivenessFoldResult {
     lastWorkerEventSequence: state.lastWorkerEventSequence,
     lastProgressSequence: state.lastProgressSequence,
     timers: {
-      startup: {
-        deadline: addMs(state.timerEvidence.startup?.basisAt ?? input.sampledAt, timerPolicy.startupMs),
-        exceeded: false,
-      },
-      idle: {
-        deadline: addMs(state.timerEvidence.idle?.basisAt ?? input.sampledAt, timerPolicy.idleMs),
-        exceeded: false,
-      },
-      'no-progress': {
-        deadline: addMs(state.timerEvidence['no-progress']?.basisAt ?? input.sampledAt, timerPolicy.noProgressMs),
-        exceeded: false,
-      },
-      'per-tool': {
-        deadline: addMs(state.timerEvidence['per-tool']?.basisAt ?? input.sampledAt, timerPolicy.perToolMs),
-        exceeded: false,
-      },
-      'approval-SLA': {
-        deadline: addMs(state.timerEvidence['approval-SLA']?.basisAt ?? input.sampledAt, timerPolicy.approvalSlaMs),
-        exceeded: false,
-      },
-      'max-runtime': {
-        deadline: addMs(state.timerEvidence['max-runtime']?.basisAt ?? input.sampledAt, timerPolicy.maxRuntimeMs),
-        exceeded: false,
-      },
+      startup: buildProjectionTimer(state, 'startup', input.sampledAt, timerPolicy.startupMs),
+      idle: buildProjectionTimer(state, 'idle', input.sampledAt, timerPolicy.idleMs),
+      'no-progress': buildProjectionTimer(state, 'no-progress', input.sampledAt, timerPolicy.noProgressMs),
+      'per-tool': buildProjectionTimer(state, 'per-tool', input.sampledAt, timerPolicy.perToolMs),
+      'approval-SLA': buildProjectionTimer(state, 'approval-SLA', input.sampledAt, timerPolicy.approvalSlaMs),
+      'max-runtime': buildProjectionTimer(state, 'max-runtime', input.sampledAt, timerPolicy.maxRuntimeMs),
     },
     terminal: state.terminal,
   };

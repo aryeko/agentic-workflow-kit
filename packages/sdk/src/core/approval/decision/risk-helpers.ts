@@ -7,6 +7,8 @@ import { collectRecordedEvidence, isEvidenceSelfReportOnly } from '../../capabil
 
 import type { ApprovalRequest } from '../contracts/index.js';
 
+type RecordedEvidenceByRef = ReturnType<typeof collectRecordedEvidence>;
+
 export const normalizePathInside = (targetPath: string, worktreePath: string): boolean => {
   const resolvedRoot = path.resolve(worktreePath);
   const resolvedTarget = path.resolve(worktreePath, targetPath);
@@ -34,12 +36,29 @@ const isPrivateIpv4 = (value: string): boolean => {
   );
 };
 
+const isPrivateIpv6 = (value: string): boolean => {
+  if (value === '::1') {
+    return true;
+  }
+
+  const firstGroup = value.split(':')[0] ?? '';
+  if (firstGroup.length === 0) {
+    return false;
+  }
+
+  const first = Number.parseInt(firstGroup, 16);
+  return Number.isInteger(first) && ((first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80);
+};
+
 export const isWildcardOrPrivateHost = (host: string | undefined): boolean => {
   if (host === undefined || host.length === 0) {
     return true;
   }
 
-  const normalized = host.trim().toLowerCase();
+  const normalized = host
+    .trim()
+    .toLowerCase()
+    .replace(/^\[(.*)\]$/, '$1');
   if (
     normalized === 'localhost' ||
     normalized === 'metadata.google.internal' ||
@@ -50,7 +69,11 @@ export const isWildcardOrPrivateHost = (host: string | undefined): boolean => {
     return true;
   }
 
-  if (isIP(normalized) !== 0 || /^[0-9.]+$/.test(normalized)) {
+  if (isIP(normalized) === 6) {
+    return isPrivateIpv6(normalized);
+  }
+
+  if (isIP(normalized) === 4 || /^[0-9.]+$/.test(normalized)) {
     return isPrivateIpv4(normalized);
   }
 
@@ -89,8 +112,15 @@ const isCapabilityAttestation = (event: RunEventEnvelope): event is RunEventEnve
   );
 };
 
-const scopeMatchesSession = (scope: string, sessionId: string): boolean =>
-  scope === sessionId || scope.endsWith(`:${sessionId}`) || scope.includes(`/session/${sessionId}`);
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const scopeMatchesSession = (scope: string, sessionId: string): boolean => {
+  if (scope === sessionId || scope.endsWith(`:${sessionId}`)) {
+    return true;
+  }
+
+  return new RegExp(`(?:^|/)session/${escapeRegExp(sessionId)}(?:/|$)`).test(scope);
+};
 
 export interface AttestationEvaluation {
   readonly freshPositive: boolean;
@@ -103,8 +133,8 @@ export const evaluateAgentCapability = (
   capability: 'canRelayApproval' | 'canPersistApprovalAnswerChannel',
   sessionId: string,
   evaluatedAt: string,
+  recordedEvidence: RecordedEvidenceByRef = collectRecordedEvidence(replay.events, evaluatedAt),
 ): AttestationEvaluation => {
-  const recordedEvidence = collectRecordedEvidence(replay.events, evaluatedAt);
   const eventIds: string[] = [];
   const evidenceEventIds: string[] = [];
   const positiveCommittedFresh = replay.events
@@ -137,8 +167,11 @@ export const evaluateAgentCapability = (
     }
   }
 
+  const hasFreshNegative = positiveCommittedFresh.some((event) => event.payload.result === 'negative');
+  const hasFreshPositive = positiveCommittedFresh.some((event) => event.payload.result === 'positive');
+
   return {
-    freshPositive: positiveCommittedFresh.some((event) => event.payload.result === 'positive'),
+    freshPositive: hasFreshPositive && !hasFreshNegative,
     eventIds,
     evidenceEventIds,
   };
@@ -148,12 +181,12 @@ export const hasSelfReportOnlyEvidence = (
   replay: RunReplay,
   requestEvidenceRefs: readonly string[] | undefined,
   evaluatedAt: string,
+  recordedEvidence: RecordedEvidenceByRef = collectRecordedEvidence(replay.events, evaluatedAt),
 ): { readonly highRisk: boolean; readonly evidenceEventIds: readonly string[] } => {
   if (requestEvidenceRefs === undefined || requestEvidenceRefs.length === 0) {
     return { highRisk: false, evidenceEventIds: [] };
   }
 
-  const recordedEvidence = collectRecordedEvidence(replay.events, evaluatedAt);
   const evidenceEventIds: string[] = [];
   let highRisk = false;
 

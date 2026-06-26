@@ -35,6 +35,10 @@ describe('core-03-s2 decision shared helpers', () => {
     expect(isWildcardOrPrivateHost('api.example.com')).toBe(false);
     expect(isWildcardOrPrivateHost('10.0.0.5')).toBe(true);
     expect(isWildcardOrPrivateHost('192.168.1.8')).toBe(true);
+    expect(isWildcardOrPrivateHost('::1')).toBe(true);
+    expect(isWildcardOrPrivateHost('fc00::1')).toBe(true);
+    expect(isWildcardOrPrivateHost('fd00::1')).toBe(true);
+    expect(isWildcardOrPrivateHost('fe80::1')).toBe(true);
     expect(isWildcardOrPrivateHost('999.0.0.1')).toBe(false);
     expect(isWildcardOrPrivateHost('')).toBe(true);
     expect(isWildcardOrPrivateHost('metadata.google.internal')).toBe(true);
@@ -157,6 +161,40 @@ describe('core-03-s2 decision shared helpers', () => {
     expect(evaluation.eventIds).toContain('evt-attest-relay-path');
   });
 
+  it('rejects relay attestation scopes that only prefix-match a path segment', () => {
+    const replay = createReplay([
+      ...createBaseReplay().events.slice(0, 3),
+      createAttestationEvent('evt-attest-relay-prefix-collision', 4, 'canRelayApproval', {
+        evidenceRef: 'evidence:canRelayApproval',
+        scope: `${sessionId}/session/session-10`,
+      }),
+    ]);
+
+    const evaluation = evaluateAgentCapability(replay, 'canRelayApproval', 'session-1', evaluatedAt);
+
+    expect(evaluation.freshPositive).toBe(false);
+    expect(evaluation.eventIds).toEqual([]);
+  });
+
+  it('lets fresh negative attestations defeat fresh positive attestations for the same capability', () => {
+    const replay = createReplay([
+      ...createBaseReplay().events.slice(0, 3),
+      createAttestationEvent('evt-attest-relay-positive', 4, 'canRelayApproval', {
+        evidenceRef: 'evidence:canRelayApproval',
+        result: 'positive',
+      }),
+      createAttestationEvent('evt-attest-relay-negative', 5, 'canRelayApproval', {
+        evidenceRef: 'evidence:canRelayApproval',
+        result: 'negative',
+      }),
+    ]);
+
+    const evaluation = evaluateAgentCapability(replay, 'canRelayApproval', sessionId, evaluatedAt);
+
+    expect(evaluation.freshPositive).toBe(false);
+    expect(evaluation.eventIds).toEqual(['evt-attest-relay-positive', 'evt-attest-relay-negative']);
+  });
+
   it('keeps attestation event ids even when the attestation evidence ref has no recorded evidence event', () => {
     const replay = createReplay([
       createAttestationEvent('evt-attest-relay-no-evidence', 1, 'canRelayApproval', {
@@ -200,6 +238,13 @@ describe('core-03-s2 decision shared helpers', () => {
     expect(allowRuleForCommand(createPolicy(), undefined)).toBeUndefined();
     expect(allowRuleForCommand(createPolicy(), 'pnpm check')?.scope).toBe('per-command');
     expect(allowRuleForCommand(createPolicy(), 'pnpm install lodash')?.scope).toBe('per-command-prefix');
+    expect(allowRuleForCommand(createRuleOnlyPolicy('per-command-prefix'), 'pnpm-check')).toBeUndefined();
+    expect(
+      allowRuleForCommand(
+        createRuleOnlyPolicy('per-command-prefix', ['per-command-prefix'], ['git']),
+        'gitleaks --dump-secrets',
+      ),
+    ).toBeUndefined();
   });
 
   it('defaults request scope to per-command and maps subjects from kind without an override', () => {
