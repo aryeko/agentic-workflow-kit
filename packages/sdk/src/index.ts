@@ -74,6 +74,18 @@ export type {
   WorkerTerminatedPayload,
 } from './core/supervision/contracts/index.js';
 export { classifyLivenessAdvance, foldLiveness, isLivenessRefreshingEvent } from './core/supervision/liveness/index.js';
+export { DEFAULT_SUPERVISION_TIMER_POLICY, evaluateSupervisionTimers } from './core/supervision/timers/index.js';
+export type {
+  EvaluateSupervisionTimersInput,
+  SupervisionTimerEvaluation,
+  SupervisionTimerStatus,
+} from './core/supervision/timers/index.js';
+export { wrapWaitRunEvents } from './core/supervision/wait/index.js';
+export type {
+  SupervisionWaitRunner,
+  WrapWaitRunEventsFailure,
+  WrapWaitRunEventsResult,
+} from './core/supervision/wait/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
 export { waitRunEvents } from './core/run-lifecycle/cursor-wait/index.js';
