@@ -58,7 +58,7 @@ describe('core-03-s1 public sdk approval imports', () => {
     const state: ApprovalState = 'pending';
     const subject: ApprovalSubject = 'command';
     const scope: PolicyGrantScope = 'per-command';
-    const failure: ApprovalFailureState = 'approval-policy-unavailable';
+    const failure: ApprovalFailureState = 'approval-resume-capability-missing';
     const context: ApprovalContext = approvalContextFixture();
     const request: ApprovalRequest = approvalRequestFixture();
     const plan: PolicyGrantPlan = policyGrantPlanFixture();
@@ -127,7 +127,7 @@ describe('core-03-s1 public sdk approval imports', () => {
     expect(state).toBe('pending');
     expect(subject).toBe('command');
     expect(scope).toBe('per-command');
-    expect(failure).toBe('approval-policy-unavailable');
+    expect(failure).toBe('approval-resume-capability-missing');
     expect(context.promptRef).toBe('artifact://prompt-01');
     expect(request.requestId).toBe('request-01');
     expect(plan.scope).toBe('per-command');

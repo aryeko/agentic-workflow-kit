@@ -107,7 +107,8 @@ describe('core-03-s1 approval unions', () => {
     ];
 
     expect(states).toHaveLength(10);
-    expect(failureStates).toHaveLength(13);
+    expect(failureStates).toHaveLength(14);
+    expect(failureStates).toContain('approval-resume-capability-missing');
     expect(failureStates).toContain('approval-grant-mapping-invalid');
   });
 });

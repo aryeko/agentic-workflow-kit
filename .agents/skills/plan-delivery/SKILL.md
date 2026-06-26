@@ -58,7 +58,8 @@ Read only the references needed for the current step:
 
 1. Start with `source-readiness.md`. Refuse missing Gate 1 tokens, ambiguous epic selection,
    source conflicts, self-blocking ready contracts, readiness-contract preflight failures
-   (substrate-presence PD-9 or predicate-input PD-10; see `references/source-readiness.md`),
+   (substrate-presence PD-9, predicate-input PD-10, or failure-token/catalog closure PD-11; see
+   `references/source-readiness.md`),
    source vagueness that would require invention, or the wrong worktree.
 2. Use `package-layout.md` to create or update only the selected epic's execution package.
 3. Use `model-routing.md` before writing plan, tracker, or prompts. Carry the DAG suggested-tier

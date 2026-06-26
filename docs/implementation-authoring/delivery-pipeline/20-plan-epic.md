@@ -42,9 +42,14 @@ inputs, or the wrong worktree.
 - Whole-graph event/record producer reconciliation recorded in the DAG: every event/record named in the
   design seams or consumed by any story maps to exactly one declared producer node (this epic or a prior
   frozen one); no consumed event is orphaned.
+- Whole-graph failure-token/catalog reconciliation recorded in the DAG: every shared failure / degraded /
+  validation catalog or union named in the design seams, every producer story catalog, and every story
+  failure-table token is inventoried; each consumed token maps to exactly one story-owned or prior frozen
+  producer catalog; no consumer token is unowned, ambiguous, or stronger than design.
 - Each contract passes Gates 4–6: enumerated, falsifiable, self-contained ACs each with an evidence
   clause; a failure/degraded table whose cited ACs assert **that row's trigger and behavior** (not the
-  happy path); a public-exposure AC + import path + public-import test for every exported shape;
+  happy path) and whose tokens resolve to exactly one authoritative producer catalog; a public-exposure
+  AC + import path + public-import test for every exported shape;
   predicate-input coverage (consumed predicates) proving every runtime branch is decidable from declared
   inputs/events/projections/producer fields/resolvers; producer-closure coverage naming a declared source
   for every required field of every produced record/event and every required public symbol; design→AC
@@ -96,8 +101,9 @@ Then stop and hand off to `plan-delivery`.
 | PE-15 | Refuses `story: ready` when a runnable boundary sweep's forbidden-token set bans a token that appears in the story's own ACs or in the normative design vocabulary for that story's signal. | P1 | S/T |
 | PE-16 | Refuses `story: ready` when a failure/degraded table row cites an AC that asserts a happy path or a different condition rather than that row's trigger and behavior. | P1 | S/T |
 | PE-17 | Same-logic concurrency holds: a public-symbol story's owned pathset includes its own `index.ts` export line; same-wave stories share no logic-bearing file (file-level granularity from owned pathsets), and any file-level override carries a one-line architect rationale. | P1 | S |
+| PE-18 | DAG frozen and stories marked `ready` only after failure-token/catalog closure: every consumed failure / degraded / validation token maps to exactly one authoritative producer catalog, and producer stories enumerate exact literals in enforced fixtures / catalog tests. | P1 | S/T |
 
-The skill's own `EVALS.md` (when authored) operationalizes PE-1…PE-17 as test cases with a version pin.
+The skill's own `EVALS.md` (when authored) operationalizes PE-1..PE-18 as test cases with a version pin.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

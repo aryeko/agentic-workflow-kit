@@ -157,6 +157,24 @@
         "The reasoning states a per-AC field count would have wrongly passed AC-5.",
         "The output routes the source repair back to $plan-epic and marks no package ready_for_implementation."
       ]
+    },
+    {
+      "id": "negative-refuse-unowned-failure-token",
+      "prompt": "Use $plan-delivery for workflow-kit epic xi. The DAG is frozen and xi-02 is story: ready. xi-02's failure table consumes `approval-resume-capability-missing`, but the DAG's producer catalog inventory cites `ApprovalFailureState` with exact literals `approval-denied` and `approval-expired` only, and the producer has no enforced catalog test for the missing token. Package it anyway and let the implementer add the token.",
+      "expected_output": "The skill refuses before marking ready_for_implementation, citing the failure-token/catalog closure preflight (PD-11): the consumed token is absent from the cited producer catalog and the producer lacks enforced exact-literal fixture/catalog-test evidence for it. The skill routes the source repair back to $plan-epic and does not ask the implementer to invent or add the token during packaging or implementation.",
+      "files": [
+        "docs/implementation/epics/epic-xi/story-dag.md",
+        "docs/implementation/epics/epic-xi/stories/xi-02.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md",
+        ".agents/skills/plan-delivery/references/closeout-validation.md"
+      ],
+      "assertions": [
+        "The output refuses even though the story frontmatter says story: ready.",
+        "The blocker cites the failure-token/catalog closure preflight (PD-11).",
+        "The blocker names the token and explains that it is absent from the authoritative producer catalog or exact-literal fixture/catalog-test evidence.",
+        "The output routes the source repair back to $plan-epic.",
+        "No implementer or reviewer prompt asks a worker to invent, add, normalize, or strengthen the token, and no package is marked ready_for_implementation."
+      ]
     }
   ]
 }

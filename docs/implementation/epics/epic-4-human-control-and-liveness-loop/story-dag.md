@@ -194,6 +194,12 @@ operator UI, concrete provider behavior, or execution-package dispatch.
 | `core-03-s4-grants-outcomes` | `core-03-s1-approval-contracts`, `core-03-s2-normalize-risk-decision`, `core-03-s3-pending-park-resume` | Consumes approval request/decision/pending values and Agent grant shapes. |
 | `core-04-s4-termination-facts` | `core-04-s1-supervision-contracts`, `core-04-s2-liveness-fold`, `core-04-s3-timers-wait` | Consumes supervision payloads, liveness/timer facts, and Execution Host termination DTOs. |
 
+Producer-contract repair note: the approval failure catalog repair only expands the
+`core-03-s1-approval-contracts` produced `ApprovalFailureState` surface and corrects
+`core-03-s3-pending-park-resume` failure-token mapping. It does not reorder the DAG:
+`core-03-s3` still depends on `core-03-s1` and `core-03-s2`, and `core-03-s4` still depends on
+`core-03-s3`.
+
 ## Shared Shapes
 
 | shared shape | producer | public import path | consumers |

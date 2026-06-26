@@ -79,6 +79,7 @@ stateDiagram-v2
 type ApprovalFailureState =
   | "approval-request-unrecordable"
   | "approval-relay-missing"
+  | "approval-resume-capability-missing"
   | "approval-answer-channel-lost"
   | "approval-session-ambiguous"
   | "approval-owner-missing"
@@ -94,10 +95,14 @@ type ApprovalFailureState =
 
 - `approval-request-unrecordable`: `ApprovalRequested` or `ApprovalPendingPersisted` cannot be
   appended at `barrier`; fail closed to `blocked`.
-- `approval-relay-missing`: Agent `canRelayApproval` is absent, stale, negative, or wrong-scope;
-  fail closed to `blocked`.
-- `approval-answer-channel-lost`: channel cannot be answered after park/resume; fail closed to
-  `blocked` or `parked` when Operator recovery can intervene.
+- `approval-relay-missing`: Agent `canRelayApproval` is absent, stale, negative, or wrong-scope, or
+  required `canPersistApprovalAnswerChannel` is absent, stale, negative, or wrong-scope for a channel
+  that must survive park/resume; fail closed to `blocked`.
+- `approval-resume-capability-missing`: Agent `canResumeOwned` is absent, stale, negative, or
+  wrong-scope for an owned-session resume. A provider-side `agent-resume-unattested` failure maps to
+  this core approval token at the approval boundary; fail closed to `blocked`.
+- `approval-answer-channel-lost`: channel was captured but becomes unavailable after park/resume or
+  during an answer attempt; fail closed to `blocked` or `parked` when Operator recovery can intervene.
 - `approval-session-ambiguous`: core-01 launch linkage is unknown or ambiguous; fail closed to
   `blocked`.
 - `approval-owner-missing`: current session is not owned or owned-remote for a resumable request;

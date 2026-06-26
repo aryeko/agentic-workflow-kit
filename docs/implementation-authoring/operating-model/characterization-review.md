@@ -41,6 +41,12 @@ defects left, before any code is written. Output the binding `ready` flag.
 - **Producer-closure pass (per story).** Verify the contract's produced-obligations section of the
   predicate-input matrix exists and covers every required field of every produced record/event and every
   required public symbol. A row with no declared source is a closure defect.
+- **Failure-token/catalog closure pass (story + DAG).** Verify every failure / degraded / validation token
+  in the story resolves to exactly one authoritative producer catalog: the story-owned catalog, or an
+  earlier frozen design / producer catalog recorded in the DAG reconciliation. Consumer stories cannot
+  invent tokens; producer stories must enumerate exact literals in enforced fixtures / catalog tests. An
+  unowned, ambiguous, or stronger-than-design token is a story-defect or DAG-defect finding, not a
+  dispatchable ambiguity.
 - **Does NOT** review or anticipate implementation code — that is Bucket 2, owned by the
   [reviewer](reviewer.md) post-implementation.
 

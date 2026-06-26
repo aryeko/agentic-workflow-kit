@@ -32,7 +32,9 @@ event payloads, projections, protected-policy binding, and the approval failure 
 - Event payloads: `ApprovalRequestedPayload`, `ApprovalPendingPersistedPayload`,
   `ApprovalRiskClassifiedPayload`, `ApprovalDecisionRecordedPayload`, `ApprovalParkedPayload`,
   `ApprovalResumedPayload`, `ApprovalOutcomeRecordedPayload`.
-- Failure catalog: the full `ApprovalFailureState` union from `park-resume-and-failures.md`.
+- Failure catalog: the full `ApprovalFailureState` union from `park-resume-and-failures.md`, including
+  the distinct `approval-resume-capability-missing`, `approval-relay-missing`, and
+  `approval-answer-channel-lost` tokens.
 
 ## Responsibilities
 
@@ -115,7 +117,7 @@ This story declares failure tokens but raises none at runtime. Behavior stories 
 
 | token group | trigger | required behavior | proven by |
 |---|---|---|---|
-| Full `ApprovalFailureState` union | exported catalog membership | importable exact union; no behavior | AC-1 |
+| Full `ApprovalFailureState` union | exported catalog membership, including `approval-request-unrecordable`, `approval-relay-missing`, `approval-resume-capability-missing`, `approval-answer-channel-lost`, `approval-session-ambiguous`, `approval-owner-missing`, `approval-policy-unavailable`, `approval-risk-high`, `approval-gate-denied`, `approval-gate-unwritable`, `approval-grant-mapping-invalid`, `approval-expired`, `approval-event-log-unavailable`, and `approval-outcome-ambiguous` | importable exact union; no behavior | AC-1 |
 
 ## Quality Bar
 

@@ -87,6 +87,11 @@ Name the split so a behavior does not fall between two stories:
 - The catalog / invariant story owns the token set and the record / invariant AC, and is the cited producer.
 - Each behavior story cites the producer's token verbatim and carries its own AC proving the behavior that
   raises the token (and a failure row for it).
+- **Failure-token/catalog closure.** Every failure / degraded / validation token consumed by a story must
+  resolve to exactly one authoritative owner: the story-owned producer catalog, or an earlier frozen
+  design / producer catalog. A consumer story cannot invent a token by naming it in its failure table. If a
+  story consumes a union / catalog, every consumed token must be a member of that producer catalog, and the
+  producer story must enumerate the exact literals in enforced fixtures / catalog tests.
 - Neither side may leave the behavior unowned: a token with no behavior **and** no behavior story is dead;
   a behavior with no token is unrecorded. Both are defects.
 
@@ -158,6 +163,13 @@ must not be authored.
       cannot be caught by per-story checks alone. Gate 3 fails until every consumed event/record maps to one
       declared producer node. Record this reconciliation table in the DAG (or a named appendix) so the
       independent reviewer can verify it without re-deriving.
+- [ ] **Whole-graph failure-token/catalog reconciliation.** Enumerate every shared failure / degraded /
+      validation catalog or union named in the included design seams, every producer story catalog, and
+      every token any story failure table consumes. Assert that each consumed token is owned by exactly one
+      story-owned or prior frozen producer catalog, and that the owning producer enumerates the exact
+      literals in enforced fixtures / catalog tests. A consumer token with no owner, multiple owners, or a
+      stronger meaning than the frozen design/catalog is a **DAG-level closure defect**. Gate 3 fails until
+      every downstream token consumer reconciles to its producer.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
