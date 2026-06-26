@@ -48,6 +48,31 @@ export {
   resolveExistingAnalysisRecord,
 } from './core/observability/records/index.js';
 export * from './core/observability/telemetry/index.js';
+export {
+  LIVENESS_ADVANCE_CLASSES,
+  LIVENESS_REASONS,
+  LIVENESS_STATES,
+  SUPERVISION_TIMER_NAMES,
+} from './core/supervision/contracts/index.js';
+export type {
+  Clock,
+  LivenessAdvanceClass,
+  LivenessAdvancedPayload,
+  LivenessProjection,
+  LivenessReason,
+  LivenessState,
+  LivenessStateChangedPayload,
+  LivenessTimerExpiredPayload,
+  SupervisorStartedPayload,
+  SupervisorStoppedPayload,
+  SupervisorTerminationRequestedPayload,
+  SupervisionInputs,
+  SupervisionLostPayload,
+  SupervisionTimerName,
+  SupervisionTimerPolicy,
+  SupervisionWaitRequest,
+  WorkerTerminatedPayload,
+} from './core/supervision/contracts/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
 export { waitRunEvents } from './core/run-lifecycle/cursor-wait/index.js';

@@ -1,0 +1,14 @@
+{
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "rootDir": "../../../.."
+  },
+  "include": [
+    "./liveness-state-unknown.fixture.ts",
+    "./liveness-reason-unknown.fixture.ts",
+    "./timer-policy-missing-max-runtime.fixture.ts",
+    "./supervisor-stopped-missing-terminal-sources.fixture.ts"
+  ]
+}
