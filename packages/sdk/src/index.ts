@@ -237,6 +237,33 @@ export type {
   PostMergeOutcomeState,
   ProtectedPolicySnapshotRecordedPayload,
 } from './core/completion/contracts/index.js';
+export {
+  ACTION_SAFETY_CLASSES,
+  PROVIDER_CONTROL_KINDS,
+  RECOVERY_ACTIONS,
+  RECOVERY_STATES,
+} from './core/recovery/contracts/index.js';
+export type {
+  ActionSafetyClass,
+  DuplicateLaunchBlockedPayload,
+  ProviderControlKind,
+  ReconciliationBlockedPayload,
+  RecoveryAction,
+  RecoveryActionAppliedPayload,
+  RecoveryActionPlannedPayload,
+  RecoveryClassification,
+  RecoveryClassifiedPayload,
+  RecoveryCoordinator,
+  RecoveryEvidenceSnapshot,
+  RecoveryPlan,
+  RecoveryPlanInput,
+  RecoveryProjection,
+  RecoveryRecordInput,
+  RecoveryState,
+  StaleLaunchClearanceRequestedPayload,
+  StoryLaunchLeaseAcquiredPayload,
+  StoryLaunchLeaseClearedPayload,
+} from './core/recovery/contracts/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
