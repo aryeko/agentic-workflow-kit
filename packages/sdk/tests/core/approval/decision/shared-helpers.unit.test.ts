@@ -6,6 +6,7 @@ import {
   defaultRequestedScope,
   evaluateAgentCapability,
   hasSelfReportOnlyEvidence,
+  matchesAutoGrantScope,
   isWildcardOrPrivateHost,
   normalizePathInside,
   requestLinkageState,
@@ -18,6 +19,7 @@ import {
   createAttestationEvent,
   createBaseReplay,
   createContext,
+  createGateRecordPayload,
   createIdGenerator,
   createPolicy,
   createProjections,
@@ -32,6 +34,7 @@ describe('core-03-s2 decision shared helpers', () => {
   it('treats public hosts as safe and private ip hosts as high risk', () => {
     expect(isWildcardOrPrivateHost('api.example.com')).toBe(false);
     expect(isWildcardOrPrivateHost('10.0.0.5')).toBe(true);
+    expect(isWildcardOrPrivateHost('192.168.1.8')).toBe(true);
     expect(isWildcardOrPrivateHost('999.0.0.1')).toBe(false);
     expect(isWildcardOrPrivateHost('')).toBe(true);
     expect(isWildcardOrPrivateHost('metadata.google.internal')).toBe(true);
@@ -230,6 +233,29 @@ describe('core-03-s2 decision shared helpers', () => {
       current: false,
       evidenceEventIds: ['evt-session-linked-other'],
     });
+  });
+
+  it('matches auto-grant gate records only for the same assisted request scope', () => {
+    const request = createRequest();
+
+    expect(matchesAutoGrantScope(request, createGateRecordPayload())).toBe(true);
+    expect(matchesAutoGrantScope(request, createGateRecordPayload({ mode: 'manual' }))).toBe(false);
+    expect(
+      matchesAutoGrantScope(
+        request,
+        createGateRecordPayload({
+          scope: { ...createGateRecordPayload().scope, taskId: 'task-other' },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      matchesAutoGrantScope(
+        createRequest({ taskId: 'task-approval-01' }),
+        createGateRecordPayload({
+          scope: { ...createGateRecordPayload().scope, taskId: 'task-approval-01' },
+        }),
+      ),
+    ).toBe(true);
   });
 
   it('returns a per-command-prefix plan when exact command scope is unavailable', () => {

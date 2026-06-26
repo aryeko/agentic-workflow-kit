@@ -131,4 +131,55 @@ describe('core-03-s2 assisted auto-grant gate outcomes', () => {
     expect(result.value.decision.decision).toBe('human-required');
     expect(result.value.failureState).toBe('approval-gate-denied');
   });
+
+  it.each([
+    [
+      'operation',
+      createGateRecordPayload({
+        scope: { ...createGateRecordPayload().scope, operationId: 'op-other' },
+      }),
+    ],
+    [
+      'session',
+      createGateRecordPayload({
+        scope: { ...createGateRecordPayload().scope, sessionId: 'session-other' },
+      }),
+    ],
+    [
+      'policy',
+      createGateRecordPayload({
+        policyRef: 'policy:other',
+      }),
+    ],
+    [
+      'requested action',
+      createGateRecordPayload({
+        requestedAction: 'approval-human-escalate',
+      }),
+    ],
+  ])('fails closed when the committed allow gate record mismatches the request %s scope', (_, record) => {
+    const result = decideApproval({
+      request: createRequest(),
+      risk: 'low',
+      mode: 'assisted',
+      policy: createPolicy(),
+      replay: createBaseReplay(),
+      projections: createProjections(),
+      evaluatedAt,
+      ids: createIdGenerator('decision-06'),
+      autoGrantGate: {
+        status: 'allow',
+        eventId: 'evt-gate-allow-mismatch',
+        record,
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.error.reason);
+    }
+
+    expect(result.value.decision.decision).toBe('human-required');
+    expect(result.value.failureState).toBe('approval-gate-denied');
+  });
 });

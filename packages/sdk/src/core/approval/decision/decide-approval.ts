@@ -6,6 +6,7 @@ import {
   buildPolicyGrantPlan,
   defaultRequestedScope,
   hasPolicyProvenance,
+  matchesAutoGrantScope,
   requestLinkageState,
 } from './shared.js';
 
@@ -139,10 +140,7 @@ export const decideApproval = (input: DecideApprovalInput): ApprovalDecisionResu
     };
   }
 
-  if (
-    input.autoGrantGate.record.capability !== 'escalation-auto-grant' ||
-    input.autoGrantGate.record.scope.runId !== input.request.runId
-  ) {
+  if (!matchesAutoGrantScope(input.request, input.autoGrantGate.record)) {
     return {
       ok: true,
       value: {
