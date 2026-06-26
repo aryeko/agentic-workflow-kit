@@ -81,6 +81,13 @@ precondition holds — a tightening is pending) · `OPEN` (no cover yet).
 | LSN-27 | Epic 4 re-plan / `containment` sweep defect | A boundary sweep forbade `containment` while AC-6 required asserting `proof.containmentEmpty`. An over-broad sweep that bans tokens from the story's own design vocabulary is a defect, not safety. | Sweep-vocabulary rule in stage-contract and Gate 4; PE-15 eval. | covered |
 | LSN-28 | Epic 4 re-plan / failure-row AC mismatch | A failure table row cited an AC that proved only the happy path, not the row's trigger and behavior. | Failure-row AC assertion rule in stage-contract Gate 4; PE-16 eval. | covered |
 
+### Epic 4 delivery (proof-substrate + predicate-input blockers)
+
+| ID | Source | Lesson | Covered by | Status |
+|----|--------|--------|-----------|--------|
+| LSN-29 | Epic 4 / `core-04-s1` | A type-only contract producer carried a `95% statements/branches` bar with no runtime substrate: `type`/`interface` erase → V8 sees `0/0` → 100% ≥ 95%, vacuously green; the `core-03-s1` sibling passed only by an `as const` coin-flip. Explicit **generalization of LSN-04** from config-only stories to **all** erased-type producers. | **Proof-substrate match** Gate-4 box + generalized Substrate/config variant — [authoring-standard/50-story-contract.md](authoring-standard/50-story-contract.md); proof-substrate invariant + `as const` catalog convention — [engineering/testing-policy.md](../engineering/testing-policy.md); plan-delivery substrate-presence preflight — [delivery-pipeline/30-plan-delivery.md](delivery-pipeline/30-plan-delivery.md); principle *Readiness is reconstructed, not asserted* — [authoring-standard/10-principles.md](authoring-standard/10-principles.md) | covered |
+| LSN-30 | Epic 4 / `core-03-s2` | A relational safety predicate ("cwd **inside the workspace**") declared only one of two operands as a frozen input — the workspace-root operand was unsourced, so the predicate is undecidable; a tests-passing approximation (`cwd` as its own root) silently **failed open** (spoofable bypass of the sibling AC-3 high-risk rule). Explicit **granularity-strengthening of LSN-21** from per-AC to **per-sub-predicate**, with relational **two-operand** sourcing and **field-not-category** closure rows. | **Predicate-input closure — relational & compound** Gate-4 box + strengthened R6 (relational two-operand · compound-AC decomposition · `Producer/Type.field` · generic STOP) — [authoring-standard/50-story-contract.md](authoring-standard/50-story-contract.md); plan-delivery predicate-input preflight — [delivery-pipeline/30-plan-delivery.md](delivery-pipeline/30-plan-delivery.md); principle *Readiness is reconstructed, not asserted* — [authoring-standard/10-principles.md](authoring-standard/10-principles.md) | covered |
+
 ## Open items
 
 - **LSN-10, LSN-12** are `conditional`. Two guide tightenings convert them to `covered`: (a) seam-verbatim
@@ -90,6 +97,17 @@ precondition holds — a tightening is pending) · `OPEN` (no cover yet).
 - **LSN-20** is `conditional`: the capacity rule is recorded as a role responsibility, but the
   `orchestrated-delivery` skill change that reserves reviewer/re-address slots is deferred (the
   precondition) and out of this worktree's scope.
+- **LSN-30 — defect-class covered; story-instance repair is a separate track.** The strengthened R6 /
+  **Predicate-input closure — relational & compound** box covers the *defect class* (it makes `core-03-s2`
+  a Gate-4 failure if re-graded). The `core-03-s2` *story* itself awaits a **design-led seam** routing a
+  trusted workspace root (`RepositoryIdentity.repoRoot`) into approval risk classification — a `docs/design`
+  decision out of scope for this machinery batch; sequence design-seam → `plan-epic` amend → `plan-delivery`
+  re-project. The merged AC-3 boundary (cwd-as-workspace) is a **P1 fail-open** to fix when the seam lands.
+- **core-03-s1 bar wording (non-blocking).** `core-03-s1` merged under the same vacuous coverage bar as
+  `core-04-s1`; under LSN-29 it reclassifies cleanly as a runtime-catalog story (its lane is legitimate —
+  it emitted `as const`), so the new rules do **not** retroactively break it. Restate its quality-bar
+  wording for precedent consistency with the **Proof-substrate match** box. Non-blocking; do not gate the
+  next epic on it.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

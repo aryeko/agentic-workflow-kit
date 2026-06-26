@@ -12,7 +12,7 @@
 
 ## Exact Task
 
-Implement `core-04-s1-supervision-contracts` for epic `epic-4-human-control-and-liveness-loop`: Produce supervision/liveness value types, timer/wait inputs, event payloads, projections, and reason catalog. Keep the result limited to source story `core-04-s1-supervision-contracts` and source AC ids `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`.
+Implement `core-04-s1-supervision-contracts` for epic `epic-4-human-control-and-liveness-loop`: Produce supervision/liveness value types, timer/wait inputs, event payloads, projections, and reason catalog. Mint the enumerable catalogs as runtime `as const` arrays + derived union types (not bare erased `type` unions); pure interfaces stay interfaces and event-payload `schema` fields stay pinned string-literal types (no separately exported runtime constant). Keep the result limited to source story `core-04-s1-supervision-contracts` and source AC ids `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`.
 
 ## Why It Matters
 
@@ -34,10 +34,10 @@ This story is in wave 1. Its direct dependencies are none and its dependents are
 Source story: `core-04-s1-supervision-contracts`. Source AC ids: `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`.
 
 - **AC-1** Clock is exported as an injected zero-argument ISO timestamp function and no contract shape permits ambient clock reads.
-- **AC-2** LivenessState and LivenessReason have exactly the design members, including approval-overdue, termination-requested, termination-unavailable, and worker-terminal-observed.
+- **AC-2** The exported `as const` arrays `LIVENESS_STATES` and `LIVENESS_REASONS` (with their derived unions `LivenessState`/`LivenessReason`) have exactly the design members, including approval-overdue, termination-requested, termination-unavailable, and worker-terminal-observed; exhaustive membership is iterated over the runtime catalog arrays and exhaustive switches cover the derived unions.
 - **AC-3** LivenessProjection requires runId, state, timers, and terminal, and allows optional reason/session/worker/sequence/stale fields exactly as design defines.
 - **AC-4** SupervisionInputs, SupervisionTimerPolicy, and SupervisionWaitRequest expose exact fields including six timer durations and cursor request fields.
-- **AC-5** SupervisionTimerName and LivenessAdvanceClass exactly match the six timer names and five advance classes.
+- **AC-5** The exported `as const` arrays `SUPERVISION_TIMER_NAMES` and `LIVENESS_ADVANCE_CLASSES` (with their derived unions `SupervisionTimerName`/`LivenessAdvanceClass`) exactly match the six timer names and five advance classes; membership is iterated over the runtime catalog arrays and exhaustive switches cover both derived unions.
 - **AC-6** The eight event payloads expose exact schema literals and required source fields, including sourceSequence, deadline, observedBy, and terminalSourceEventIds.
 - **AC-7** Every manifest symbol imports from sdk through this story owned export lines in packages/sdk/src/index.ts, with no private path.
 
@@ -66,23 +66,27 @@ Non-goals: do not implement concrete provider behavior, completion or recovery d
 
 Source STOP condition for `core-04-s1-supervision-contracts`: Stop if a payload field is not in supervision design, if a concrete provider type is needed, or if behavior appears in this type-only producer.
 
+Value, not behavior: a frozen `as const` catalog array is a runtime value, not behavior — it raises nothing and runs no logic, so minting and exporting the catalogs does not violate the "raises none at runtime" / type-only-producer STOP condition (per `docs/engineering/testing-policy.md#proof-substrate`). Do not read the required `as const` catalogs as forbidden runtime behavior.
+
 Also stop and report if dependency commits are missing, a required source value is absent, an AC requires writes outside the owned pathset, or implementation would require reinterpreting a source AC.
 
 ## Implementation Constraints
 
 Honor the story contract exactly: public exports through this story owned `packages/sdk/src/index.ts` lines, deterministic explicit inputs for time/id/randomness, provider-port boundaries, append-only event-log authority, failure tokens named above, and the Dependency Rule from `AGENTS.md`. Do not introduce provider-specific runtime model ids, concrete driver imports, ambient clock reads, process/network calls, or shape redeclarations prohibited by the source story.
 
+Substrate (required, not optional): mint the enumerable catalogs `SupervisionTimerName` (`SUPERVISION_TIMER_NAMES`), `LivenessAdvanceClass` (`LIVENESS_ADVANCE_CLASSES`), `LivenessState` (`LIVENESS_STATES`), and `LivenessReason` (`LIVENESS_REASONS`) as runtime `as const` arrays plus derived union types — `export const LIVENESS_REASONS = [...] as const; export type LivenessReason = (typeof LIVENESS_REASONS)[number];` — with members exactly as design lists and none added; the four catalog arrays are the coverage-lane substrate. Pure interfaces (`Clock`, `SupervisionInputs`, `SupervisionTimerPolicy`, `SupervisionWaitRequest`, `LivenessProjection`) stay interfaces, and event-payload `schema` fields stay pinned string-literal types per design (do not mint them as separately exported runtime constants — that would add public SDK symbols beyond the manifest). Do not render the catalogs as bare erased `type` unions — that erased rendering produces no runtime substrate and vacuously satisfies the coverage lane.
+
 ## Verification
 
 Run the targeted checks and evidence required by `docs/implementation/epics/epic-4-human-control-and-liveness-loop/stories/core-04-s1-supervision-contracts.md` for source AC ids `AC-1`, `AC-2`, `AC-3`, `AC-4`, `AC-5`, `AC-6`, `AC-7`:
 - supervision-clock.unit.test.ts and Date.now/new Date sweep
-- liveness-catalogs.unit.test.ts and negative fixtures
+- liveness-catalogs.unit.test.ts iterating the `LIVENESS_STATES`/`LIVENESS_REASONS` runtime arrays and negative fixtures
 - liveness-projection.unit.test.ts
 - supervision-inputs.unit.test.ts and missing maxRuntimeMs fixture
-- supervision-catalogs.unit.test.ts
+- supervision-catalogs.unit.test.ts iterating the `SUPERVISION_TIMER_NAMES`/`LIVENESS_ADVANCE_CLASSES` runtime arrays
 - supervision-payloads.unit.test.ts and negative fixtures
 - supervision-public-import.unit.test.ts
-- 95% statements/branches for supervision contracts
+- 95% statements/branches for supervision contracts (measured over the real `as const` catalog arrays — not a vacuous `0/0`→100%)
 - boundary sweep for provider/testkit/process/time/network imports
 - pnpm check
 

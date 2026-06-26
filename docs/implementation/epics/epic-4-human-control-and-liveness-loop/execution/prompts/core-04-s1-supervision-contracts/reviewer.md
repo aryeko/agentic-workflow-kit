@@ -23,14 +23,15 @@
 - Dependency inputs: `{{DEPENDENCY_COMMITS}}` and committed producer shapes/events named by the source DAG and story contract.
 - Non-goals: no concrete provider behavior, completion/recovery decisions, operator UI, tracker/package edits, source planning edits, or another story scope.
 - STOP condition: Stop if a payload field is not in supervision design, if a concrete provider type is needed, or if behavior appears in this type-only producer.
+- Value, not behavior: a frozen `as const` catalog array is a runtime value, not behavior — it raises nothing and runs no logic, so minting and exporting the catalogs does not violate the "raises none at runtime" / type-only-producer STOP condition (per `docs/engineering/testing-policy.md#proof-substrate`). Do not flag the required `as const` catalogs as forbidden runtime behavior.
 
 Acceptance criteria from the original source contract:
 
 - **AC-1** Clock is exported as an injected zero-argument ISO timestamp function and no contract shape permits ambient clock reads.
-- **AC-2** LivenessState and LivenessReason have exactly the design members, including approval-overdue, termination-requested, termination-unavailable, and worker-terminal-observed.
+- **AC-2** The exported `as const` arrays `LIVENESS_STATES` and `LIVENESS_REASONS` (with their derived unions `LivenessState`/`LivenessReason`) have exactly the design members, including approval-overdue, termination-requested, termination-unavailable, and worker-terminal-observed; exhaustive membership is iterated over the runtime catalog arrays and exhaustive switches cover the derived unions.
 - **AC-3** LivenessProjection requires runId, state, timers, and terminal, and allows optional reason/session/worker/sequence/stale fields exactly as design defines.
 - **AC-4** SupervisionInputs, SupervisionTimerPolicy, and SupervisionWaitRequest expose exact fields including six timer durations and cursor request fields.
-- **AC-5** SupervisionTimerName and LivenessAdvanceClass exactly match the six timer names and five advance classes.
+- **AC-5** The exported `as const` arrays `SUPERVISION_TIMER_NAMES` and `LIVENESS_ADVANCE_CLASSES` (with their derived unions `SupervisionTimerName`/`LivenessAdvanceClass`) exactly match the six timer names and five advance classes; membership is iterated over the runtime catalog arrays and exhaustive switches cover both derived unions.
 - **AC-6** The eight event payloads expose exact schema literals and required source fields, including sourceSequence, deadline, observedBy, and terminalSourceEventIds.
 - **AC-7** Every manifest symbol imports from sdk through this story owned export lines in packages/sdk/src/index.ts, with no private path.
 
@@ -53,6 +54,7 @@ Check source story `core-04-s1-supervision-contracts` and source AC ids `AC-1`, 
 
 - AC coverage by original source `AC-n` id.
 - Each AC is re-proven by a standing gate step such as `type:fixtures`, `coverage:baseline`, `deps`, `typecheck`, relevant unit tests, or `pnpm check`; treat manual-only proof or fixtures outside the build graph as blocking.
+- Proof-substrate match (per `docs/engineering/testing-policy.md#proof-substrate`): confirm the enumerable catalogs `SupervisionTimerName`, `LivenessAdvanceClass`, `LivenessState`, and `LivenessReason` are exported as runtime `as const` arrays (`SUPERVISION_TIMER_NAMES`, `LIVENESS_ADVANCE_CLASSES`, `LIVENESS_STATES`, `LIVENESS_REASONS`) plus derived union types — these four arrays are the runtime substrate that makes the coverage lane meaningful; pure interfaces stay interfaces and event-payload `schema` fields stay pinned string-literal types (not separately exported runtime constants — flag any new public schema-constant symbols as scope/manifest creep). With this substrate the lane is genuinely measurable, so require the coverage proof over the real arrays. Block if the catalogs are rendered as bare erased `type` unions (no runtime substrate → the `95%` lane is a vacuous `0/0`→100%). Do not accept, nor demand, a coverage artifact the substrate cannot produce.
 - Failure and degraded rows above.
 - Evidence pack completeness and exact command output.
 - Public API and `sdk` import paths.
@@ -60,13 +62,13 @@ Check source story `core-04-s1-supervision-contracts` and source AC ids `AC-1`, 
 - Stale names and sibling occurrences of any issue found.
 - Tests, sweeps, coverage, and source quality bar:
 - supervision-clock.unit.test.ts and Date.now/new Date sweep
-- liveness-catalogs.unit.test.ts and negative fixtures
+- liveness-catalogs.unit.test.ts iterating the `LIVENESS_STATES`/`LIVENESS_REASONS` runtime arrays and negative fixtures
 - liveness-projection.unit.test.ts
 - supervision-inputs.unit.test.ts and missing maxRuntimeMs fixture
-- supervision-catalogs.unit.test.ts
+- supervision-catalogs.unit.test.ts iterating the `SUPERVISION_TIMER_NAMES`/`LIVENESS_ADVANCE_CLASSES` runtime arrays
 - supervision-payloads.unit.test.ts and negative fixtures
 - supervision-public-import.unit.test.ts
-- 95% statements/branches for supervision contracts
+- 95% statements/branches for supervision contracts (measured over the real `as const` catalog arrays — not a vacuous `0/0`→100%)
 - boundary sweep for provider/testkit/process/time/network imports
 - pnpm check
 - Scope control against allowed writes.

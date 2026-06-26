@@ -128,6 +128,14 @@ directory not traceable to the design package decomposition.
   that appear in the story's own ACs or in the normative design vocabulary for this story's signal — an
   over-broad sweep that forbids a token the story itself requires is a defect, not a safety measure.
 
+Two named Gate-4 boxes in
+`docs/implementation-authoring/authoring-standard/50-story-contract.md#gate-4--authoring-ready`
+must be ticked before `story: ready`. Both are mechanical instances of *Readiness is reconstructed,
+not asserted* and mirror the `plan-delivery` readiness-contract preflights at packaging time:
+
+- **Proof-substrate match** (mirrors substrate-presence preflight, PD-9)
+- **Predicate-input closure — relational & compound** (mirrors predicate-input preflight, PD-10)
+
 ## Characterization Review
 
 Review the authored DAG and contracts before setting readiness:
