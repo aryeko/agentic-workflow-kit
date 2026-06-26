@@ -1,0 +1,14 @@
+export type ApprovalFailureState =
+  | 'approval-request-unrecordable'
+  | 'approval-relay-missing'
+  | 'approval-answer-channel-lost'
+  | 'approval-session-ambiguous'
+  | 'approval-owner-missing'
+  | 'approval-policy-unavailable'
+  | 'approval-risk-high'
+  | 'approval-gate-denied'
+  | 'approval-gate-unwritable'
+  | 'approval-grant-mapping-invalid'
+  | 'approval-expired'
+  | 'approval-event-log-unavailable'
+  | 'approval-outcome-ambiguous';

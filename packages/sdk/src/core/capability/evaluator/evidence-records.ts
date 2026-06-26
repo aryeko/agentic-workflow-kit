@@ -1,5 +1,7 @@
 import type { RunEventEnvelope } from '../../run-lifecycle/contracts/index.js';
 
+import { toEpochMs } from './timestamps.js';
+
 type EvidenceSupportKind = 'probe' | 'artifact-digest' | 'self-report' | 'schema-only' | 'feature-list';
 
 export interface RecordedEvidence {
@@ -22,11 +24,6 @@ const isEvidenceSupportKind = (value: unknown): value is EvidenceSupportKind =>
   value === 'self-report' ||
   value === 'schema-only' ||
   value === 'feature-list';
-
-const toEpochMs = (timestamp: string): number | undefined => {
-  const parsed = Date.parse(timestamp);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
 
 const isCommittedBy = (event: RunEventEnvelope, evaluatedAt: string): boolean => {
   const occurredAt = toEpochMs(event.occurredAt);

@@ -48,9 +48,139 @@ export {
   resolveExistingAnalysisRecord,
 } from './core/observability/records/index.js';
 export * from './core/observability/telemetry/index.js';
+export {
+  LIVENESS_ADVANCE_CLASSES,
+  LIVENESS_REASONS,
+  LIVENESS_STATES,
+  SUPERVISION_TIMER_NAMES,
+} from './core/supervision/contracts/index.js';
+export type {
+  Clock,
+  LivenessAdvanceClass,
+  LivenessAdvancedPayload,
+  LivenessProjection,
+  LivenessReason,
+  LivenessState,
+  LivenessStateChangedPayload,
+  LivenessTimerExpiredPayload,
+  SupervisorStartedPayload,
+  SupervisorStoppedPayload,
+  SupervisorTerminationRequestedPayload,
+  SupervisionInputs,
+  SupervisionLostPayload,
+  SupervisionTimerName,
+  SupervisionTimerPolicy,
+  SupervisionWaitRequest,
+  WorkerTerminatedPayload,
+} from './core/supervision/contracts/index.js';
+export { classifyLivenessAdvance, foldLiveness, isLivenessRefreshingEvent } from './core/supervision/liveness/index.js';
+export { DEFAULT_SUPERVISION_TIMER_POLICY, evaluateSupervisionTimers } from './core/supervision/timers/index.js';
+export type {
+  EvaluateSupervisionTimersInput,
+  SupervisionTimerEvaluation,
+  SupervisionTimerStatus,
+} from './core/supervision/timers/index.js';
+export {
+  recordLivenessAdvanced,
+  recordLivenessStateChanged,
+  recordSupervisionLost,
+  recordTimerExpired,
+  recordWorkerTerminated,
+  requestWorkerTermination,
+  startSupervisor,
+  stopSupervisor,
+} from './core/supervision/termination/index.js';
+export type {
+  RecordLivenessAdvancedInput,
+  RecordLivenessAdvancedResult,
+  RecordLivenessStateChangedInput,
+  RecordLivenessStateChangedResult,
+  RecordSupervisionLostInput,
+  RecordSupervisionLostResult,
+  RecordTimerExpiredInput,
+  RecordTimerExpiredResult,
+  RecordWorkerTerminatedInput,
+  RecordWorkerTerminatedResult,
+  RequestWorkerTerminationCommit,
+  RequestWorkerTerminationInput,
+  RequestWorkerTerminationResult,
+  StartSupervisorInput,
+  StartSupervisorResult,
+  StopSupervisorCommit,
+  StopSupervisorInput,
+  StopSupervisorResult,
+  SupervisionFactCommit,
+  SupervisionFactFailure,
+  SupervisionFactGuard,
+  SupervisionFactWriter,
+  TerminationHost,
+} from './core/supervision/termination/index.js';
+export { wrapWaitRunEvents } from './core/supervision/wait/index.js';
+export type {
+  SupervisionWaitRunner,
+  WrapWaitRunEventsFailure,
+  WrapWaitRunEventsResult,
+} from './core/supervision/wait/index.js';
 export type { Result } from './core/run-lifecycle/contracts/index.js';
 export * from './core/run-lifecycle/contracts/index.js';
 export { waitRunEvents } from './core/run-lifecycle/cursor-wait/index.js';
+export type {
+  ApprovalContext,
+  ApprovalDecisionInput,
+  ApprovalDecisionRecordedPayload,
+  ApprovalEscalation,
+  ApprovalFailureState,
+  ApprovalMode,
+  ApprovalOutcomeInput,
+  ApprovalOutcomeRecordedPayload,
+  ApprovalParkInput,
+  ApprovalParkedPayload,
+  ApprovalPendingPersistedPayload,
+  ApprovalProjection,
+  ApprovalRequest,
+  ApprovalRequestedPayload,
+  ApprovalResumeInput,
+  ApprovalResumedPayload,
+  ApprovalRisk,
+  ApprovalRiskClassifiedPayload,
+  ApprovalState,
+  ApprovalSubject,
+  Decision,
+  Outcome,
+  ParkDecision,
+  PendingApprovalProjection,
+  PolicyGrantPlan,
+  PolicyGrantScope,
+  ProtectedPolicyApprovalBinding,
+  ResumeDecision,
+} from './core/approval/contracts/index.js';
+export {
+  classifyApprovalRisk,
+  decideApproval,
+  normalizeApprovalRequest,
+  recordApprovalDecision,
+  recordApprovalRiskClassified,
+} from './core/approval/decision/index.js';
+export type {
+  ApprovalAutoGrantGate,
+  ApprovalDecisionComputation,
+  ApprovalDecisionFailure,
+  ApprovalDecisionIdGenerator,
+  ApprovalDecisionRecordCommit,
+  ApprovalDecisionRecordFailure,
+  ApprovalDecisionResult,
+  ApprovalRecordIntent,
+  ApprovalRecordWriter,
+  ApprovalRiskClassification,
+  ApprovalRiskClassificationFailure,
+  ApprovalRiskClassificationInput,
+  ApprovalRiskClassificationResult,
+  ApprovalRiskRecordCommit,
+  ApprovalRiskRecordFailure,
+  DecideApprovalInput,
+  RecordApprovalDecisionInput,
+  RecordApprovalRiskClassifiedInput,
+} from './core/approval/decision/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
