@@ -69,7 +69,8 @@ model class, effort, suggested-tier floor, reasoning tier, and rationale only.
 
 1. Start with `source-readiness.md`. Refuse missing Gate 1 tokens, ambiguous epic selection,
    source conflicts, self-blocking ready contracts, readiness-contract preflight failures
-   (substrate-presence PD-9, predicate-input PD-10, or failure-token/catalog closure PD-11; see
+   (substrate-presence PD-9, predicate-input PD-10, failure-token/catalog closure PD-11, or
+   manifest/gate-lane coverage PD-12; see
    `references/source-readiness.md`),
    source vagueness that would require invention, or the wrong worktree.
 2. Use `package-layout.md` to create or update only the selected epic's execution package.

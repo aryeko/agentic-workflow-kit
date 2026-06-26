@@ -32,6 +32,17 @@ Refuse and report exact blockers when any condition is true:
 - A required acceptance criterion cannot trace to frozen design without inventing requirements.
 - A required acceptance criterion or failure trigger cannot be evaluated from declared request fields,
   consumed events/projections, producer-owned fields, or an in-scope resolver.
+- A listed consumer of a producer inside the current DAG has no labelled DAG dependency edge to its
+  producer, or the DAG has no dependency/shared-shape reconciliation entry naming the consumed shape or
+  predicate. Consumers of prior frozen producers are covered by the reconciliation entry, not by invented
+  intra-DAG edges. A missing applicable edge or reconciliation entry is a Gate 3 phantom-consumer defect;
+  do not wait for story contracts to prove it.
+- Any spec-surface manifest item cannot trace through `manifest item -> AC -> standing gate lane`, or any
+  non-command evidence lacks a concrete file range, fixture id, or generated artifact id.
+- A pure, value-only, classifier-only, or projection-only story owns writer, append, persistence, or
+  event-log obligations without explicitly owning the writer seam.
+- An unattended recovery, clear, apply, auto-retry, or similar safety action lacks the classification
+  producer and committed `auto-recover` or relevant gate record required before execution.
 - A failure / degraded / validation token consumed by a story is unowned, ambiguous, absent from the
   cited producer catalog, stronger than frozen design, or backed only by prose instead of exact literals
   in enforced fixtures / catalog tests.
@@ -73,11 +84,18 @@ or Gate 1 evidence.
    frozen) and that the producer enumerates the exact literals in enforced fixtures / catalog tests. An
    event consumed by any story but produced by none, or a consumed token that is unowned, ambiguous, absent
    from its producer catalog, stronger than design, or prose-only, is a DAG-level closure defect — Gate 3
-   fails until assigned to a producer node/catalog or escalated as a design gap. Record both reconciliation
-   tables in the DAG before freezing. Do not author contracts against a draft DAG.
+   fails until assigned to a producer node/catalog or escalated as a design gap. Also reject phantom
+   consumers at the DAG level: every listed consumer of a current-DAG producer must have a labelled
+   dependency edge to that producer and a dependency/shared-shape reconciliation row naming the consumed
+   shape or predicate; consumers of prior frozen producers are valid through that reconciliation row, not
+   through invented intra-DAG edges. Story
+   contracts do not exist yet at Gate 3; Gate 4 later verifies that each contract consumes the
+   DAG-declared shape or predicate. Record event/record, failure-token/catalog, and DAG edge -> consumed
+   shape/predicate reconciliation tables in the DAG before freezing. Do not author contracts against a
+   draft DAG.
 6. Author each story contract against the frozen DAG. Each contract must satisfy Gates 4-6: falsifiable self-contained ACs whose evidence clause names a concrete assertion (exact value, `never`-exhaustiveness switch, named negative fixture, or a runnable sweep) — not a bare test-file path; complete spec-surface manifest; predicate-input coverage showing every runtime branch value comes from declared inputs, consumed events/projections, producer-owned fields, or an in-scope resolver; **producer-closure coverage: for every required field of every record/event this story produces and every required public symbol it exposes, the contract names a declared source (an input field, an owned-pathset file, or an explicit minting rule) — a required output with no reachable source is a blocking closure defect**; failure/degraded or validation-failure table with each token mapped to one owning AC; public exposure/import path/import test where applicable; constructability; numeric file-size budget; and runnable sweeps. Tick also the **Proof-substrate
-   match**, **Predicate-input closure — relational & compound**, and **Failure-token/catalog closure**
-   Gate-4 boxes (see
+   match**, **Predicate-input closure — relational & compound**, **Failure-token/catalog closure**, and
+   **Manifest coverage** Gate-4 boxes (see
    `references/stage-contract.md`).
 7. Run characterization review before setting `story: ready`. A spec-reviewer can assist, but the architect owns the verdict. The review must include: (a) per-story design→AC completeness — for every fail-closed invariant and every emitted event the design states for the story's signal, assert it maps to at least one AC (gates check AC→design; this is the mirror direction); (b) producer-closure — the predicate-input matrix has produced-obligations rows for every required field of every produced record/event and every required public symbol; (c) sweep vocabulary — no forbidden-token set bans a token in the story's own ACs or normative design vocabulary; (d) failure-token/catalog closure — every story token resolves to exactly one authoritative producer catalog recorded in the DAG, consumer stories invent none, and producer catalogs enumerate exact literals in enforced fixtures / catalog tests. Record each load-bearing scope decision (node boundaries, single-producer hoists, value-type seams, catalog/invariant ownership splits, cross-epic deferrals) with rationale, the design line it traces to, a falsification criterion, and an escalation path; a bare checklist or "all checks passed" summary does not satisfy the gate. Findings must quote the contradicted design line or AC and classify story-defect vs design-defect.
 8. Backfill the target epic charter README's owning-story cells for covered or split signals. Do not update the global coverage rollup for story ownership.
@@ -92,7 +110,10 @@ or Gate 1 evidence.
     fix.
 11. Show Gate 1 evidence: frozen DAG, whole-graph event/record and failure-token/catalog
     reconciliations, all selected stories ready, coverage closed, characterization-review evidence,
-    independent-review verdict, and verification commands/results.
+    independent-review verdict, and verification commands/results. Where the epic contains the relevant
+    surface, include the regrade matrices explicitly: event/record producer-consumer reconciliation,
+    manifest item -> AC -> gate lane, DAG edge -> consumed shape/predicate source, and safety action ->
+    classification/gate source.
 12. Stop. Report that the next stage is `plan-delivery`.
 
 ## Hard Boundaries

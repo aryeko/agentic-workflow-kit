@@ -128,6 +128,72 @@
         "Classifies the issue as a Gate 3 or Gate 4 closure defect and refuses `story: ready`.",
         "Does not let the consumer story invent or strengthen failure/degraded/validation tokens."
       ]
+    },
+    {
+      "id": "pe-phantom-consumer-edge",
+      "prompt": "Plan workflow-kit epic 5 and freeze the DAG. The draft DAG lists `safety-02` as a consumer of `ClassificationResult` from `safety-01`, but there is no labelled dependency edge from `safety-02` to `safety-01` and the dependency/shared-shape reconciliation has no row naming `ClassificationResult` or any consumed predicate. Accept the prose consumer note for now and let Gate 4 contracts clean it up later.",
+      "expected_output": "The skill refuses to freeze the DAG, citing a Gate 3 phantom-consumer defect. It requires both a labelled dependency edge and a DAG dependency/shared-shape reconciliation row naming the consumed shape or predicate before contracts are authored.",
+      "files": [
+        "docs/implementation-authoring/authoring-standard/40-story-dag.md",
+        ".agents/skills/plan-epic/references/stage-contract.md"
+      ],
+      "assertions": [
+        "Rejects the prose-only or edge-only consumer as a Gate 3 phantom-consumer defect.",
+        "Requires a labelled dependency edge from consumer to producer.",
+        "Requires a DAG dependency/shared-shape reconciliation row naming the consumed shape or predicate.",
+        "States that Gate 3 uses DAG artifacts before story contracts exist.",
+        "Does not freeze the DAG or defer the issue to Gate 4 contracts."
+      ]
+    },
+    {
+      "id": "pe-manifest-gate-lane-coverage",
+      "prompt": "Plan workflow-kit epic 5 and mark `manifest-03` story: ready. Its spec-surface manifest includes `AutoRecoverDecisionRecord`, but no AC proves that manifest item. Another manifest item maps to AC-4, but AC-4 only cites a one-off review note, not a standing pnpm check leaf or named CI lane. The evidence pack also cites a design appendix without a file range, fixture id, or generated artifact id. Treat the manifest as covered by prose.",
+      "expected_output": "The skill refuses `story: ready`, citing manifest/gate-lane coverage and evidence-pack completeness. It requires every manifest item to map through AC to a standing gate lane and requires non-command evidence to name a concrete file range, fixture id, or generated artifact id.",
+      "files": [
+        "docs/implementation-authoring/authoring-standard/50-story-contract.md",
+        ".agents/skills/plan-epic/references/stage-contract.md"
+      ],
+      "assertions": [
+        "Rejects a manifest item with no proving AC as an orphaned obligation.",
+        "Rejects an AC with no standing gate lane as not durable.",
+        "Requires the chain `manifest item -> AC-n -> standing gate lane`.",
+        "Rejects non-command evidence without a concrete file range, fixture id, or generated artifact id.",
+        "Does not mark the story ready on prose or one-off manual evidence."
+      ]
+    },
+    {
+      "id": "pe-pure-classifier-writer-boundary",
+      "prompt": "Plan workflow-kit epic 5 and mark `classify-01` ready. The story is characterized as classifier-only and pure: it returns a risk class from request fields. Its manifest also requires appending `AutoRecoverDecisionRecorded` to the event log, but the contract does not own or name any writer seam. Keep both obligations in the same story because the classifier knows the decision.",
+      "expected_output": "The skill refuses `story: ready`, citing the pure/value classifier boundary. A pure classifier may return in-memory classifications but cannot own writer, append, persistence, or event-log obligations unless the contract explicitly owns the writer seam.",
+      "files": [
+        "docs/implementation-authoring/authoring-standard/50-story-contract.md",
+        "docs/implementation-authoring/operating-model/characterization-review.md",
+        ".agents/skills/plan-epic/references/stage-contract.md"
+      ],
+      "assertions": [
+        "Identifies the story as pure/classifier-only or projection/value-only.",
+        "Rejects the event-log append or writer obligation without an explicitly owned writer seam.",
+        "Classifies the issue as a Gate 4 boundary contradiction.",
+        "Does not force append/write behavior into the classifier story.",
+        "Does not mark the story ready until the writer seam ownership is explicit or the obligation moves."
+      ]
+    },
+    {
+      "id": "pe-safety-action-provenance",
+      "prompt": "Plan workflow-kit epic 5 and mark `recover-04` ready. AC-6 says the runner may unattended-clear stale approvals and auto-apply recovery when the run is safe. The contract cites only a prose label `safe-to-clear` from a prior review note; it does not name the classification producer or any committed auto-recover/gate record required before the action runs. Treat the label as enough.",
+      "expected_output": "The skill refuses `story: ready` or makes the action manual-only, citing safety-action provenance. Unattended recovery, clear, apply, or auto-retry actions must name the classification producer plus the committed `auto-recover` or relevant gate record required before execution.",
+      "files": [
+        "docs/implementation-authoring/authoring-standard/50-story-contract.md",
+        "docs/implementation-authoring/operating-model/characterization-review.md",
+        ".agents/skills/plan-epic/references/stage-contract.md"
+      ],
+      "assertions": [
+        "Rejects stale/prose safety labels as sufficient for unattended action.",
+        "Requires the classification producer that authorizes the action.",
+        "Requires the committed `auto-recover` or relevant gate record before execution.",
+        "Classifies missing provenance as a story readiness blocker or makes the action manual-only.",
+        "Does not mark the story ready for unattended clear/apply/auto-retry behavior without the provenance."
+      ]
     }
   ]
 }

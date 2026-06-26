@@ -1,7 +1,7 @@
 # plan-delivery Evals
 
 **Skill under test:** `plan-delivery`
-**Version pin (combined skill hash):** `75a0f4a11e14f5a2`
+**Version pin (combined skill hash):** `62642619f2cc800c`
 **Status:** active
 
 Recompute with:
@@ -14,7 +14,7 @@ find SKILL.md references agents evals -type f 2>/dev/null | LC_ALL=C sort |
   shasum -a 256 | cut -c1-16
 ```
 
-These evals operationalize PD-1 through PD-11 from
+These evals operationalize PD-1 through PD-12 from
 `docs/implementation-authoring/delivery-pipeline/30-plan-delivery.md`.
 
 ## Coverage Matrix
@@ -32,6 +32,10 @@ These evals operationalize PD-1 through PD-11 from
 | PD-9: substrate-presence preflight: refuses `ready_for_implementation` when a coverage lane is named but the spec-surface manifest declares no runtime-value export — a retained type-only marker alone does **not** trigger (an `as const` catalog passes); reads the manifest, not the pathset | `negative-refuse-type-only-coverage-lane`, `positive-allow-as-const-catalog-type-only-marker` |
 | PD-10: predicate-input preflight: refuses when an AC closure row names an input category not a concrete `Producer/Type.field`, or any relational sub-predicate leaves an operand unsourced (counted **per sub-predicate, not per AC** — a compound AC with ≥2 fields in total still refuses if one sub-predicate operand is unsourced); reads the manifest, not the pathset | `negative-refuse-unsourced-relational-predicate`, `negative-refuse-compound-ac-unsourced-suboperand` |
 | PD-11: failure-token/catalog closure preflight: refuses `ready_for_implementation` when any selected story consumes a failure / degraded / validation token that is unowned, ambiguous, absent from the cited producer catalog, stronger than design, or backed only by prose instead of enforced exact-literal fixtures / catalog tests | `negative-refuse-unowned-failure-token` |
+| PD-12: manifest/gate-lane coverage preflight: refuses `ready_for_implementation` when any spec-surface manifest item lacks `manifest item -> AC -> standing gate lane`, or when non-command evidence lacks a concrete range, fixture id, or generated artifact id | `negative-refuse-orphaned-manifest-obligation` |
+| Source Gate 3 regrade: refuses source DAGs with phantom consumers before packaging | `negative-refuse-phantom-consumer-source` |
+| Source Gate 4 boundary regrade: refuses pure/value/classifier/projection stories owning writer/append/persistence/event-log obligations without an explicit writer seam | `negative-refuse-pure-classifier-writer-obligation` |
+| Source Gate 4 safety regrade: refuses unattended recovery/clear/apply/auto-retry actions missing classification producer and committed gate record | `negative-refuse-safety-action-missing-provenance` |
 
 ## Expected Evidence
 
@@ -43,6 +47,9 @@ For a passing positive run, inspect the generated package and require:
 - Source readiness refuses any selected ready story whose consumed failure / degraded / validation token
   does not close against exactly one authoritative producer catalog with enforced exact-literal fixtures /
   catalog tests.
+- Source readiness refuses phantom consumers, orphaned manifest obligations or incomplete non-command
+  evidence, pure/value/classifier writer-boundary contradictions, and unattended safety actions missing
+  classification producer plus committed gate record.
 - `plan.md`, `tracker.md`, and every prompt contain source story id and source `AC-n` ids.
 - Routing uses abstract model class, effort, suggested-tier floor, reasoning tier, and rationale only.
 - No Codex `agent_type` values appear in `plan.md`, `tracker.md`, packaged prompts, or source planning

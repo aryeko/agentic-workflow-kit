@@ -92,7 +92,7 @@ is set by the frozen Epic 5 story DAG.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Recovery evidence snapshot and classifier result records. | `split(core-06-s1-recovery-contracts: snapshot/result contracts; core-06-s2-recovery-classifier: classifier result record)` | split(snapshot/result contracts; classifier result record) |
+| Recovery evidence snapshot and classifier result records. | `split(core-06-s1-recovery-contracts: snapshot/result contracts; core-06-s2-recovery-classifier: pure classifier/result payload; core-06-s4-recovery-plan-apply: committed classification record)` | split(snapshot/result contracts; classifier payload; committed classification record) |
 | Recovery state taxonomy and stable failure ordering. | `split(core-06-s1-recovery-contracts: taxonomy/catalog producer; core-06-s2-recovery-classifier: stable-order behavior)` | split(taxonomy/catalog producer; stable-order behavior) |
 | Action-safety classes: auto-safe, operator-required, and forbidden. | `split(core-06-s1-recovery-contracts: safety catalog; core-06-s2-recovery-classifier: matrix behavior)` | split(safety catalog; matrix behavior) |
 | `story-launch:<workSourceId>:<trackId>:<taskId>` lease acquisition, duplicate blocking, and stale launch clearing records. | `core-06-s3-launch-leases` | covered |

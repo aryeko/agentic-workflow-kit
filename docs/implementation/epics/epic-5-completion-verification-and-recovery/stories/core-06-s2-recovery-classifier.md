@@ -195,6 +195,13 @@ The `packages/sdk/src/core/recovery/classifier/**` module, tests, fixtures, and 
 - Design -> AC completeness: stable order, action-safety, resume/restart, ambiguous/fail-closed modes,
   classifier payload, and plan-id determinism map to AC-1..AC-7.
 - Producer closure: `RecoveryClassified` fields have sources above.
+- Pure/value/classifier boundary: AC-6 produces only return payload values for a caller-owned append
+  path; the spec surface names no `RunWriter`, append intent, lease store, provider client, or mutable
+  projection obligation. Writer/apply responsibilities remain in `core-06-s4` and reconciliation
+  projection responsibilities remain in `core-06-s5`.
+- Safety-action provenance: AC-2 may mark rows `auto-safe` only as candidate classifications carrying
+  `requiredGate === "auto-recover"`; no recovery, clear, apply, auto-retry, provider-control, or
+  lifecycle-edge action is executed or recorded by this pure classifier story.
 - Sweep vocabulary: forbidden tokens do not ban normative recovery literals.
 - Failure-token/catalog closure: all consumed states/actions are produced by `core-06-s1`.
 - Verdict: ready.

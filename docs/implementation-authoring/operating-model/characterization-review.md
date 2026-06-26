@@ -41,6 +41,18 @@ defects left, before any code is written. Output the binding `ready` flag.
 - **Producer-closure pass (per story).** Verify the contract's produced-obligations section of the
   predicate-input matrix exists and covers every required field of every produced record/event and every
   required public symbol. A row with no declared source is a closure defect.
+- **Manifest coverage pass (per story).** Verify every spec-surface manifest item maps to a proving AC,
+  and every proving AC maps to a standing `pnpm check` leaf or named CI lane. A manifest item with no AC,
+  or with only manual/prose evidence and no standing gate lane, is an orphaned obligation and a
+  story-defect finding.
+- **Pure/value classifier boundary pass (per story).** If a story is characterized as pure, value-only,
+  classifier-only, or projection-only, verify it owns no writer, append, persistence, or event-log
+  obligation unless the contract explicitly names the writer seam it owns. A pure classifier with an
+  unnamed writer obligation is a boundary contradiction, not dispatchable scope.
+- **Safety-action provenance pass (per story).** Verify every unattended recovery, clear, apply,
+  auto-retry, or similar safety action names the classification producer and the committed gate record
+  required before execution. A safety action backed only by stale state, prose classification, or an
+  uncommitted/manual check is a source gap.
 - **Failure-token/catalog closure pass (story + DAG).** Verify every failure / degraded / validation token
   in the story resolves to exactly one authoritative producer catalog: the story-owned catalog, or an
   earlier frozen design / producer catalog recorded in the DAG reconciliation. Consumer stories cannot

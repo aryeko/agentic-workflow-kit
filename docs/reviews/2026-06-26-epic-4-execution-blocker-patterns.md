@@ -59,9 +59,9 @@ flowchart TD
   E3["Epic 3 merged<br/>PR #144 / cb7e3f8"] --> P150["#150 repair Epic 4 export pathsets"]
   P150 --> P151["#151 close producer-consumer design defects"]
   P151 --> P152["#152 reset stale Epic 4 plans"]
-  P152 --> P153["#153 recreate Epic 4 story planning"]
-  P153 --> P155["#155 reform delivery model + skills"]
-  P155 --> P157["#157 add fresh Epic 4 execution package"]
+  P152 --> P155["#155 reform delivery model + skills"]
+  P155 --> P153["#153 recreate Epic 4 story planning"]
+  P153 --> P157["#157 add fresh Epic 4 execution package"]
   P157 --> P158["#158 harden proof-substrate + predicate-input gates"]
   P158 --> P159["#159 design workspace-to-approval seam"]
   P159 --> P160["#160 plan R2 producer + Epic 4 consumer"]
@@ -106,7 +106,7 @@ Evidence used:
 - PR #150, #151, #152, #153, #155, #157, #158, #159, #160, #161, #162, #163, #166.
 - `docs/reviews/2026-06-25-producer-consumer-closure-audit.md`.
 - `docs/reviews/2026-06-25-barrel-coownership-and-closure-wiring-plan.md`.
-- Current lessons ledger entries LSN-08 and LSN-24 through LSN-31.
+- Current lessons ledger entries LSN-08 and LSN-24 through LSN-34.
 - Current `plan-epic`, `plan-delivery`, and `orchestrated-delivery` skill contracts.
 
 Verification performed during this analysis:
@@ -210,6 +210,7 @@ a required event field or public surface. That is architecture-level ownership, 
 
 Cover now in place:
 
+- LSN-33 for the general produced-output source-closure class.
 - Gate 3 whole-graph event/record producer reconciliation.
 - Gate 4 producer-closure rows.
 - `plan-epic` requires reconciliation before `story: ready`.
@@ -379,8 +380,12 @@ The lessons ledger is in sync with the Epic 4 design-fix classes found in this a
 | LSN-29 | Proof-substrate mismatch for erased type producers. | covered |
 | LSN-30 | Relational predicate operand closure. | covered |
 | LSN-31 | Failure-token/catalog closure. | covered |
+| LSN-33 | Producer-closure for required produced fields/events/public symbols with no declared source. | covered |
+| LSN-34 | Repeated orphaned manifest obligations must map to ACs and standing gate lanes. | covered |
 
-No missing Epic 4 design-fix lesson was identified.
+No missing Epic 4 design-fix lesson remains after adding LSN-33 for the umbrella producer-closure class
+and LSN-34 for repeated orphaned manifest obligations. Evidence-pack range/artifact-id omissions remain
+LSN-15 / Gate 5 coverage hardening.
 
 Notes:
 
@@ -402,7 +407,7 @@ A crude, non-normalized ledger count shows the risk:
 | Foundational / Epic 0 | LSN-01..LSN-07 | 7 | Early substrate, proof, coverage, and command-shape hardening. |
 | Epic 1 | LSN-08..LSN-20 | 13 | Large batch; includes public exposure, seams, fail-closed behavior, worktree/review operations, and model-tier issues. |
 | Epic 3 | LSN-21..LSN-23 | 3 | Fewer new classes, focused on predicate input, standing-gate proof, and parity-test tautology. |
-| Epic 4 | LSN-24..LSN-31 | 8 | Spike in authoring/meta-closure classes discovered during re-plan and delivery. |
+| Epic 4 | LSN-24..LSN-34 | 11 | Spike in authoring/meta-closure classes discovered during re-plan and delivery. |
 
 This is not an apples-to-apples metric. Epic sizes differ, audit intensity differed, and some Epic 4
 lessons generalize earlier issues rather than representing entirely new conceptual ground. Still, the
@@ -538,6 +543,6 @@ The practical test for future epics is simple:
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Codex Custom-Agent Bindings and Orchestration Message Plan](./2026-06-26-codex-custom-agent-skill-bindings-plan.md) · **Next →:** [roadmap](../roadmap.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Codex Custom-Agent Bindings and Orchestration Message Plan](./2026-06-26-codex-custom-agent-skill-bindings-plan.md) · **Next →:** [Orchestrated-Delivery Operator UX Design](./2026-06-26-orchestrated-delivery-operator-ux-design.md)
 
 <!-- /DOCS-NAV -->

@@ -29,8 +29,8 @@ If these sources do not answer a contract question, this story is not ready.
 - Events / append intents: `ReconciliationBlocked`.
 - Provider operations / commands: none.
 - Failure and degraded tokens: consumes `RecoveryState` and failure modes from `core-06-s1`.
-- Evidence records / attestations: `RecoveryClassified`, story-launch lease records, recovery plan/apply
-  records, evidence refs, cursor.
+- Evidence records / attestations: committed `RecoveryClassified` events from `core-06-s4`,
+  story-launch lease records, recovery plan/apply records, evidence refs, cursor.
 
 ## Responsibilities
 
@@ -53,8 +53,9 @@ If these sources do not answer a contract question, this story is not ready.
 - Covers signals: blocked reconciliation records and recovery projection signals.
 - Depends on: `core-06-s1`, `core-06-s2`, `core-06-s3`, `core-06-s4`, core-01 replay/projection contracts.
 - Depended on by: Epic 7 operator attention, inspect, explain, and recovery surfaces.
-- Shared shapes consumed: `RecoveryClassified`, `StoryLaunchLeaseAcquired`, `DuplicateLaunchBlocked`,
-  `StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`, `RecoveryActionPlanned`,
+- Shared shapes consumed: committed `RecoveryClassified`, `StoryLaunchLeaseAcquired`,
+  `DuplicateLaunchBlocked`, `StaleLaunchClearanceRequested`, `StoryLaunchLeaseCleared`,
+  `RecoveryActionPlanned`,
   `RecoveryActionApplied`, `ReconciliationBlocked`.
 - Decision inputs consumed: event envelope type, event sequence/cursor, event payload fields, recovery
   state, parked reason/severity, evidence refs.
@@ -101,7 +102,7 @@ If these sources do not answer a contract question, this story is not ready.
 | AC or failure row | Predicate / branch value | Declared source value | Producer / resolver | Verdict |
 |---|---|---|---|---|
 | AC-1 | severity literal and parked fields | request severity, reason, cursor, evidence refs | request + `core-06-s1` | decidable |
-| AC-2 | no safe apply path | `RecoveryClassification.actionSafety`, plan/apply status | `core-06-s2`, `core-06-s4` | decidable |
+| AC-2 | no safe apply path | committed `RecoveryClassified.actionSafety`, plan/apply status | `core-06-s4` classification/event writer and plan/apply records | decidable |
 | AC-3 | latest projection fields | replay event sequence and payloads | core-01 replay + core-06 event producers | decidable |
 | AC-4 | lease clear key/epoch matches active lease | active lease projection and clear payload | `core-06-s3` events | decidable |
 | AC-5 | deterministic replay | ordered event list | core-01 replay input | decidable |
@@ -112,7 +113,7 @@ If these sources do not answer a contract question, this story is not ready.
 | Produced record/event/symbol | Required field or symbol | Declared source | Verdict |
 |---|---|---|---|
 | `ReconciliationBlocked` | `schema`, `runId`, `recoveryState`, `parkedReason`, `severity`, `evidenceRefs`, `cursor`, `blockedAt` | constant schema, classification/request fields, evidence refs, cursor, injected clock | closed |
-| `RecoveryProjection` | latest classification, active lease, duplicate status, latest plan, parked flag | replayed core-06 event payloads | closed |
+| `RecoveryProjection` | latest classification, active lease, duplicate status, latest plan, parked flag | replayed core-06 event payloads, including committed `RecoveryClassified` | closed |
 | Public symbols | export lines | owned source plus SDK barrel lines | closed |
 
 ## Failure and Degraded Outcomes
@@ -176,6 +177,8 @@ The `packages/sdk/src/core/recovery/reconciliation/**` and
 - Design -> AC completeness: blocked reconciliation payload, projection fields, replay-only invariant,
   lease clear safety, and unwritable behavior map to AC-1..AC-6.
 - Producer closure: all `ReconciliationBlocked` and projection fields have sources.
+- Consumer closure: latest-classification projection consumes the committed `RecoveryClassified` event
+  appended by `core-06-s4`, not the pure `core-06-s2` return value directly.
 - Sweep vocabulary: forbidden tokens do not ban normative recovery projection names.
 - Failure-token/catalog closure: recovery states/failure modes are produced by `core-06-s1`.
 - Verdict: ready.

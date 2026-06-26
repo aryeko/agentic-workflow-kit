@@ -498,6 +498,6 @@ state that it was not independent.
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./2026-06-25-producer-consumer-closure-audit.md) · **Next →:** [Orchestrated-Delivery Operator UX Design](./2026-06-26-orchestrated-delivery-operator-ux-design.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./2026-06-25-producer-consumer-closure-audit.md) · **Next →:** [Epic 4 execution blockers - source-closure profile and prevention buttons](./2026-06-26-epic-4-execution-blocker-patterns.md)
 
 <!-- /DOCS-NAV -->

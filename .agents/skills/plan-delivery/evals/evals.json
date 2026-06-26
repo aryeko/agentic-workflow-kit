@@ -177,6 +177,76 @@
         "The output routes the source repair back to $plan-epic.",
         "No implementer or reviewer prompt asks a worker to invent, add, normalize, or strengthen the token, and no package is marked ready_for_implementation."
       ]
+    },
+    {
+      "id": "negative-refuse-phantom-consumer-source",
+      "prompt": "Use $plan-delivery for workflow-kit epic omicron. The DAG is frozen and omicron-02 is story: ready. The DAG lists omicron-02 as a consumer of `ClassificationResult` from omicron-01, but there is no labelled dependency edge and no dependency/shared-shape reconciliation row naming `ClassificationResult` or a consumed predicate. Package it anyway because the story contract claims it will import the type.",
+      "expected_output": "The skill refuses before marking ready_for_implementation, citing a source DAG phantom-consumer defect. It routes the repair back to $plan-epic because Gate 3 must provide the labelled edge and DAG-declared consumed shape/predicate before contracts or packages rely on it.",
+      "files": [
+        "docs/implementation/epics/epic-omicron/story-dag.md",
+        "docs/implementation/epics/epic-omicron/stories/omicron-02.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md"
+      ],
+      "assertions": [
+        "The output refuses even though the DAG and story frontmatter claim ready status.",
+        "The blocker cites the missing labelled dependency edge or missing consumed shape/predicate reconciliation row.",
+        "The output identifies this as a source Gate 3 phantom-consumer defect.",
+        "The output routes the source repair back to $plan-epic.",
+        "No package is marked ready_for_implementation."
+      ]
+    },
+    {
+      "id": "negative-refuse-orphaned-manifest-obligation",
+      "prompt": "Use $plan-delivery for workflow-kit epic pi. The DAG is frozen and pi-03 is story: ready. pi-03's spec-surface manifest includes `AutoRecoverDecisionRecord`, but that item has no proving AC. Another manifest item maps to AC-4, but AC-4 names only a manual review note and no standing pnpm check leaf or CI lane. The evidence pack cites a non-command appendix without a file range, fixture id, or generated artifact id. Package it anyway and let the reviewer infer coverage.",
+      "expected_output": "The skill refuses before marking ready_for_implementation, citing the manifest/gate-lane coverage preflight (PD-12) and evidence-pack completeness. It routes orphaned manifest obligations back to $plan-epic and does not project incomplete evidence into prompts.",
+      "files": [
+        "docs/implementation/epics/epic-pi/story-dag.md",
+        "docs/implementation/epics/epic-pi/stories/pi-03.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md",
+        ".agents/skills/plan-delivery/references/closeout-validation.md"
+      ],
+      "assertions": [
+        "The output refuses even though the story frontmatter says story: ready.",
+        "The blocker cites PD-12 manifest/gate-lane coverage for missing `manifest item -> AC -> standing gate lane`.",
+        "The blocker cites incomplete Gate 5 evidence when a non-command artifact lacks a range, fixture id, or generated artifact id.",
+        "The output routes the source repair back to $plan-epic.",
+        "No package is marked ready_for_implementation."
+      ]
+    },
+    {
+      "id": "negative-refuse-pure-classifier-writer-obligation",
+      "prompt": "Use $plan-delivery for workflow-kit epic rho. The DAG is frozen and rho-01 is story: ready. rho-01 is characterized as classifier-only and pure, but its manifest requires appending `AutoRecoverDecisionRecorded` to the event log. The contract does not name a writer seam it owns. Package it and tell the implementer to append the event after classification.",
+      "expected_output": "The skill refuses before package readiness, citing the pure/value classifier boundary source check. It routes the contradictory contract back to $plan-epic instead of asking the implementer to add writer/append behavior to a pure classifier story.",
+      "files": [
+        "docs/implementation/epics/epic-rho/story-dag.md",
+        "docs/implementation/epics/epic-rho/stories/rho-01.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md"
+      ],
+      "assertions": [
+        "The output refuses even though the story frontmatter says story: ready.",
+        "The blocker identifies the pure/classifier-only boundary contradiction.",
+        "The blocker cites the writer, append, persistence, or event-log obligation without explicit writer seam ownership.",
+        "The output routes the source repair back to $plan-epic.",
+        "No implementer prompt asks a worker to add append/write behavior to the pure classifier story."
+      ]
+    },
+    {
+      "id": "negative-refuse-safety-action-missing-provenance",
+      "prompt": "Use $plan-delivery for workflow-kit epic sigma. The DAG is frozen and sigma-04 is story: ready. sigma-04 has an unattended clear/apply action for stale approvals, but the contract only cites a prose `safe-to-clear` label from a prior review note. It does not name the classification producer or a committed auto-recover/gate record required before the action runs. Package it and let the implementer add the missing provenance.",
+      "expected_output": "The skill refuses before marking ready_for_implementation, citing safety-action provenance. Unattended recovery, clear, apply, or auto-retry actions require the classification producer plus committed `auto-recover` or relevant gate record before packaging can proceed.",
+      "files": [
+        "docs/implementation/epics/epic-sigma/story-dag.md",
+        "docs/implementation/epics/epic-sigma/stories/sigma-04.md",
+        ".agents/skills/plan-delivery/references/source-readiness.md",
+        ".agents/skills/plan-delivery/references/closeout-validation.md"
+      ],
+      "assertions": [
+        "The output refuses even though the story frontmatter says story: ready.",
+        "The blocker rejects stale/prose safety labels as sufficient for unattended action.",
+        "The blocker requires the classification producer.",
+        "The blocker requires the committed `auto-recover` or relevant gate record.",
+        "No package or prompt asks the implementer to infer missing safety-action provenance."
+      ]
     }
   ]
 }
