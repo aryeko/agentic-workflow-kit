@@ -1,6 +1,6 @@
 ---
-title: "Epic 4 execution blockers - pattern profile and prevention buttons"
-status: "review: complete"
+title: "Epic 4 execution blockers - source-closure profile and prevention buttons"
+status: "review: revised"
 created: "2026-06-26"
 scope: "Epic 4 design, planning, package, and execution blockers after Epic 3 landed"
 owner: architect
@@ -97,6 +97,9 @@ The analysis used an evidence-first audit method:
    Ordinary implementation mistakes stay with reviewer practice unless they recur.
 5. **Validate current enforcement shape.** Confirm that the relevant skills still validate structurally
    and that the current docs contain the covering gates/preflights.
+6. **Backtest the new gates at artifact level.** Re-run several historical blockers against the current
+   Gate 3 / Gate 4 / `plan-delivery` refusal rules by inspection. This is a desk backtest, not a full
+   semantic eval run; that distinction is load-bearing.
 
 Evidence used:
 
@@ -130,6 +133,16 @@ substrate, failure catalogs, or graph-level producer assignments.
 That made the delivery package look executable while leaving the implementer to discover missing
 decisions during execution.
 
+The strongest version of this finding is also the main caveat:
+
+> The current repo now contains the prevention rules, and artifact-level backtests show the historical
+> blockers should trip them. It does **not** yet prove the rules fire automatically in every future
+> session, because skill validation is structural and the repo does not currently provide a local semantic
+> eval runner for all planning/delivery skill cases.
+
+So the prevention model is coherent, but not fully proven. Treat "covered" as "covered by documented
+gate/skill contract plus desk backtest," not as "continuously enforced by an executable harness."
+
 ```mermaid
 flowchart LR
   A["Prose readiness claim"] --> B{"Can claim be reconstructed<br/>from artifacts?"}
@@ -140,24 +153,38 @@ flowchart LR
   D --> G["Route back to planning/design"]
 ```
 
-## Issue taxonomy and buttons
+## Source-closure law and buttons
 
-The table below is the practical profile. A "button" is the review question or gate check that should be
-pressed before a package is marked ready.
+The earlier draft presented nine peer buckets. That overstates the diversity. Six of them are variants
+of one source-closure law:
 
-| Bucket | Failure shape | Why it blocked execution | Button |
+> A story is not ready when it requires an artifact and cannot name the producer or source that makes the
+> artifact available.
+
+A "button" is the review question or gate check that should be pressed before a package is marked ready.
+
+| Source-closure variant | Required artifact with no named source | Why it blocked execution | Button |
 |---|---|---|---|
 | Producer-consumer closure | A required produced field/event/public symbol had no reachable producer. | Implementers could not construct the requested value without inventing a source. | For every produced record/event field and public symbol, name the exact input field, producer-owned field, owned file, resolver, or minting rule. |
 | Public exposure ownership | A story had a public SDK import AC but did not own its `packages/sdk/src/index.ts` export line. | Workers were asked to prove public importability without permission to wire the public entrypoint. | Every public-symbol story owns its own barrel export line plus public-import test. |
 | Whole-graph orphan | A consumed event or failure token had no producer anywhere in the DAG, so per-story checks could pass falsely. | Dependency order looked valid while the graph lacked the thing consumers waited for. | Reconcile every consumed event, record, and shared failure token to exactly one producer before freezing the DAG. |
-| Design-to-AC incompleteness | ACs traced to design, but not every design invariant traced back to an AC. | Important behavior such as resume capability freshness could be silently dropped. | Run the mirror pass: every design-stated invariant, emitted event, and failure behavior maps to at least one AC. |
 | Proof-substrate mismatch | A type-only story carried runtime coverage requirements. | Coverage could be vacuously green because TypeScript types erase and V8 sees no executable statements. | If a coverage lane is required, identify the runtime substrate: function, enum, `export const`, or `as const` catalog. Otherwise use type fixtures and public-import tests. |
 | Predicate-input gap | A relational safety predicate named only one concrete operand. | Tests could pass while the implementation approximated the missing operand and failed open. | For each relational sub-predicate, name both operands as concrete fields, not categories. |
 | Failure-token/catalog drift | A consumer failure table invented or referenced a token missing from the producer catalog/design. | Worker had to invent policy vocabulary or stop. | Every consumed failure/degraded/validation token must exist in one authoritative producer catalog with exact-literal tests. |
+
+Three remaining buckets are not source-closure variants. They are process/model defects:
+
+| Defect | Failure shape | Why it blocked execution | Button |
+|---|---|---|---|
+| One-directional gates | ACs traced to design, but not every design invariant traced forward to an AC. | Important behavior such as resume capability freshness could be silently dropped. | Run the mirror pass: every design-stated invariant, emitted event, and failure behavior maps to at least one AC. |
 | Design-skill drift | Docs were repaired, but skills still encoded the older workflow or only prose safeguards. | Old behavior could be regenerated by the next planning or delivery run. | Rule lives in one design source of truth; skills reference and enforce it; evals or static checks cover the behavior. |
 | Execution model mismatch | Shared-file fears from an older shared-worktree model shaped the barrel plan. | The package over-serialized or treated append-only aggregation as a special ownership problem. | Distinguish logic-bearing conflicts from append-only aggregation overlaps; handle the latter by per-story ownership plus rebase. |
 
 ## Detailed analysis
+
+Sections 1-3 and 5-7 below are all source-closure variants. They stay separated because each has a
+different artifact surface and a different gate/preflight, but they should not be treated as independent
+root causes.
 
 ### 1. Producer-consumer closure was the root class
 
@@ -312,6 +339,31 @@ Cover now in place:
 - `plan-delivery` refuses `ready_for_implementation` on substrate, predicate, or token closure gaps.
 - `orchestrated-delivery` executes packages only; it does not repair package scope or ACs.
 
+## Artifact-level backtest
+
+This is the missing verification layer between "the rule exists" and "the rule works." The table below
+replays representative historical blockers through the current gates by inspection.
+
+Limits:
+
+- This is not an executable semantic eval run. It does not prove the skills will always fire correctly in
+  a live session.
+- It does prove that the current documented gates and preflight contracts contain the exact refusal shape
+  that the historical blocker would require.
+- Where the skill evals contain matching negative cases, that is supporting evidence for the skill
+  contract, not a substitute for a runnable eval harness.
+
+| Historical blocker | New rule that should trip | Desk-backtest result | What still is not proven |
+|---|---|---|---|
+| `core-04-s1` carried a statement/branch coverage bar over a type-only producer. | Gate 4 **Proof-substrate match** plus `plan-delivery` substrate-presence preflight. | Would refuse: the current rule rejects a coverage lane when the spec-surface manifest declares no runtime-value export (`export const`, `as const`, enum, or function). | No local semantic runner was executed against the historical package. |
+| `core-03-s2` needed "cwd inside/outside workspace" but lacked a trusted workspace-root operand. | Gate 4 **Predicate-input closure - relational & compound** plus `plan-delivery` predicate-input preflight. | Would refuse: the current rule requires both operands of every relational sub-predicate as concrete fields and rejects category rows like "normalized request." | The backtest is by rule inspection; it does not replay the old package through a live planner. |
+| `core-03-s3` consumed `approval-resume-capability-missing`, absent from the producer failure catalog. | Gate 3 whole-graph failure-token/catalog reconciliation, Gate 4 failure-token/catalog closure, and PD-11. | Would refuse: the current rule rejects consumed tokens that are unowned, absent from the cited producer catalog, stronger than design, or prose-only. | Exact catalog diff was not run through a machine checker. |
+| `ApprovalDecisionRecorded` / `ApprovalRiskClassified` were consumed without a producing story in an earlier plan. | Gate 3 whole-graph event/record producer reconciliation and PE-12. | Would refuse: the current rule requires every consumed event/record to map to exactly one story in the DAG or a prior frozen epic. | The rule is documented and in skill eval text; runtime skill enforcement still depends on the planner following the skill. |
+| Public import ACs required SDK exposure while the story pathset excluded `packages/sdk/src/index.ts`. | Gate 4 public exposure plus same-logic / barrel ownership rule. | Would refuse: a public-symbol story must own its own `index.ts` export line and public-import test; sharing the barrel is handled as append-only aggregation, not by excluding it. | Rebase behavior for real future overlaps is exercised only during delivery, not by this doc. |
+
+Conclusion: the backtest supports the cure at the artifact level. It does not remove the need for a
+runnable semantic eval harness or real end-to-end planning exercises after major gate changes.
+
 ## Ledger verification
 
 The lessons ledger is in sync with the Epic 4 design-fix classes found in this analysis.
@@ -337,6 +389,35 @@ Notes:
   a new lessons-ledger entry, unless the same shape recurs.
 - PR #156 fixed concurrent `.turbo` log clobbering. That is execution tooling reliability, not an Epic 4
   design-authoring defect class.
+
+## Trend question
+
+The ledger snapshot is reassuring only in a narrow sense: the Epic 4 classes found here are recorded and
+mapped to covers. It is not enough to prove the planning system is converging.
+
+A crude, non-normalized ledger count shows the risk:
+
+| Period | New lesson ids | Count | Read |
+|---|---:|---:|---|
+| Foundational / Epic 0 | LSN-01..LSN-07 | 7 | Early substrate, proof, coverage, and command-shape hardening. |
+| Epic 1 | LSN-08..LSN-20 | 13 | Large batch; includes public exposure, seams, fail-closed behavior, worktree/review operations, and model-tier issues. |
+| Epic 3 | LSN-21..LSN-23 | 3 | Fewer new classes, focused on predicate input, standing-gate proof, and parity-test tautology. |
+| Epic 4 | LSN-24..LSN-31 | 8 | Spike in authoring/meta-closure classes discovered during re-plan and delivery. |
+
+This is not an apples-to-apples metric. Epic sizes differ, audit intensity differed, and some Epic 4
+lessons generalize earlier issues rather than representing entirely new conceptual ground. Still, the
+direction is not clean convergence. Epic 4 found enough new classes that the system should be treated as
+still maturing, not "done."
+
+The useful forward metric is not only "is the ledger in sync?" It is:
+
+- how many **new** ledger classes appear per future epic;
+- how many blockers are **instances of existing covered classes** versus genuinely new classes;
+- whether a blocker is caught at authoring/package time or only during delivery;
+- whether each new class lands as an executable gate/preflight/eval, not just ledger prose.
+
+If Epic 5 mostly trips existing buttons before delivery, the model is converging. If Epic 5 mints another
+large batch of new classes during execution, the gate set is still chasing the problem.
 
 ## Recommended review checklist
 
@@ -412,20 +493,35 @@ a skill or template that still encodes an older model. After major authoring ref
 - evals or static checks cover it;
 - generated packages reflect the new rule.
 
+### 6. Add executable backtests for the historical blockers
+
+The next hardening step should convert the desk backtest above into runnable checks. The best seed cases
+are:
+
+- type-only producer with a coverage lane (`core-04-s1` class);
+- relational predicate with an unsourced workspace operand (`core-03-s2` class);
+- consumer failure token absent from the producer catalog (`core-03-s3` class);
+- consumed event with no producer in the DAG (`ApprovalDecisionRecorded` class).
+
+These should fail before `ready_for_implementation`, not merely appear in review prose.
+
 ## Residual risks
 
+- **Enforcement remains partially demonstrated.** The report verifies that gates, preflights, and skill
+  contracts exist, and it desk-backtests representative blockers. It does not prove fully automated
+  enforcement because semantic skill eval execution is not available locally for all cases.
 - **Ledger conditional items remain.** Some older lessons outside Epic 4 remain conditional, especially
   signature-level verbatim seam checks and safety-critical invariant tagging. They did not appear as new
   Epic 4 gaps in this analysis, but they remain possible recurrence channels.
-- **Semantic eval execution remains limited.** Skill structural validation passed, but some skill evals are
-  documented rather than executed by a local semantic eval runner.
 - **New planning sessions can still drift if they skip source reads.** The rules are present, but they only
   help if the planning workflow actually reads the owning design and authoring sources.
+- **Trend is not yet convergent.** Epic 4's class-discovery rate was high enough that the next epic should
+  be measured for new-class rate, not just checked for ledger synchronization after the fact.
 
 ## Bottom line
 
 Epic 4 was slowed by undecidable contracts, not by a lack of implementation effort. The durable prevention
-model is now coherent:
+model is now coherent but still needs executable proof:
 
 - design defines the authoritative sources and seams;
 - authoring gates reconstruct readiness from artifacts;
