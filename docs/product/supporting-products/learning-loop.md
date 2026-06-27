@@ -202,6 +202,6 @@ running many tracks in parallel produces independent retro material per track. S
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Define product (supporting product)](./define-product.md) · **Next →:** [Product layer — authoring plan (cross-session playbook)](../authoring-plan.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Design → plan (supporting product)](./design-to-plan.md) · **Next →:** [Product → design (supporting product)](./product-to-design.md)
 
 <!-- /DOCS-NAV -->

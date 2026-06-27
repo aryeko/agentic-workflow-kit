@@ -162,6 +162,6 @@ tracks in parallel, each with its own design advancing at its own pace. See
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Design → plan (supporting product)](./design-to-plan.md) · **Next →:** [Define product (supporting product)](./define-product.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Learning loop (supporting product)](./learning-loop.md) · **Next →:** [design corpus overview](../../design/README.md)
 
 <!-- /DOCS-NAV -->

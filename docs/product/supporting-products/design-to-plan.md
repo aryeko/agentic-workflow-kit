@@ -214,6 +214,6 @@ and work profile are. See [Tracks — parallel independent work](../concepts/tra
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Tracks — parallel independent work](../concepts/tracks.md) · **Next →:** [Product → design (supporting product)](./product-to-design.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Define product (supporting product)](./define-product.md) · **Next →:** [Learning loop (supporting product)](./learning-loop.md)
 
 <!-- /DOCS-NAV -->

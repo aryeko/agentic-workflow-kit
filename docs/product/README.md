@@ -355,8 +355,8 @@ product-level overview — then proceed to the supporting products by priority.
 
 ---
 
-**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [agentic-workflow-kit — documentation home](../README.md) · **Next →:** [Jig — the package (main product)](./products/jig.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [agentic-workflow-kit — documentation home](../README.md) · **Next →:** [Tracks — parallel independent work](./concepts.md)
 
-**Children:** [Jig — the package (main product)](./products/jig.md) · [Tracks — parallel independent work](./concepts/tracks.md) · [Design → plan (supporting product)](./products/design-to-plan.md) · [Product → design (supporting product)](./products/product-to-design.md) · [Define product (supporting product)](./products/define-product.md) · [Learning loop (supporting product)](./products/learning-loop.md) · [Product layer — authoring plan (cross-session playbook)](./authoring-plan.md) · [Product layer — status](./STATUS.md)
+**Children:** [Tracks — parallel independent work](./concepts.md) · [Jig — the package (main product)](./jig.md) · [Product layer — status + authoring plan](./status.md) · [Define product (supporting product)](./supporting-products/define-product.md) · [Design → plan (supporting product)](./supporting-products/design-to-plan.md) · [Learning loop (supporting product)](./supporting-products/learning-loop.md) · [Product → design (supporting product)](./supporting-products/product-to-design.md)
 
 <!-- /DOCS-NAV -->

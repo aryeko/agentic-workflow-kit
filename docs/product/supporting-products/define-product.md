@@ -176,6 +176,6 @@ repo runs many tracks in parallel, each with its own PRD advancing at its own pa
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Product → design (supporting product)](./product-to-design.md) · **Next →:** [Learning loop (supporting product)](./learning-loop.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Product layer — status + authoring plan](../status.md) · **Next →:** [Design → plan (supporting product)](./design-to-plan.md)
 
 <!-- /DOCS-NAV -->

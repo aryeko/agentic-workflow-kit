@@ -386,6 +386,6 @@ the enable-not-build seams (②, CFG-7). And full visibility is what makes _resu
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Product definition](../README.md) · **Next →:** [Tracks — parallel independent work](../concepts/tracks.md)
+**↑ Up:** [Product definition](./README.md) · **← Prev:** [Tracks — parallel independent work](./concepts.md) · **Next →:** [Product layer — status + authoring plan](./status.md)
 
 <!-- /DOCS-NAV -->

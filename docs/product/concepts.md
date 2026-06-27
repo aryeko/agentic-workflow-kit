@@ -56,6 +56,6 @@ suite, not just implied by the implementation.
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Jig — the package (main product)](../products/jig.md) · **Next →:** [Design → plan (supporting product)](../products/design-to-plan.md)
+**↑ Up:** [Product definition](./README.md) · **← Prev:** [Product definition](./README.md) · **Next →:** [Jig — the package (main product)](./jig.md)
 
 <!-- /DOCS-NAV -->
