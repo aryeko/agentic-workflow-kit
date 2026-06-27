@@ -25,8 +25,8 @@ const FAILED_REFUSAL_TOKENS = new Set<ForgeFailureToken>([
   'forge-redaction-unavailable',
 ]);
 
-export const uniqueEvidenceRefs = (refs: readonly EvidenceEventRef[]): readonly EvidenceEventRef[] => [
-  ...new Map(refs.map((ref) => [ref.eventId, ref])).values(),
+export const uniqueEvidenceRefs = (refs: readonly EvidenceEventRef[] | undefined): readonly EvidenceEventRef[] => [
+  ...new Map((refs ?? []).map((ref) => [ref.eventId, ref])).values(),
 ];
 
 export const appendBarrierEvent = async <TPayload>(
@@ -63,6 +63,9 @@ export const buildOutcome = (
 
 export const buildAmbiguousOutcome = (input: RecordPostMergeOutcomeInput): PostMergeOutcomePayload =>
   buildOutcome(input, 'post-merge-outcome-ambiguous', 'blocked');
+
+export const hasDurableExactHeadEvidenceRefs = (input: RecordPostMergeOutcomeInput): boolean =>
+  uniqueEvidenceRefs(input.exactHeadEvidenceRefs).length > 0;
 
 export const isAcceptedMergedEvent = (input: RecordPostMergeOutcomeInput): boolean =>
   input.sourceActionEventType === 'ForgePullRequestMerged';

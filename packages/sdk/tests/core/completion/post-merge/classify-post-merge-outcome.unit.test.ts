@@ -29,6 +29,24 @@ describe('core-05-s5 post-merge outcome classification', () => {
     });
   });
 
+  it('post-merge-confirmed-requires-durable-exact-head-evidence refs and never completes without them', () => {
+    const cases = [
+      createInput({ exactHeadEvidenceRefs: [] }),
+      createInput({
+        exactHeadEvidenceRefs: undefined as unknown as typeof exactHeadEvidenceRefs,
+      }),
+    ];
+
+    for (const input of cases) {
+      const outcome = classifyPostMergeOutcome(input);
+
+      expect(outcome.state).toBe('post-merge-outcome-ambiguous');
+      expect(outcome.lifecycleTarget).toBe('blocked');
+      expect(outcome.evidenceRefs).toEqual([]);
+      expect(outcome.lifecycleTarget).not.toBe('completed');
+    }
+  });
+
   it('post-merge-retryable-refusals map exact-head retryable refusal tokens to merge-waiting', () => {
     const tokens = ['forge-rate-limited', 'forge-merge-queue-unavailable'] as const;
 

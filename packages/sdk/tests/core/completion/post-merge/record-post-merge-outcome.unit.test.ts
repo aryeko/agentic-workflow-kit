@@ -32,6 +32,22 @@ describe('core-05-s5 post-merge outcome recording', () => {
     });
   });
 
+  it('post-merge-record-empty-exact-head-evidence never appends completed when exact-head refs are absent', async () => {
+    const writer = createWriter();
+
+    const result = await recordPostMergeOutcome(createInput({ exactHeadEvidenceRefs: [] }), { writer });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.error.token);
+    }
+
+    expect(result.value.outcome.state).toBe('post-merge-outcome-ambiguous');
+    expect(result.value.outcome.lifecycleTarget).toBe('blocked');
+    expect(result.value.outcome.evidenceRefs).toEqual([]);
+    expect(result.value.outcome.lifecycleTarget).not.toBe('completed');
+  });
+
   it('post-merge-record-unwritable returns no success fact when the append fails', async () => {
     const result = await recordPostMergeOutcome(createInput(), {
       writer: createWriter(() => ({

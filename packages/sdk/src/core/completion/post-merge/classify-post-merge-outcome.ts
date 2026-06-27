@@ -3,6 +3,7 @@ import type { PostMergeOutcomePayload } from '../contracts/index.js';
 import {
   buildAmbiguousOutcome,
   buildOutcome,
+  hasDurableExactHeadEvidenceRefs,
   hasExactObservedHead,
   isAcceptedMergedEvent,
   isRefusedEvent,
@@ -17,6 +18,10 @@ export const classifyPostMergeOutcome = (input: RecordPostMergeOutcomeInput): Po
 
   if (input.actionResult.kind === 'accepted') {
     if (!hasExactObservedHead(input)) {
+      return buildAmbiguousOutcome(input);
+    }
+
+    if (!hasDurableExactHeadEvidenceRefs(input)) {
       return buildAmbiguousOutcome(input);
     }
 
