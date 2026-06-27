@@ -10,9 +10,9 @@ Do not restate AGENTS.md here; reference it.
 
 ## Operating mode
 
-- **Explore → plan → code.** For anything non-trivial, read the relevant `docs/design/`
-  files, then write a plan before implementing (Plan Mode: `shift+tab` twice). Skip the
-  plan only for changes you could describe in one sentence.
+- **Explore → plan → code.** For anything non-trivial, read the relevant files from the
+  `AGENTS.md` task map first, then write a plan before implementing (Plan Mode:
+  `shift+tab` twice). Skip the plan only for changes you could describe in one sentence.
 - **TDD.** Failing test first (RED), implement (GREEN), refactor. Coverage targets are in
   `AGENTS.md`.
 - **Protect context.** Use subagents to investigate the codebase or corpus so the main

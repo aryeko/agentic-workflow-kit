@@ -1,14 +1,15 @@
-# AGENTS.md — Contributor and agent contract for kit-vnext
+# AGENTS.md — Contributor and agent contract for agentic-workflow-kit
 
 This is the canonical contract for anyone — human or agent — doing work in this
 repository. It is deliberately lean: it states the rules that always apply and points to
-where the detail lives. The authoritative design is the corpus under `docs/design/`. Read
-the file that owns your task's subject; do not work from memory and do not duplicate the
-corpus here. (README.md is for humans; this file is for the work.)
+where the detail lives. The authoritative product intent lives under `docs/product/`;
+the authoritative engineering design lives under `docs/design/`. Read the file that owns
+your task's subject; do not work from memory and do not duplicate the corpus here.
+(README.md is for humans; this file is for the work.)
 
 ---
 
-## What kit-vnext is
+## What the suite is
 
 A deterministic control plane that delegates well-scoped work to agent workers and lands
 it as reviewed, merged changes — safely, recoverably, and under human supervision. The

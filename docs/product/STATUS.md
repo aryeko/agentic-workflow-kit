@@ -86,8 +86,7 @@ advertises are NOT installed — ignore them; the real, more rigorous method is 
   `docs/roadmap.md`, and other files remains deferred as a separate downstream sweep.
 - **Refinement** — branding, diagrams, examples across the product docs (later).
 - **Polish** — `define-product.md` uses `PRD-n` as its AC prefix, overloading "PRD" the
-  artifact (disambiguated in-doc, but a rename candidate, e.g. `DEF-n`); add the **superpowers**
-  URL in the README (currently name-only).
+  artifact (disambiguated in-doc, but a rename candidate, e.g. `DEF-n`).
 
 ## Commits
 

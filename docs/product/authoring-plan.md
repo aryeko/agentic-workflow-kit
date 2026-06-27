@@ -20,8 +20,8 @@ and the per-product stubs under [`products/`](products/).
   only a milestone/branch/tag).
 - **Branch `product-layer`**, in a worktree off `v-next`. PR #177 opened against `v-next`. This
   pass is a cleanup/reconciliation pass, not the deep-dive.
-- **Authored so far:** the product definition ([README.md](README.md)); five seeded product
-  stubs (overview + "address when expanding" notes); this playbook. Nothing is deep-dived yet.
+- **Authored so far:** the product definition, tracks concept, and five product-level overviews.
+  This is still high-level scaffolding, not the rigorous per-feature PRD layer.
 
 ## Decisions (and the reasoning)
 
@@ -64,16 +64,16 @@ and the per-product stubs under [`products/`](products/).
 1. **(done)** Brainstorm + capture the product definition → [README.md](README.md).
 2. **(done)** Scaffold per-product stubs with simple overview + "address when expanding"
    notes; add this playbook.
-3. **(next) Deep-dive the package (Jig) first.** Expand [products/jig.md](products/jig.md):
-   pull the product-level view from `docs/design/`; **pin down the execution-plan input
-   schema** (the seam to the upstream); describe policy presets and the deferrable drivers.
+3. **(next) Dogfood `define-product` on Jig first.** Use [products/jig.md](products/jig.md)
+   and [README.md](README.md) as source material to produce the rigorous Jig PRD / feature
+   requirements layer. That PRD should pin down the execution-plan input schema seam, policy
+   presets, and deferrable drivers at product-requirements depth.
 4. **Then the supporting products by priority** — `design→plan` next (it produces the
-   package's input), then `product→design`, then `define-product`, then the `learning-loop`.
-5. **Graduate to a full PRD by dogfooding `define-product`** on this product layer; land it
-   under `docs/product/` (or `docs/prds/<slug>/` per the define-product convention).
-6. **Separately, a mechanical rename pass** later: replace `kit-vnext`-as-a-name across the
+   package's input), then `product→design`, then `define-product`, then the `learning-loop` —
+   each via the same `define-product` dogfood pipeline; land each PRD under `docs/prds/<slug>/`.
+5. **Separately, a mechanical rename pass** later: replace `kit-vnext`-as-a-name across the
    repo (~312 files) once positioning is locked. Distinct from this authoring work.
-7. **Plan phases** only once the product requirements above exist.
+6. **Plan phases** only once the product requirements above exist.
 
 ## Working conventions / guardrails
 
