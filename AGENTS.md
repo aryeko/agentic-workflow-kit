@@ -14,7 +14,9 @@ Codex automatic PR review must follow
 `docs/engineering/codex-github-code-review.md`. Prioritize serious P0/P1
 correctness, safety, contract, and evidence issues; consult the implementation
 lessons ledger for known recurring workflow-kit patterns; avoid style-only
-findings unless `AGENTS.md` explicitly makes them review-blocking.
+findings unless `AGENTS.md` explicitly makes them review-blocking. After
+submitting the GitHub review, publish the required `## Review execution` summary
+as a separate pull-request comment when the review body cannot carry it.
 
 ---
 

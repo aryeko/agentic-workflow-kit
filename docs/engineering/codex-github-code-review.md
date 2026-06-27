@@ -142,11 +142,16 @@ Produce a capped GitHub review:
   fix shape.
 - Explicitly discard or summarize refuted candidates only when doing so prevents
   repeated review churn.
-- Include the execution summary required by
+- Include or publish the execution summary required by
   [codex-review-execution-summary.md](codex-review-execution-summary.md).
+  If the GitHub review body can only carry inline findings, post a separate
+  pull-request comment after the review with the `## Review execution` summary.
+  If a separate comment is unavailable, append the summary to the final finding
+  body as the fallback described in the execution-summary doc.
 
 If no serious issue remains after verification, report that no P0/P1 issues were
-found under this workflow.
+found under this workflow and still publish the execution-summary follow-up
+comment when the runtime exposes a free pull-request comment surface.
 
 ## Boundaries
 

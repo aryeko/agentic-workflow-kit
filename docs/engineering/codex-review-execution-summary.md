@@ -15,6 +15,25 @@ subagent API, local session records, or supported analytics/compliance exports.
 Do not infer model, effort, token counts, or elapsed time from memory or
 configuration defaults. If a value is not surfaced, write `not surfaced`.
 
+## Publishing Rules
+
+Codex GitHub automatic review may have a constrained review-output schema that
+only accepts inline findings. When the review body cannot carry this summary,
+publish the execution summary as a separate pull-request comment immediately
+after submitting the GitHub review. The follow-up comment must start with
+`## Review execution` and use the shape below.
+
+If a separate pull-request comment is not available in the review runtime,
+append the execution summary to the final posted finding body after the finding
+text under the heading `## Review execution`. Prefer the separate comment path;
+use the final-finding fallback only when a free pull-request comment cannot be
+posted.
+
+If the review has no P0/P1 findings, still post the separate execution-summary
+comment when the comment surface is available. If no findings exist and no free
+comment surface is available, the runtime may be unable to surface the summary;
+do not fabricate a finding solely to carry metadata.
+
 ## Summary Comment Shape
 
 Use this shape before the findings:
