@@ -70,7 +70,6 @@ describe('core-05-s3 merge readiness predicate', () => {
         }),
       () => createMergeAllowedInput({ forge: { ...baseline.forge, protectionFresh: false } }),
       () => createMergeAllowedInput({ gate: { ...baseline.gate, record: createGateRecord({ decision: 'deny' }) } }),
-      () => createMergeAllowedInput({ appendable: false }),
     ];
 
     for (const build of cases) {
@@ -171,7 +170,6 @@ describe('core-05-s3 merge readiness predicate', () => {
         'merge-capability-denied',
         createMergeAllowedInput({ gate: { ...createMergeAllowedInput().gate, record: undefined } }),
       ],
-      ['merge-intent-unwritable', createMergeAllowedInput({ appendable: false })],
     ] as const;
 
     for (const [expected, input] of matrix) {

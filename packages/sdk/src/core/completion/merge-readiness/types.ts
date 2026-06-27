@@ -55,7 +55,6 @@ export interface MergeAllowedInput {
   readonly local: MergeReadinessLocalInput;
   readonly forge?: MergeReadinessForgeInput;
   readonly gate?: MergeReadinessGateInput;
-  readonly appendable?: boolean;
 }
 
 export interface EvaluateMergeReadinessInput extends Omit<MergeAllowedInput, 'candidateHeadSha'> {

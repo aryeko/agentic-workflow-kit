@@ -154,10 +154,6 @@ export const evaluateMergeState = (input: MergeAllowedInput): MergeReadinessDeta
     return { state: 'merge-capability-denied', forgeRefs };
   }
 
-  if (input.appendable === false) {
-    return { state: 'merge-intent-unwritable', forgeRefs, gateRef };
-  }
-
   return { state: 'merge-ready', forgeRefs, gateRef };
 };
 

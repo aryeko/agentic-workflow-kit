@@ -178,7 +178,6 @@ export const createMergeAllowedInput = (overrides: Partial<MergeAllowedInput> = 
     providerScopes: [...providerScopes],
     evidenceRefs: [...gateEvidenceRefs],
   },
-  appendable: true,
   ...overrides,
 });
 
