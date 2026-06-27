@@ -8,6 +8,7 @@ import type {
 } from '../../run-lifecycle/contracts/index.js';
 import type { ProtectedPolicySnapshotRecordedPayload } from '../contracts/index.js';
 
+import { dedupeEvidenceEventRefs } from '../contracts/evidence-refs.js';
 import type { CompletionEvaluationFailure, ProtectedPolicySnapshotInput } from './types.js';
 
 export const toEvidenceEventRef = (event: RunEventEnvelope): EvidenceEventRef => ({
@@ -19,6 +20,31 @@ export const toEvidenceEventRef = (event: RunEventEnvelope): EvidenceEventRef =>
 
 export const isEventAtOrBeforeCursor = (event: RunEventEnvelope, afterSequence: number): boolean =>
   event.sequence <= afterSequence;
+
+export const areEvidenceRefsReplayedThroughCursor = (
+  events: readonly RunEventEnvelope[],
+  afterSequence: number,
+  refs: readonly EvidenceEventRef[],
+): boolean => {
+  const replayedEventsById = new Map<string, RunEventEnvelope>();
+  for (const event of events) {
+    if (!isEventAtOrBeforeCursor(event, afterSequence)) {
+      continue;
+    }
+
+    replayedEventsById.set(event.eventId, event);
+  }
+
+  return dedupeEvidenceEventRefs(refs).every((ref) => {
+    const replayed = replayedEventsById.get(ref.eventId);
+    return (
+      replayed !== undefined &&
+      replayed.sequence === ref.sequence &&
+      replayed.type === ref.type &&
+      replayed.payloadDigest === ref.payloadDigest
+    );
+  });
+};
 
 export const toEventLogUnwritable = (appendFailure: RunAppendFailure): CompletionEvaluationFailure => ({
   token: 'event-log-unwritable',
@@ -79,15 +105,21 @@ export const findLatestProtectedPolicySnapshot = (
   events: readonly RunEventEnvelope[],
   afterSequence: number,
 ): { ref: EvidenceEventRef; payload: ProtectedPolicySnapshotRecordedPayload } | undefined => {
-  const snapshots = events
-    .filter(
-      (event) => isEventAtOrBeforeCursor(event, afterSequence) && event.type === 'ProtectedPolicySnapshotRecorded',
-    )
-    .filter((event): event is RunEventEnvelope<ProtectedPolicySnapshotRecordedPayload> =>
-      isProtectedPolicySnapshotPayload(event.payload),
-    )
-    .sort((left, right) => right.sequence - left.sequence);
-  const latest = snapshots[0];
+  let latest: RunEventEnvelope<ProtectedPolicySnapshotRecordedPayload> | undefined;
+  for (const event of events) {
+    if (!isEventAtOrBeforeCursor(event, afterSequence) || event.type !== 'ProtectedPolicySnapshotRecorded') {
+      continue;
+    }
+
+    if (!isProtectedPolicySnapshotPayload(event.payload)) {
+      continue;
+    }
+
+    const snapshotEvent = event as RunEventEnvelope<ProtectedPolicySnapshotRecordedPayload>;
+    if (latest === undefined || snapshotEvent.sequence > latest.sequence) {
+      latest = snapshotEvent;
+    }
+  }
 
   return latest === undefined ? undefined : { ref: toEvidenceEventRef(latest), payload: latest.payload };
 };
