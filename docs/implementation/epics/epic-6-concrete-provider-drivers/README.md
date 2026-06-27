@@ -130,8 +130,8 @@ shared DTOs, attestations, mocks, and conformance helpers are owned by Epic 2.
 
 ---
 
-**↑ Up:** [epic charters](../README.md) · **← Prev:** [Epic 5 - story DAG](../epic-5-completion-verification-and-recovery/story-dag.md) · **Next →:** [Epic 6 - stories](./stories/README.md)
+**↑ Up:** [epic charters](../README.md) · **← Prev:** [Epic 5 - story DAG](../epic-5-completion-verification-and-recovery/story-dag.md) · **Next →:** [Epic 6 Execution Package Plan](./execution/plan.md)
 
-**Children:** [Epic 6 - stories](./stories/README.md) · [Epic 6 - story DAG](./story-dag.md)
+**Children:** [Epic 6 Execution Package Plan](./execution/plan.md) · [Implementer Prompt: prov-01-s3-codex-agent-driver](./execution/prompts/prov-01-s3-codex-agent-driver/implementer.md) · [Reviewer Prompt: prov-01-s3-codex-agent-driver](./execution/prompts/prov-01-s3-codex-agent-driver/reviewer.md) · [Implementer Prompt: prov-02-s3-github-forge-driver](./execution/prompts/prov-02-s3-github-forge-driver/implementer.md) · [Reviewer Prompt: prov-02-s3-github-forge-driver](./execution/prompts/prov-02-s3-github-forge-driver/reviewer.md) · [Implementer Prompt: prov-03-s3-markdown-work-source-driver](./execution/prompts/prov-03-s3-markdown-work-source-driver/implementer.md) · [Reviewer Prompt: prov-03-s3-markdown-work-source-driver](./execution/prompts/prov-03-s3-markdown-work-source-driver/reviewer.md) · [Implementer Prompt: prov-04-s3-local-execution-host-driver](./execution/prompts/prov-04-s3-local-execution-host-driver/implementer.md) · [Reviewer Prompt: prov-04-s3-local-execution-host-driver](./execution/prompts/prov-04-s3-local-execution-host-driver/reviewer.md) · [Epic 6 Execution Tracker](./execution/tracker.md) · [Epic 6 - stories](./stories/README.md) · [Epic 6 - story DAG](./story-dag.md)
 
 <!-- /DOCS-NAV -->
