@@ -1,6 +1,7 @@
-import type { AppendIntent, RunAppendReceipt, RunWriter } from '../../run-lifecycle/contracts/index.js';
+import type { RunAppendReceipt, RunWriter } from '../../run-lifecycle/contracts/index.js';
 import type { Result } from '../../../foundation/storage/index.js';
 
+import { buildRecoveryBarrierIntent } from '../shared/barrier-intent.js';
 import type { RecoveryPlansFailure } from './types.js';
 import { unwritableFailure } from './types.js';
 
@@ -12,16 +13,7 @@ export const appendRecoveryBarrier = <TPayload>(
   phase: 'classified' | 'plan' | 'apply',
   causationId?: string,
 ): Result<RunAppendReceipt, RecoveryPlansFailure> => {
-  const intent: AppendIntent<TPayload> = {
-    domain: 'core-06',
-    type,
-    durability: 'barrier',
-    payload,
-    occurredAt,
-    ...(causationId === undefined ? {} : { causationId }),
-  };
-
-  const appended = writer.append([intent]);
+  const appended = writer.append([buildRecoveryBarrierIntent(type, payload, occurredAt, causationId)]);
   if (!appended.ok) {
     return { ok: false, error: unwritableFailure(phase, appended.error) };
   }

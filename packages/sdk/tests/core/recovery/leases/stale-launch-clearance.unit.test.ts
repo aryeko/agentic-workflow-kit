@@ -70,6 +70,13 @@ describe('lease-clearance-fail-closed-matrix', () => {
       failureState: 'lease-unavailable',
     },
     {
+      label: 'invalid observedAt timestamp',
+      snapshot: makeRecoverySnapshot({
+        observedAt: 'not-a-timestamp',
+      }),
+      failureState: 'lease-unavailable',
+    },
+    {
       label: 'missing expired story launch snapshot',
       snapshot: makeRecoverySnapshot({
         leases: { ...makeRecoverySnapshot().leases, storyLaunch: undefined },

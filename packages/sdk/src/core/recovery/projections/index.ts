@@ -3,6 +3,7 @@ import type {
   RecoveryActionPlannedPayload,
   RecoveryClassifiedPayload,
   RecoveryProjection,
+  StaleLaunchClearanceRequestedPayload,
   StoryLaunchLeaseAcquiredPayload,
   StoryLaunchLeaseClearedPayload,
 } from '../contracts/index.js';
@@ -13,13 +14,21 @@ export const foldRecoveryProjection = (runId: string, events: readonly RunEventE
     (left, right) => left.sequence - right.sequence || left.eventId.localeCompare(right.eventId),
   );
 
-  return sortedEvents.reduce<RecoveryProjection>((projection, event) => foldEvent(projection, event), {
+  const projection = sortedEvents.reduce<ProjectionState>((current, event) => foldEvent(current, event), {
     runId,
     parked: false,
+    pendingStaleLaunchClearanceByKey: {},
   });
+
+  const { pendingStaleLaunchClearanceByKey: _pendingStaleLaunchClearanceByKey, ...publicProjection } = projection;
+  return publicProjection;
 };
 
-const foldEvent = (projection: RecoveryProjection, event: RunEventEnvelope): RecoveryProjection => {
+type ProjectionState = RecoveryProjection & {
+  readonly pendingStaleLaunchClearanceByKey: Readonly<Record<string, StaleLaunchClearanceRequestedPayload>>;
+};
+
+const foldEvent = (projection: ProjectionState, event: RunEventEnvelope): ProjectionState => {
   if (event.type === 'RecoveryClassified') {
     return {
       ...projection,
@@ -54,6 +63,17 @@ const foldEvent = (projection: RecoveryProjection, event: RunEventEnvelope): Rec
     return projection.parked ? { ...projection, parked: false } : projection;
   }
 
+  if (event.type === 'StaleLaunchClearanceRequested') {
+    const payload = event.payload as StaleLaunchClearanceRequestedPayload;
+    return {
+      ...projection,
+      pendingStaleLaunchClearanceByKey: {
+        ...projection.pendingStaleLaunchClearanceByKey,
+        [payload.storyLaunchKey]: payload,
+      },
+    };
+  }
+
   if (event.type === 'StoryLaunchLeaseCleared') {
     return foldLeaseCleared(projection, event.payload as StoryLaunchLeaseClearedPayload);
   }
@@ -68,23 +88,27 @@ const foldEvent = (projection: RecoveryProjection, event: RunEventEnvelope): Rec
   return projection;
 };
 
-const foldLeaseCleared = (
-  projection: RecoveryProjection,
-  payload: StoryLaunchLeaseClearedPayload,
-): RecoveryProjection => {
+const foldLeaseCleared = (projection: ProjectionState, payload: StoryLaunchLeaseClearedPayload): ProjectionState => {
   const activeLease = projection.activeStoryLaunchLease;
+  const pendingStaleLaunchClearance = projection.pendingStaleLaunchClearanceByKey[payload.storyLaunchKey];
+  const matchesPendingClearance =
+    pendingStaleLaunchClearance !== undefined &&
+    pendingStaleLaunchClearance.expiredLeaseEpoch === activeLease?.leaseEpoch &&
+    pendingStaleLaunchClearance.nextLeaseEpoch === payload.clearedLeaseEpoch;
   const activeMatches =
     activeLease !== undefined &&
     activeLease.storyLaunchKey === payload.storyLaunchKey &&
-    activeLease.leaseEpoch === payload.clearedLeaseEpoch;
+    (activeLease.leaseEpoch === payload.clearedLeaseEpoch || matchesPendingClearance);
 
   if (!activeMatches) {
     return projection;
   }
 
-  const { activeStoryLaunchLease: _activeStoryLaunchLease, ...rest } = projection;
+  const { activeStoryLaunchLease: _activeStoryLaunchLease, pendingStaleLaunchClearanceByKey, ...rest } = projection;
+  const { [payload.storyLaunchKey]: _cleared, ...remainingRequests } = pendingStaleLaunchClearanceByKey;
   return {
     ...rest,
+    pendingStaleLaunchClearanceByKey: remainingRequests,
     parked: false,
   };
 };

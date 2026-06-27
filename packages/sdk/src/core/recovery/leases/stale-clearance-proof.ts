@@ -4,6 +4,7 @@ import type { RecoveryEvidenceSnapshot } from '../contracts/index.js';
 import type { EvidenceEventRef } from '../../run-lifecycle/contracts/index.js';
 
 import type { RequestStaleLaunchClearanceFailure } from './types.js';
+import { classifyLeaseExpiryAtObservedAt } from '../shared/lease-expiry.js';
 
 const hasEvidenceRefs = (value: readonly unknown[] | undefined): boolean => value !== undefined && value.length > 0;
 const hasManualEdits = (value: readonly EvidenceEventRef[] | undefined): value is readonly EvidenceEventRef[] =>
@@ -62,11 +63,24 @@ export const proveStaleLaunchClearance = (
     };
   }
 
-  if (snapshot.leases.storyLaunch.expiresAt.getTime() > globalThis.Date.parse(snapshot.observedAt)) {
+  const storyLaunchExpiry = classifyLeaseExpiryAtObservedAt(snapshot.leases.storyLaunch, snapshot.observedAt);
+  const writerLeaseExpiry = classifyLeaseExpiryAtObservedAt(snapshot.leases.runWriter, snapshot.observedAt);
+
+  if (storyLaunchExpiry === 'invalid-observed-at' || writerLeaseExpiry === 'invalid-observed-at') {
+    return {
+      ok: false,
+      error: {
+        reason: 'lease-store-unavailable',
+        failureState: 'lease-unavailable',
+      },
+    };
+  }
+
+  if (storyLaunchExpiry === 'live') {
     return { ok: false, error: failDuplicate('story-launch-live') };
   }
 
-  if (snapshot.leases.runWriter !== undefined) {
+  if (writerLeaseExpiry === 'live') {
     return { ok: false, error: failDuplicate('run-writer-live') };
   }
 

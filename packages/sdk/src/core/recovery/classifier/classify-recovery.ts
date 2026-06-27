@@ -5,9 +5,9 @@ import type {
 } from '../../completion/contracts/index.js';
 import type { EvidenceEventRef } from '../../run-lifecycle/contracts/index.js';
 import type { RecoveryClassification, RecoveryEvidenceSnapshot, RecoveryState } from '../contracts/index.js';
-import type { LeaseSnapshot } from '../../../foundation/storage/index.js';
 
 import { classifyActionSafety } from './action-safety.js';
+import { classifyLeaseExpiryAtObservedAt } from '../shared/lease-expiry.js';
 
 const TERMINAL_LIFECYCLES = new Set<string>(['completed', 'blocked', 'failed', 'canceled']);
 const EVIDENCE_REFRESH_COMPLETION_STATES = new Set<CompletionDecisionState>([
@@ -63,11 +63,8 @@ const dedupeEvidenceRefs = (evidenceRefs: readonly EvidenceEventRef[]): Evidence
   );
 };
 
-const isExpired = (lease: LeaseSnapshot | undefined, observedAt: string): boolean =>
-  lease !== undefined && lease.expiresAt.getTime() <= globalThis.Date.parse(observedAt);
-
 const hasActiveWriterLease = (snapshot: RecoveryEvidenceSnapshot): boolean =>
-  snapshot.leases.runWriter !== undefined && !isExpired(snapshot.leases.runWriter, snapshot.observedAt);
+  classifyLeaseExpiryAtObservedAt(snapshot.leases.runWriter, snapshot.observedAt) === 'live';
 
 const hasConflictingTerminalEvidence = (snapshot: RecoveryEvidenceSnapshot): boolean =>
   snapshot.termination?.state === 'requested' ||
@@ -121,8 +118,14 @@ const classifyState = (snapshot: RecoveryEvidenceSnapshot): RecoveryState => {
     return 'lease-unavailable';
   }
   if (
+    classifyLeaseExpiryAtObservedAt(snapshot.leases.storyLaunch, snapshot.observedAt) === 'invalid-observed-at' ||
+    classifyLeaseExpiryAtObservedAt(snapshot.leases.runWriter, snapshot.observedAt) === 'invalid-observed-at'
+  ) {
+    return 'lease-unavailable';
+  }
+  if (
     snapshot.leases.storyLaunch !== undefined &&
-    !isExpired(snapshot.leases.storyLaunch, snapshot.observedAt) &&
+    classifyLeaseExpiryAtObservedAt(snapshot.leases.storyLaunch, snapshot.observedAt) === 'live' &&
     snapshot.leases.storyLaunch.holder !== snapshot.runId
   ) {
     return 'launch-duplicate-active';
@@ -171,7 +174,7 @@ const classifyState = (snapshot: RecoveryEvidenceSnapshot): RecoveryState => {
   }
   if (
     snapshot.leases.storyLaunch !== undefined &&
-    isExpired(snapshot.leases.storyLaunch, snapshot.observedAt) &&
+    classifyLeaseExpiryAtObservedAt(snapshot.leases.storyLaunch, snapshot.observedAt) === 'expired' &&
     !hasActiveWriterLease(snapshot) &&
     snapshot.ownership?.ownerState === 'none' &&
     snapshot.process?.state === 'empty' &&

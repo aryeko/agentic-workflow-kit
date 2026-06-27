@@ -14,7 +14,7 @@ const clearAllowed = (input: RecordRecoveryActionAppliedInput): boolean =>
   input.staleLaunchRequestEventId !== undefined &&
   input.activeStoryLaunchLease !== undefined &&
   input.activeStoryLaunchLease.name === input.staleLaunchRequest.storyLaunchKey &&
-  input.activeStoryLaunchLease.epoch === input.staleLaunchRequest.nextLeaseEpoch;
+  input.activeStoryLaunchLease.epoch === input.staleLaunchRequest.expiredLeaseEpoch;
 
 const supportsAppliedControl = (input: RecordRecoveryActionAppliedInput): boolean =>
   input.appliedControl !== undefined &&
@@ -42,8 +42,9 @@ export const recordRecoveryActionApplied = (input: RecordRecoveryActionAppliedIn
       return { ok: true, value: blockedResult() };
     }
     const activeLease = input.activeStoryLaunchLease;
+    const staleLaunchRequest = input.staleLaunchRequest;
     const staleLaunchRequestEventId = input.staleLaunchRequestEventId;
-    if (activeLease === undefined || staleLaunchRequestEventId === undefined) {
+    if (activeLease === undefined || staleLaunchRequest === undefined || staleLaunchRequestEventId === undefined) {
       return { ok: true, value: blockedResult() };
     }
 
@@ -51,7 +52,7 @@ export const recordRecoveryActionApplied = (input: RecordRecoveryActionAppliedIn
       schema: 'kit-vnext.story-launch-lease-cleared.v1',
       runId: input.runId,
       storyLaunchKey: activeLease.name,
-      clearedLeaseEpoch: activeLease.epoch,
+      clearedLeaseEpoch: staleLaunchRequest.nextLeaseEpoch,
       clearedAt: input.appliedAt,
       sourceEventIds: uniqueEventIds([classifiedEventId, planEventId, staleLaunchRequestEventId]),
     };
