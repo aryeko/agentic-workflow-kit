@@ -20,6 +20,19 @@ This document is a **product-level overview**: what each part of Jig does _for y
 matters_, not how it is built. The full engineering design already lives under `docs/design/`
 and is a supporting reference here, not a re-architecture.
 
+## Why Jig
+
+You already have agents that write code fast. What you don't have is one you can hand a goal
+and _trust_ to land it. A raw agent gives you speed without guarantees: it can run anything,
+merge on its own say-so, lose a long run to a crash, redo work, or quietly weaken the very
+checks meant to catch it.
+
+Jig is the trust layer around that speed. Same delegation — but the worker is **contained**
+(it only does what you authorized), **earns autonomy by proof**, **can't game its own gates**,
+**recovers instead of restarting**, and runs on **whatever stack you bring**, with every
+guarantee holding no matter which agent you plug in. You keep control and are interrupted only
+when a real decision is on the line. The five guarantees below are how Jig delivers that.
+
 ## How to read this doc — the five guarantees
 
 Jig makes five promises. They are listed control-first, because trust is the point: a fast
