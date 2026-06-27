@@ -71,7 +71,9 @@ const hasActiveWriterLease = (snapshot: RecoveryEvidenceSnapshot): boolean =>
 
 const hasConflictingTerminalEvidence = (snapshot: RecoveryEvidenceSnapshot): boolean =>
   snapshot.termination?.state === 'requested' ||
+  snapshot.termination?.state === 'ambiguous' ||
   snapshot.termination?.state === 'confirmed' ||
+  hasSupervisionAmbiguity(snapshot) ||
   snapshot.liveness?.terminal === true;
 
 const hasRetryableEvidenceState = (snapshot: RecoveryEvidenceSnapshot): boolean =>
@@ -89,6 +91,9 @@ const hasSupervisionAmbiguity = (snapshot: RecoveryEvidenceSnapshot): boolean =>
 
 const hasAmbiguousMergeOutcome = (snapshot: RecoveryEvidenceSnapshot): boolean =>
   snapshot.completion?.postMergeOutcome === 'post-merge-outcome-ambiguous';
+
+const hasTerminationAmbiguity = (snapshot: RecoveryEvidenceSnapshot): boolean =>
+  snapshot.termination?.state === 'ambiguous' || snapshot.termination?.state === 'requested';
 
 const hasProviderGap = (snapshot: RecoveryEvidenceSnapshot): boolean =>
   snapshot.providerGaps.length > 0 ||
@@ -134,6 +139,12 @@ const classifyState = (snapshot: RecoveryEvidenceSnapshot): RecoveryState => {
   ) {
     return 'owner-ambiguous';
   }
+  if (hasTerminationAmbiguity(snapshot)) {
+    return 'termination-ambiguous';
+  }
+  if (hasSupervisionAmbiguity(snapshot)) {
+    return 'supervision-stale-ambiguous';
+  }
   if (
     snapshot.ownership?.ownerState === 'owned' &&
     snapshot.ownership.sessionId !== undefined &&
@@ -166,8 +177,7 @@ const classifyState = (snapshot: RecoveryEvidenceSnapshot): RecoveryState => {
     snapshot.process?.state === 'empty' &&
     snapshot.approval?.state === 'none' &&
     (snapshot.workSource?.claimState === 'empty' || snapshot.workSource?.claimState === 'released') &&
-    snapshot.termination?.state !== 'requested' &&
-    !hasSupervisionAmbiguity(snapshot) &&
+    !hasTerminationAmbiguity(snapshot) &&
     !hasAmbiguousMergeOutcome(snapshot) &&
     !hasProviderGap(snapshot)
   ) {
@@ -180,19 +190,11 @@ const classifyState = (snapshot: RecoveryEvidenceSnapshot): RecoveryState => {
     snapshot.process?.state === 'empty' &&
     snapshot.approval?.state === 'none' &&
     (snapshot.workSource?.claimState === 'empty' || snapshot.workSource?.claimState === 'released') &&
-    snapshot.termination?.state !== 'requested' &&
-    snapshot.termination?.state !== 'ambiguous' &&
-    !hasSupervisionAmbiguity(snapshot) &&
+    !hasTerminationAmbiguity(snapshot) &&
     !hasAmbiguousMergeOutcome(snapshot) &&
     !hasProviderGap(snapshot)
   ) {
     return 'safe-empty-restartable';
-  }
-  if (snapshot.termination?.state === 'ambiguous' || snapshot.termination?.state === 'requested') {
-    return 'termination-ambiguous';
-  }
-  if (hasSupervisionAmbiguity(snapshot)) {
-    return 'supervision-stale-ambiguous';
   }
   if (hasAmbiguousMergeOutcome(snapshot)) {
     return 'merge-outcome-ambiguous';

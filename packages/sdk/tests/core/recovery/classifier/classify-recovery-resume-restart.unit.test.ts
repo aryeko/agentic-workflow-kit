@@ -166,6 +166,122 @@ describe('core-06-s2 resume and restart eligibility', () => {
     expect(classifyRecovery(conflictingTerminal).state).not.toBe('owned-session-resumable');
   });
 
+  it.each([
+    [
+      'owned-session-resumable',
+      createSnapshot({
+        ownership: {
+          ownerState: 'owned',
+          sessionId: 'session-owned-01',
+          canResumeOwned: true,
+          resumeEvidenceRef: evidenceEventRefFixture,
+        },
+        launch: {
+          linkage: 'known',
+          currentSession: {
+            linkOrdinal: 1,
+            sessionId: 'session-owned-01',
+            linkRole: 'primary',
+            startedAt: '2026-06-27T10:00:00.000Z',
+            sourceEventId: 'evt-session-linked-01',
+          },
+          linkHistory: [],
+        },
+        termination: { state: 'ambiguous', evidenceRefs: [evidenceEventRefFixture] },
+      }),
+      'termination-ambiguous',
+    ],
+    [
+      'owned-session-resumable',
+      createSnapshot({
+        ownership: {
+          ownerState: 'owned',
+          sessionId: 'session-owned-01',
+          canResumeOwned: true,
+          resumeEvidenceRef: evidenceEventRefFixture,
+        },
+        launch: {
+          linkage: 'known',
+          currentSession: {
+            linkOrdinal: 1,
+            sessionId: 'session-owned-01',
+            linkRole: 'primary',
+            startedAt: '2026-06-27T10:00:00.000Z',
+            sourceEventId: 'evt-session-linked-01',
+          },
+          linkHistory: [],
+        },
+        liveness: {
+          runId: 'run-recovery-01',
+          state: 'supervision-lost',
+          currentSessionId: 'session-owned-01',
+          timers: {},
+          terminal: false,
+        },
+      }),
+      'supervision-stale-ambiguous',
+    ],
+    [
+      'stale-launch-clearable',
+      createSnapshot({
+        leases: {
+          leaseHealth: 'ok',
+          storyLaunch: createLeaseSnapshot({ holder: 'run-stale-01', expiresAt: '2026-06-27T09:55:00.000Z' }),
+        },
+        workSource: {
+          claimState: 'empty',
+          evidenceRefs: [],
+        },
+        termination: { state: 'ambiguous', evidenceRefs: [evidenceEventRefFixture] },
+      }),
+      'termination-ambiguous',
+    ],
+    [
+      'stale-launch-clearable',
+      createSnapshot({
+        leases: {
+          leaseHealth: 'ok',
+          storyLaunch: createLeaseSnapshot({ holder: 'run-stale-01', expiresAt: '2026-06-27T09:55:00.000Z' }),
+        },
+        workSource: {
+          claimState: 'empty',
+          evidenceRefs: [],
+        },
+        liveness: {
+          runId: 'run-recovery-01',
+          state: 'supervision-lost',
+          timers: {},
+          terminal: false,
+        },
+      }),
+      'supervision-stale-ambiguous',
+    ],
+    [
+      'safe-empty-restartable',
+      createSnapshot({
+        termination: { state: 'ambiguous', evidenceRefs: [evidenceEventRefFixture] },
+      }),
+      'termination-ambiguous',
+    ],
+    [
+      'safe-empty-restartable',
+      createSnapshot({
+        liveness: {
+          runId: 'run-recovery-01',
+          state: 'supervision-lost',
+          timers: {},
+          terminal: false,
+        },
+      }),
+      'supervision-stale-ambiguous',
+    ],
+  ])('preempts %s when ambiguity evidence is present', (blockedAutoSafeState, snapshot, expectedState) => {
+    const result = classifyRecovery(snapshot);
+
+    expect(result.state).toBe(expectedState);
+    expect(result.state).not.toBe(blockedAutoSafeState);
+  });
+
   it('returns owned-worker-stale-terminable for a stale owned worker without a resumable session', () => {
     const snapshot = createSnapshot({
       ownership: {
@@ -195,6 +311,43 @@ describe('core-06-s2 resume and restart eligibility', () => {
     });
 
     expect(classifyRecovery(snapshot).state).toBe('owned-worker-stale-terminable');
+  });
+
+  it('denies owned-worker-stale-terminable when stale supervision evidence is ambiguous', () => {
+    const snapshot = createSnapshot({
+      ownership: {
+        ownerState: 'owned',
+        sessionId: 'session-owned-01',
+        canResumeOwned: false,
+      },
+      launch: {
+        linkage: 'known',
+        currentSession: {
+          linkOrdinal: 1,
+          sessionId: 'session-owned-01',
+          linkRole: 'primary',
+          startedAt: '2026-06-27T10:00:00.000Z',
+          sourceEventId: 'evt-session-linked-01',
+        },
+        linkHistory: [],
+      },
+      liveness: {
+        runId: 'run-recovery-01',
+        state: 'stale',
+        currentSessionId: 'session-owned-01',
+        timers: {},
+        terminal: false,
+      },
+      termination: {
+        state: 'none',
+        evidenceRefs: [],
+      },
+    });
+
+    const result = classifyRecovery(snapshot);
+
+    expect(result.state).toBe('supervision-stale-ambiguous');
+    expect(result.state).not.toBe('owned-worker-stale-terminable');
   });
 
   it('returns evidence-refresh-retryable for retryable completion or merge evidence gaps', () => {
