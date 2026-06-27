@@ -21,7 +21,7 @@ Gate-1 handoff: 4 of 4 stories are `story: ready`; the DAG is `story-dag: frozen
 
 ---
 
-**↑ Up:** [Epic 6 - Concrete provider drivers](../README.md) · **← Prev:** [Epic 6 - Concrete provider drivers](../README.md) · **Next →:** [prov-01-s3-codex-agent-driver implementation story](./prov-01-s3-codex-agent-driver.md)
+**↑ Up:** [Epic 6 - Concrete provider drivers](../README.md) · **← Prev:** [Epic 6 Execution Tracker](../execution/tracker.md) · **Next →:** [prov-01-s3-codex-agent-driver implementation story](./prov-01-s3-codex-agent-driver.md)
 
 **Children:** [prov-01-s3-codex-agent-driver implementation story](./prov-01-s3-codex-agent-driver.md) · [prov-02-s3-github-forge-driver implementation story](./prov-02-s3-github-forge-driver.md) · [prov-03-s3-markdown-work-source-driver implementation story](./prov-03-s3-markdown-work-source-driver.md) · [prov-04-s3-local-execution-host-driver implementation story](./prov-04-s3-local-execution-host-driver.md)
 
