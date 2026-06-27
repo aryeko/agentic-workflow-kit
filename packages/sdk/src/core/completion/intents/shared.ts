@@ -6,12 +6,12 @@ import type {
   RunAppendReceipt,
   RunWriter,
 } from '../../run-lifecycle/contracts/index.js';
+import { dedupeEvidenceEventRefs } from '../contracts/evidence-refs.js';
 
 import type { ExactHeadEvidence } from './types.js';
 
-export const uniqueEvidenceRefs = (refs: readonly EvidenceEventRef[]): readonly EvidenceEventRef[] => [
-  ...new Map(refs.map((ref) => [ref.eventId, ref])).values(),
-];
+export const uniqueEvidenceRefs = (refs: readonly EvidenceEventRef[]): readonly EvidenceEventRef[] =>
+  dedupeEvidenceEventRefs(refs);
 
 export const appendBarrierIntent = async <TPayload>(
   writer: RunWriter,

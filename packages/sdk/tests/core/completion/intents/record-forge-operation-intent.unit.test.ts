@@ -84,4 +84,32 @@ describe('core-05-s4 forge operation intent recording', () => {
     expect(result.ok).toBe(true);
     expect(result.ok ? result.value.intentEventId : undefined).toBe('ForgeOperationIntentRecorded');
   });
+
+  it('dedupes evidence refs by event id before recording the intent', async () => {
+    const result = await recordForgeOperationIntent(
+      createForgeInput({
+        evidenceRefs: [
+          { eventId: 'evt-local-git-01', sequence: 21, payloadDigest: 'sha256:dupe', type: 'LocalGitEvidenceRecorded' },
+          { eventId: 'evt-extra-01', sequence: 25, payloadDigest: 'sha256:extra', type: 'RunnerCommandCaptured' },
+        ],
+      }),
+      { writer: createWriter() },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.ok ? result.value.intent.evidenceRefs : undefined).toEqual([
+      {
+        eventId: 'evt-local-git-01',
+        sequence: 21,
+        payloadDigest: 'sha256:evt-local-git-01',
+        type: 'LocalGitEvidenceRecorded',
+      },
+      {
+        eventId: 'evt-extra-01',
+        sequence: 25,
+        payloadDigest: 'sha256:extra',
+        type: 'RunnerCommandCaptured',
+      },
+    ]);
+  });
 });

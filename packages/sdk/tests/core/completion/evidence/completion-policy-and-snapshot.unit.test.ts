@@ -92,7 +92,7 @@ describe('core-05-s2 completion evaluator policy and snapshot behavior', () => {
         },
       },
       {
-        replay: createReplay(local),
+        replay: createReplay(local, verify, post),
         projections,
         writer: createWriter(() => {
           appendCount += 1;

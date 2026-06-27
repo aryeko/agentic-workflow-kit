@@ -8,6 +8,7 @@ import type {
 } from '../../run-lifecycle/contracts/index.js';
 import type { PostMergeOutcomePayload } from '../contracts/index.js';
 import type { ForgeFailureToken } from '../../../providers/forge/index.js';
+import { dedupeEvidenceEventRefs } from '../contracts/evidence-refs.js';
 
 import type { RecordPostMergeOutcomeInput } from './types.js';
 
@@ -25,9 +26,8 @@ const FAILED_REFUSAL_TOKENS = new Set<ForgeFailureToken>([
   'forge-redaction-unavailable',
 ]);
 
-export const uniqueEvidenceRefs = (refs: readonly EvidenceEventRef[] | undefined): readonly EvidenceEventRef[] => [
-  ...new Map((refs ?? []).map((ref) => [ref.eventId, ref])).values(),
-];
+export const uniqueEvidenceRefs = (refs: readonly EvidenceEventRef[] | undefined): readonly EvidenceEventRef[] =>
+  dedupeEvidenceEventRefs(refs);
 
 export const appendBarrierEvent = async <TPayload>(
   writer: RunWriter,

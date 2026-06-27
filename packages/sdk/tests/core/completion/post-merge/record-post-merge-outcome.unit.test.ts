@@ -59,4 +59,14 @@ describe('core-05-s5 post-merge outcome recording', () => {
     expect(result.ok).toBe(false);
     expect(result.ok ? undefined : result.error.token).toBe('event-log-unwritable');
   });
+
+  it('dedupes exact-head evidence refs by event id before recording the outcome', async () => {
+    const result = await recordPostMergeOutcome(
+      createInput({ exactHeadEvidenceRefs: [...exactHeadEvidenceRefs, exactHeadEvidenceRefs[0]] }),
+      { writer: createWriter() },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.ok ? result.value.outcome.evidenceRefs : undefined).toEqual(exactHeadEvidenceRefs);
+  });
 });

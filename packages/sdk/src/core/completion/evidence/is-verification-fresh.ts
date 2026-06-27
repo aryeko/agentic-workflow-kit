@@ -6,7 +6,7 @@ type IsVerificationFreshInput = {
   readonly expectedCommandDigest: string;
 };
 
-const collectEvidenceRefs = (verification: VerificationWindow | undefined) =>
+export const getVerificationEvidenceRefs = (verification: VerificationWindow | undefined) =>
   verification === undefined
     ? []
     : [
@@ -17,7 +17,7 @@ const collectEvidenceRefs = (verification: VerificationWindow | undefined) =>
       ];
 
 export const isVerificationFresh = (input: IsVerificationFreshInput): VerificationFreshnessResult => {
-  const evidenceRefs = collectEvidenceRefs(input.verification);
+  const evidenceRefs = getVerificationEvidenceRefs(input.verification);
   if (input.verification === undefined) {
     return { fresh: false, evidenceRefs };
   }

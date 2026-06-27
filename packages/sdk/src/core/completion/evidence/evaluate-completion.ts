@@ -1,11 +1,13 @@
 import type { ApprovalDecisionRecordedPayload } from '../../approval/contracts/index.js';
 import type { EvidenceEventRef, Result, RunEventEnvelope } from '../../run-lifecycle/contracts/index.js';
+import { dedupeEvidenceEventRefs } from '../contracts/evidence-refs.js';
 import type { CompletionDecisionPayload } from '../contracts/index.js';
 
 import { classifyChangedPaths } from './classify-changed-paths.js';
-import { isVerificationFresh } from './is-verification-fresh.js';
+import { getVerificationEvidenceRefs, isVerificationFresh } from './is-verification-fresh.js';
 import { selectCompletionCandidateHead } from './select-completion-candidate-head.js';
 import {
+  areEvidenceRefsReplayedThroughCursor,
   appendBarrierEvent,
   buildProtectedPolicySnapshotPayload,
   findLatestProtectedPolicySnapshot,
@@ -178,11 +180,21 @@ export const evaluateCompletion = async (
   const verification =
     snapshot === undefined
       ? { fresh: false, evidenceRefs: [] as readonly EvidenceEventRef[] }
-      : isVerificationFresh({
-          verification: input.verification,
-          expectedHeadSha: candidate.headSha,
-          expectedCommandDigest: snapshot.payload.verifierCommandDigest,
-        });
+      : !areEvidenceRefsReplayedThroughCursor(
+            dependencies.replay.events,
+            input.evaluatedThrough.afterSequence,
+            getVerificationEvidenceRefs(input.verification),
+          )
+        ? {
+            fresh: false,
+            state: 'verification-uncertain' as const,
+            evidenceRefs: getVerificationEvidenceRefs(input.verification),
+          }
+        : isVerificationFresh({
+            verification: input.verification,
+            expectedHeadSha: candidate.headSha,
+            expectedCommandDigest: snapshot.payload.verifierCommandDigest,
+          });
 
   const sharedEvidenceRefs = [
     ...candidate.evidenceRefs,
@@ -190,7 +202,7 @@ export const evaluateCompletion = async (
     ...(verification.evidenceRefs ?? []),
     ...(input.workerClaim === undefined ? [] : [input.workerClaim.ref]),
   ];
-  const uniqueEvidenceRefs = [...new Map(sharedEvidenceRefs.map((ref) => [ref.eventId, ref])).values()];
+  const uniqueEvidenceRefs = dedupeEvidenceEventRefs(sharedEvidenceRefs);
   const claimTargetsExactHead =
     input.workerClaim?.claim.headSha === undefined || input.workerClaim.claim.headSha === candidate.headSha;
   const claimsDone = input.workerClaim?.claim.assertsDone === true;

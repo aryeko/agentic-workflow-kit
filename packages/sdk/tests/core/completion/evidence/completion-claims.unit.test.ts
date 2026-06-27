@@ -138,4 +138,56 @@ describe('core-05-s2 completion evaluator claim and readiness outcomes', () => {
     );
     expect(completionVerified.ok && completionVerified.value.decision.state).toBe('completion-verified');
   });
+
+  it('fails closed when verification refs are not replayed through the evaluation cursor', async () => {
+    const local = createEvent('LocalGitEvidenceRecorded', 6, createLocalGitPayload());
+    const snapshot = createEvent('ProtectedPolicySnapshotRecorded', 7, snapshotPayload);
+    const verify = createEvent('RunnerCommandCaptured', 8, createVerifyCommand());
+    const replay = createReplay(local, snapshot, verify);
+
+    const missingPostRef = await evaluateCompletion(
+      {
+        runId,
+        evaluatedAt: '2026-06-27T09:13:00.000Z',
+        evaluatedThrough: cursor,
+        leaseId: 'lease-01',
+        policyRef: 'policy:merge',
+        allowedChangePaths: ['packages/sdk/src/core/completion/evidence/**'],
+        verification: {
+          commandRef: toRef(verify),
+          command: verify.payload,
+          preLocalGitRef: toRef(local),
+          preLocalGit: local.payload,
+          postLocalGitRef: toRef(createEvent('LocalGitEvidenceRecorded', 9, createLocalGitPayload())),
+          postLocalGit: createLocalGitPayload(),
+        },
+      },
+      { replay, projections, writer: createWriter() },
+    );
+
+    expect(missingPostRef.ok && missingPostRef.value.decision.state).toBe('verification-uncertain');
+
+    const futurePost = createEvent('LocalGitEvidenceRecorded', 21, createLocalGitPayload());
+    const futureRef = await evaluateCompletion(
+      {
+        runId,
+        evaluatedAt: '2026-06-27T09:13:00.000Z',
+        evaluatedThrough: cursor,
+        leaseId: 'lease-01',
+        policyRef: 'policy:merge',
+        allowedChangePaths: ['packages/sdk/src/core/completion/evidence/**'],
+        verification: {
+          commandRef: toRef(verify),
+          command: verify.payload,
+          preLocalGitRef: toRef(local),
+          preLocalGit: local.payload,
+          postLocalGitRef: toRef(futurePost),
+          postLocalGit: futurePost.payload,
+        },
+      },
+      { replay: createReplay(local, snapshot, verify, futurePost), projections, writer: createWriter() },
+    );
+
+    expect(futureRef.ok && futureRef.value.decision.state).toBe('verification-uncertain');
+  });
 });
