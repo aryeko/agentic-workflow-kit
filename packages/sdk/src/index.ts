@@ -238,6 +238,12 @@ export type {
   ProtectedPolicySnapshotRecordedPayload,
 } from './core/completion/contracts/index.js';
 export {
+  classifyChangedPaths,
+  evaluateCompletion,
+  isVerificationFresh,
+  selectCompletionCandidateHead,
+} from './core/completion/evidence/index.js';
+export {
   ACTION_SAFETY_CLASSES,
   PROVIDER_CONTROL_KINDS,
   RECOVERY_ACTIONS,
