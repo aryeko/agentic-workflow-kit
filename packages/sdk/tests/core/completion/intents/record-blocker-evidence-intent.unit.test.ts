@@ -92,6 +92,47 @@ describe('core-05-s4 blocker evidence intent recording', () => {
     }
   });
 
+  it('returns producer and exact-head failure tokens before policy denial', async () => {
+    const cases = [
+      [
+        'event-log-unwritable',
+        createBlockerCompletionInput('event-log-unwritable', { runnerMayPush: false, runnerMayOpenPr: false }),
+      ],
+      [
+        'changed-files-outside-allowlist',
+        createBlockerCompletionInput('changed-files-outside-allowlist', {
+          runnerMayPush: false,
+          runnerMayOpenPr: false,
+        }),
+      ],
+      [
+        'merge-intent-unwritable',
+        createBlockerMergeInput('merge-intent-unwritable', { runnerMayPush: false, runnerMayOpenPr: false }),
+      ],
+      [
+        'merge-forge-unavailable',
+        createBlockerMergeInput('merge-forge-unavailable', { runnerMayPush: false, runnerMayOpenPr: false }),
+      ],
+      [
+        'workspace-dirty',
+        createBlockerCompletionInput('verification-failed', {
+          runnerMayPush: false,
+          runnerMayOpenPr: false,
+          localHead: { headSha, clean: false },
+        }),
+      ],
+    ] as const;
+
+    for (const [expected, input] of cases) {
+      const writer = createWriter();
+      const result = await recordBlockerEvidenceIntent(input, { writer });
+
+      expect(result.ok).toBe(false);
+      expect(result.ok ? undefined : result.error.token).toBe(expected);
+      expect(writer.appendCalls).toHaveLength(0);
+    }
+  });
+
   it('intent-append-unwritable returns event-log-unwritable with no success event', async () => {
     const writer = createWriter(() => ({
       ok: false,

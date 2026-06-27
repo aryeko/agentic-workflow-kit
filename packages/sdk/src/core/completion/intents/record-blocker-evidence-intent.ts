@@ -34,10 +34,6 @@ export const recordBlockerEvidenceIntent = async (
   input: RecordBlockerEvidenceIntentInput,
   dependencies: IntentsDependencies,
 ): BlockerEvidenceIntentResult => {
-  if (!input.runnerMayPush || !input.runnerMayOpenPr) {
-    return { ok: false, error: { token: 'merge-policy-disabled' } };
-  }
-
   if (input.decision.kind === 'completion') {
     const eligibility = completionEligibility(input.decision.decision.state);
     if (!eligibility.eligible) {
@@ -47,6 +43,10 @@ export const recordBlockerEvidenceIntent = async (
     const exactHead = resolveExactHead(input.decision.decision.headSha, input.localHead, 'head-ambiguous');
     if (!exactHead.ok) {
       return { ok: false, error: { token: exactHead.token } };
+    }
+
+    if (!input.runnerMayPush || !input.runnerMayOpenPr) {
+      return { ok: false, error: { token: 'merge-policy-disabled' } };
     }
 
     return recordForgeOperationIntent(
@@ -77,6 +77,10 @@ export const recordBlockerEvidenceIntent = async (
   const exactHead = resolveExactHead(input.decision.decision.headSha, input.localHead, 'merge-head-ambiguous');
   if (!exactHead.ok) {
     return { ok: false, error: { token: exactHead.token } };
+  }
+
+  if (!input.runnerMayPush || !input.runnerMayOpenPr) {
+    return { ok: false, error: { token: 'merge-policy-disabled' } };
   }
 
   return recordForgeOperationIntent(
