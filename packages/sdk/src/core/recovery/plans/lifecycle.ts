@@ -42,6 +42,11 @@ const targetForPlan = (plan: RecoveryPlan, from: RunLifecycleState): RunLifecycl
 export const buildRecoveryLifecycleEdgeRequest = (
   input: BuildRecoveryLifecycleEdgeRequestInput,
 ): Result<RecoveryLifecycleEdgeRequest | undefined, RecoveryPlansFailure> => {
+  const sourceEventIds = uniqueEventIds(input.recoveryEventIds);
+  if (sourceEventIds.length === 0) {
+    return { ok: false, error: illegalLifecycleEdgeFailure() };
+  }
+
   const target = targetForPlan(input.plan, input.from);
   if (input.plan.selectedAction === 'retry-evidence-refresh' && target === undefined) {
     return { ok: false, error: illegalLifecycleEdgeFailure() };
@@ -62,7 +67,7 @@ export const buildRecoveryLifecycleEdgeRequest = (
       authority: 'recovery',
       from: input.from,
       to: target,
-      sourceEventIds: uniqueEventIds(input.recoveryEventIds),
+      sourceEventIds,
     },
   };
 };

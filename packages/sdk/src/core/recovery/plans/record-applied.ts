@@ -22,10 +22,18 @@ const supportsAppliedControl = (input: RecordRecoveryActionAppliedInput): boolea
   input.committedPlan.plan.providerControl !== undefined &&
   input.appliedControl.kind === input.committedPlan.plan.providerControl;
 
+const gateRequiredForPlan = (plan: RecordRecoveryActionAppliedInput['committedPlan']['plan']): boolean =>
+  plan.classification.actionSafety === 'auto-safe' &&
+  plan.selectedAction === plan.classification.recommendedAction &&
+  (plan.providerControl !== undefined || plan.selectedAction === 'clear-stale-launch');
+
 export const recordRecoveryActionApplied = (input: RecordRecoveryActionAppliedInput): RecoveryApplyResult => {
   const { plan, classifiedEventId, planEventId } = input.committedPlan;
 
-  if (plan.requiresGate !== undefined && !hasMatchingAutoRecoverGate(plan, input.gateRef)) {
+  if (
+    gateRequiredForPlan(plan) &&
+    (plan.requiresGate === undefined || !hasMatchingAutoRecoverGate(plan, input.gateRef))
+  ) {
     return { ok: true, value: blockedResult() };
   }
 

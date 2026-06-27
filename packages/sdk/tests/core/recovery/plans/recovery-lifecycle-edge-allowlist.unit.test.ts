@@ -88,4 +88,32 @@ describe('core-06-s4 recovery-lifecycle-edge-allowlist', () => {
     }
     expect(illegal.error.reason).toBe('illegal-lifecycle-edge');
   });
+
+  it('fails closed when lifecycle recovery-event provenance is empty after dedupe', () => {
+    const retryPlan = planRecoveryAction(
+      planInputFixture({
+        requestedAction: 'retry-evidence-refresh',
+      }),
+      {
+        state: 'evidence-refresh-retryable',
+        recommendedAction: 'retry-evidence-refresh',
+        actionSafety: 'auto-safe',
+        requiredGate: 'auto-recover',
+        reason: 'forge evidence can be retried',
+        evidenceRefs: classificationFixture().evidenceRefs,
+      },
+    );
+
+    const missingProvenance = buildRecoveryLifecycleEdgeRequest({
+      plan: retryPlan,
+      from: 'forge-waiting',
+      recoveryEventIds: [],
+    });
+
+    expect(missingProvenance.ok).toBe(false);
+    if (missingProvenance.ok) {
+      throw new Error('expected missing provenance failure');
+    }
+    expect(missingProvenance.error.reason).toBe('illegal-lifecycle-edge');
+  });
 });

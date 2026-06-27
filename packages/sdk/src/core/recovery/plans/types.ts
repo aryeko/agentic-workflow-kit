@@ -12,7 +12,6 @@ import type {
   RecoveryActionAppliedPayload,
   RecoveryActionPlannedPayload,
   RecoveryClassifiedPayload,
-  RecoveryClassification,
   RecoveryPlan,
   RecoveryPlanInput,
   StaleLaunchClearanceRequestedPayload,

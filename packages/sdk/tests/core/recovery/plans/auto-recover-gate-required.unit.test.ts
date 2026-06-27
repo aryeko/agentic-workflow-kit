@@ -115,6 +115,49 @@ describe('core-06-s4 auto-recover-gate-required', () => {
     expect(writerHarness.appendCalls).toHaveLength(2);
   });
 
+  it('blocks autonomous provider-control apply when the committed plan omits requiresGate', () => {
+    const { writerHarness, committedPlan } = commitPlan();
+
+    const result = recordRecoveryActionApplied({
+      runId: planInputFixture().runId,
+      committedPlan: {
+        ...committedPlan,
+        plan: {
+          ...committedPlan.plan,
+          requiresGate: undefined,
+        },
+      },
+      appliedAt: appliedAtFixture,
+      evaluatedThrough: planInputFixture().evaluatedThrough,
+      gateRef: gateRecordFixture({
+        requestedAction: committedPlan.plan.selectedAction,
+      }),
+      appliedControl: {
+        kind: 'work-source-release',
+        evidenceRefs: [
+          {
+            eventId: 'evt-apply-01',
+            sequence: 62,
+            payloadDigest: 'sha256:apply-01',
+            type: 'ClaimReleaseRecorded',
+          },
+        ],
+      },
+      writer: writerHarness.writer,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('expected blocked result');
+    }
+    expect(result.value).toMatchObject({
+      status: 'blocked',
+      reason: 'operator-required',
+      failureState: 'operator-required',
+    });
+    expect(writerHarness.appendCalls).toHaveLength(2);
+  });
+
   it('does not grant autonomy in manual mode even when a matching gate record is supplied', () => {
     const writerHarness = createWriterHarness();
     const classified = recordRecoveryClassified({
