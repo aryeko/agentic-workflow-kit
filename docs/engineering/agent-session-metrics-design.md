@@ -178,11 +178,14 @@ aggregate metrics, warning rules, and provider-specific adapter contract.
 | `cli.mjs` | Parse arguments, normalize provider-specific aliases, call the library API, choose renderer, set exit codes. |
 | `adapter-registry.mjs` | Register provider adapters, reject unsupported providers, and expose capability metadata. |
 | `adapters/codex/codex-home.mjs` | Resolve Codex home for the Codex adapter. |
-| `adapters/codex/codex-session-index.mjs` | Locate Codex session files, resolve targets, and scan candidate files for descendants. |
-| `jsonl-reader.mjs` | Stream JSONL records with line numbers, invalid-line counts, and bounded error metadata. |
-| `adapters/codex/codex-record-parsers.mjs` | Extract typed facts from Codex JSONL records without aggregating. |
+| `adapters/codex/codex-session-index.mjs` | Resolve target paths and recursively extract spawned descendants. |
+| `adapters/codex/codex-session-paths.mjs` | Locate candidate Codex session files with `rg --files`, `find`, or a Node fallback. |
+| `adapters/codex/codex-session-extractor.mjs` | Stream-filter relevant events and regex-reduce one Codex session file. |
+| `jsonl-reader.mjs` | JSONL helper retained for direct reader tests and future structured parsing needs. |
+| `adapters/codex/codex-record-parsers.mjs` | Extract typed facts from parsed Codex JSONL records for compatibility tests. |
 | `adapters/codex/codex-session-summary.mjs` | Convert one Codex session file into one provider-neutral `SessionSummary`. |
 | `session-tree.mjs` | Build parent-child relationships and ordered traversal results from summaries. |
+| `session-response.mjs` | Project provider-neutral summaries into the public recursive `main` session response. |
 | `aggregate.mjs` | Compute tree-level totals without changing per-session summaries. |
 | `render-json.mjs` | Serialize the provider-neutral report contract. |
 | `render-markdown.mjs` | Render a concise human report from the same report object. |
@@ -251,8 +254,11 @@ Input shape:
  */
 ```
 
-The API returns a `MetricsReport` and never writes files. Future providers extend
-the `provider` union only after their adapter and fixtures land.
+The API returns a `MetricsReport` and never writes files. `MetricsReport.main`
+is the canonical recursive response consumed by automation; lower-level summary
+and aggregate fields are compatibility and diagnostic projections. Future
+providers extend the `provider` union only after their adapter and fixtures
+land.
 
 ## Report Contract
 
@@ -261,6 +267,23 @@ JSON output must use this top-level shape:
 ```json
 {
   "status": "ok",
+  "main": {
+    "id": "019f...",
+    "name": "Review current PR",
+    "success": true,
+    "metrics": {
+      "durationMs": 10000,
+      "tokens": {
+        "in": 1000,
+        "out": 300,
+        "cached": 200,
+        "total": 1300
+      },
+      "turns": 1,
+      "toolsCalled": 2
+    },
+    "children": []
+  },
   "provider": "codex",
   "target": {
     "resolution": "session-id",
@@ -281,6 +304,45 @@ JSON output must use this top-level shape:
 }
 ```
 
+`main` is the stable consumer response. The lower-level `root`, `sessions`,
+`tree`, `aggregate`, and `warnings` fields are diagnostic projections retained
+for compatibility and deeper review tooling.
+
+### Response Session
+
+```js
+/**
+ * @typedef {Object} Session
+ * @property {string} id
+ * @property {string} name
+ * @property {boolean} success
+ * @property {string} [error]
+ * @property {SessionMetrics} metrics
+ * @property {Session[]} children
+ */
+
+/**
+ * @typedef {Object} SessionMetrics
+ * @property {number} durationMs
+ * @property {Tokens} tokens
+ * @property {number} turns
+ * @property {number} toolsCalled
+ */
+
+/**
+ * @typedef {Object} Tokens
+ * @property {number} in
+ * @property {number} out
+ * @property {number} cached
+ * @property {number} total
+ */
+```
+
+For Codex, `Session.name` comes from `session_meta.payload.title` when present,
+then nickname, then an empty string. `success` is `false` when extraction
+warnings exist, and `error` joins those warnings. Unavailable numeric values are
+reported as `0` in the recursive response shape.
+
 ### Session Summary
 
 Each provider adapter must return this shape:
@@ -294,6 +356,7 @@ Each provider adapter must return this shape:
  * @property {string|null} parentSessionId
  * @property {number|null} depth
  * @property {string|null} cwd
+ * @property {string|null} title
  * @property {string|null} threadSource
  * @property {string|null} agentRole
  * @property {string|null} agentNickname
@@ -405,14 +468,15 @@ The Codex parser should be forward-compatible:
 ### `--session-id`
 
 Provider adapters resolve `--session-id` against their own local session store.
-For Codex, scan:
+For Codex, locate only candidate filenames under:
 
 ```text
 <codex-home>/sessions/**/*.jsonl
 <codex-home>/archived_sessions/**/*.jsonl
 ```
 
-Prefer an exact basename suffix match:
+Prefer a parsed exact session id. If no parsed exact match exists, fall back to
+filename shorthand matching:
 
 ```text
 rollout-*<session-id>.jsonl
@@ -430,19 +494,28 @@ only.
 
 ## Descendant Resolution
 
-For `--tree`, build descendants by asking the selected adapter to discover
-records whose parsed parent id equals the target session id or any discovered
-descendant id.
+For `--tree`, build descendants from child session ids emitted by the parent
+session. The Codex adapter reads the parent for spawn events, resolves each
+child id to one exact session path, extracts that child, and recurses.
 
-The scan can be optimized in implementation, but the contract is:
+Codex spawn extraction must distinguish real provider payload fields from
+escaped JSON inside command output or patch text. Direct child fields such as
+`receiverThreadId` are accepted only when they appear as unescaped payload keys.
+`spawn_agent` children are accepted from the matching `function_call_output`
+`call_id`, where the returned `payload.output` string contains an escaped
+`agent_id`.
 
-1. Parse target session through the selected provider adapter.
-2. Build an index of `sessionId -> parentSessionId` from adapter-discovered
-   candidate sessions.
-3. Traverse recursively from the target.
-4. Summarize only included sessions.
+The contract is:
 
-The first Codex implementation may scan all session files line-by-line. If this
+1. Resolve the target session to one provider record path.
+2. Extract target metadata and metrics; include spawned child ids only when the
+   selected scope needs descendants.
+3. Resolve each spawned child id to one provider record path.
+4. Repeat extraction recursively for child sessions.
+5. Summarize only the target and recursively spawned descendants.
+
+The Codex implementation should stream filtered event lines and avoid retaining
+full parsed JSONL records. If this
 is slow, add an optional cache later as a separate feature.
 
 ## Markdown Output
@@ -490,10 +563,14 @@ Skill body should include:
 2. Choose target: use `--session-id` or `--session-file`. For a current Codex
    session request, read `CODEX_THREAD_ID` and pass it as `--session-id`; if it
    is missing, ask for a session id or file path instead of guessing.
-3. Choose scope: default `--scope tree`, use `--scope main` for the root session
-   only, or `--scope children` for descendants only.
+3. Choose scope: default `--scope tree`, use `--scope main` for the target
+   session only, or `--scope children` for descendant metrics. The JSON
+   response always keeps the target session at `main`; descendants appear under
+   `main.children`.
 4. Run `scripts/agent-session-metrics.mjs --provider codex ...`.
-5. Return the JSON or Markdown result without rewriting the numbers.
+5. Return the JSON or Markdown result without rewriting the numbers. For JSON,
+   user-facing session metrics come from `main.metrics` and recursive
+   descendant metrics from `main.children[*].metrics`.
 6. If the script reports ambiguity, ask for a more specific session id or an
    explicit session file path; do not guess.
 7. If the user asks for Claude or Gemini metrics before those adapters exist,

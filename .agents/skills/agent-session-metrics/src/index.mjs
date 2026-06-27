@@ -1,6 +1,7 @@
 import { getProviderAdapter } from './adapter-registry.mjs';
 import { aggregateSessions } from './aggregate.mjs';
 import { normalizeScope, normalizeTarget } from './contracts.mjs';
+import { buildSessionResponse } from './session-response.mjs';
 import { buildSessionTree, selectSessionsByScope } from './session-tree.mjs';
 
 export async function analyzeAgentSessionMetrics(options = {}) {
@@ -9,20 +10,25 @@ export async function analyzeAgentSessionMetrics(options = {}) {
   const target = normalizeTarget(options.target);
   const adapter = getProviderAdapter(provider);
   const providerHome = await adapter.resolveHome({ providerHome: options.providerHome });
-  const resolvedTarget = await adapter.resolveTarget({ target, providerHome });
-
-  const allSummaries =
-    target.kind === 'session-file'
-      ? [resolvedTarget.summary]
-      : (await adapter.discoverSessions({ providerHome })).map((record) => record.summary);
-  const summaries = mergeTargetSummary({ summaries: allSummaries, targetSummary: resolvedTarget.summary });
+  const extracted = adapter.extractSessions
+    ? await adapter.extractSessions({ target, providerHome, scope })
+    : await extractSessionsByDiscovery({ adapter, target, providerHome });
+  const resolvedTarget = extracted.target;
+  const summaries = extracted.sessions;
   const tree = buildSessionTree({ rootSessionId: resolvedTarget.sessionId, sessions: summaries });
   const selectedSessions = selectSessionsByScope({ sessions: summaries, tree, scope });
   const aggregate = aggregateSessions(selectedSessions);
   const warnings = collectWarnings({ sessions: selectedSessions, treeWarnings: tree.warnings });
+  const main = buildSessionResponse({
+    rootSessionId: tree.rootSessionId,
+    sessions: summaries,
+    tree,
+    scope,
+  });
 
   return {
     status: 'ok',
+    main,
     provider,
     target: {
       resolution: resolvedTarget.resolution,
@@ -40,6 +46,18 @@ export async function analyzeAgentSessionMetrics(options = {}) {
     },
     aggregate,
     warnings,
+  };
+}
+
+async function extractSessionsByDiscovery({ adapter, target, providerHome }) {
+  const resolvedTarget = await adapter.resolveTarget({ target, providerHome });
+  const allSummaries =
+    target.kind === 'session-file'
+      ? [resolvedTarget.summary]
+      : (await adapter.discoverSessions({ providerHome })).map((record) => record.summary);
+  return {
+    target: resolvedTarget,
+    sessions: mergeTargetSummary({ summaries: allSummaries, targetSummary: resolvedTarget.summary }),
   };
 }
 

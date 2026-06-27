@@ -12,7 +12,8 @@ changing callers.
 
 - Resolves a session by provider session id or explicit session file.
 - Reconstructs the root session and spawned worker/subagent tree.
-- Reports per-session metadata, duration, token usage, counts, and warnings.
+- Reports a nested `main` session with duration, token usage, turn count,
+  tool-call count, success state, and child sessions.
 - Aggregates metrics for the selected scope.
 - Emits stable JSON for automation or compact Markdown for humans.
 
@@ -87,9 +88,9 @@ Unsupported options intentionally fail: `--current`, `--cwd`, and
 
 | Scope | Included sessions |
 |---|---|
-| `tree` | Target session plus recursive descendants. |
-| `main` | Target session only. |
-| `children` | Recursive descendants, excluding the target session. |
+| `tree` | Target session with recursive descendants under `main.children`. |
+| `main` | Target session with an empty `main.children` array. |
+| `children` | Target session with recursive descendants under `main.children`; callers can ignore `main.metrics` when they need descendant-only totals. |
 
 ## Library API
 
@@ -106,8 +107,27 @@ const report = await analyzeAgentSessionMetrics({
 });
 ```
 
-The API returns the same provider-neutral report emitted by JSON output and
-never writes files.
+The API returns the same provider-neutral report emitted by JSON output. The
+canonical consumer shape is `report.main`, a recursive session object:
+
+```js
+{
+  main: {
+    id: 'root-tree',
+    name: 'Root review session',
+    success: true,
+    metrics: {
+      durationMs: 10000,
+      tokens: { in: 1000, out: 300, cached: 200, total: 1300 },
+      turns: 0,
+      toolsCalled: 2,
+    },
+    children: [],
+  },
+}
+```
+
+The package never writes files.
 
 ## Contracts
 
@@ -121,10 +141,11 @@ Treat that file as the package contract for callers and tests.
 scripts/agent-session-metrics.mjs  CLI entrypoint only
 src/index.mjs                     Public API orchestration
 src/adapter-registry.mjs          Provider registration and errors
-src/adapters/codex/               Codex home, index, parser, summary adapter
+src/adapters/codex/               Codex home, path lookup, stream extractor, summary adapter
 src/contracts.mjs                 Runtime validators and shared helpers
-src/jsonl-reader.mjs              JSONL reader with line-level warnings
+src/jsonl-reader.mjs              JSONL helper retained for direct reader tests
 src/session-tree.mjs              Tree construction and scope selection
+src/session-response.mjs          Public recursive response projection
 src/aggregate.mjs                 Aggregate metrics
 src/render-json.mjs               JSON renderer
 src/render-markdown.mjs           Markdown renderer

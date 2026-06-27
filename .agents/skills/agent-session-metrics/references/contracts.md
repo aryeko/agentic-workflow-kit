@@ -99,7 +99,8 @@ Input:
 
 Behavior:
 
-- Returns a `MetricsReport`.
+- Returns a `MetricsReport` whose canonical consumer payload is
+  `MetricsReport.main`.
 - Never writes files.
 - Never mutates provider records.
 - Never infers missing model, effort, duration, or token values from defaults.
@@ -113,6 +114,7 @@ JSON output and the library API use this top-level shape:
 /**
  * @typedef {Object} MetricsReport
  * @property {'ok'} status
+ * @property {Session} main
  * @property {string} provider
  * @property {ResolvedTarget} target
  * @property {'tree'|'main'|'children'} scope
@@ -125,8 +127,61 @@ JSON output and the library API use this top-level shape:
  */
 ```
 
+`main` is the stable consumer response. The remaining top-level fields are
+diagnostic and compatibility fields for callers that need provider resolution,
+raw summaries, tree nodes, aggregate projections, or warning details.
+
 `sessions` contains only sessions included by `scope`. `root` always describes
 the resolved target session, even when `scope` is `children`.
+
+## Response Session
+
+```js
+/**
+ * @typedef {Object} Session
+ * @property {string} id
+ * @property {string} name
+ * @property {boolean} success
+ * @property {string} [error]
+ * @property {SessionMetrics} metrics
+ * @property {Session[]} children
+ */
+
+/**
+ * @typedef {Object} SessionMetrics
+ * @property {number} durationMs
+ * @property {Tokens} tokens
+ * @property {number} turns
+ * @property {number} toolsCalled
+ */
+
+/**
+ * @typedef {Object} Tokens
+ * @property {number} in
+ * @property {number} out
+ * @property {number} cached
+ * @property {number} total
+ */
+```
+
+Rules:
+
+- `id` is the provider session/thread id.
+- `name` is provider title metadata when available. For Codex this is
+  `session_meta.payload.title`; when unavailable, Codex nickname is used and
+  then an empty string.
+- `success` is `false` when that session summary has extraction warnings.
+- `error` is present only when `success` is `false`; it joins the session
+  warnings in a single string.
+- `durationMs`, `turns`, `toolsCalled`, and each token field are always numbers.
+  Unavailable numeric values become `0` in this response shape.
+- `tokens.in`, `tokens.out`, `tokens.cached`, and `tokens.total` map from the
+  final cumulative provider token snapshot.
+- `tree` scope includes recursive descendants in `main.children`.
+- `main` scope keeps `main.children` empty.
+- `children` scope keeps the target as `main` and places recursive descendants
+  in `main.children`; callers that need descendant-only totals should ignore
+  `main.metrics`.
 
 ## Resolved Target
 
@@ -154,6 +209,7 @@ may use `null` only when their source is not file-backed.
  * @property {string|null} parentSessionId
  * @property {number|null} depth
  * @property {string|null} cwd
+ * @property {string|null} title
  * @property {string|null} threadSource
  * @property {string|null} agentRole
  * @property {string|null} agentNickname
@@ -281,7 +337,9 @@ Home resolution order:
 2. `CODEX_HOME`
 3. `~/.codex`
 
-Session id resolution scans:
+Session id resolution looks up only candidate session paths whose filenames
+match the requested id, preferring `rg --files`, then `find`, then a Node
+recursive fallback:
 
 ```text
 <codex-home>/sessions/**/*.jsonl
@@ -290,13 +348,25 @@ Session id resolution scans:
 
 Parsing rules:
 
-- Unknown record types are counted and ignored.
-- Invalid JSON lines increment `invalidJsonLines` and add warnings.
-- If every non-empty line is invalid JSON, the run still returns a summary with
-  warnings and filename-fallback session id.
+- Unknown filtered record types are counted and ignored.
+- Filtered lines are stream-reduced; the Codex adapter extracts fields with
+  compiled regular expressions and does not retain parsed JSON records.
+- If no session id is found in filtered metadata, the run still returns a
+  summary with warnings and filename-fallback session id.
 - Multiple token snapshots are allowed; the latest observed snapshot wins.
 - Multiple metadata records are allowed; latest non-empty mutable metadata wins.
 - Conflicting session ids add a warning and keep the first observed id.
 
-Descendant resolution for `--scope tree` and `--scope children` scans candidate
-Codex session files and follows parsed `parentSessionId` links recursively.
+Descendant resolution for `--scope tree` and `--scope children` follows spawned
+session ids found in the parent session, resolves each child by exact path
+lookup, and recurses. Sessions that merely point back through `parentSessionId`
+are not included unless the parent emitted a spawn event for them.
+
+The Codex adapter recognizes spawned sessions from real provider payload fields:
+
+- unescaped direct child fields such as `receiverThreadId` and `childThreadId`;
+- `spawn_agent` function-call outputs whose matching `call_id` returns an
+  escaped JSON `agent_id`.
+
+Escaped JSON snippets inside command output, patch text, or report output are not
+treated as provider metadata.

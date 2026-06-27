@@ -43,6 +43,7 @@ export function extractCodexFacts(record) {
     ),
     depth: firstNumber(payload.depth, spawn.depth),
     cwd: firstString(payload.cwd, payload.currentWorkingDirectory, payload.current_working_directory),
+    title: isSessionMetadata ? firstString(payload.title) : null,
     threadSource: firstString(payload.threadSource, payload.thread_source, payload.source?.kind),
     agentRole: isSessionMetadata
       ? firstString(payload.agentRole, payload.agent_role, payload.role, spawn.agentRole, spawn.agent_role, spawn.role)

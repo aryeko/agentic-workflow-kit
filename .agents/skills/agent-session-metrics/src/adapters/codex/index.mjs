@@ -1,5 +1,5 @@
 import { resolveCodexHome } from './codex-home.mjs';
-import { discoverCodexSessionRecords, resolveCodexTarget } from './codex-session-index.mjs';
+import { discoverCodexSessionRecords, extractCodexSessions, resolveCodexTarget } from './codex-session-index.mjs';
 import { summarizeCodexSession } from './codex-session-summary.mjs';
 
 export const codexAdapter = {
@@ -7,6 +7,7 @@ export const codexAdapter = {
   supportedRecordKinds: ['codex-jsonl'],
   resolveHome: resolveCodexHome,
   resolveTarget: resolveCodexTarget,
+  extractSessions: extractCodexSessions,
   discoverSessions: discoverCodexSessionRecords,
   summarizeSession: summarizeCodexSession,
 };

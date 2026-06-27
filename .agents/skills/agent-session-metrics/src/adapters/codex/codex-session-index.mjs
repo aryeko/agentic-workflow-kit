@@ -1,12 +1,13 @@
-import { readdir, stat } from 'node:fs/promises';
-import { basename, join, resolve } from 'node:path';
+import { stat } from 'node:fs/promises';
+import { basename, resolve } from 'node:path';
 
 import { MetricsError } from '../../contracts.mjs';
+import { codexSessionDataTypes, extractCodexSessionData } from './codex-session-extractor.mjs';
+import { findCodexSessionCandidatePaths, listCodexJsonlPaths } from './codex-session-paths.mjs';
 import { summarizeCodexSession } from './codex-session-summary.mjs';
 
 export async function discoverCodexSessionRecords({ providerHome }) {
-  const roots = [join(providerHome, 'sessions'), join(providerHome, 'archived_sessions')];
-  const files = (await Promise.all(roots.map((root) => listJsonlFiles(root)))).flat().sort();
+  const files = await listCodexJsonlPaths({ providerHome });
   const records = [];
 
   for (const recordPath of files) {
@@ -22,6 +23,40 @@ export async function discoverCodexSessionRecords({ providerHome }) {
   }
 
   return records;
+}
+
+export async function extractCodexSessions({ target, providerHome, scope }) {
+  const resolvedTarget = await resolveCodexTarget({ target, providerHome });
+  const rootTypes =
+    scope === 'main'
+      ? [codexSessionDataTypes.sessionMeta, codexSessionDataTypes.metrics]
+      : [codexSessionDataTypes.sessionMeta, codexSessionDataTypes.spawnedSessions, codexSessionDataTypes.metrics];
+  const rootSummary = await extractCodexSessionData({
+    recordPath: resolvedTarget.recordPath,
+    dataTypes: rootTypes,
+  });
+  const targetWithSummary = {
+    ...resolvedTarget,
+    sessionId: rootSummary.sessionId,
+    summary: rootSummary,
+  };
+
+  if (scope === 'main') {
+    return {
+      target: targetWithSummary,
+      sessions: [rootSummary],
+    };
+  }
+
+  const descendants = await extractSpawnedDescendants({
+    providerHome,
+    parentSummary: rootSummary,
+    visitedSessionIds: new Set([rootSummary.sessionId]),
+  });
+  return {
+    target: targetWithSummary,
+    sessions: [rootSummary, ...descendants],
+  };
 }
 
 export async function resolveCodexTarget({ target, providerHome }) {
@@ -41,8 +76,10 @@ export async function resolveCodexTarget({ target, providerHome }) {
     throw new MetricsError(`Unsupported target kind for codex: ${target.kind}`);
   }
 
-  const records = await discoverCodexSessionRecords({ providerHome });
-  const matches = records.filter((record) => sessionIdMatches(record, target.sessionId));
+  const records = await resolveCodexSessionCandidates({ providerHome, sessionId: target.sessionId });
+  const exactMatches = records.filter((record) => record.sessionId === target.sessionId);
+  const matches =
+    exactMatches.length > 0 ? exactMatches : records.filter((record) => sessionIdMatches(record, target.sessionId));
   if (matches.length === 0) {
     throw new MetricsError(`Could not resolve session id: ${target.sessionId}`, { code: 2 });
   }
@@ -64,27 +101,55 @@ export async function resolveCodexTarget({ target, providerHome }) {
   };
 }
 
-async function listJsonlFiles(root) {
-  let entries;
-  try {
-    entries = await readdir(root, { withFileTypes: true });
-  } catch (error) {
-    if (error?.code === 'ENOENT') {
-      return [];
+async function extractSpawnedDescendants({ providerHome, parentSummary, visitedSessionIds }) {
+  const descendants = [];
+  for (const childSessionId of parentSummary.spawnedSessionIds ?? []) {
+    if (visitedSessionIds.has(childSessionId)) {
+      continue;
     }
-    throw error;
+    const resolvedChild = await resolveCodexTarget({
+      target: { kind: 'session-id', sessionId: childSessionId },
+      providerHome,
+    });
+    const childSummary = await extractCodexSessionData({
+      recordPath: resolvedChild.recordPath,
+      dataTypes: [
+        codexSessionDataTypes.sessionMeta,
+        codexSessionDataTypes.spawnedSessions,
+        codexSessionDataTypes.metrics,
+      ],
+    });
+    visitedSessionIds.add(childSummary.sessionId);
+    descendants.push(childSummary);
+    descendants.push(
+      ...(await extractSpawnedDescendants({
+        providerHome,
+        parentSummary: childSummary,
+        visitedSessionIds,
+      })),
+    );
   }
+  return descendants;
+}
 
-  const nested = await Promise.all(
-    entries.map(async (entry) => {
-      const path = join(root, entry.name);
-      if (entry.isDirectory()) {
-        return listJsonlFiles(path);
-      }
-      return entry.isFile() && entry.name.endsWith('.jsonl') ? [path] : [];
-    }),
-  );
-  return nested.flat();
+async function resolveCodexSessionCandidates({ providerHome, sessionId }) {
+  const files = await findCodexSessionCandidatePaths({ providerHome, sessionId });
+  const records = [];
+  for (const recordPath of files) {
+    const summary = await extractCodexSessionData({
+      recordPath,
+      dataTypes: [codexSessionDataTypes.sessionMeta],
+    });
+    const fileStat = await stat(recordPath);
+    records.push({
+      sessionId: summary.sessionId,
+      parentSessionId: summary.parentSessionId,
+      recordPath,
+      summary,
+      mtimeMs: fileStat.mtimeMs,
+    });
+  }
+  return records;
 }
 
 function sessionIdMatches(record, sessionId) {

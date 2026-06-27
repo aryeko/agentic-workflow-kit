@@ -51,5 +51,5 @@ test('extracts parent, role, nickname, model, effort, timestamps, and counts', a
   assert.equal(summary.startedAt, '2026-06-27T01:01:00.000Z');
   assert.equal(summary.completedAt, '2026-06-27T01:01:10.000Z');
   assert.equal(summary.durationMs, 10000);
-  assert.equal(summary.counts.toolCalls, 1);
+  assert.equal(summary.counts.toolCalls, 2);
 });

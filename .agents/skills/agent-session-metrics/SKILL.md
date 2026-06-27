@@ -27,9 +27,10 @@ exactly.
      for `--session-id` or `--session-file`. Do not guess.
 3. Choose the scope.
    - Default to `--scope tree`.
-   - Use `--scope main` only when the user asks for the root session alone.
-   - Use `--scope children` only when the user asks for descendants without the
-     root session.
+   - Use `--scope main` only when the user asks for the target session alone.
+   - Use `--scope children` only when the user asks for descendant metrics. The
+     JSON response still uses the target as `main`; descendants appear under
+     `main.children`.
 4. Choose output.
    - Default to `--format json`.
    - Use `--format markdown` when the user wants a human-readable report.
@@ -69,6 +70,11 @@ Do not use `--current`, `--cwd`, or `--codex-home`.
 ## Output Rules
 
 - Return or summarize the script output without changing numeric values.
+- For JSON, use `report.main` as the canonical recursive response:
+  `id`, `name`, `success`, optional `error`, `metrics`, and `children`.
+- Read token counts for user-facing summaries from
+  `report.main.metrics.tokens` and each child session's
+  `metrics.tokens`.
 - Preserve unavailable fields as unavailable, `null`, or omitted exactly as the
   script reports them.
 - Do not invent missing model, effort, duration, token, provider, role, or
