@@ -27,6 +27,11 @@ Posting review comments is allowed only when the user explicitly requests it.
    were used, finder/verifier/sweep passes completed, and any skipped pass with
    its reason. Use `docs/engineering/codex-review-execution-summary.md` for the
    execution summary format and metadata availability rules.
+   When local session metrics are needed and the shared
+   `agent-session-metrics` skill is available, use it to populate token,
+   duration, model, effort, and subagent tree details from the current
+   `CODEX_THREAD_ID` session. Preserve unavailable fields instead of inferring
+   them.
 5. Local reports may add a separate "Non-blocking notes" section for actionable
    P2/P3 observations. Keep those notes clearly separated from P0/P1 findings
    and do not treat them as GitHub review-blocking.
@@ -40,5 +45,7 @@ Posting review comments is allowed only when the user explicitly requests it.
 - `docs/engineering/codex-github-code-review.md`: canonical review workflow.
 - `docs/engineering/codex-review-execution-summary.md`: review execution
   summary format and metadata availability rules.
+- `/Users/aryekogan/.agents/skills/agent-session-metrics`: shared local
+  session metrics skill for Codex session and subagent execution metadata.
 - `docs/implementation-authoring/lessons-ledger.md`: authority for recurring
   workflow-kit defect patterns.

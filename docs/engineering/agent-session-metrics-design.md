@@ -21,8 +21,8 @@ retro workflows consume its JSON output.
 
 ## Goals
 
-- Resolve an agent session by session id, explicit record file, or current
-  local session.
+- Resolve an agent session by session id or explicit record file. Runtime
+  wrappers can support "current session" by passing their surfaced session id.
 - Summarize root session metrics and spawned worker/subagent metrics.
 - Reconstruct the parent-child session tree from observed provider records.
 - Report per-session provider, model, reasoning effort, role, nickname,
@@ -109,10 +109,6 @@ Codex adapter responsibilities:
 - Select the final cumulative Codex `token_count` snapshot for token totals
   instead of summing all `token_count` events.
 
-The package may expose `--codex-home` as a convenience alias for
-`--provider codex --provider-home <path>`, but the library API must use the
-provider-neutral `providerHome` field.
-
 ## Package Layout
 
 Use a small Node ESM package bundled inside the skill. It must run without
@@ -191,7 +187,6 @@ Provider flags:
 ```text
 --provider <name>       Provider adapter to use. Version 1 supports `codex`.
 --provider-home <path>  Override the provider's local data home.
---codex-home <path>     Codex-only alias for `--provider codex --provider-home`.
 ```
 
 Target flags are mutually exclusive:
@@ -199,21 +194,12 @@ Target flags are mutually exclusive:
 ```text
 --session-id <id>       Resolve a provider session/thread id.
 --session-file <path>   Analyze one explicit provider record file.
---current               Infer the newest current-looking root session.
 ```
 
-Scope flags are mutually exclusive:
+Scope flag:
 
 ```text
---tree                  Include descendants recursively. Default.
---main-only             Analyze only the target session.
---children-only         Analyze descendants only.
-```
-
-Location flags:
-
-```text
---cwd <path>            Filter `--current` candidates by working directory when the provider supports cwd metadata.
+--scope <scope>         `tree`, `main`, or `children`. Default: `tree`.
 ```
 
 Output flags:
@@ -230,7 +216,7 @@ Exit codes:
 |---|---|
 | `0` | Report produced. |
 | `1` | Invalid arguments, unreadable file, malformed target, unsupported provider, or unsupported option. |
-| `2` | Target could not be resolved or `--current` was ambiguous. |
+| `2` | Target could not be resolved or session-id resolution was ambiguous. |
 | `3` | Internal parser invariant failed. |
 
 ## Library API
@@ -248,9 +234,8 @@ Input shape:
  * @typedef {Object} AnalyzeOptions
  * @property {'codex'} provider
  * @property {{kind: 'session-id', sessionId: string} |
- *   {kind: 'session-file', sessionFile: string} |
- *   {kind: 'current', cwd?: string}} target
- * @property {'tree'|'main-only'|'children-only'} [scope]
+ *   {kind: 'session-file', sessionFile: string}} target
+ * @property {'tree'|'main'|'children'} [scope]
  * @property {string} [providerHome]
  */
 ```
@@ -432,14 +417,6 @@ Read exactly that file through the selected adapter. The parsed `sessionId`
 still comes from provider metadata when available; filename parsing is fallback
 only.
 
-### `--current`
-
-Infer the newest local root session by provider adapter, optionally filtered by
-`--cwd`. A root session is one with no parsed `parentSessionId`. If multiple
-candidate root sessions share the same recency window or the cwd filter is
-missing and several active repositories are present, return exit code `2` and
-print candidates instead of guessing.
-
 ## Descendant Resolution
 
 For `--tree`, build descendants by asking the selected adapter to discover
@@ -499,11 +476,15 @@ Skill body should include:
 
 1. Choose provider: default to `codex` for version 1 unless the user explicitly
    asks for an unsupported provider.
-2. Choose target: `--session-id`, `--session-file`, or `--current`.
-3. Choose scope: default `--tree`, or `--main-only` if explicitly requested.
+2. Choose target: use `--session-id` or `--session-file`. For a current Codex
+   session request, read `CODEX_THREAD_ID` and pass it as `--session-id`; if it
+   is missing, ask for a session id or file path instead of guessing.
+3. Choose scope: default `--scope tree`, use `--scope main` for the root session
+   only, or `--scope children` for descendants only.
 4. Run `node scripts/agent-session-metrics.mjs --provider codex ...`.
 5. Return the JSON or Markdown result without rewriting the numbers.
-6. If the script reports ambiguity, ask for the session id or cwd; do not guess.
+6. If the script reports ambiguity, ask for a more specific session id or an
+   explicit session file path; do not guess.
 7. If the user asks for Claude or Gemini metrics before those adapters exist,
    state that the provider adapter is not implemented rather than attempting
    manual parsing.
@@ -525,8 +506,8 @@ Scope:
 - Implement the provider-neutral library API and CLI contract.
 - Implement only the Codex provider adapter.
 - Add Codex fixtures covering root-only, duplicate token counts, nested
-  subagents, missing token counts, malformed lines, and ambiguous
-  current-session resolution.
+  subagents, missing token counts, malformed lines, and ambiguous session-id
+  resolution.
 - Add adapter-registry tests proving unsupported providers fail cleanly.
 - Use TDD: write failing tests for parser contracts before implementing each
   module.
@@ -541,8 +522,8 @@ Acceptance:
 - Unsupported providers such as `claude` and `gemini` fail with a clear
   "provider adapter not implemented" error.
 - Duplicate cumulative Codex `token_count` events are not summed.
-- Nested Codex child sessions are included when `--tree` is used.
-- `--main-only` excludes descendants.
+- Nested Codex child sessions are included when `--scope tree` is used.
+- `--scope main` excludes descendants.
 
 ### Task B: Skill and Evals
 
@@ -596,8 +577,8 @@ Minimum tests:
   and emits warnings for unavailable fields.
 - `session-tree`: builds nested tree and detects orphan children.
 - `aggregate`: sums included sessions exactly once.
-- `cli`: rejects ambiguous target flags, unknown options, and unsupported
-  providers.
+- `cli`: rejects ambiguous target flags, removed options such as `--current`,
+  unknown options, and unsupported providers.
 
 Fixture tests should include real redacted Codex JSONL fragments from the probes
 recorded in [codex-review-execution-summary.md](codex-review-execution-summary.md).
@@ -625,7 +606,7 @@ Before adding a non-Codex provider:
 | Provider record shapes change. | Keep adapters small, tolerate unknown records, and fixture known shapes per provider. |
 | Generic API hides provider-specific limitations. | Report adapter capabilities and warnings in every report. |
 | Duplicate cumulative token snapshots overcount. | Use final per-session cumulative snapshot, never sum snapshots within one session. |
-| `--current` guesses wrong session. | Return ambiguity with candidates unless cwd and recency make the target clear. |
+| Current-session requests guess wrong session. | Keep current-session resolution in the skill wrapper: use `CODEX_THREAD_ID`, and ask for an explicit target if it is unavailable. |
 | Subagent tree scan is slow. | Start with streaming scan; add cache only if measured slow. |
 | Skill invents missing values. | Script reports `null` or `unavailable`; evals require preserving those values. |
 | Sensitive transcript leakage. | Render only metadata and counts; never print prompts or full responses. |
