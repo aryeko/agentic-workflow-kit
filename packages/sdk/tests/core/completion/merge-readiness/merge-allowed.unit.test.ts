@@ -105,6 +105,46 @@ describe('core-05-s3 merge readiness predicate', () => {
     expect(mergeAllowed(failed)).toBe('merge-required-check-failed');
   });
 
+  it('ignores rulesets with evaluate enforcement when deriving required checks', () => {
+    const input = createMergeAllowedInput({
+      forge: {
+        ...createMergeAllowedInput().forge,
+        snapshot: createForgeSnapshot({
+          protection: {
+            branchProtectionRules: [
+              {
+                pattern: 'v-next',
+                requiredStatusCheckContexts: ['check'],
+                requiresApprovingReviews: true,
+                requiresStatusChecks: true,
+                requiresStrictStatusChecks: true,
+                requiresCommitSignatures: false,
+                allowsForcePushes: false,
+                allowsDeletions: false,
+                blocksCreations: false,
+              },
+            ],
+            rulesets: [
+              {
+                id: 'ruleset-1',
+                name: 'eval-only',
+                enforcement: 'evaluate',
+                requiredStatusChecks: ['lint'],
+                target: 'branch',
+              },
+            ],
+          },
+          statusChecks: {
+            state: 'SUCCESS',
+            contexts: [{ name: 'check', state: 'SUCCESS', conclusion: 'SUCCESS' }],
+          },
+        }),
+      },
+    });
+
+    expect(mergeAllowed(input)).toBe('merge-ready');
+  });
+
   it('merge-denial-state-matrix covers each named deny literal', () => {
     const matrix = [
       [

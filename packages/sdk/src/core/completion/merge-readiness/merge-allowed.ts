@@ -1,4 +1,9 @@
-import type { CapabilityGateRecordPayload, CapabilityGateScope } from '../../capability/evaluator/index.js';
+import {
+  sameCapabilityGateScope,
+  sameStringSet,
+  type CapabilityGateRecordPayload,
+  type CapabilityGateScope,
+} from '../../capability/evaluator/index.js';
 import type { ForgeEvidenceSnapshot, ForgeStatusCheckContext } from '../../../providers/forge/index.js';
 import type { MergeDecisionState } from '../contracts/index.js';
 
@@ -6,40 +11,20 @@ import type { MergeAllowedInput, MergeReadinessDetails } from './types.js';
 
 const successStates = new Set(['SUCCESS']);
 
-const sortStrings = (values: readonly string[]): readonly string[] => [...values].sort();
-
-const sameStringSet = (left: readonly string[], right: readonly string[]): boolean =>
-  left.length === right.length && sortStrings(left).every((value, index) => value === sortStrings(right)[index]);
-
-const normalizeScope = (scope: CapabilityGateScope['providerScopes'][number]) => ({
-  provider: scope.provider,
-  scope: scope.scope,
-  freshnessKey: scope.freshnessKey,
-  approvedParentScopes: sortStrings(scope.approvedParentScopes ?? []),
-});
-
-const sameProviderScopes = (
-  left: readonly CapabilityGateScope['providerScopes'][number][],
-  right: readonly CapabilityGateScope['providerScopes'][number][],
-): boolean => {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  const leftScopes = left.map(normalizeScope).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
-  const rightScopes = right.map(normalizeScope).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
-  return leftScopes.every((scope, index) => JSON.stringify(scope) === JSON.stringify(rightScopes[index]));
-};
-
 const isSuccessfulCheck = (context: ForgeStatusCheckContext): boolean =>
   successStates.has((context.conclusion ?? context.state ?? '').toUpperCase());
+
+const isRequiredRuleset = (enforcement: string): boolean => {
+  const normalized = enforcement.toLowerCase();
+  return normalized === 'active' || normalized === 'enabled';
+};
 
 const requiredChecks = (snapshot: ForgeEvidenceSnapshot): readonly string[] => {
   const branchChecks = snapshot.protection.branchProtectionRules.flatMap((rule) =>
     rule.requiresStatusChecks ? rule.requiredStatusCheckContexts : [],
   );
   const rulesetChecks = snapshot.protection.rulesets
-    .filter((ruleset) => ruleset.enforcement.toLowerCase() !== 'disabled')
+    .filter((ruleset) => isRequiredRuleset(ruleset.enforcement))
     .flatMap((ruleset) => ruleset.requiredStatusChecks);
   return [...new Set([...branchChecks, ...rulesetChecks])];
 };
@@ -57,9 +42,18 @@ const gateMatches = (
     gate.capability === 'auto-merge' &&
     gate.decision === 'allow' &&
     gate.policyRef === input.policy.policyRef &&
-    gate.scope.expectedHeadSha === candidateHeadSha &&
-    gate.scope.pullRequestRef === input.gate.pullRequestRef &&
-    sameProviderScopes(gate.scope.providerScopes, input.gate.providerScopes) &&
+    sameCapabilityGateScope(gate.scope, {
+      runId: gate.scope.runId,
+      taskId: gate.scope.taskId,
+      operationId: gate.scope.operationId,
+      repoRef: gate.scope.repoRef,
+      workspaceRef: gate.scope.workspaceRef,
+      sessionId: gate.scope.sessionId,
+      egressPolicyDigest: gate.scope.egressPolicyDigest,
+      expectedHeadSha: candidateHeadSha,
+      pullRequestRef: input.gate.pullRequestRef,
+      providerScopes: input.gate.providerScopes,
+    } satisfies CapabilityGateScope) &&
     sameStringSet(gate.evidenceRefs, input.gate.evidenceRefs)
   );
 };
