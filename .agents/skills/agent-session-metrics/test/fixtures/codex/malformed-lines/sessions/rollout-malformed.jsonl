@@ -1,0 +1,3 @@
+{"type":"session_meta","payload":{"id":"malformed","cwd":"/repo/malformed","timestamp":"2026-06-27T04:00:00.000Z"}}
+not-json
+{"type":"event_msg","payload":{"type":"token_count","timestamp":"2026-06-27T04:00:02.000Z","total":{"input_tokens":1,"cached_input_tokens":0,"output_tokens":2,"reasoning_output_tokens":0,"total_tokens":3},"last":{"input_tokens":1,"cached_input_tokens":0,"output_tokens":2,"reasoning_output_tokens":0,"total_tokens":3}}}

@@ -1,0 +1,17 @@
+{
+  "name": "agent-session-metrics",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "agent-session-metrics": "./scripts/agent-session-metrics.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

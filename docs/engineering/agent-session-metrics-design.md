@@ -6,7 +6,7 @@ last-reviewed: "2026-06-27"
 
 # Agent Session Metrics Design
 
-This document specifies the shared `agent-session-metrics` skill and its
+This document specifies the repo-local `agent-session-metrics` skill and its
 deterministic local metrics package. The package reports observable execution
 metrics for one agent session and, by default, its spawned worker tree.
 
@@ -49,15 +49,15 @@ retro workflows consume its JSON output.
 
 ## Installation Target
 
-The skill should live in the shared user skill directory:
+The skill should live in the workflow-kit repo-local skill directory:
 
 ```text
-/Users/aryekogan/.agents/skills/agent-session-metrics
+.agents/skills/agent-session-metrics
 ```
 
-It is shared because local session metrics are not workflow-kit-specific. The
-workflow-kit review instructions can reference the skill later, but the skill
-must not import repository modules or assume this repository exists.
+It is repo-local because workflow-kit review instructions and local review
+workflows consume it directly. The package should remain provider-neutral and
+must not import workflow-kit runtime modules.
 
 ## Provider Adapter Model
 
@@ -553,8 +553,8 @@ Acceptance:
 
 After the package and skill are implemented:
 
-- Update `deep-code-review` to call `agent-session-metrics` for local execution
-  summaries.
+- Update `deep-code-review` to call the repo-local `agent-session-metrics` skill
+  for local execution summaries.
 - Keep Codex GitHub automatic review independent; cloud reviews may not have
   local session records.
 - Add a short pointer from

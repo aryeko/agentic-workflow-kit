@@ -21,7 +21,7 @@ When this directory and `docs/design/` conflict, `docs/design/` wins.
 | [check-gate.md](check-gate.md) | `pnpm check` gate — all steps, ordering rationale, CI split, smoke gating |
 | [codex-github-code-review.md](codex-github-code-review.md) | Codex GitHub PR review workflow — source routing, finder/verifier/sweep flow, synthesis boundaries |
 | [codex-review-execution-summary.md](codex-review-execution-summary.md) | Review execution summary contract — workflow trace, agent/model/token reporting, local observability probe |
-| [agent-session-metrics-design.md](agent-session-metrics-design.md) | Shared `agent-session-metrics` skill/package design — provider-neutral session tree parsing, Codex adapter, contracts, task split |
+| [agent-session-metrics-design.md](agent-session-metrics-design.md) | Repo-local `agent-session-metrics` skill/package design — provider-neutral session tree parsing, Codex adapter, contracts, task split |
 | [dependency-policy.md](dependency-policy.md) | Package dependency rules, SDK bans, injection and determinism policy |
 | [dependency-rule-enforcement.md](dependency-rule-enforcement.md) | How dependency-cruiser and TypeScript project references enforce the rules |
 | [test-lanes.md](test-lanes.md) | Four Vitest lanes, hermetic guards, file-glob conventions |

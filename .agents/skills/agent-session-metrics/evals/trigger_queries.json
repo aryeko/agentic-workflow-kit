@@ -1,0 +1,68 @@
+[
+  {
+    "id": "positive-current-session-metrics",
+    "query": "Show token usage and metrics for my current Codex session.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-explicit-session-id",
+    "query": "Calculate agent session metrics for Codex session 019f1234-abcd-7000-9000-111122223333.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-explicit-session-file",
+    "query": "Analyze this Codex session file for metrics: /Users/me/.codex/sessions/2026/06/27/rollout-demo.jsonl",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "positive-subagent-breakdown",
+    "query": "Break down token usage across the subagent tree for this session id.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-review-execution-breakdown",
+    "query": "Give me the review execution token breakdown for this Codex run, including worker sessions.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "positive-unsupported-claude-provider",
+    "query": "Calculate the same session metrics for a Claude provider run.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-unsupported-gemini-provider",
+    "query": "Can you report Gemini agent session token usage from my local records?",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "negative-delivery-retro",
+    "query": "Run a delivery retro and explain what went wrong across the implementation wave.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-deep-code-review",
+    "query": "Perform a deep code review of this branch and list correctness findings.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-pr-review-policy",
+    "query": "Update the code review instructions so reviewers follow the new PR policy.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-code-review-comments",
+    "query": "Read the unresolved review threads on this PR and fix the requested changes.",
+    "should_trigger": false,
+    "split": "train"
+  }
+]

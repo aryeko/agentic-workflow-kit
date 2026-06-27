@@ -81,8 +81,8 @@ Token counts are best-effort execution metadata, not a correctness gate. A revie
 can be valid when token counts are unavailable, but the summary must say they
 were unavailable.
 
-For local `deep-code-review` reports, use the shared
-`agent-session-metrics` skill as the deterministic local source for Codex
+For local `deep-code-review` reports, use the repo-local
+`.agents/skills/agent-session-metrics` skill as the deterministic local source for Codex
 session duration, model, effort, token usage, and spawned subagent breakdowns.
 The skill resolves the invoking session from `CODEX_THREAD_ID` and preserves
 unavailable values instead of inferring them. If the skill is unavailable or

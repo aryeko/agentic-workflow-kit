@@ -1,0 +1,64 @@
+{
+  "skill_name": "agent-session-metrics",
+  "evals": [
+    {
+      "id": "current-session-uses-thread-id",
+      "prompt": "Show metrics for the current Codex session. Assume CODEX_THREAD_ID is set to 019f1234-abcd-7000-9000-111122223333.",
+      "expected_output": "The agent runs the metrics script with --provider codex, --session-id \"$CODEX_THREAD_ID\", --scope tree, and a requested output format.",
+      "files": [],
+      "assertions": [
+        "Runs node scripts/agent-session-metrics.mjs instead of manually inspecting provider records",
+        "Uses CODEX_THREAD_ID as --session-id for the current session",
+        "Uses codex as the default provider",
+        "Uses tree as the default scope"
+      ]
+    },
+    {
+      "id": "current-session-missing-target",
+      "prompt": "Show metrics for the current session, but CODEX_THREAD_ID is not set.",
+      "expected_output": "The agent asks for a session id or session file and does not guess a current session.",
+      "files": [],
+      "assertions": [
+        "Does not run --current",
+        "Does not infer a target from cwd, recency, or provider logs",
+        "Asks the user for --session-id or --session-file"
+      ]
+    },
+    {
+      "id": "explicit-file-preserves-values",
+      "prompt": "Analyze /tmp/codex-session.jsonl and return JSON. The script output contains model null, effort null, durationMs null, totalTokens 12345, and provider codex.",
+      "expected_output": "The agent runs the script with --session-file /tmp/codex-session.jsonl and preserves the script's reported values exactly.",
+      "files": [],
+      "assertions": [
+        "Runs node scripts/agent-session-metrics.mjs with --session-file /tmp/codex-session.jsonl",
+        "Does not replace null model, effort, or duration with guessed values",
+        "Preserves totalTokens 12345 exactly",
+        "Preserves provider codex exactly"
+      ]
+    },
+    {
+      "id": "subagent-review-breakdown",
+      "prompt": "Give me the review execution token breakdown for session 019f1234-abcd-7000-9000-111122223333, including subagents, in Markdown.",
+      "expected_output": "The agent runs the script with --session-id, --scope tree, and --format markdown, then reports the script output without inventing metrics.",
+      "files": [],
+      "assertions": [
+        "Runs node scripts/agent-session-metrics.mjs with --session-id 019f1234-abcd-7000-9000-111122223333",
+        "Uses --scope tree for the subagent breakdown",
+        "Uses --format markdown",
+        "Does not add unavailable model, effort, duration, token, role, nickname, or provider fields"
+      ]
+    },
+    {
+      "id": "unsupported-provider-clean-error",
+      "prompt": "Calculate Claude and Gemini agent session metrics from local records.",
+      "expected_output": "The agent reports that Claude and Gemini provider adapters are not implemented and does not manually parse their records.",
+      "files": [],
+      "assertions": [
+        "Reports unsupported Claude provider as adapter not implemented",
+        "Reports unsupported Gemini provider as adapter not implemented",
+        "Does not inspect or parse Claude or Gemini records manually",
+        "Does not invent unavailable token, model, effort, duration, or provider fields"
+      ]
+    }
+  ]
+}

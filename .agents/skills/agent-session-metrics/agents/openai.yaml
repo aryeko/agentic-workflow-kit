@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Session Metrics"
+  short_description: "Calculate local agent and Codex session token metrics"
+  default_prompt: "Use $agent-session-metrics to calculate metrics for the current Codex session."

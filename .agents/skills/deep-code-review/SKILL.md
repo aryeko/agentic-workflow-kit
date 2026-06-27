@@ -27,7 +27,7 @@ Posting review comments is allowed only when the user explicitly requests it.
    were used, finder/verifier/sweep passes completed, and any skipped pass with
    its reason. Use `docs/engineering/codex-review-execution-summary.md` for the
    execution summary format and metadata availability rules.
-   When local session metrics are needed and the shared
+   When local session metrics are needed and the repo-local
    `agent-session-metrics` skill is available, use it to populate token,
    duration, model, effort, and subagent tree details from the current
    `CODEX_THREAD_ID` session. Preserve unavailable fields instead of inferring
@@ -45,7 +45,7 @@ Posting review comments is allowed only when the user explicitly requests it.
 - `docs/engineering/codex-github-code-review.md`: canonical review workflow.
 - `docs/engineering/codex-review-execution-summary.md`: review execution
   summary format and metadata availability rules.
-- `/Users/aryekogan/.agents/skills/agent-session-metrics`: shared local
+- `.agents/skills/agent-session-metrics`: repo-local
   session metrics skill for Codex session and subagent execution metadata.
 - `docs/implementation-authoring/lessons-ledger.md`: authority for recurring
   workflow-kit defect patterns.
