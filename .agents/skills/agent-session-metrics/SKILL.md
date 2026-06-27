@@ -37,15 +37,19 @@ exactly.
 5. Run the script from the skill directory:
 
 ```bash
-node scripts/agent-session-metrics.mjs --provider codex --session-id "$CODEX_THREAD_ID" --scope tree --format json --pretty
+scripts/agent-session-metrics.mjs --provider codex --session-id "$CODEX_THREAD_ID" --scope tree --format json --pretty
 ```
 
 ## CLI Contract
 
+For complete package usage, API, output, and adapter contracts, read
+`README.md` and `references/contracts.md`. Use the short form below when running
+the tool.
+
 Use this shape:
 
 ```bash
-node scripts/agent-session-metrics.mjs \
+scripts/agent-session-metrics.mjs \
   --provider codex \
   (--session-id <id> | --session-file <path>) \
   --scope tree|main|children \

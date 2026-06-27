@@ -1,6 +1,7 @@
 {
   "name": "agent-session-metrics",
   "version": "0.1.0",
+  "description": "Provider-neutral local agent session metrics utility with a Codex adapter.",
   "type": "module",
   "private": true,
   "bin": {

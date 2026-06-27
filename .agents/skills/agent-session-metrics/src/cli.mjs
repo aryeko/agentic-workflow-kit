@@ -99,7 +99,7 @@ export function parseArgs(argv) {
 
 export function usage() {
   return `Usage:
-  node scripts/agent-session-metrics.mjs --provider codex (--session-id <id> | --session-file <path>) --scope tree|main|children --provider-home <path> --format json|markdown --pretty
+  scripts/agent-session-metrics.mjs --provider codex (--session-id <id> | --session-file <path>) --scope tree|main|children --provider-home <path> --format json|markdown --pretty
 
 Defaults:
   --provider codex

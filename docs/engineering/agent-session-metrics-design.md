@@ -117,9 +117,12 @@ installing third-party dependencies.
 ```text
 agent-session-metrics/
 ├── SKILL.md
+├── README.md
 ├── package.json
 ├── agents/
 │   └── openai.yaml
+├── references/
+│   └── contracts.md
 ├── scripts/
 │   └── agent-session-metrics.mjs
 ├── src/
@@ -159,6 +162,14 @@ agent-session-metrics/
 
 `scripts/agent-session-metrics.mjs` is only a CLI entrypoint. All behavior must
 live under `src/` so package tests can exercise it without shelling out.
+
+`README.md` is the package usage guide for humans and agents. It must document
+quick-start commands, CLI options, scope semantics, package layout, importable
+API usage, and validation commands.
+
+`references/contracts.md` is the durable package contract. It must document the
+CLI, API input, report schema, session summary, token usage, tree node,
+aggregate metrics, warning rules, and provider-specific adapter contract.
 
 ## Module Responsibilities
 
@@ -481,7 +492,7 @@ Skill body should include:
    is missing, ask for a session id or file path instead of guessing.
 3. Choose scope: default `--scope tree`, use `--scope main` for the root session
    only, or `--scope children` for descendants only.
-4. Run `node scripts/agent-session-metrics.mjs --provider codex ...`.
+4. Run `scripts/agent-session-metrics.mjs --provider codex ...`.
 5. Return the JSON or Markdown result without rewriting the numbers.
 6. If the script reports ambiguity, ask for a more specific session id or an
    explicit session file path; do not guess.
@@ -517,7 +528,7 @@ Scope:
 Acceptance:
 
 - `npm test` passes inside the skill package.
-- `node scripts/agent-session-metrics.mjs --help` prints usage.
+- `scripts/agent-session-metrics.mjs --help` prints usage.
 - `--provider codex --session-file <fixture>` returns the expected JSON.
 - Unsupported providers such as `claude` and `gemini` fail with a clear
   "provider adapter not implemented" error.
