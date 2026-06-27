@@ -75,7 +75,7 @@ Use these availability rules when filling the table:
 | Duration | Available when the local skill records start/end timestamps or local session timestamps exist. | Report only if surfaced by the cloud review runtime. |
 | Model provider | Available in local session metadata. | Report only if surfaced by the cloud review runtime. |
 | Exact model and effort | Report when explicitly chosen or surfaced in metadata. Otherwise `not surfaced`. | Report only if surfaced by the cloud review runtime. |
-| Token counts | Locally available by parsing session JSONL `token_count` events. | Report only if surfaced by supported cloud review, analytics, or compliance metadata. |
+| Token counts | Locally available through the repo-local `agent-session-metrics` skill, which parses supported session metadata. | Report only if surfaced by supported cloud review, analytics, or compliance metadata. |
 
 Token counts are best-effort execution metadata, not a correctness gate. A review
 can be valid when token counts are unavailable, but the summary must say they
@@ -83,7 +83,8 @@ were unavailable.
 
 For local `deep-code-review` reports, use the repo-local
 `.agents/skills/agent-session-metrics` skill as the deterministic local source for Codex
-session duration, model, effort, token usage, and spawned subagent breakdowns.
+session duration, model, effort, token usage, and spawned subagent breakdowns;
+do not duplicate provider JSONL parsing in the review skill.
 The skill resolves the invoking session from `CODEX_THREAD_ID` and returns a
 recursive JSON response at `report.main`: target session metrics are in
 `report.main.metrics`, and spawned subagent metrics are in

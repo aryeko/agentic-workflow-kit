@@ -30,8 +30,10 @@ Posting review comments is allowed only when the user explicitly requests it.
    When local session metrics are needed and the repo-local
    `agent-session-metrics` skill is available, use it to populate token,
    duration, model, effort, and subagent tree details from the current
-   `CODEX_THREAD_ID` session. Preserve unavailable fields instead of inferring
-   them.
+   `CODEX_THREAD_ID` session. Consume the metrics skill's canonical
+   `report.main` tree (`report.main.metrics` for the review session and
+   `report.main.children[*].metrics` for subagents) instead of manually parsing
+   provider JSONL. Preserve unavailable fields instead of inferring them.
 5. Local reports may add a separate "Non-blocking notes" section for actionable
    P2/P3 observations. Keep those notes clearly separated from P0/P1 findings
    and do not treat them as GitHub review-blocking.

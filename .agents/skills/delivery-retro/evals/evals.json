@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": "complete-run-retro",
-      "prompt": "Use $delivery-retro on the completed execution package for Epic 7. The tracker links a session JSONL, PR #42, worker aliases, and a story commit range.",
+      "prompt": "Use $delivery-retro on the completed execution package for Epic 7. The tracker links a Codex session id, PR #42, worker aliases, and a story commit range.",
       "expected_output": "A post-run retro that resolves all required handles before reporting, summarizes review rounds, findings, timing, token usage or unavailable token status, and separates observed facts from recommendations.",
       "files": [
         "docs/implementation/epics/E7/execution/plan.md",
@@ -12,18 +12,19 @@
       ],
       "assertions": [
         "The agent runs or follows scripts/analyze-delivery-run.mjs.",
-        "The report is not produced until package path, session JSONL, PR, worker ids, and git range are resolved.",
+        "The agent uses agent-session-metrics for Codex session duration, token usage, and worker tree data.",
+        "The report is not produced until package path, session metrics source, PR, worker ids when needed, and git range are resolved.",
         "Token usage is marked unavailable when the session does not expose usage fields.",
         "Recommendations are separated from observed facts."
       ]
     },
     {
       "id": "missing-session-handle",
-      "prompt": "Use $delivery-retro on this execution package. It has tracker rows and PR notes, but no session JSONL path.",
-      "expected_output": "A needs_input response that asks only for the missing session JSONL handle and does not produce a final retro from partial evidence.",
+      "prompt": "Use $delivery-retro on this execution package. It has tracker rows and PR notes, but no Codex session id, session file, or metrics report.",
+      "expected_output": "A needs_input response that asks only for the missing session metrics source and does not produce a final retro from partial evidence.",
       "files": ["execution/plan.md", "execution/tracker.md"],
       "assertions": [
-        "The agent names session JSONL as the missing handle.",
+        "The agent names a session metrics source as the missing handle: agent-session-metrics report, Codex session id, or explicit session file.",
         "The agent does not estimate review rounds, timings, or token usage from incomplete inputs.",
         "The agent does not edit delivery artifacts."
       ]

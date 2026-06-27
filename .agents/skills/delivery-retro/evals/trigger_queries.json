@@ -13,7 +13,7 @@
   },
   {
     "id": "positive-needs-handles",
-    "query": "Use the session JSONL, PR, workers, and git range to summarize delivery churn.",
+    "query": "Use the Codex session id, PR, workers, and git range to summarize delivery churn.",
     "should_trigger": true,
     "split": "train"
   },
@@ -25,7 +25,7 @@
   },
   {
     "id": "positive-observability-summary",
-    "query": "Create a delivery observability summary from the execution tracker and rollout JSONL.",
+    "query": "Create a delivery observability summary from the execution tracker and agent-session metrics.",
     "should_trigger": true,
     "split": "validation"
   },
