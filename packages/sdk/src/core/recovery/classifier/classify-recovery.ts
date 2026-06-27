@@ -3,7 +3,7 @@ import type {
   MergeDecisionState,
   PostMergeOutcomeState,
 } from '../../completion/contracts/index.js';
-import type { EvidenceEventRef } from '../../run-lifecycle/contracts/index.js';
+import { dedupeEvidenceEventRefs } from '../../completion/contracts/index.js';
 import type { RecoveryClassification, RecoveryEvidenceSnapshot, RecoveryState } from '../contracts/index.js';
 
 import { classifyActionSafety } from './action-safety.js';
@@ -52,16 +52,10 @@ const RECOVERY_REASONS: Readonly<Record<RecoveryState, string>> = Object.freeze(
   'terminal-no-recovery': 'terminal summaries remain ambiguous after termination',
 });
 
-const dedupeEvidenceRefs = (evidenceRefs: readonly EvidenceEventRef[]): EvidenceEventRef[] => {
-  const unique = new Map<string, EvidenceEventRef>();
-  for (const evidenceRef of evidenceRefs) {
-    unique.set(evidenceRef.eventId, evidenceRef);
-  }
-
-  return [...unique.values()].sort(
+const dedupeEvidenceRefs = (evidenceRefs: RecoveryEvidenceSnapshot['evidenceRefs']) =>
+  [...dedupeEvidenceEventRefs(evidenceRefs, { duplicate: 'last' })].sort(
     (left, right) => left.sequence - right.sequence || left.eventId.localeCompare(right.eventId),
   );
-};
 
 const hasActiveWriterLease = (snapshot: RecoveryEvidenceSnapshot): boolean =>
   classifyLeaseExpiryAtObservedAt(snapshot.leases.runWriter, snapshot.observedAt) === 'live';

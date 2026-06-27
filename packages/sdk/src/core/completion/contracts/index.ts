@@ -7,6 +7,8 @@ export {
   MERGE_DECISION_STATES,
   POST_MERGE_OUTCOME_STATES,
 } from './catalogs.js';
+export { dedupeEvidenceEventRefs } from './evidence-refs.js';
+export type { DedupeEvidenceEventRefsOptions } from './evidence-refs.js';
 export type {
   BlockerEvidenceEligibleCompletionState,
   BlockerEvidenceEligibleMergeState,

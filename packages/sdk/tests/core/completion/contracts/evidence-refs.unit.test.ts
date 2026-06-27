@@ -26,4 +26,27 @@ describe('core-05-s2 evidence ref helpers', () => {
     expect(dedupeEvidenceEventRefs([first, second, duplicate])).toEqual([first, second]);
     expect(dedupeEvidenceEventRefs(undefined)).toEqual([]);
   });
+
+  it('can keep the last ref for duplicate event ids', () => {
+    const first = {
+      eventId: 'evt-a',
+      sequence: 3,
+      payloadDigest: 'sha256:a-1',
+      type: 'RunnerCommandCaptured',
+    } as const;
+    const duplicate = {
+      eventId: 'evt-a',
+      sequence: 4,
+      payloadDigest: 'sha256:a-2',
+      type: 'RunnerCommandCaptured',
+    } as const;
+    const second = {
+      eventId: 'evt-b',
+      sequence: 5,
+      payloadDigest: 'sha256:b',
+      type: 'LocalGitEvidenceRecorded',
+    } as const;
+
+    expect(dedupeEvidenceEventRefs([first, duplicate, second], { duplicate: 'last' })).toEqual([duplicate, second]);
+  });
 });
