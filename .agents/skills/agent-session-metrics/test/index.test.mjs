@@ -24,6 +24,7 @@ test('analyzes a nested Codex session tree by default', async () => {
   assert.deepEqual(report.main.metrics, {
     durationMs: 10000,
     tokens: {
+      status: 'observed',
       in: 1000,
       out: 300,
       cached: 200,
@@ -40,6 +41,24 @@ test('analyzes a nested Codex session tree by default', async () => {
     report.main.children[0].children.map((session) => session.id),
     ['grandchild-a1'],
   );
+});
+
+test('marks response tokens unavailable instead of reporting ambiguous zeros', async () => {
+  const report = await analyzeAgentSessionMetrics({
+    provider: 'codex',
+    target: { kind: 'session-id', sessionId: 'unavailable' },
+    providerHome: join(fixtureRoot, 'unavailable-fields'),
+  });
+
+  assert.equal(report.main.success, false);
+  assert.match(report.main.error, /Token usage unavailable/);
+  assert.deepEqual(report.main.metrics.tokens, {
+    status: 'unavailable',
+    in: 0,
+    out: 0,
+    cached: 0,
+    total: 0,
+  });
 });
 
 test('main scope includes only the target session', async () => {
@@ -135,6 +154,41 @@ test('tree scope follows spawned session ids instead of sweeping parent links', 
     ['root-spawned-only', 'spawned-child'],
   );
   assert.equal(report.main.metrics.tokens.total, 10);
+  assert.equal(report.main.children[0].metrics.tokens.total, 20);
+});
+
+test('session-file tree scope resolves sibling spawned session files', async () => {
+  const sessionDir = await mkdtemp(join(tmpdir(), 'agent-session-metrics-file-tree-'));
+  const rootFile = join(sessionDir, 'rollout-exported-root.jsonl');
+  await writeFile(
+    rootFile,
+    [
+      '{"type":"session_meta","payload":{"id":"exported-root","role":"root","timestamp":"2026-06-27T01:00:00.000Z"}}',
+      '{"type":"collab_tool_call","payload":{"receiverThreadId":"exported-child","timestamp":"2026-06-27T01:00:01.000Z"}}',
+      '{"type":"event_msg","payload":{"type":"token_count","timestamp":"2026-06-27T01:00:02.000Z","total":{"total_tokens":10}}}',
+      '',
+    ].join('\n'),
+  );
+  await writeFile(
+    join(sessionDir, 'rollout-exported-child.jsonl'),
+    [
+      '{"type":"session_meta","payload":{"id":"exported-child","parentSessionId":"exported-root","depth":1,"role":"child","timestamp":"2026-06-27T01:01:00.000Z"}}',
+      '{"type":"event_msg","payload":{"type":"token_count","timestamp":"2026-06-27T01:01:02.000Z","total":{"total_tokens":20}}}',
+      '',
+    ].join('\n'),
+  );
+
+  const report = await analyzeAgentSessionMetrics({
+    provider: 'codex',
+    target: { kind: 'session-file', sessionFile: rootFile },
+    providerHome: join(fixtureRoot, 'root-only'),
+    scope: 'tree',
+  });
+
+  assert.deepEqual(
+    [report.main.id, ...report.main.children.map((session) => session.id)],
+    ['exported-root', 'exported-child'],
+  );
   assert.equal(report.main.children[0].metrics.tokens.total, 20);
 });
 

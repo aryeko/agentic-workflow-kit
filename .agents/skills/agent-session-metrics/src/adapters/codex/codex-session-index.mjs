@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises';
-import { basename, resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 
 import { MetricsError } from '../../contracts.mjs';
 import { codexSessionDataTypes, extractCodexSessionData } from './codex-session-extractor.mjs';
@@ -50,6 +50,7 @@ export async function extractCodexSessions({ target, providerHome, scope }) {
 
   const descendants = await extractSpawnedDescendants({
     providerHome,
+    extraRoots: resolvedTarget.resolution === 'session-file' ? [dirname(resolvedTarget.recordPath)] : [],
     parentSummary: rootSummary,
     visitedSessionIds: new Set([rootSummary.sessionId]),
   });
@@ -59,7 +60,7 @@ export async function extractCodexSessions({ target, providerHome, scope }) {
   };
 }
 
-export async function resolveCodexTarget({ target, providerHome }) {
+export async function resolveCodexTarget({ target, providerHome, extraRoots = [] }) {
   if (target.kind === 'session-file') {
     const recordPath = resolve(target.sessionFile);
     await assertReadableSessionFile(recordPath);
@@ -77,7 +78,7 @@ export async function resolveCodexTarget({ target, providerHome }) {
     throw new MetricsError(`Unsupported target kind for codex: ${target.kind}`);
   }
 
-  const records = await resolveCodexSessionCandidates({ providerHome, sessionId: target.sessionId });
+  const records = await resolveCodexSessionCandidates({ providerHome, sessionId: target.sessionId, extraRoots });
   const exactMatches = records.filter((record) => record.sessionId === target.sessionId);
   const matches =
     exactMatches.length > 0 ? exactMatches : records.filter((record) => sessionIdMatches(record, target.sessionId));
@@ -102,7 +103,7 @@ export async function resolveCodexTarget({ target, providerHome }) {
   };
 }
 
-async function extractSpawnedDescendants({ providerHome, parentSummary, visitedSessionIds }) {
+async function extractSpawnedDescendants({ providerHome, extraRoots = [], parentSummary, visitedSessionIds }) {
   const descendants = [];
   for (const childSessionId of parentSummary.spawnedSessionIds ?? []) {
     if (visitedSessionIds.has(childSessionId)) {
@@ -111,6 +112,7 @@ async function extractSpawnedDescendants({ providerHome, parentSummary, visitedS
     const resolvedChild = await resolveCodexTarget({
       target: { kind: 'session-id', sessionId: childSessionId },
       providerHome,
+      extraRoots,
     });
     const childSummary = await extractCodexSessionData({
       recordPath: resolvedChild.recordPath,
@@ -125,6 +127,7 @@ async function extractSpawnedDescendants({ providerHome, parentSummary, visitedS
     descendants.push(
       ...(await extractSpawnedDescendants({
         providerHome,
+        extraRoots,
         parentSummary: childSummary,
         visitedSessionIds,
       })),
@@ -133,8 +136,8 @@ async function extractSpawnedDescendants({ providerHome, parentSummary, visitedS
   return descendants;
 }
 
-async function resolveCodexSessionCandidates({ providerHome, sessionId }) {
-  const files = await findCodexSessionCandidatePaths({ providerHome, sessionId });
+async function resolveCodexSessionCandidates({ providerHome, sessionId, extraRoots }) {
+  const files = await findCodexSessionCandidatePaths({ providerHome, sessionId, extraRoots });
   const records = [];
   for (const recordPath of files) {
     const summary = await extractCodexSessionData({

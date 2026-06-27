@@ -55,8 +55,8 @@ const defaultFixtureFiles: Readonly<Record<string, string>> = {
       target: 'ES2022',
     },
   }),
-  'tests/dependency-rules/.fixture-root.ts': 'export const dependencyRuleFixtureRoot = true;\n',
-  'tooling/dep-cruiser/.fixture-root.ts': 'export const depCruiserFixtureRoot = true;\n',
+  'tests/dependency-rules/.fixture-root.js': 'export const dependencyRuleFixtureRoot = true;\n',
+  'tooling/dep-cruiser/.fixture-root.js': 'export const depCruiserFixtureRoot = true;\n',
 };
 
 export const runDependencyRuleCheck = async (fixture: DependencyRuleFixture): Promise<DependencyRuleCheck> => {
@@ -105,7 +105,16 @@ const writeFileWithParents = async (absolutePath: string, contents: string): Pro
 const runDepCruise = async (fixtureRoot: string): Promise<DepCruiseJson> => {
   const output = await spawnProcess(
     process.execPath,
-    [depCruiseBin, '--config', depCruiseConfig, '--output-type', 'json', 'packages', 'tooling', 'tests'],
+    [
+      depCruiseBin,
+      '--config',
+      depCruiseConfig,
+      '--output-type',
+      'json',
+      'packages/**/*.js',
+      'tooling/**/*.js',
+      'tests/**/*.js',
+    ],
     fixtureRoot,
   );
 

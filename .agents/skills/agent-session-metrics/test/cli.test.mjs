@@ -27,6 +27,7 @@ test('CLI renders compact JSON by default and pretty JSON on request', async () 
   const report = JSON.parse(stdout);
   assert.equal(report.main.id, 'root-001');
   assert.deepEqual(report.main.metrics.tokens, {
+    status: 'observed',
     in: 100,
     out: 30,
     cached: 25,

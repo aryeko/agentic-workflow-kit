@@ -31,7 +31,7 @@ function toResponseSession({ session, byId, childrenById, includeChildren }) {
     ...(warnings.length > 0 ? { error: warnings.join('; ') } : {}),
     metrics: {
       durationMs: numberOrZero(session.durationMs),
-      tokens: toResponseTokens(session.tokenUsage?.total),
+      tokens: toResponseTokens(session.tokenUsage),
       turns: session.counts?.turns ?? 0,
       toolsCalled: session.counts?.toolCalls ?? 0,
     },
@@ -51,8 +51,10 @@ function toResponseSession({ session, byId, childrenById, includeChildren }) {
   };
 }
 
-function toResponseTokens(tokens) {
+function toResponseTokens(tokenUsage) {
+  const tokens = tokenUsage?.total;
   return {
+    status: tokenUsage?.status === 'observed' ? 'observed' : 'unavailable',
     in: tokens?.inputTokens ?? 0,
     out: tokens?.outputTokens ?? 0,
     cached: tokens?.cachedInputTokens ?? 0,

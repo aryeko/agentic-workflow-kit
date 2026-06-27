@@ -3,8 +3,8 @@ import { access, readdir } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import readline from 'node:readline';
 
-export async function findCodexSessionCandidatePaths({ providerHome, sessionId }) {
-  const roots = await existingCodexRoots(providerHome);
+export async function findCodexSessionCandidatePaths({ providerHome, sessionId, extraRoots = [] }) {
+  const roots = await existingCodexRoots(providerHome, extraRoots);
   if (roots.length === 0) {
     return [];
   }
@@ -27,13 +27,17 @@ export async function listCodexJsonlPaths({ providerHome }) {
   return (await listWithNode({ roots, sessionId: '' })).sort();
 }
 
-async function existingCodexRoots(providerHome) {
-  const roots = [join(providerHome, 'sessions'), join(providerHome, 'archived_sessions')];
+async function existingCodexRoots(providerHome, extraRoots = []) {
+  const roots = [...extraRoots, join(providerHome, 'sessions'), join(providerHome, 'archived_sessions')];
   const existing = [];
+  const seen = new Set();
   for (const root of roots) {
     try {
       await access(root);
-      existing.push(root);
+      if (!seen.has(root)) {
+        seen.add(root);
+        existing.push(root);
+      }
     } catch {
       // Missing roots are normal for fresh Codex homes and fixtures.
     }

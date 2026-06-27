@@ -331,6 +331,7 @@ for compatibility and deeper review tooling.
 
 /**
  * @typedef {Object} Tokens
+ * @property {'observed'|'unavailable'} status
  * @property {number} in
  * @property {number} out
  * @property {number} cached
@@ -341,7 +342,8 @@ for compatibility and deeper review tooling.
 For Codex, `Session.name` comes from `session_meta.payload.title` when present,
 then nickname, then an empty string. `success` is `false` when extraction
 warnings exist, and `error` joins those warnings. Unavailable numeric values are
-reported as `0` in the recursive response shape.
+reported as `0` in the recursive response shape, with `tokens.status` set to
+`unavailable` so consumers do not mistake placeholder zeros for observed usage.
 
 ### Session Summary
 
@@ -490,7 +492,9 @@ ambiguity report.
 
 Read exactly that file through the selected adapter. The parsed `sessionId`
 still comes from provider metadata when available; filename parsing is fallback
-only.
+only. When `tree` or `children` scope is selected, spawned descendants are
+resolved from sibling JSONL files beside the explicit session file before the
+adapter falls back to provider-home lookup.
 
 ## Descendant Resolution
 

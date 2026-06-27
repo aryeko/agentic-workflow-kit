@@ -157,6 +157,7 @@ the resolved target session, even when `scope` is `children`.
 
 /**
  * @typedef {Object} Tokens
+ * @property {'observed'|'unavailable'} status
  * @property {number} in
  * @property {number} out
  * @property {number} cached
@@ -173,8 +174,11 @@ Rules:
 - `success` is `false` when that session summary has extraction warnings.
 - `error` is present only when `success` is `false`; it joins the session
   warnings in a single string.
-- `durationMs`, `turns`, `toolsCalled`, and each token field are always numbers.
+- `durationMs`, `turns`, `toolsCalled`, and each numeric token field are always numbers.
   Unavailable numeric values become `0` in this response shape.
+- `tokens.status` is the authoritative availability marker. When it is
+  `unavailable`, consumers must not treat zero-valued token fields as observed
+  token usage.
 - `tokens.in`, `tokens.out`, `tokens.cached`, and `tokens.total` map from the
   final cumulative provider token snapshot.
 - `tree` scope includes recursive descendants in `main.children`.
@@ -360,7 +364,9 @@ Parsing rules:
 Descendant resolution for `--scope tree` and `--scope children` follows spawned
 session ids found in the parent session, resolves each child by exact path
 lookup, and recurses. Sessions that merely point back through `parentSessionId`
-are not included unless the parent emitted a spawn event for them.
+are not included unless the parent emitted a spawn event for them. When the
+target is `--session-file`, descendant lookup searches sibling JSONL files in
+the explicit file's directory before falling back to provider-home lookup.
 
 The Codex adapter recognizes spawned sessions from real provider payload fields:
 

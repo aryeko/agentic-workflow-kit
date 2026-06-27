@@ -107,12 +107,13 @@ do not duplicate provider JSONL parsing in the review skill.
 The skill resolves the invoking session from `CODEX_THREAD_ID` and returns a
 recursive JSON response at `report.main`: target session metrics are in
 `report.main.metrics`, and spawned subagent metrics are in
-`report.main.children[*].metrics`. Check `report.main.success` and
-`report.main.error` before treating zero-valued numeric fields as observed
-metrics; if the skill reports unavailable token usage, write `not surfaced` in
-the execution summary instead of reporting zeros. If the skill is unavailable or
-cannot resolve the session, report the affected execution-summary fields as
-`not surfaced`.
+`report.main.children[*].metrics`. Check `report.main.metrics.tokens.status`
+before treating zero-valued token fields as observed usage. When the status is
+`unavailable`, write `not surfaced` in the execution summary instead of
+reporting zeros. Also check `report.main.success` and `report.main.error` before
+treating any warning-backed numeric fields as observed metrics. If the skill is
+unavailable or cannot resolve the session, report the affected execution-summary
+fields as `not surfaced`.
 
 ## Local Probe
 

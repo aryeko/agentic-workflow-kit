@@ -124,11 +124,12 @@ For a fresh linked git worktree, run `bash scripts/setup-worktree.sh` instead of
 repo-local `.pnpm-store`.
 
 `pnpm check` runs via Turbo (`turbo run //#check:gate`) with per-task input-hash caching.
-Turbo runs the seven leaf tasks concurrently and skips any whose inputs are unchanged:
+Turbo runs the eight leaf tasks concurrently and skips any whose inputs are unchanged:
 `docs:nav:check`, `format:check`, `lint`, `deps`, `typecheck`, `type:fixtures`, and
 `coverage:baseline` (the single coverage pass covers unit, integration, and
 conformance; it replaces the former separate `test:unit` / `test:int` / `test:conf`
-runs plus a duplicate coverage run).
+runs plus a duplicate coverage run), plus `agent-session-metrics:test` for the
+repo-local session metrics skill/package.
 `coverage:baseline` depends on `typecheck` because the test lanes import built (`dist/`)
 package entry points. CI
 additionally runs `pnpm pack:dry-run` and a gated `smoke` job (the only lane allowed real

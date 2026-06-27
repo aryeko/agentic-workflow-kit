@@ -73,7 +73,9 @@ Defaults:
 
 Target flags are mutually exclusive. Use `--session-id` when the provider
 should resolve the local record file, and `--session-file` when the exact record
-file is already known.
+file is already known. For `--session-file` with `tree` or `children` scope,
+spawned descendants are resolved from sibling JSONL files beside the explicit
+record before falling back to the provider home.
 
 `--provider-home` overrides the provider's local data home. For Codex, the
 adapter otherwise uses `CODEX_HOME`, then `~/.codex`.
@@ -118,7 +120,7 @@ canonical consumer shape is `report.main`, a recursive session object:
     success: true,
     metrics: {
       durationMs: 10000,
-      tokens: { in: 1000, out: 300, cached: 200, total: 1300 },
+      tokens: { status: 'observed', in: 1000, out: 300, cached: 200, total: 1300 },
       turns: 0,
       toolsCalled: 2,
     },
