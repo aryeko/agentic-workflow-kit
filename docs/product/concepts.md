@@ -35,7 +35,7 @@ Work profile — which model, what effort, prompt strategy, and how roles are re
 is track-scoped and freely tunable.
 
 This is the "policy is protected; config is free" line from the package. See
-[Jig — the package](../products/jig.md) guarantee ② for the full detail.
+[Jig — the package](./jig.md) guarantee ② for the full detail.
 
 ## How tracks relate to the products
 
@@ -56,6 +56,6 @@ suite, not just implied by the implementation.
 
 ---
 
-**↑ Up:** [Product definition](./README.md) · **← Prev:** [Product definition](./README.md) · **Next →:** [Jig — the package (main product)](./jig.md)
+**↑ Up:** [Product definition](./README.md) · **← Prev:** [Jig — the package (main product)](./jig.md) · **Next →:** [Design → plan (supporting product)](./supporting-products/design-to-plan.md)
 
 <!-- /DOCS-NAV -->

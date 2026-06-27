@@ -292,6 +292,6 @@ source file has been deleted._
 
 ---
 
-**↑ Up:** [Product definition](./README.md) · **← Prev:** [Jig — the package (main product)](./jig.md) · **Next →:** [Define product (supporting product)](./supporting-products/define-product.md)
+**↑ Up:** [Product definition](./README.md) · **← Prev:** [Learning loop (supporting product)](./supporting-products/learning-loop.md) · **Next →:** [design corpus overview](../design/README.md)
 
 <!-- /DOCS-NAV -->

@@ -173,7 +173,7 @@ A design → plan output is a plan **for a track** — one independent line of w
 design upstream and its own policy and work profile downstream. A repo runs **many tracks in
 parallel**, each with its own plan, advancing at its own pace. Nothing in design → plan forces a
 single plan across a repo: a plan is scoped to its track exactly as the track's design, policy,
-and work profile are. See [Tracks — parallel independent work](../concepts/tracks.md).
+and work profile are. See [Tracks — parallel independent work](../concepts.md).
 
 ## Honest edges
 
@@ -198,7 +198,7 @@ and work profile are. See [Tracks — parallel independent work](../concepts/tra
   execution-plan schema; Jig owns it (see [Jig](jig.md), enforce-vs-guide tier 1). One
   contract, one direction.
 - **Per track.** A plan is a plan _for a track_; a repo runs many in parallel — see
-  [Tracks](../concepts/tracks.md).
+  [Tracks](../concepts.md).
 - **ACs and evidence are what Jig's gates check.** The criteria and evidence clauses written
   here are exactly what Jig evaluates at merge-on-evidence ([Jig](jig.md), ① **MERGE-1**) and
   surfaces in its records (⑤ **SEE-1**, **SEE-3**) — the evidence seam alongside the schema seam.
@@ -214,6 +214,6 @@ and work profile are. See [Tracks — parallel independent work](../concepts/tra
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Define product (supporting product)](./define-product.md) · **Next →:** [Learning loop (supporting product)](./learning-loop.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Tracks — parallel independent work](../concepts.md) · **Next →:** [Product → design (supporting product)](./product-to-design.md)
 
 <!-- /DOCS-NAV -->

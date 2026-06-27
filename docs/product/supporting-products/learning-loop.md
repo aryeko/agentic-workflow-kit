@@ -151,7 +151,7 @@ Learning-loop sessions consume run records **per track** — a retro is scoped t
 stories for a given track, and the checks it introduces target that track's configuration
 unless the defect class is clearly suite-wide (in which case the trace will say so). A repo
 running many tracks in parallel produces independent retro material per track. See
-[Tracks — parallel independent work](../concepts/tracks.md).
+[Tracks — parallel independent work](../concepts.md).
 
 ## Honest edges
 
@@ -196,12 +196,12 @@ running many tracks in parallel produces independent retro material per track. S
   (see [Jig](jig.md), **③ ISO-2** / **② CFG-7**) operates at execution time on individual
   story instances. The loop operates between runs on defect classes. Both serve prevention;
   neither replaces the other.
-- **Per track** — see [Tracks](../concepts/tracks.md).
+- **Per track** — see [Tracks](../concepts.md).
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Design → plan (supporting product)](./design-to-plan.md) · **Next →:** [Product → design (supporting product)](./product-to-design.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Define product (supporting product)](./define-product.md) · **Next →:** [Product layer — status + authoring plan](../status.md)
 
 <!-- /DOCS-NAV -->

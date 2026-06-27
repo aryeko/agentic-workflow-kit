@@ -120,7 +120,7 @@ guidance is a first-class deliverable, in the spirit of the guidance across the 
 A design artifact is a design **for a track** — one independent line of work, scoped to its
 PRD and producing the input that design → plan decomposes for that track. A repo runs many
 tracks in parallel, each with its own design advancing at its own pace. See
-[Tracks — parallel independent work](../concepts/tracks.md).
+[Tracks — parallel independent work](../concepts.md).
 
 ## Honest edges
 
@@ -156,12 +156,12 @@ tracks in parallel, each with its own design advancing at its own pace. See
   loop's root-cause trace goes as far back as the design if that is where a defect originated
   (see [Learning loop](learning-loop.md), **LOOP-3**). The design artifact's explicit
   open-decisions record (PTD-5) is what makes that trace possible.
-- **Per track** — see [Tracks](../concepts/tracks.md).
+- **Per track** — see [Tracks](../concepts.md).
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Learning loop (supporting product)](./learning-loop.md) · **Next →:** [design corpus overview](../../design/README.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Design → plan (supporting product)](./design-to-plan.md) · **Next →:** [Define product (supporting product)](./define-product.md)
 
 <!-- /DOCS-NAV -->

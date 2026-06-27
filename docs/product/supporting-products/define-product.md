@@ -133,7 +133,7 @@ deliverable, in the spirit of the guidance across the suite (see [product README
 A PRD is a product definition **for a track** — one independent line of work, scoped to its
 area and producing the input that product → design converts into a design for that track. A
 repo runs many tracks in parallel, each with its own PRD advancing at its own pace. See
-[Tracks — parallel independent work](../concepts/tracks.md).
+[Tracks — parallel independent work](../concepts.md).
 
 ## Honest edges
 
@@ -170,12 +170,12 @@ repo runs many tracks in parallel, each with its own PRD advancing at its own pa
   root-cause trace reaches back to the earliest layer that should have caught an issue — which
   may be a vague PRD requirement or an under-specified acceptance criterion
   (see [Learning loop](learning-loop.md), **LOOP-3**).
-- **Per track** — see [Tracks](../concepts/tracks.md).
+- **Per track** — see [Tracks](../concepts.md).
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Product layer — status + authoring plan](../status.md) · **Next →:** [Design → plan (supporting product)](./design-to-plan.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Product → design (supporting product)](./product-to-design.md) · **Next →:** [Learning loop (supporting product)](./learning-loop.md)
 
 <!-- /DOCS-NAV -->
