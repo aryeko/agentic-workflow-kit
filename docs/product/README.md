@@ -24,16 +24,56 @@ a branch/version, not an identity).
 
 ## The problem
 
-A developer's scarcest resource is their **judgment and attention** — deciding _what_ to
-build and _how it should be structured_. AI can now write most of the code, but using it
-well is hard: hand an agent a goal and it will also make the product and design decisions,
-and you spend your attention reviewing work whose _direction_ you never chose. The result
-is fast motion that can be pointed the wrong way, and a "done" you can't fully trust.
+Did you ever try to deliver real software through one long-running agent task? _Implement
+this story, then review it, open a PR, address the review comments while it's still
+unapproved, merge once it's approved — then move on to the next story, and the next._ Of
+course you did. And it always breaks.
+
+Agents are powerful, but they have limits, and orchestrating them across a long-running loop
+is where those limits surface. A developer's scarcest resource is their **judgment and
+attention**, and a long autonomous run quietly spends it: hand an agent a goal and it also
+makes the product and design decisions, drifts from the goal as its context fills, and hands
+you a "done" whose _direction_ you never chose and can't fully trust.
 
 Reliable, well-designed software is not produced by a better code-writing agent alone. It
 is produced by a **whole pipeline** — a clear product definition, a deliberate design, a
 faithful plan, and disciplined execution — where an **experienced** human keeps the parts
 only a human should own and delegates the rest under guarantees.
+
+## From one good session to a long-running loop
+
+There's a well-known recipe for getting good work out of a _single_ agent session — the
+[Codex](https://developers.openai.com/codex/learn/best-practices) and
+[Claude](https://code.claude.com/docs/en/best-practices) best-practice guides converge on it,
+and tools like **superpowers** encode it directly:
+
+- **Prompt well** — state the goal, the context, the requirements, and how to verify.
+- **Plan first** — agree on what the agent understood and steer toward your intent _before_ it
+  writes code.
+- **Manage context** — the most common failure ("the agent delivered something _different_ from
+  what I asked") comes from a long session where requirements get forgotten or the goal quietly
+  drifts; keep one session per task, and lean on subagents.
+- **Test-drive the contract** — to guarantee what you asked for, capture the requirements as
+  checks _first_, then have the agent satisfy them.
+
+This works — for one session. But a real delivery isn't one session; it's a long-running
+**loop** of them, and the discipline that holds a single session together doesn't survive the
+loop on its own.
+
+**The kit is that recipe, generalized to scale.** Each single-session practice becomes a stage
+of the pipeline:
+
+| For one session | Generalized to the loop |
+|---|---|
+| Prompt: goal + context + requirements | a **PRD** (the global _what_ and _why_) and a **design** (the global _how_) — each encoding years of iteration |
+| Plan before coding | a clear, reviewable **execution plan** |
+| Manage context | **decompose** the plan into story units, each sized for a single session |
+| Test-drive the contract | a read-only **requirements contract** per story the implementer must satisfy — then an **independent reviewer** checks the result against that _same_ contract, so what you asked for is what's delivered |
+
+And the loop adds what a single session never had: a **learning loop** that turns recurring
+defects into permanent checks, **resource and budget** controls, and the recovery and policy
+guarantees the package makes. None of it is forced on you — the kit **helps** you work through
+proven practice toward a reliable agentic loop; it does not enforce a single way.
 
 ## Who it's for
 
