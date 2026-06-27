@@ -44,8 +44,10 @@ only a human should own and delegates the rest under guarantees.
 
 There's a well-known recipe for getting good work out of a _single_ agent session — the
 [Codex](https://developers.openai.com/codex/learn/best-practices) and
-[Claude](https://code.claude.com/docs/en/best-practices) best-practice guides converge on it,
-and tools like **superpowers** encode it directly:
+[Claude](https://code.claude.com/docs/en/best-practices) best-practice guides converge on it
+(and OpenAI's [_Harness engineering_](https://openai.com/index/harness-engineering/) makes the
+broader case — that the durable leverage is the harness around the agent, not the prompt), and
+tools like **superpowers** encode it directly:
 
 - **Prompt well** — state the goal, the context, the requirements, and how to verify.
 - **Plan first** — agree on what the agent understood and steer toward your intent _before_ it
