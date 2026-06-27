@@ -271,6 +271,6 @@ We want `orchestrated-delivery` to read like an operator ledger, not an event lo
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Epic 4 execution blockers - source-closure profile and prevention buttons](./2026-06-26-epic-4-execution-blocker-patterns.md) · **Next →:** [PR #167 authoring hardening note](./2026-06-26-pr-167-authoring-hardening-note.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [Epic 4 execution blockers - source-closure profile and prevention buttons](./2026-06-26-epic-4-execution-blocker-patterns.md) · **Next →:** [PR #167 authoring hardening note](./2026-06-26-pr-167-authoring-hardening-note.md)
 
 <!-- /DOCS-NAV -->

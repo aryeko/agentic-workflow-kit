@@ -1,14 +1,15 @@
-# AGENTS.md — Contributor and agent contract for kit-vnext
+# AGENTS.md — Contributor and agent contract for agentic-workflow-kit
 
 This is the canonical contract for anyone — human or agent — doing work in this
 repository. It is deliberately lean: it states the rules that always apply and points to
-where the detail lives. The authoritative design is the corpus under `docs/design/`. Read
-the file that owns your task's subject; do not work from memory and do not duplicate the
-corpus here. (README.md is for humans; this file is for the work.)
+where the detail lives. The authoritative product intent lives under `docs/product/`;
+the authoritative engineering design lives under `docs/design/`. Read the file that owns
+your task's subject; do not work from memory and do not duplicate the corpus here.
+(README.md is for humans; this file is for the work.)
 
 ---
 
-## What kit-vnext is
+## What the suite is
 
 A deterministic control plane that delegates well-scoped work to agent workers and lands
 it as reviewed, merged changes — safely, recoverably, and under human supervision. The
@@ -19,10 +20,31 @@ behind a bounded contract.
 
 ## Where the ground truth lives
 
-The design corpus is the source of truth. Read the file that owns your task's subject:
+Authority is scoped by subject.
+
+**`docs/product/`** owns product intent:
+- audience and why the suite exists;
+- product promise;
+- product and suite boundaries (what Jig is, what the suite umbrella covers);
+- Jig identity and supporting-product responsibilities;
+- policy-vs-posture framing at product level.
+
+**`docs/design/`** owns engineering design:
+- runtime model, provider seams, event model;
+- domain specs, dependency rules, gates, recovery;
+- package decomposition and low-level technical invariants.
+
+**Where product intent and existing design diverge:** treat `docs/product/` as the desired
+product direction and `docs/design/` as the current engineering reference to reconcile.
+Do not silently choose one during implementation — cite the conflict in the plan or review
+and make reconciliation explicit.
+
+Read the file that owns your task's subject:
 
 | Need | Read |
 |------|------|
+| Product intent, audience, suite boundaries, Jig identity | `docs/product/README.md` |
+| Jig package product behavior | `docs/product/products/jig.md` + relevant `docs/design/` files |
 | System shape, seams, layering | `docs/design/10-architecture/architecture.md` |
 | What must be true (FR/NFR ids) | `docs/design/00-orientation/requirements.md` |
 | A decision and its rationale (AD-* ids) | `docs/design/40-decisions/accepted-decisions.md` |
@@ -40,6 +62,10 @@ The design corpus is the source of truth. Read the file that owns your task's su
 
 Pull only what the task touches — do not load the whole corpus.
 
+- **Product/framing/naming/audience/suite-boundary tasks** → start from `docs/product/README.md`;
+  then the relevant per-product overview under `docs/product/products/`.
+- **Jig product or package behavior** → `docs/product/products/jig.md` plus the relevant
+  `docs/design/` files.
 - **Implement or change a domain** → its `README.md` (Mandate first, then design)
   and any flat sibling aspect files; confirm its layer and dependencies in
   `docs/design/30-domain-reference/README.md`.
@@ -48,8 +74,8 @@ Pull only what the task touches — do not load the whole corpus.
 - **Author a new domain design** → copy `docs/design/_templates/domain-design-template.md`
   and follow `docs/design/00-orientation/conventions.md`.
 - **Tooling, gate, or CI work** → `docs/engineering/`.
-- If a task seems to need something outside `docs/design/`, stop and raise it — the design
-  is meant to be self-contained (provider `evidence/` appendices are the only exception).
+- **Implementation tasks that touch both product intent and engineering design** → read both
+  layers; cite any divergence in your plan rather than silently resolving it.
 
 Use subagents for wide reads so the main session context stays lean.
 

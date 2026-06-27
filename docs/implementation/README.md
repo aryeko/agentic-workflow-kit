@@ -94,7 +94,7 @@ standard is in the [authoring standard](../implementation-authoring/authoring-st
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [domain dependency DAG](./domain-dag.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [implementation status note](../design/IMPLEMENTATION_STATUS_NOTE.md) · **Next →:** [domain dependency DAG](./domain-dag.md)
 
 **Children:** [domain dependency DAG](./domain-dag.md) · [epic dependency DAG](./epic-dag.md) · [domain implementation charters](./domains/README.md) · [epic charters](./epics/README.md) · [implementation coverage rollup](./coverage.md)
 
