@@ -245,6 +245,29 @@ export {
 } from './core/completion/evidence/index.js';
 export { evaluateMergeReadiness, mergeAllowed } from './core/completion/merge-readiness/index.js';
 export {
+  recordBlockerEvidenceIntent,
+  recordForgeOperationIntent,
+  recordMergeIntent,
+} from './core/completion/intents/index.js';
+export type {
+  BlockerDecisionRef,
+  BlockerEvidenceIntentCommit,
+  BlockerEvidenceIntentFailure,
+  BlockerEvidenceOperation,
+  ExactHeadEvidence,
+  ForgeOperationIntentCommit,
+  ForgeOperationIntentFailure,
+  ForgeOperationKind,
+  IntentsDependencies,
+  MergeDecisionRef,
+  MergeIntentCommit,
+  MergeIntentFailure,
+  MergeIntentOperation,
+  RecordBlockerEvidenceIntentInput,
+  RecordForgeOperationIntentInput,
+  RecordMergeIntentInput,
+} from './core/completion/intents/index.js';
+export {
   ACTION_SAFETY_CLASSES,
   PROVIDER_CONTROL_KINDS,
   RECOVERY_ACTIONS,
