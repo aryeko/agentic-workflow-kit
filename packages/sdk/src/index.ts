@@ -289,6 +289,14 @@ export type {
   StoryLaunchFailureState,
   StoryLaunchKeyParts,
 } from './core/recovery/leases/index.js';
+export {
+  RECOVERY_CLASSIFIER_RULE_VERSION,
+  classifyActionSafety,
+  classifyRecovery,
+  createRecoveryClassifiedPayload,
+  deriveRecoveryPlanIdInput,
+} from './core/recovery/classifier/index.js';
+export type { RecoveryActionSafety, RecoveryPlanIdInput } from './core/recovery/classifier/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
