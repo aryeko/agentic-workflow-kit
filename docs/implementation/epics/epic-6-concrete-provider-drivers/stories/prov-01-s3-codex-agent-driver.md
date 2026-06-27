@@ -219,10 +219,16 @@ Done requires every item here present with the design's names, shapes, and seman
 - Coverage scope and threshold: `packages/provider-codex/src/**`, 90% minimum and 95% target over
   schema probes, event normalization, approval mapping, resume, tool output, Guardian mapping,
   capability, and failure mapping helpers.
-- Coverage command and instrumented lanes: `pnpm check` via `coverage:baseline`; focused command
-  `pnpm exec vitest run --project unit --project conformance-mock --coverage --passWithNoTests -- packages/provider-codex/tests`.
+- Coverage command and instrumented lanes: `pnpm check` remains the standing repo gate, but the
+  provider package threshold is proven only by focused provider coverage that instruments
+  `packages/provider-codex/src/**`, for example
+  `pnpm exec vitest run --project unit --project conformance-mock --coverage --coverage.include='packages/provider-codex/src/**/*.ts' --passWithNoTests -- packages/provider-codex/tests`.
+  Do not accept `pnpm check` alone as proof of the provider package threshold unless the repo coverage
+  include has been expanded to this provider source path.
 - Smoke evidence: gated `vitest run --project smoke-real -- packages/provider-codex/tests/**/*.smoke.test.ts`
-  for live Codex start, approval answer, resume, structured tool exit, and Local parentage.
+  for live Codex start, approval answer, resume, and structured tool exit; Local/Codex parentage smoke
+  lives in root `tests/providers/codex-local-parentage.smoke.test.ts` so it can import both provider
+  public entrypoints without violating peer-provider dependency rules.
 - Required tests: AC-1..AC-10 plus every failure row.
 - Public exposure: `provider-codex` package entrypoint exports factory/options and public-import
   fixture imports through the package name.
@@ -259,7 +265,8 @@ smoke evidence, and evidence pack.
   exit code, output ref missing, approval channel lost, resume unattested, Guardian untrusted, parentage
   unproven, and false parentage.
 - Manifest item -> AC -> gate lane matrix above.
-- `pnpm check` result plus focused coverage output.
+- `pnpm check` result plus focused provider coverage output that instruments
+  `packages/provider-codex/src/**`.
 - Gated smoke-real results with versioned Codex evidence and Local parentage artifact refs.
 - Public import fixture `provider-codex-public.public.ts`.
 - Boundary sweeps from AC-7 and AC-10 with zero-match output.
@@ -268,8 +275,9 @@ smoke evidence, and evidence pack.
 ## Gate 4 Readiness Boxes
 
 - Proof-substrate match: runtime schema, event, approval, resume, output, Guardian, parentage, and
-  capability helpers are measured by `coverage:baseline`; live Codex/Local behavior is named as gated
-  `smoke-real`; public type compatibility is proven by `typecheck` and `type:fixtures`.
+  capability helpers are measured by focused provider coverage with `packages/provider-codex/src/**`
+  instrumented; `coverage:baseline` remains the standing repo gate; live Codex/Local behavior is named
+  as gated `smoke-real`; public type compatibility is proven by `typecheck` and `type:fixtures`.
 - Predicate-input closure - relational and compound: consumed-predicate rows name both operands for
   protocol support, session linkage, structured tool completeness, approval grant mapping, resume
   ownership, Guardian stability, and host-parentage proof.
@@ -281,7 +289,8 @@ smoke evidence, and evidence pack.
 
 - Package/module boundary: `packages/provider-codex`.
 - Owned pathset: `packages/provider-codex/src/**`, `packages/provider-codex/tests/**`,
-  `packages/provider-codex/package.json`, `packages/provider-codex/tsconfig.json`.
+  `packages/provider-codex/package.json`, `packages/provider-codex/tsconfig.json`, and the root
+  cross-provider smoke harness `tests/providers/codex-local-parentage.smoke.test.ts`.
 - Forbidden dependencies: `cli`, `mcp`, `testkit` in production source, peer provider packages,
   Forge clients, local git modules, runner command execution outside Local, and core approval/liveness
   or recovery decision modules.

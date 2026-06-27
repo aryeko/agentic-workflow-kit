@@ -189,8 +189,12 @@ Done requires every item here present with the design's names, shapes, and seman
 
 - Coverage scope and threshold: `packages/provider-markdown/src/**`, 90% minimum and 95% target over
   parser, mutation, capability, and provider operation helpers.
-- Coverage command and instrumented lanes: `pnpm check` via `coverage:baseline`; focused command
-  `pnpm exec vitest run --project integration --project conformance-mock --coverage --passWithNoTests -- packages/provider-markdown/tests`.
+- Coverage command and instrumented lanes: `pnpm check` remains the standing repo gate, but the
+  provider package threshold is proven only by focused provider coverage that instruments
+  `packages/provider-markdown/src/**`, for example
+  `pnpm exec vitest run --project integration --project conformance-mock --coverage --coverage.include='packages/provider-markdown/src/**/*.ts' --passWithNoTests -- packages/provider-markdown/tests`.
+  Do not accept `pnpm check` alone as proof of the provider package threshold unless the repo coverage
+  include has been expanded to this provider source path.
 - Required tests: AC-1..AC-8 plus every failure row named above.
 - Public exposure: `provider-markdown` package entrypoint exports `createMarkdownWorkSourceProvider`
   and options; public-import fixture imports through the package name.
@@ -223,15 +227,18 @@ pack.
   stale digest, lease unavailable, snapshot artifact unavailable, status write unavailable, false
   status write, and boundary imports.
 - Manifest item -> AC -> gate lane matrix above.
-- `pnpm check` result and focused integration/conformance coverage output.
+- `pnpm check` result and focused provider coverage output that instruments
+  `packages/provider-markdown/src/**`.
 - Public import fixture `provider-markdown-public.public.ts`.
 - Boundary sweep from AC-8 with zero-match output.
 - Conformance evidence for the Markdown subject and broken subjects.
 
 ## Gate 4 Readiness Boxes
 
-- Proof-substrate match: runtime driver/parser/mutation/capability helpers are measured by
-  `coverage:baseline`; public type compatibility is proven by `typecheck` and `type:fixtures`.
+- Proof-substrate match: runtime driver/parser/mutation/capability helpers are measured by focused
+  provider coverage with `packages/provider-markdown/src/**` instrumented; `coverage:baseline`
+  remains the standing repo gate; public type compatibility is proven by `typecheck` and
+  `type:fixtures`.
 - Predicate-input closure - relational and compound: consumed-predicate rows name both operands for
   digest, epoch, dependency, status, claim-expiry, and capability branches.
 - Failure-token/catalog closure: all failure rows use Epic 2 `WorkSourceError` literals and ACs require

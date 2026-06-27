@@ -207,8 +207,12 @@ Done requires every item here present with the design's names, shapes, and seman
 - Coverage scope and threshold: `packages/provider-local/src/**`, 90% minimum and 95% target over
   containment validation, command digest/capture, injection, termination, capability, and redaction
   helpers.
-- Coverage command and instrumented lanes: `pnpm check` via `coverage:baseline`; focused command
-  `pnpm exec vitest run --project unit --project integration --project conformance-mock --coverage --passWithNoTests -- packages/provider-local/tests`.
+- Coverage command and instrumented lanes: `pnpm check` remains the standing repo gate, but the
+  provider package threshold is proven only by focused provider coverage that instruments
+  `packages/provider-local/src/**`, for example
+  `pnpm exec vitest run --project unit --project integration --project conformance-mock --coverage --coverage.include='packages/provider-local/src/**/*.ts' --passWithNoTests -- packages/provider-local/tests`.
+  Do not accept `pnpm check` alone as proof of the provider package threshold unless the repo coverage
+  include has been expanded to this provider source path.
 - Smoke evidence: gated `vitest run --project smoke-real -- packages/provider-local/tests/**/*.smoke.test.ts`
   for real spawn, termination, and egress negative probes.
 - Required tests: AC-1..AC-9 plus every failure row.
@@ -245,7 +249,8 @@ evidence pack.
   incomplete capture, spawn failure, termination unproven, `terminateWorker` return-type mismatch,
   destruction unconfirmed, and `releaseWorkspace` return-type mismatch.
 - Manifest item -> AC -> gate lane matrix above.
-- `pnpm check` result plus focused coverage output.
+- `pnpm check` result plus focused provider coverage output that instruments
+  `packages/provider-local/src/**`.
 - Gated smoke-real results for process spawn, termination, and egress negative probes.
 - Public import fixture `provider-local-public.public.ts`.
 - Boundary sweep from AC-9 with zero-match output.
@@ -254,8 +259,9 @@ evidence pack.
 ## Gate 4 Readiness Boxes
 
 - Proof-substrate match: runtime workspace, command, worker, termination, injection, and capability
-  helpers are measured by `coverage:baseline`; live process/egress behavior is named as gated
-  `smoke-real`; public type compatibility is proven by `typecheck` and `type:fixtures`.
+  helpers are measured by focused provider coverage with `packages/provider-local/src/**`
+  instrumented; `coverage:baseline` remains the standing repo gate; live process/egress behavior is
+  named as gated `smoke-real`; public type compatibility is proven by `typecheck` and `type:fixtures`.
 - Predicate-input closure - relational and compound: consumed-predicate rows name both operands for cwd
   containment, injection party/audience matching, command capture, termination proof, and egress probe
   matching.

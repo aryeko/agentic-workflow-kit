@@ -193,8 +193,12 @@ Done requires every item here present with the design's names, shapes, and seman
 - Coverage scope and threshold: `packages/provider-github/src/**`, 90% minimum and 95% target over
   request mapping, exact-head guards, evidence mapping, error/token mapping, redaction/audit binding,
   and capability probes.
-- Coverage command and instrumented lanes: `pnpm check` via `coverage:baseline`; focused command
-  `pnpm exec vitest run --project unit --project conformance-mock --coverage --passWithNoTests -- packages/provider-github/tests`.
+- Coverage command and instrumented lanes: `pnpm check` remains the standing repo gate, but the
+  provider package threshold is proven only by focused provider coverage that instruments
+  `packages/provider-github/src/**`, for example
+  `pnpm exec vitest run --project unit --project conformance-mock --coverage --coverage.include='packages/provider-github/src/**/*.ts' --passWithNoTests -- packages/provider-github/tests`.
+  Do not accept `pnpm check` alone as proof of the provider package threshold unless the repo coverage
+  include has been expanded to this provider source path.
 - Smoke evidence: gated `vitest run --project smoke-real -- packages/provider-github/tests/**/*.smoke.test.ts`
   against a disposable writable remote.
 - Required tests: AC-1..AC-8 plus every failure row.
@@ -229,7 +233,8 @@ smoke evidence, and evidence pack.
 - Negative fixtures for head mismatch, state unknown, hidden protection/rulesets/queue/threads, auth
   denied, worker scope, admin bypass, GHES unknown, rate limit, and redaction unavailable.
 - Manifest item -> AC -> gate lane matrix above.
-- `pnpm check` result plus focused coverage output.
+- `pnpm check` result plus focused provider coverage output that instruments
+  `packages/provider-github/src/**`.
 - Gated smoke-real results with redacted artifact ids.
 - Public import fixture `provider-github-public.public.ts`.
 - Boundary sweep from AC-8 with zero-match output.
@@ -238,8 +243,9 @@ smoke evidence, and evidence pack.
 ## Gate 4 Readiness Boxes
 
 - Proof-substrate match: runtime request/action/evidence/error/capability mappers are measured by
-  `coverage:baseline`; disposable GitHub side effects are named as gated `smoke-real`; public type
-  compatibility is proven by `typecheck` and `type:fixtures`.
+  focused provider coverage with `packages/provider-github/src/**` instrumented; `coverage:baseline`
+  remains the standing repo gate; disposable GitHub side effects are named as gated `smoke-real`;
+  public type compatibility is proven by `typecheck` and `type:fixtures`.
 - Predicate-input closure - relational and compound: consumed-predicate rows name both operands for
   expected-head matching, credential scope/phase, evidence-cluster completeness, redaction, and
   capability freshness.
