@@ -270,6 +270,25 @@ export type {
   StoryLaunchLeaseAcquiredPayload,
   StoryLaunchLeaseClearedPayload,
 } from './core/recovery/contracts/index.js';
+export {
+  acquireStoryLaunchLease,
+  buildStoryLaunchKey,
+  recordDuplicateLaunchBlocked,
+  requestStaleLaunchClearance,
+} from './core/recovery/leases/index.js';
+export type {
+  AcquireStoryLaunchLeaseFailure,
+  AcquireStoryLaunchLeaseInput,
+  AcquireStoryLaunchLeaseResult,
+  RecordDuplicateLaunchBlockedFailure,
+  RecordDuplicateLaunchBlockedInput,
+  RecordDuplicateLaunchBlockedResult,
+  RequestStaleLaunchClearanceFailure,
+  RequestStaleLaunchClearanceInput,
+  RequestStaleLaunchClearanceResult,
+  StoryLaunchFailureState,
+  StoryLaunchKeyParts,
+} from './core/recovery/leases/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
