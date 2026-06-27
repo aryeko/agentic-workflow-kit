@@ -90,19 +90,27 @@ export interface RecoveryPlanInput {
   readonly evaluatedThrough: RunEventCursor;
 }
 
-export interface RecoveryRecordInput {
+interface RecoveryRecordInputBase {
   readonly runId: string;
   readonly plan: RecoveryPlan;
   readonly appliedControl?: {
     readonly kind: NonNullable<RecoveryPlan['providerControl']>;
     readonly evidenceRefs: readonly EvidenceEventRef[];
   };
-  readonly outcome: 'applied' | 'blocked';
-  readonly blockedReason?: string;
   readonly gateRef?: CapabilityGateRecordPayload;
   readonly evaluatedThrough: RunEventCursor;
   readonly sourceEventIds: readonly string[];
 }
+
+export type RecoveryRecordInput =
+  | (RecoveryRecordInputBase & {
+      readonly outcome: 'applied';
+      readonly blockedReason?: never;
+    })
+  | (RecoveryRecordInputBase & {
+      readonly outcome: 'blocked';
+      readonly blockedReason: string;
+    });
 
 export interface RecoveryPlan {
   readonly planId: string;
