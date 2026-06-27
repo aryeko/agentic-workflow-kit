@@ -250,15 +250,36 @@ pack.
 
 ## Characterization Review Evidence
 
-- Design -> AC completeness: tracker parsing, status authority, race-safe claim, snapshot artifacts,
-  dependencies, capabilities, conformance, and two-authorities separation map to AC-1..AC-8.
-- Producer closure: every produced DTO field, public symbol, and attestation field has a source row.
-- Sweep vocabulary: forbidden tokens do not ban Work Source design terms or this story's AC tokens.
-- Failure-token/catalog closure: all tokens consume Epic 2 `WorkSourceError` exactly; this story
-  invents none.
-- Load-bearing decisions: concrete Markdown driver owns file-backed mutation and capability evidence;
-  SDK port/testkit remain prior producers; run event append remains out of scope.
-- Verdict: ready.
+### Design -> AC Mirror
+
+| Frozen design obligation | Source line | Covering AC / evidence | Falsification check |
+|---|---|---|---|
+| Work Source is the task status authority and remains separate from the run event log. | `docs/design/30-domain-reference/providers/work-source/README.md:14`, `docs/design/30-domain-reference/providers/work-source/README.md:57`, `docs/design/30-domain-reference/providers/work-source/README.md:118` | AC-4, AC-8; boundary sweep excludes run-log writers | Provider writes run activity or status decisions outside task-status authority. |
+| Markdown tracker parsing owns one work-source block and task blocks with deterministic buckets. | `docs/design/30-domain-reference/providers/work-source/README.md:124`, `docs/design/30-domain-reference/providers/work-source/README.md:129` | AC-2; fixtures `markdown-parse-stable-track`, `markdown-duplicate-task-id`, `markdown-status-bucket-unknown` | Duplicate/malformed/unmapped status input silently becomes a valid eligible task. |
+| Eligibility depends on dependencies, status bucket, target project, and claim expiry. | `docs/design/30-domain-reference/providers/work-source/README.md:139`, `provider-ports.md:821` | AC-3; fixture table `markdown-eligibility-dependency-matrix` | Missing, malformed, blocked, unknown, or incomplete dependency is ignored. |
+| Claim/release/status writes are lease-guarded and digest/epoch checked. | `docs/design/30-domain-reference/providers/work-source/README.md:131`, `docs/design/30-domain-reference/providers/work-source/README.md:134`; `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-03-s1-work-source-port.md:160` | AC-4; fixtures `markdown-claim-lock-unavailable`, `markdown-claim-digest-conflict`, `markdown-release-epoch-conflict`, `markdown-status-authority-conflict`, `markdown-status-write-unavailable` | Mutation succeeds without lease, digest/epoch match, or verified post-write digest. |
+| Claim produces a write-once `TaskSnapshot` artifact and fails closed when it cannot. | `docs/design/30-domain-reference/providers/work-source/README.md:113`, `docs/design/30-domain-reference/providers/work-source/README.md:244` | AC-5; fixtures `markdown-claim-snapshot-fields`, `markdown-snapshot-artifact-unavailable` | Claim mutation succeeds without storing/verifying the snapshot artifact. |
+| Capability gates treat stale, absent, or negative Work Source attestations as absent. | `docs/design/30-domain-reference/providers/work-source/README.md:249` | AC-6, AC-7; fixtures `markdown-capability-probe-matrix`, `broken-markdown-subjects-fail` | Stale/negative probe evidence yields a positive capability. |
+
+### Load-Bearing Scope Decisions
+
+| Decision | Rationale and source | Falsification criterion | Escalation path |
+|---|---|---|---|
+| Markdown owns file-backed task/status mutation, not run-log state. | Work Source is task-status authority; run activity is event-log authority (`work-source/README.md:118`). | Story appends run events or merges task status with run activity. | Route to run lifecycle/core event-log owner. |
+| SDK port/testkit are prior frozen producers; this story implements only the concrete driver. | Epic 2 owns `WorkSourceProvider`, `WorkSourceError`, and testkit. | Story changes SDK Work Source types or conformance helper ownership. | Stop and amend Epic 2/design instead. |
+| Local git evidence is not gathered by Work Source. | `TaskSnapshot` consumes caller-provided `sourceRevision` and does not gather local git state (`work-source/README.md:113`). | Story reads local git to infer source revision. | Route to Workspace/Repository evidence owner. |
+| Status writes require caller request fields and fail closed on digest/authority conflict. | Race-safety and authority conflict are frozen in `prov-03-s1` (`docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-03-s1-work-source-port.md:160`, `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-03-s1-work-source-port.md:246`). | Story permits status success without expected digest/epoch or authority proof. | Keep failure token or escalate a Work Source design gap. |
+
+### Regression Checks
+
+| Known blocker pattern | Evidence in this story |
+|---|---|
+| Failure-row AC match | Each Work Source failure row cites an AC that names the exact trigger/behavior, including `status-write-unavailable`. |
+| Predicate-input closure | Consumed-predicate rows name source values for status bucket, dependency, claim expiry, digest/epoch, artifact write, and capability branches. |
+| Producer/source closure | Produced-obligations rows name sources for `TrackView`, `TaskView`, `TaskSnapshot`, claim/status results, errors, public export, and attestation fields. |
+| Two-authorities boundary | Out of scope, quality bar, and STOP conditions prohibit run-log writes and status/run authority merging. |
+
+Verdict: ready.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

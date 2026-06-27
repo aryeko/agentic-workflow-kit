@@ -118,14 +118,19 @@ Done requires every item here present with the design's names, shapes, and seman
   public type fixture `local-terminateworker-never-returns-hostfailure`.
 - **AC-6** `probeCapabilities` reports actual `containmentStrength`, proves `canKill` from termination
   evidence, proves `egress-confinement` only when negative probes are blocked for the policy digest,
-  and keeps missing/stale/wrong-scope probes negative - evidence: gated `smoke-real`
-  `local-egress-negative-probe` plus `coverage:baseline` `local-capability-attestation-matrix`.
+  keeps missing/stale/wrong-scope probes negative, and any operation requiring an unattested Host
+  capability returns `host-capability-unattested` without proceeding on self-report - evidence: gated
+  `smoke-real` `local-egress-negative-probe` plus `coverage:baseline`
+  `local-capability-attestation-matrix` and `local-host-capability-unattested-refusal`.
 - **AC-7** Worker and runner injection are separated: mismatched `request.party`, `injection.party`,
   `egressPolicy.audience`, expired contexts, or unmatched attestations return
   `credential-injection-rejected` / `egress-confinement-unattested`, and `releaseWorkspace` returns
-  `credentialMaterialDestroyed: true` only after destruction evidence - evidence: `coverage:baseline`
-  fixtures `local-injection-party-mismatch`, `local-egress-attestation-mismatch`, and
-  `local-release-destroy-unconfirmed`.
+  `credentialMaterialDestroyed: true` only after destruction evidence; unconfirmed destruction returns
+  `HostReleaseResult` with `released: false, credentialMaterialDestroyed: false` and surfaces
+  `credential-destroy-unconfirmed` on a `"host-failure"` observation, never as a `releaseWorkspace`
+  return token - evidence: `coverage:baseline` fixtures `local-injection-party-mismatch`,
+  `local-egress-attestation-mismatch`, `local-release-destroy-unconfirmed`, and
+  `local-release-never-returns-hostfailure`.
 - **AC-8** The Local subject passes Execution Host conformance and broken subjects fail for missing
   command digest, unredacted output, incomplete termination, lied-about egress, and wrong containment
   strength - evidence: `coverage:baseline` `provider-local.conformance.test.ts` cases
@@ -162,7 +167,9 @@ Done requires every item here present with the design's names, shapes, and seman
 | AC-4 | worker owned by containment | `WorkerHandle.containmentRef`, process handle, observation stream | owned process adapter | decidable |
 | AC-5 | prove-empty succeeded | termination policy, signal result, reap result, containment-empty probe | owned termination resolver | decidable |
 | AC-6 | egress probe matches policy | `EgressPolicy.egressPolicyDigest`, negative probe result, freshness key | fnd-04 policy + owned probe | decidable |
+| AC-6 / `host-capability-unattested` | operation capability has fresh positive attestation | requested host operation, required `HostCapability`, attestation result/scope/expiry/freshness key | capability gate local to provider result mapping | decidable |
 | AC-7 | credential material destroyed | temp-file/memory handle destruction result | owned release resolver | decidable |
+| AC-7 / `credential-destroy-unconfirmed` | destruction proof exists | release destruction result, `HostReleaseResult` fields, `"host-failure"` observation mapper | owned release resolver | decidable |
 
 ### Produced Obligations
 
@@ -234,8 +241,9 @@ evidence pack.
 ## Evidence Pack
 
 - Test names or fixture ids from AC-1..AC-9.
-- Negative fixtures for cwd escape, party mismatch, egress mismatch, incomplete capture, spawn failure,
-  termination unproven, `terminateWorker` return-type mismatch, and destruction unconfirmed.
+- Negative fixtures for cwd escape, host capability unattested, party mismatch, egress mismatch,
+  incomplete capture, spawn failure, termination unproven, `terminateWorker` return-type mismatch,
+  destruction unconfirmed, and `releaseWorkspace` return-type mismatch.
 - Manifest item -> AC -> gate lane matrix above.
 - `pnpm check` result plus focused coverage output.
 - Gated smoke-real results for process spawn, termination, and egress negative probes.
@@ -269,16 +277,36 @@ evidence pack.
 
 ## Characterization Review Evidence
 
-- Design -> AC completeness: workspace attachment, command capture, worker spawn/observe,
-  termination, injection separation, egress attestation, actual containment strength, and conformance
-  map to AC-1..AC-9.
-- Producer closure: every produced DTO field, public symbol, and attestation field has a source row.
-- Sweep vocabulary: forbidden tokens do not ban Host failure literals or normative Local design terms.
-- Failure-token/catalog closure: all tokens consume Epic 2 `HostFailureReason` exactly; this story
-  invents none.
-- Load-bearing decisions: Local owns process execution and evidence only; Codex consumes parentage
-  evidence later; core owns liveness/recovery decisions.
-- Verdict: ready.
+### Design -> AC Mirror
+
+| Frozen design obligation | Source line | Covering AC / evidence | Falsification check |
+|---|---|---|---|
+| Workspace attachment rejects unavailable mounts and cwd escape before work starts. | `docs/design/30-domain-reference/providers/execution-host/contracts-and-conformance.md:27`, `docs/design/30-domain-reference/providers/execution-host/contracts-and-conformance.md:94` | AC-2; fixtures `local-attach-missing-worktree`, `local-attach-cwd-escape` | A missing workspace or escaping cwd returns a successful handle. |
+| Runner command capture includes digest, cwd, exit/signal, redacted refs, and injected timing. | `docs/design/30-domain-reference/providers/execution-host/contracts-and-conformance.md:48`, `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-04-s1-execution-host-port.md:162` | AC-3; fixtures `local-run-command-digest-stable`, `local-run-command-incomplete-capture` | A command result is accepted without digest/output/exit evidence. |
+| Worker observations are typed `HostObservation` arms and incomplete streams fail closed. | `docs/design/30-domain-reference/providers/execution-host/contracts-and-conformance.md:62`, `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-04-s1-execution-host-port.md:141` | AC-4; fixtures `local-worker-spawn-failed`, `local-observation-incomplete` | Missing output/tool/process fields still produce a successful observation. |
+| Termination returns `TerminationResult`; `termination-unproven` is a `"host-failure"` observation, not a return value. | `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-04-s1-execution-host-port.md:152`, `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-04-s1-execution-host-port.md:220` | AC-5; fixtures `local-termination-unproven`, `local-terminateworker-never-returns-hostfailure` | `terminateWorker` returns `HostFailure` or reports positive kill proof with incomplete evidence. |
+| Capability and egress claims require fresh positive attestations and fail closed when absent. | `docs/design/30-domain-reference/providers/execution-host/contracts-and-conformance.md:128`, `docs/design/30-domain-reference/providers/execution-host/contracts-and-conformance.md:131`; `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-04-s1-execution-host-port.md:213` | AC-6, AC-7; fixtures `local-capability-attestation-matrix`, `local-host-capability-unattested-refusal`, `local-egress-attestation-mismatch` | An operation proceeds on missing/stale/wrong-scope host or egress capability evidence. |
+| Workspace release cannot claim credential destruction without proof. | `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-04-s1-execution-host-port.md:162`, `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-04-s1-execution-host-port.md:222` | AC-7; fixtures `local-release-destroy-unconfirmed`, `local-release-never-returns-hostfailure` | Release succeeds or returns a failure token instead of a failed `HostReleaseResult` plus observation. |
+
+### Load-Bearing Scope Decisions
+
+| Decision | Rationale and source | Falsification criterion | Escalation path |
+|---|---|---|---|
+| Local owns process execution, containment, command capture, and termination evidence. | Epic 2 type-only port defers real process behavior to Epic 6 Local driver (`docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-04-s1-execution-host-port.md:97`). | Story avoids live Local evidence or delegates process evidence to Codex/core. | Keep in `prov-04-s3` or raise a design gap if Local cannot prove it. |
+| Agent protocol and approval semantics stay out of Local. | Agent protocol belongs to `prov-01`; Local exposes worker/command host evidence. | Local story maps Codex approval/session events or Agent failure tokens. | Move to `prov-01-s3` or stop for seam correction. |
+| Core owns liveness/recovery decisions; Local returns observations/results only. | Provider operations return host values; caller appends run events and decides. | Local story chooses completion, liveness, or recovery outcomes. | Route to core decision stories/design owner. |
+| Credential material handling is evidence-producing, not policy-authoring. | fnd-04 owns credential policy; Host consumes scoped injection context. | Local story authors new credential policy or expands Forge credential scope. | Route to fnd-04 or Forge seam. |
+
+### Regression Checks
+
+| Known blocker pattern | Evidence in this story |
+|---|---|
+| Failure-row AC match | `host-capability-unattested`, `termination-unproven`, and `credential-destroy-unconfirmed` rows cite ACs that name their trigger and return/observation behavior. |
+| Predicate-input closure | Consumed-predicate rows name both operands for cwd containment, injection matching, egress policy matching, termination proof, and capability freshness. |
+| Producer/source closure | Produced-obligations rows name sources for every Host handle, observation arm, failure, command result, termination result, public export, and attestation field. |
+| Sweep vocabulary | Boundary sweep excludes forbidden dependencies without banning Host failure literals or Local design vocabulary. |
+
+Verdict: ready.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

@@ -130,8 +130,11 @@ Done requires every item here present with the design's names, shapes, and seman
   `canResumeOwned`, `emitsStructuredToolExit`, `emitsGuardianReview`, and
   `preservesHostProcessParentage` only when the required schema and live evidence exist for driver
   version, protocol surface, platform, host attestation ids, freshness key, and evidence requirement;
-  schema-only evidence cannot make live powers positive - evidence: `coverage:baseline`
-  `codex-capability-attestation-matrix` plus gated `smoke-real` `codex-local-parentage-smoke`.
+  schema-only evidence cannot make live powers positive, any operation requiring an absent/stale/
+  wrong-scope capability returns `agent-capability-unattested`, and unproven Local containment returns
+  `host-parentage-unproven` before parentage-dependent powers are enabled - evidence:
+  `coverage:baseline` `codex-capability-attestation-matrix`, `codex-capability-unattested-refusal`,
+  `codex-host-parentage-unproven`, plus gated `smoke-real` `codex-local-parentage-smoke`.
 - **AC-9** The Codex subject passes Agent conformance and broken subjects fail for dropped approval,
   lost linkage, no exit code, claim without evidence, duplicate terminal, unstable Guardian payload,
   and false parentage - evidence: `coverage:baseline` `provider-codex.conformance.test.ts` cases
@@ -172,6 +175,8 @@ Done requires every item here present with the design's names, shapes, and seman
 | AC-6 | session resumable and owned | `ownershipClass`, providerSessionId, `canResumeOwned` attestation | Agent session + capability probe | decidable |
 | AC-7 | Guardian stable/advisory | Guardian payload fields, schema stability flag | Codex event mapper | decidable |
 | AC-8 | parentage proven | `hostAttestationIds`, Local containment evidence, command process evidence | `prov-04-s3` Local evidence + Codex probe | decidable |
+| AC-8 / `agent-capability-unattested` | requested Agent power has fresh positive attestation | requested operation capability, attestation result/scope/expiry/freshness key | capability gate local to provider result mapping | decidable |
+| AC-8 / `host-parentage-unproven` | Local containment parentage proven | Local host containment evidence, Codex command process evidence | `prov-04-s3` Local evidence + Codex probe | decidable |
 
 ### Produced Obligations
 
@@ -250,9 +255,9 @@ smoke evidence, and evidence pack.
 ## Evidence Pack
 
 - Test names or fixture ids from AC-1..AC-10.
-- Negative fixtures for unknown schema, lost linkage, ambiguous terminal, missing exit code, output ref
-  missing, approval channel lost, resume unattested, Guardian untrusted, parentage unproven, and false
-  parentage.
+- Negative fixtures for unknown schema, capability unattested, lost linkage, ambiguous terminal, missing
+  exit code, output ref missing, approval channel lost, resume unattested, Guardian untrusted, parentage
+  unproven, and false parentage.
 - Manifest item -> AC -> gate lane matrix above.
 - `pnpm check` result plus focused coverage output.
 - Gated smoke-real results with versioned Codex evidence and Local parentage artifact refs.
@@ -286,16 +291,36 @@ smoke evidence, and evidence pack.
 
 ## Characterization Review Evidence
 
-- Design -> AC completeness: versioned Codex probe, start/observe/linkage, approval relay/persistence,
-  resume, structured tool output, Guardian advisory handling, parentage, capability evidence,
-  conformance, and credential/process boundaries map to AC-1..AC-10.
-- Producer closure: every produced DTO field, public symbol, and attestation field has a source row.
-- Sweep vocabulary: forbidden tokens do not ban Agent failure literals or normative Codex design terms.
-- Failure-token/catalog closure: all tokens consume Epic 2 `AgentFailureReason` exactly; this story
-  invents none.
-- Load-bearing decisions: Codex owns protocol mapping and evidence only; Local owns process evidence;
-  core owns approval/liveness/recovery decisions.
-- Verdict: ready.
+### Design -> AC Mirror
+
+| Frozen design obligation | Source line | Covering AC / evidence | Falsification check |
+|---|---|---|---|
+| Versioned schema probes are not enough for live approval/resume/parentage powers. | `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md:26`, `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md:57` | AC-2, AC-8; fixtures `codex-schema-probe-matrix`, `codex-capability-attestation-matrix`, `codex-capability-unattested-refusal` | A schema-only fixture produces a positive live capability or proceeds without a fresh attestation. |
+| Session linkage and terminal state are normalized Agent events, not worker self-report. | `docs/design/30-domain-reference/providers/agent-execution/contracts-and-conformance.md:136`, `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-01-s1-agent-port.md:215` | AC-3, AC-9; fixtures `codex-linked-terminal-order`, `codex-lost-linkage`, `broken-codex-subjects-fail` | Missing linkage, duplicate terminal, or provider loss still produces successful completion evidence. |
+| Approval answers require a proven relay/channel and cannot synthesize broad permissions. | `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md:76`, `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md:107` | AC-5; fixtures `codex-approval-answer-mapping`, `codex-approval-channel-lost` | An unsupported grant maps to a broad answer or relay proceeds after the channel is unproven. |
+| Structured tool observations require complete command, cwd, exit, and redacted output refs. | `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md:113` | AC-4; fixtures `codex-tool-observed-output-ref`, `codex-missing-exit-code`, `codex-output-ref-missing` | A command lacking exit code or output ref emits `ToolObserved`. |
+| Guardian is advisory evidence only and never an approval authority. | `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md:127` | AC-7, AC-10; fixtures `codex-guardian-advisory-only`, `codex-guardian-review-untrusted`, boundary sweep | The driver calls Guardian bypass/approval methods or treats Guardian as a gate decision. |
+| Host parentage depends on Local containment evidence before parentage-dependent powers are positive. | `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md:141`, `docs/design/30-domain-reference/providers/agent-execution/codex-driver.md:156` | AC-8; fixtures `codex-host-parentage-unproven`, `codex-local-parentage-smoke` | Parentage is positive without Local containment and command-process evidence. |
+
+### Load-Bearing Scope Decisions
+
+| Decision | Rationale and source | Falsification criterion | Escalation path |
+|---|---|---|---|
+| Codex owns protocol mapping and Agent event normalization only. | Agent seam owns `AgentProvider`; Local owns process control (`prov-01-s1-agent-port.md:14`, `prov-04-s1-execution-host-port.md:97`). | Story requires `packages/provider-codex` to spawn/kill processes or run runner verification. | Split to `prov-04-s3` or raise a design-sequencing gap. |
+| Local parentage evidence is a dependency, not a Codex-owned proof source. | Codex driver requires host-owned containment proof (`codex-driver.md:141`). | Codex story mints parentage evidence without consuming Local host evidence. | Add/repair DAG edge to `prov-04-s3` or defer parentage capability. |
+| Approval, liveness, and recovery decisions stay core-owned. | Agent provider returns observations/results; caller appends and decides (`Spec Surface`, `Events / append intents`). | Story asks Codex provider to adjudicate approval, completion, liveness, or recovery. | Stop and route to the owning core epic/design owner. |
+| Guardian remains advisory. | Codex driver states Guardian is observed evidence, not authority (`codex-driver.md:127`). | Guardian review outcome authorizes an automated gate or bypass. | Remove automation or escalate a v1 scope/design change. |
+
+### Regression Checks
+
+| Known blocker pattern | Evidence in this story |
+|---|---|
+| Failure-row AC match | Each failure row cites an AC that names the exact token or exact behavior, including `agent-capability-unattested` and `host-parentage-unproven` in AC-8. |
+| Producer/source closure | Produced-obligations rows name the source for each `AgentSession`, `AgentEvent`, `AgentFailure`, public export, and attestation field. |
+| Sweep vocabulary | Boundary sweeps target forbidden imports/methods and do not ban Agent failure literals or normative Codex/Guardian terms. |
+| Manifest coverage | Manifest matrix maps every spec-surface responsibility to AC-1..AC-10 and a standing lane. |
+
+Verdict: ready.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

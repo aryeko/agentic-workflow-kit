@@ -260,16 +260,35 @@ smoke evidence, and evidence pack.
 
 ## Characterization Review Evidence
 
-- Design -> AC completeness: exact-head evidence, GitHub operations, PR/comment support,
-  ruleset/protection/thread/queue capabilities, credential isolation, redaction, admin-bypass refusal,
-  GHES/rate degraded states, and conformance map to AC-1..AC-8.
-- Producer closure: every produced DTO field, public symbol, and attestation field has a source row.
-- Sweep vocabulary: forbidden tokens do not ban Forge failure literals or normative GitHub design terms.
-- Failure-token/catalog closure: all tokens consume Epic 2 `ForgeFailureToken` exactly; this story
-  invents none.
-- Load-bearing decisions: GitHub provider gathers evidence and executes bounded requests; core decides
-  readiness and policy; fnd-04 owns credential policy.
-- Verdict: ready.
+### Design -> AC Mirror
+
+| Frozen design obligation | Source line | Covering AC / evidence | Falsification check |
+|---|---|---|---|
+| Forge is the remote, credentialed collaboration seam; workers never receive Forge credentials. | `docs/design/30-domain-reference/providers/forge-collaboration/README.md:16`, `docs/design/30-domain-reference/providers/forge-collaboration/README.md:25`, `docs/design/30-domain-reference/providers/forge-collaboration/README.md:64` | AC-3, AC-4, AC-8; fixtures `github-action-phase-mapping`, `github-worker-scope-refused`, boundary sweep | A worker credential scope reaches a remote action or production source imports worker/process helpers. |
+| Reads/actions bind to `expectedHeadSha`; mismatch refuses all expected-head actions. | `docs/design/30-domain-reference/providers/forge-collaboration/README.md:109`, `docs/design/30-domain-reference/providers/forge-collaboration/README.md:112`; `docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-02-s1-forge-port.md:144` | AC-2, AC-3, AC-7; fixtures `github-expected-head-mismatch-refused`, `github-disposable-remote-exact-head-smoke` | Update/enqueue/merge proceeds after observed head differs from expected head. |
+| Evidence snapshots must include PR state, status/checks, review/thread, protection/ruleset, and queue facts or degrade with named tokens. | `docs/design/30-domain-reference/providers/forge-collaboration/README.md:94`, `docs/design/30-domain-reference/providers/forge-collaboration/README.md:102`, `docs/design/30-domain-reference/providers/forge-collaboration/README.md:127` | AC-2, AC-6; fixtures `github-evidence-complete-snapshot`, `github-state-unknown`, `broken-github-subjects-fail` | Missing or ambiguous facts are reported as complete evidence. |
+| Protection, rulesets, merge queue, and review-thread support are capabilities; unknown external state fails closed. | `docs/design/30-domain-reference/providers/forge-collaboration/contracts-and-conformance.md:246`, `docs/design/30-domain-reference/providers/forge-collaboration/contracts-and-conformance.md:248` | AC-2, AC-5; fixtures `github-protection-uninspectable`, `github-rulesets-unattested`, `github-review-threads-uninspectable`, `github-merge-queue-unavailable` | Hidden provider state is guessed as absent/empty instead of degraded. |
+| Provider auth/rate/redaction/admin/bypass failures refuse without unsafe remote writes. | `docs/design/30-domain-reference/providers/forge-collaboration/README.md:202`, `docs/design/30-domain-reference/providers/forge-collaboration/README.md:214`, `docs/design/30-domain-reference/providers/forge-collaboration/README.md:227` | AC-4; fixtures `github-auth-denied`, `github-rate-limited`, `github-redaction-unavailable`, `github-admin-bypass-refused` | Admin/bypass/force-push or unredacted persistence is required for success. |
+
+### Load-Bearing Scope Decisions
+
+| Decision | Rationale and source | Falsification criterion | Escalation path |
+|---|---|---|---|
+| GitHub gathers remote facts and executes bounded Forge requests; it does not decide merge readiness. | Forge separates remote facts from decisions (`forge-collaboration/README.md:94`). | Story asks provider to classify completion/merge readiness or override checks. | Route to core completion/merge design. |
+| fnd-04 owns credential policy; GitHub maps requested Forge phases to scoped credentials. | Forge consumes fnd-04 credential refs/scope/audit (`forge-collaboration/README.md:158`). | Story authors new credential policy or gives Forge credentials to workers. | Route to fnd-04 or reject as AD-12 violation. |
+| Exact-head is mandatory for irreversible actions. | Exact-head DTOs and requests are frozen in `prov-02-s1` (`docs/implementation/epics/epic-2-provider-contract-layer-and-test-harness/stories/prov-02-s1-forge-port.md:144`). | Update/enqueue/merge lacks `expectedHeadSha` or does not re-read observed head. | Stop for Forge port/design correction. |
+| GitHub state uncertainty degrades; it is never interpreted as an empty safe state. | Unknown external state fails closed (`forge-collaboration/README.md:214`). | Missing rulesets/queue/threads are treated as no requirements/no blockers. | Keep degraded token or escalate provider capability gap. |
+
+### Regression Checks
+
+| Known blocker pattern | Evidence in this story |
+|---|---|
+| Failure-row AC match | Each failure row cites AC-2, AC-3, AC-4, or AC-5 where the exact token/trigger is named, including `forge-state-unknown`. |
+| Producer/source closure | Produced-obligations rows name sources for every Forge facts cluster, action result, degraded result, evidence snapshot, public export, and attestation field. |
+| Predicate-input closure | Consumed-predicate rows name expected/observed head operands, credential scope/phase, fact clusters, redaction results, and capability freshness. |
+| Boundary discipline | STOP conditions exclude local git, process execution, core decisions, worker credentials, and admin/bypass behavior. |
+
+Verdict: ready.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
