@@ -64,3 +64,10 @@ test('CLI rejects removed and unsupported arguments', async () => {
     /provider adapter not implemented: claude/,
   );
 });
+
+test('CLI rejects an explicit missing session file', async () => {
+  await assert.rejects(
+    execFileAsync('node', [cliPath, '--session-file', join(fixtureRoot, 'missing-session.jsonl')]),
+    /Session file is not readable/,
+  );
+});

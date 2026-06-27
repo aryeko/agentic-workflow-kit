@@ -8,25 +8,27 @@ completed run; it is not an execution or planning skill.
 A final retro requires all five handles:
 
 - execution package path;
-- session metrics source: an `agent-session-metrics` JSON report, Codex session id, or explicit
+- session metrics source: an `agent-session-metrics` report, Codex session id, or explicit
   session file;
 - PR URL or number;
 - worker thread ids or aliases when not derivable from the metrics tree;
 - git commit range.
 
-The script resolves handles from explicit CLI flags first, then from package text, tracker rows,
+The skill resolves handles from explicit user inputs first, then from package text, tracker rows,
 metrics reports, session references, and current repo conventions. If any handle remains unresolved,
-stop and ask for exactly that missing handle. A partial retro is allowed only when the user explicitly
-asks for a partial diagnostic.
+stop and ask for exactly that missing handle. The deterministic analyzer script resolves only the
+handles it owns; the skill combines analyzer output with the `agent-session-metrics` report in the
+final retro. A partial retro is allowed only when the user explicitly asks for a partial diagnostic.
 
 ## Normalized Observability
 
 Prefer `execution/observability/events.jsonl` over raw provider records. Future delivery runs should
 record this file incrementally with `scripts/observe-delivery-run.mjs`. For Codex session duration,
-token usage, and worker/subagent trees, use `.agents/skills/agent-session-metrics` and consume
-`report.main` rather than implementing another JSONL parser inside this skill. Older runs may be
-backfilled once with `scripts/import-session-observability.mjs` only when the analyzer specifically
-needs normalized event records that the metrics report does not provide.
+token usage, and worker/subagent trees, invoke the repo-local `agent-session-metrics` skill and
+consume its `report.main` output rather than implementing another JSONL parser or reading another
+skill's files from this skill. Older runs may be backfilled once with
+`scripts/import-session-observability.mjs` only when the analyzer specifically needs normalized event
+records that the metrics report does not provide.
 
 Supported normalized event types:
 

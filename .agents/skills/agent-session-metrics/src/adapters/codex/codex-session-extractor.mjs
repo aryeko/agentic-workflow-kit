@@ -31,8 +31,12 @@ const eventFilterByType = new Map([
     [
       /"receiverThreadId"\s*:/u,
       /"receiver_thread_id"\s*:/u,
+      /"receiverThreadIds"\s*:/u,
+      /"receiver_thread_ids"\s*:/u,
       /"childThreadId"\s*:/u,
       /"child_thread_id"\s*:/u,
+      /"childThreadIds"\s*:/u,
+      /"child_thread_ids"\s*:/u,
       /"name"\s*:\s*"spawn_agent"/u,
       /agent_id/u,
     ],
@@ -50,7 +54,7 @@ const eventFilterByType = new Map([
 ]);
 
 const commandFilterPattern =
-  '"type"\\s*:\\s*"(session_meta|turn_context|response_item|collab_tool_call|token_count|message|tool_call|function_call)"|"thread_spawn"\\s*:|"receiverThreadId"\\s*:|"receiver_thread_id"\\s*:|"childThreadId"\\s*:|"child_thread_id"\\s*:|"name"\\s*:\\s*"spawn_agent"|agent_id|"parent(Session|Thread)Id"\\s*:|"parent_(session|thread)_id"\\s*:|"token_count"\\s*:|"total_token_usage"\\s*:|"last_token_usage"\\s*:|"usage"\\s*:';
+  '"type"\\s*:\\s*"(session_meta|turn_context|response_item|collab_tool_call|token_count|message|tool_call|function_call)"|"thread_spawn"\\s*:|"receiverThreadIds?"\\s*:|"receiver_thread_ids?"\\s*:|"childThreadIds?"\\s*:|"child_thread_ids?"\\s*:|"name"\\s*:\\s*"spawn_agent"|agent_id|"parent(Session|Thread)Id"\\s*:|"parent_(session|thread)_id"\\s*:|"token_count"\\s*:|"total_token_usage"\\s*:|"last_token_usage"\\s*:|"usage"\\s*:';
 
 export async function extractCodexSessionData({ recordPath, dataTypes = allDataTypes }) {
   const requestedTypes = normalizeDataTypes(dataTypes);
@@ -296,11 +300,15 @@ function extractCodexLineFacts(line) {
     tokenUsage: extractTokenUsageFromLine(line),
     callId: firstUnescapedStringFromLine(line, ['call_id', 'callId']),
     isSpawnAgentCall: payloadType === 'function_call' && firstUnescapedStringFromLine(line, ['name']) === 'spawn_agent',
-    directChildThreadIds: allUnescapedStringsFromLine(line, [
+    directChildThreadIds: allUnescapedFieldStringsFromLine(line, [
       'receiverThreadId',
       'receiver_thread_id',
+      'receiverThreadIds',
+      'receiver_thread_ids',
       'childThreadId',
       'child_thread_id',
+      'childThreadIds',
+      'child_thread_ids',
     ]),
     spawnAgentChildIds: payloadType === 'function_call_output' ? allStringsFromLine(line, ['agent_id']) : [],
     isMessage: isMessageLine({ recordType, payloadType, line }),
@@ -411,12 +419,18 @@ function allStringsFromLine(line, keys) {
   return values;
 }
 
-function allUnescapedStringsFromLine(line, keys) {
+function allUnescapedFieldStringsFromLine(line, keys) {
   const values = [];
   for (const key of keys) {
-    const pattern = new RegExp(`"${escapeRegExp(key)}"\\s*:\\s*"([^"]*)"`, 'gu');
-    for (const match of line.matchAll(pattern)) {
+    const scalarPattern = new RegExp(`"${escapeRegExp(key)}"\\s*:\\s*"([^"]*)"`, 'gu');
+    for (const match of line.matchAll(scalarPattern)) {
       values.push(match[1]);
+    }
+    const arrayPattern = new RegExp(`"${escapeRegExp(key)}"\\s*:\\s*\\[([^\\]]*)\\]`, 'gu');
+    for (const arrayMatch of line.matchAll(arrayPattern)) {
+      for (const valueMatch of arrayMatch[1].matchAll(/"([^"]+)"/gu)) {
+        values.push(valueMatch[1]);
+      }
     }
   }
   return values;

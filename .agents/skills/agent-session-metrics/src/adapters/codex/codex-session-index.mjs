@@ -62,6 +62,7 @@ export async function extractCodexSessions({ target, providerHome, scope }) {
 export async function resolveCodexTarget({ target, providerHome }) {
   if (target.kind === 'session-file') {
     const recordPath = resolve(target.sessionFile);
+    await assertReadableSessionFile(recordPath);
     const summary = await summarizeCodexSession({ recordPath });
     return {
       resolution: 'session-file',
@@ -150,6 +151,20 @@ async function resolveCodexSessionCandidates({ providerHome, sessionId }) {
     });
   }
   return records;
+}
+
+async function assertReadableSessionFile(recordPath) {
+  try {
+    const fileStat = await stat(recordPath);
+    if (!fileStat.isFile()) {
+      throw new MetricsError(`Session file is not readable: ${recordPath}`);
+    }
+  } catch (error) {
+    if (error instanceof MetricsError) {
+      throw error;
+    }
+    throw new MetricsError(`Session file is not readable: ${recordPath}`);
+  }
 }
 
 function sessionIdMatches(record, sessionId) {

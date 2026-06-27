@@ -641,11 +641,12 @@ Acceptance:
 
 After the package and skill are implemented:
 
-- Update `deep-code-review` to call the repo-local `agent-session-metrics` skill
+- Update `deep-code-review` to invoke the repo-local `agent-session-metrics` skill
   for local execution summaries.
-- Update `delivery-retro` to consume `agent-session-metrics` reports for Codex
-  session duration, token usage, and recursive worker/subagent metrics instead
-  of adding or expanding retro-local session parsers.
+- Update `delivery-retro` to invoke the repo-local `agent-session-metrics`
+  skill and consume its reports for Codex session duration, token usage, and
+  recursive worker/subagent metrics instead of adding or expanding retro-local
+  session parsers or reading files from another skill directory.
 - Keep Codex GitHub automatic review independent; cloud reviews may not have
   local session records.
 - Add a short pointer from

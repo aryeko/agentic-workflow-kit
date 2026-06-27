@@ -13,7 +13,7 @@ using it unless the user explicitly asks for a separate follow-up change.
 
 1. Read `references/analysis-contract.md` before running the analyzer or writing a retro report.
 2. Resolve all required run handles: execution package path, session metrics source
-   (`agent-session-metrics` JSON report, Codex session id, or explicit session file), PR URL/number,
+   (`agent-session-metrics` report, Codex session id, or explicit session file), PR URL/number,
    worker thread ids or aliases when not derivable from metrics, and git range.
 3. Prefer normalized observability events when present:
    `execution/observability/events.jsonl`, or an explicitly supplied events file. Summarize them with
@@ -23,10 +23,11 @@ using it unless the user explicitly asks for a separate follow-up change.
    `node scripts/observe-delivery-run.mjs --events <path> --type <type> --payload <json>`. Record
    turn counts as `turn_observed` events, not by re-counting raw transcripts later. Treat the events
    file as a single-writer artifact owned by the runner/orchestrator.
-5. For session duration, token usage, and spawned worker tree data, use the repo-local
-   `.agents/skills/agent-session-metrics` skill instead of manually scanning Codex JSONL. Run it with
-   `--scope tree --format json --pretty`, then read the canonical recursive payload from
-   `report.main` and `report.main.children`.
+5. For session duration, token usage, and spawned worker tree data, invoke the repo-local
+   `agent-session-metrics` skill instead of manually scanning Codex JSONL or reading files from
+   another skill directory. Pass the Codex session id or explicit session file to that skill, request
+   JSON tree output, then read the canonical recursive payload from `report.main` and
+   `report.main.children`.
 6. Use legacy `import-session-observability.mjs` or `find-worker-aliases.mjs` only as compatibility
    fallbacks for old execution packages whose analyzer path still requires normalized events or worker
    aliases and no `agent-session-metrics` report can be produced. Do not use those scripts as the
@@ -50,8 +51,8 @@ using it unless the user explicitly asks for a separate follow-up change.
   write normalized events directly, including `turn_observed`, worker, review, PR, commit, and token
   events. For `token_usage_observed`, pass cumulative `usage` snapshots; the analyzer reports the
   latest snapshot as the run total.
-- `.agents/skills/agent-session-metrics`: canonical source for Codex session duration, token usage,
-  and recursive worker/subagent metrics. Use `report.main.metrics` for the target session and
+- `agent-session-metrics` skill: canonical source for Codex session duration, token usage, and
+  recursive worker/subagent metrics. Use its `report.main.metrics` for the target session and
   `report.main.children[*].metrics` for descendants.
 - `scripts/import-session-observability.mjs`: legacy one-time backfill adapter from Codex session
   JSONL to normalized observability events for older runs that did not record `events.jsonl`; use only

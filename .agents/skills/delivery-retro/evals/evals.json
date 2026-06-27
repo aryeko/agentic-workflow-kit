@@ -12,7 +12,7 @@
       ],
       "assertions": [
         "The agent runs or follows scripts/analyze-delivery-run.mjs.",
-        "The agent uses agent-session-metrics for Codex session duration, token usage, and worker tree data.",
+        "The agent invokes agent-session-metrics for Codex session duration, token usage, and worker tree data instead of reading that skill's files directly.",
         "The report is not produced until package path, session metrics source, PR, worker ids when needed, and git range are resolved.",
         "Token usage is marked unavailable when the session does not expose usage fields.",
         "Recommendations are separated from observed facts."

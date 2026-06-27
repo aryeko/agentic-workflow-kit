@@ -138,6 +138,40 @@ test('tree scope follows spawned session ids instead of sweeping parent links', 
   assert.equal(report.main.children[0].metrics.tokens.total, 20);
 });
 
+test('tree scope follows plural Codex receiver_thread_ids arrays', async () => {
+  const providerHome = await mkdtemp(join(tmpdir(), 'agent-session-metrics-plural-'));
+  await mkdir(join(providerHome, 'sessions'), { recursive: true });
+  await writeFile(
+    join(providerHome, 'sessions', 'rollout-root-plural.jsonl'),
+    [
+      '{"type":"session_meta","payload":{"id":"root-plural","role":"root","timestamp":"2026-06-27T01:00:00.000Z"}}',
+      '{"type":"collab_tool_call","payload":{"receiver_thread_ids":["plural-child"],"timestamp":"2026-06-27T01:00:01.000Z"}}',
+      '{"type":"event_msg","payload":{"type":"token_count","timestamp":"2026-06-27T01:00:02.000Z","total":{"total_tokens":10}}}',
+      '',
+    ].join('\n'),
+  );
+  await writeFile(
+    join(providerHome, 'sessions', 'rollout-plural-child.jsonl'),
+    [
+      '{"type":"session_meta","payload":{"id":"plural-child","parentSessionId":"root-plural","depth":1,"role":"child","timestamp":"2026-06-27T01:01:00.000Z"}}',
+      '{"type":"event_msg","payload":{"type":"token_count","timestamp":"2026-06-27T01:01:02.000Z","total":{"total_tokens":20}}}',
+      '',
+    ].join('\n'),
+  );
+
+  const report = await analyzeAgentSessionMetrics({
+    provider: 'codex',
+    target: { kind: 'session-id', sessionId: 'root-plural' },
+    providerHome,
+    scope: 'tree',
+  });
+
+  assert.deepEqual(
+    [report.main.id, ...report.main.children.map((session) => session.id)],
+    ['root-plural', 'plural-child'],
+  );
+});
+
 test('tree scope follows Codex spawn_agent output agent ids', async () => {
   const providerHome = await mkdtemp(join(tmpdir(), 'agent-session-metrics-spawn-agent-'));
   await mkdir(join(providerHome, 'sessions'), { recursive: true });
