@@ -1,5 +1,5 @@
 ---
-title: kit-vnext — documentation home
+title: agentic-workflow-kit — documentation home
 status: high-level design
 last-reviewed: "2026-06-19"
 ---

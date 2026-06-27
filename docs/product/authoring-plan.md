@@ -18,8 +18,8 @@ and the per-product stubs under [`products/`](products/).
 - **Product named: Jig.** CLI `jig`; package `@agentic-workflow-kit/jig`;
   `agentic-workflow-kit` is the suite/org umbrella. "kit-vnext" is retired as a name (it is
   only a milestone/branch/tag).
-- **Branch `product-layer`**, in a worktree off `v-next`. Committed and pushed. **No PR yet**
-  (by the owner's instruction).
+- **Branch `product-layer`**, in a worktree off `v-next`. PR #177 opened against `v-next`. This
+  pass is a cleanup/reconciliation pass, not the deep-dive.
 - **Authored so far:** the product definition ([README.md](README.md)); five seeded product
   stubs (overview + "address when expanding" notes); this playbook. Nothing is deep-dived yet.
 

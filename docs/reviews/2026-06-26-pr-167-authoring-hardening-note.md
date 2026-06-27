@@ -74,6 +74,6 @@ Ledger mapping: LSN-21/30 predicate-input closure plus safety-action specializat
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Orchestrated-Delivery Operator UX Design](./2026-06-26-orchestrated-delivery-operator-ux-design.md) · **Next →:** [roadmap](../roadmap.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [Orchestrated-Delivery Operator UX Design](./2026-06-26-orchestrated-delivery-operator-ux-design.md) · **Next →:** [roadmap](../roadmap.md)
 
 <!-- /DOCS-NAV -->

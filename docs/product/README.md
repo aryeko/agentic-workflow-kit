@@ -22,6 +22,18 @@ a branch/version, not an identity).
 
 ---
 
+## Current contract
+
+- Suite umbrella: `agentic-workflow-kit`.
+- Main product: Jig (`jig`, `@agentic-workflow-kit/jig`).
+- Minimum input to Jig: a schema-conformant execution plan.
+- Upstream products are optional strong defaults: define-product → product→design → design→plan.
+- Hard schema boundary: Jig's execution-plan input only.
+- Product owns intent and suite boundaries; design owns the detailed engineering reference.
+- The learning loop is suite-level and between-runs, not Jig's per-run hot path.
+
+---
+
 ## The problem
 
 Did you ever try to deliver real software through one long-running agent task? _Implement
@@ -42,21 +54,23 @@ only a human should own and delegates the rest under guarantees.
 
 ## From one good session to a long-running loop
 
-There's a well-known recipe for getting good work out of a _single_ agent session — the
+There is a well-known recipe for getting good work out of a single agent session.
 [Codex](https://developers.openai.com/codex/learn/best-practices) and
-[Claude](https://code.claude.com/docs/en/best-practices) best-practice guides converge on it
-(and OpenAI's [_Harness engineering_](https://openai.com/index/harness-engineering/) makes the
-broader case — that the durable leverage is the harness around the agent, not the prompt), and
-tools like **superpowers** encode it directly:
+[Claude](https://code.claude.com/docs/en/best-practices) guidance both converge on the same
+core ingredients. OpenAI's [_Harness engineering_](https://openai.com/index/harness-engineering/)
+makes the broader systems point: durable leverage comes from the harness around the agent, not
+prompt cleverness alone. Tools like [superpowers](https://github.com/obra/superpowers) package
+similar plan-first / verify-first session discipline.
 
 - **Prompt well** — state the goal, the context, the requirements, and how to verify.
 - **Plan first** — agree on what the agent understood and steer toward your intent _before_ it
   writes code.
-- **Manage context** — the most common failure ("the agent delivered something _different_ from
-  what I asked") comes from a long session where requirements get forgotten or the goal quietly
-  drifts; keep one session per task, and lean on subagents.
-- **Test-drive the contract** — to guarantee what you asked for, capture the requirements as
-  checks _first_, then have the agent satisfy them.
+- **Manage context** — one common context-management failure is that the agent delivers
+  something different from what you intended as requirements get crowded out or the goal drifts;
+  keep one session per task, and lean on subagents.
+- **Test-drive the contract** — a common engineering best practice made explicit here: where
+  possible, turn important requirements into checks first, then have the agent satisfy and
+  prove them.
 
 This works — for one session. But a real delivery isn't one session; it's a long-running
 **loop** of them, and the discipline that holds a single session together doesn't survive the
@@ -100,8 +114,9 @@ vs. ship is a policy dial, see below, not an audience boundary.)
 **Own the product and the design; delegate the build with confidence.** Give the kit a
 schema-conformant plan (or let it help you produce one) and it executes the work as far
 as your configured policy allows — up to a reviewed, merged change under the gates _you_
-configure — and **interrupts you only when a real decision is on the line**. Every run it can learn from what slipped through, so the
-next one is better.
+configure — and **interrupts you only when a real decision is on the line**. Every run emits
+the records needed for a learning loop to inspect what slipped through, so recurring defect
+classes can be turned into stronger checks between runs.
 
 The kit helps you produce strong inputs, executes them faithfully, and compounds. (Honest
 boundary: faithful execution of a weak input yields weak software — which is exactly why
@@ -141,12 +156,12 @@ shipped this idea as PR/merge presets; v1 generalizes it.
 The spectrum has two well-known poles, and the kit supports the whole range between them:
 
 - **Throughput-leaning** — gate lightly, let work merge fast, and catch issues afterward
-  with scheduled scans and fast-follow corrections. This is the published OpenAI _Harness
-  engineering_ posture; it is coherent and effective in high-throughput settings where
-  follow-up corrections are cheap relative to blocking progress, and the surrounding harness
-  absorbs fast iteration.
+  with scheduled scans and fast-follow corrections. The OpenAI _Harness engineering_ article
+  describes this design point: short-lived PRs, minimal blocking gates, and cheap follow-up
+  corrections in an environment where agent throughput exceeds human attention.
 - **Prevention-leaning** — gate and prove before merge; stop in a diagnosable state rather
-  than lay a questionable foundation. This author's default.
+  than lay a questionable foundation. Prevention-leaning is the default preset the current
+  product work is most mature around.
 
 The risk the prevention end guards against: **a wrong stone laid early in the wall that you
 keep building on — cheap to fix now, very expensive later** (a classic example: an agent
@@ -340,7 +355,7 @@ product-level overview — then proceed to the supporting products by priority.
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [documentation home](../README.md) · **Next →:** [Jig — the package (main product)](./products/jig.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [agentic-workflow-kit — documentation home](../README.md) · **Next →:** [Jig — the package (main product)](./products/jig.md)
 
 **Children:** [Jig — the package (main product)](./products/jig.md) · [Tracks — parallel independent work](./concepts/tracks.md) · [Design → plan (supporting product)](./products/design-to-plan.md) · [Product → design (supporting product)](./products/product-to-design.md) · [Define product (supporting product)](./products/define-product.md) · [Learning loop (supporting product)](./products/learning-loop.md) · [Product layer — authoring plan (cross-session playbook)](./authoring-plan.md) · [Product layer — status](./STATUS.md)
 

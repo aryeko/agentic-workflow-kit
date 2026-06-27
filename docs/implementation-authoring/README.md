@@ -62,7 +62,7 @@ Recurring defect classes, each mapped to the gate or role that covers it: [lesso
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation coverage rollup](../implementation/coverage.md) · **Next →:** [Authoring standard — Pillar 1](./authoring-standard/README.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [implementation coverage rollup](../implementation/coverage.md) · **Next →:** [Authoring standard — Pillar 1](./authoring-standard/README.md)
 
 **Children:** [Authoring standard — Pillar 1](./authoring-standard/README.md) · [Operating model — delivery system spec](./operating-model/README.md) · [Delivery pipeline — the skill spec](./delivery-pipeline/README.md) · [implementation lessons ledger](./lessons-ledger.md)
 

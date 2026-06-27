@@ -6,7 +6,7 @@ last-reviewed: "2026-06-27"
 
 # Product layer — status
 
-_Branch: `product-layer` (base `v-next`; not pushed, no PR). The product-definition layer for
+_Branch: `product-layer`; PR: [#177](https://github.com/aryeko/agentic-workflow-kit/pull/177) against `v-next`. The product-definition layer for
 the `agentic-workflow-kit` suite (product **Jig**). Product is the source of truth; the
 `docs/design/` corpus is a **supporting reference**, reconciled to follow — not a co-authority._
 
@@ -81,8 +81,9 @@ advertises are NOT installed — ignore them; the real, more rigorous method is 
 
 - **Design reconciliation** — product now leads; the design corpus reconciles to follow: split
   `fnd-01` (Configuration & Policy); the broader foundation-overfit rework.
-- **`kit-vnext` title sweep** — `docs/README.md` frontmatter title still says `kit-vnext`
-  (retired as a name); fixing it triggers a tree-wide nav-label regen.
+- **`kit-vnext` title sweep** — `docs/README.md` frontmatter title fixed to
+  `agentic-workflow-kit` in this pass; the broader `kit-vnext` rename across `docs/research/`,
+  `docs/roadmap.md`, and other files remains deferred as a separate downstream sweep.
 - **Refinement** — branding, diagrams, examples across the product docs (later).
 - **Polish** — `define-product.md` uses `PRD-n` as its AC prefix, overloading "PRD" the
   artifact (disambiguated in-doc, but a rename candidate, e.g. `DEF-n`); add the **superpowers**
@@ -92,8 +93,7 @@ advertises are NOT installed — ignore them; the real, more rigorous method is 
 
 On `product-layer` (base `v-next`): see `git log --oneline v-next..product-layer`. In order —
 product-first reframe → Jig deep-dive → "Why Jig" → tracks + README v2 → design→plan →
-value-proposition re-author → OpenAI link → STATUS → supporting-product overviews. **Not pushed;
-no PR opened.**
+value-proposition re-author → OpenAI link → STATUS → supporting-product overviews. PR #177 opened against `v-next`.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

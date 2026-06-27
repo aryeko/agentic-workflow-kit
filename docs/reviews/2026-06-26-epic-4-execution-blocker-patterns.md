@@ -543,6 +543,6 @@ The practical test for future epics is simple:
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Codex Custom-Agent Bindings and Orchestration Message Plan](./2026-06-26-codex-custom-agent-skill-bindings-plan.md) · **Next →:** [Orchestrated-Delivery Operator UX Design](./2026-06-26-orchestrated-delivery-operator-ux-design.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [Codex Custom-Agent Bindings and Orchestration Message Plan](./2026-06-26-codex-custom-agent-skill-bindings-plan.md) · **Next →:** [Orchestrated-Delivery Operator UX Design](./2026-06-26-orchestrated-delivery-operator-ux-design.md)
 
 <!-- /DOCS-NAV -->

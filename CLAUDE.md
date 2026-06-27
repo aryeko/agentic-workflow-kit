@@ -1,9 +1,10 @@
 # CLAUDE.md — Claude Code operating layer for kit-vnext
 
 This file adds Claude Code-specific operating guidance on top of `AGENTS.md`. **Read
-`AGENTS.md` first** — it holds the invariants, the ground-truth map (`docs/design/`), the
-branch model, the verify gate, and the conventions. When the two conflict, `AGENTS.md`
-wins. Do not restate AGENTS.md here; reference it.
+`AGENTS.md` first** — it holds the invariants, the layered ground-truth map
+(`docs/product/` for product intent; `docs/design/` for engineering design), the branch
+model, the verify gate, and the conventions. When the two conflict, `AGENTS.md` wins.
+Do not restate AGENTS.md here; reference it.
 
 ---
 
@@ -21,10 +22,11 @@ wins. Do not restate AGENTS.md here; reference it.
 
 ## Find context efficiently
 
-Do not load the whole design corpus into a session. Use the "When you get a task" map in
-`AGENTS.md` to pull only the `docs/design/` files your task actually touches, and let
-subagents do the wide reads. The corpus is large by design; the win is reading the right
-slice, not all of it.
+Do not load the whole corpus into a session. Use the "When you get a task" map in
+`AGENTS.md` to pull only the files your task actually touches — `docs/product/` for
+product-intent and framing tasks, `docs/design/` for engineering tasks, or both when
+relevant — and let subagents do the wide reads. The corpus is large by design; the win is
+reading the right slice, not all of it.
 
 ---
 

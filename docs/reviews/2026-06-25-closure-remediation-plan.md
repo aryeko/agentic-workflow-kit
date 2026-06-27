@@ -78,6 +78,6 @@ is small enough. Independent of Epic 4 (no dependency), so it may also run earli
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Delivery-model reform + barrel simplification — self-contained remediation plan](./2026-06-25-barrel-coownership-and-closure-wiring-plan.md) · **Next →:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./2026-06-25-producer-consumer-closure-audit.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [Delivery-model reform + barrel simplification — self-contained remediation plan](./2026-06-25-barrel-coownership-and-closure-wiring-plan.md) · **Next →:** [Producer↔Consumer Closure Audit — kit-vnext design corpus](./2026-06-25-producer-consumer-closure-audit.md)
 
 <!-- /DOCS-NAV -->
