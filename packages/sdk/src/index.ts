@@ -352,6 +352,14 @@ export type {
   RecoveryPlanRecord,
   RecoveryPlansFailure,
 } from './core/recovery/plans/index.js';
+export { recordReconciliationBlocked } from './core/recovery/reconciliation/index.js';
+export type {
+  RecordReconciliationBlockedFailure,
+  RecordReconciliationBlockedInput,
+  RecordReconciliationBlockedResult,
+  ReconciliationBlockedRecord,
+} from './core/recovery/reconciliation/index.js';
+export { foldRecoveryProjection } from './core/recovery/projections/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
