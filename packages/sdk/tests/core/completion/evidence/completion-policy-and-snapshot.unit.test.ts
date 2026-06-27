@@ -123,4 +123,31 @@ describe('core-05-s2 completion evaluator policy and snapshot behavior', () => {
     expect(result.value.decisionEventId).toBe('CompletionDecisionRecorded');
     expect(result.value.protectedPolicySnapshotEventId).toBe('ProtectedPolicySnapshotRecorded');
   });
+
+  it('fails closed when the latest protected-policy snapshot identity mismatches run, policy, or base inputs', async () => {
+    const cases = [
+      { name: 'run', snapshot: { ...snapshotPayload, runId: 'run-other' } },
+      { name: 'policy', snapshot: { ...snapshotPayload, policyRef: 'policy:other' } },
+      { name: 'base', snapshot: { ...snapshotPayload, baseSha: 'base-02' } },
+    ] as const;
+
+    for (const testCase of cases) {
+      const local = createEvent('LocalGitEvidenceRecorded', 6, createLocalGitPayload());
+      const snapshot = createEvent('ProtectedPolicySnapshotRecorded', 7, testCase.snapshot);
+
+      const result = await evaluateCompletion(
+        {
+          runId,
+          evaluatedAt: '2026-06-27T09:18:00.000Z',
+          evaluatedThrough: cursor,
+          leaseId: 'lease-01',
+          policyRef: 'policy:merge',
+          allowedChangePaths: ['packages/sdk/src/core/completion/evidence/**'],
+        },
+        { replay: createReplay(local, snapshot), projections, writer: createWriter() },
+      );
+
+      expect(result.ok && result.value.decision.state, testCase.name).toBe('changed-file-policy-absent');
+    }
+  });
 });

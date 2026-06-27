@@ -9,6 +9,7 @@ import {
   appendBarrierEvent,
   buildProtectedPolicySnapshotPayload,
   findLatestProtectedPolicySnapshot,
+  matchesProtectedPolicySnapshotIdentity,
   toEventLogUnwritable,
 } from './shared.js';
 import type {
@@ -102,11 +103,36 @@ export const evaluateCompletion = async (
     );
   }
 
+  const expectedSnapshotIdentity = {
+    runId: input.runId,
+    policyRef: input.policyRef,
+    baseSha: candidate.localGitPayload.baseSha,
+  };
+
   let snapshot = findLatestProtectedPolicySnapshot(dependencies.replay.events, input.evaluatedThrough.afterSequence);
   let protectedPolicySnapshot: EvaluateCompletionInput['protectedPolicySnapshot'] extends never
     ? never
     : ReturnType<typeof buildProtectedPolicySnapshotPayload> | undefined;
+  if (snapshot !== undefined && !matchesProtectedPolicySnapshotIdentity(snapshot.payload, expectedSnapshotIdentity)) {
+    return appendCompletionDecision(
+      buildDecisionPayload(
+        input,
+        'changed-file-policy-absent',
+        [...candidate.evidenceRefs, snapshot.ref],
+        candidate.headSha,
+      ),
+      dependencies.writer,
+    );
+  }
+
   if (snapshot === undefined && input.protectedPolicySnapshot !== undefined) {
+    if (!matchesProtectedPolicySnapshotIdentity(input.protectedPolicySnapshot, expectedSnapshotIdentity)) {
+      return appendCompletionDecision(
+        buildDecisionPayload(input, 'changed-file-policy-absent', candidate.evidenceRefs, candidate.headSha),
+        dependencies.writer,
+      );
+    }
+
     protectedPolicySnapshot = buildProtectedPolicySnapshotPayload(input.protectedPolicySnapshot);
     const snapshotAppend = await appendBarrierEvent(
       dependencies.writer,

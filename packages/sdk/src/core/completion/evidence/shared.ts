@@ -50,6 +50,14 @@ export const buildProtectedPolicySnapshotPayload = (
   recordedAt: input.recordedAt,
 });
 
+export const matchesProtectedPolicySnapshotIdentity = (
+  snapshot: Pick<ProtectedPolicySnapshotRecordedPayload, 'runId' | 'policyRef' | 'baseSha'>,
+  expected: Pick<ProtectedPolicySnapshotRecordedPayload, 'runId' | 'policyRef' | 'baseSha'>,
+): boolean =>
+  snapshot.runId === expected.runId &&
+  snapshot.policyRef === expected.policyRef &&
+  snapshot.baseSha === expected.baseSha;
+
 export const appendBarrierEvent = async <TPayload>(
   writer: RunWriter,
   type: string,
