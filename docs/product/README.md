@@ -185,7 +185,7 @@ The kit draws a deliberate line between what it **enforces** and what it merely 
 
 Most of the suite sits in tiers 2 and 3 — it _guides_, it doesn't dictate. The control
 cluster is the principled exception: the one place the kit enforces rather than guides,
-because those are the floors trust stands on. See [Jig — the package](products/jig.md)
+because those are the floors trust stands on. See [Jig — the package](./jig.md)
 for the full per-guarantee breakdown.
 
 ## The product suite
@@ -198,14 +198,14 @@ placeholder per product. The package is the priority; the supporting products fo
 
 The suite runs **parallel independent tracks** — each track its own
 PRD → design → plan → policy → work profile, progressing independently of the others in
-the same repo. See [Tracks — parallel independent work](concepts/tracks.md).
+the same repo. See [Tracks — parallel independent work](./concepts.md).
 
-Each product has an **expansion doc** under [`products/`](products/) — a simple overview
+Each product has an **orientation doc** in `docs/product/` — a simple overview
 plus the considerations we already know to address when deepening it. We deep-dive there,
-**package first**: [Jig](products/jig.md) · [design→plan](products/design-to-plan.md) ·
-[product→design](products/product-to-design.md) · [define-product](products/define-product.md) ·
-[learning loop](products/learning-loop.md). The cross-session method, decisions, and
-reasoning for building this product layer live in [authoring-plan.md](authoring-plan.md).
+**package first**: [Jig](./jig.md) · [design→plan](./supporting-products/design-to-plan.md) ·
+[product→design](./supporting-products/product-to-design.md) · [define-product](./supporting-products/define-product.md) ·
+[learning loop](./supporting-products/learning-loop.md). The cross-session method, decisions, and
+reasoning for building this product layer live in [status.md](./status.md).
 
 ### 1. Jig — the package (main product)
 
@@ -341,7 +341,7 @@ the product requirements exist in front of us.
 
 _Decided:_ the product is named **Jig** — CLI `jig`, package `@agentic-workflow-kit/jig`,
 under the `agentic-workflow-kit` suite umbrella. Each product gets its own deep-dive doc
-under `docs/product/products/`, with this file as the index at `docs/product/README.md`; the
+at `docs/product/jig.md` (package) and `docs/product/supporting-products/` (pipeline + loop), with this file as the index at `docs/product/README.md`; the
 learning loop is a separate, suite-level product kept out of the package's per-run hot
 path; it consumes the package's observability and can harden any layer (including the
 package) between runs.
@@ -355,8 +355,8 @@ product-level overview — then proceed to the supporting products by priority.
 
 ---
 
-**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [agentic-workflow-kit — documentation home](../README.md) · **Next →:** [Jig — the package (main product)](./products/jig.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [agentic-workflow-kit — documentation home](../README.md) · **Next →:** [Jig — the package (main product)](./jig.md)
 
-**Children:** [Jig — the package (main product)](./products/jig.md) · [Tracks — parallel independent work](./concepts/tracks.md) · [Design → plan (supporting product)](./products/design-to-plan.md) · [Product → design (supporting product)](./products/product-to-design.md) · [Define product (supporting product)](./products/define-product.md) · [Learning loop (supporting product)](./products/learning-loop.md) · [Product layer — authoring plan (cross-session playbook)](./authoring-plan.md) · [Product layer — status](./STATUS.md)
+**Children:** [Jig — the package (main product)](./jig.md) · [Tracks — parallel independent work](./concepts.md) · [Design → plan (supporting product)](./supporting-products/design-to-plan.md) · [Product → design (supporting product)](./supporting-products/product-to-design.md) · [Define product (supporting product)](./supporting-products/define-product.md) · [Learning loop (supporting product)](./supporting-products/learning-loop.md) · [Product layer — status + authoring plan](./status.md)
 
 <!-- /DOCS-NAV -->

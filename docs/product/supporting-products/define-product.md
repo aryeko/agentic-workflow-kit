@@ -133,7 +133,7 @@ deliverable, in the spirit of the guidance across the suite (see [product README
 A PRD is a product definition **for a track** — one independent line of work, scoped to its
 area and producing the input that product → design converts into a design for that track. A
 repo runs many tracks in parallel, each with its own PRD advancing at its own pace. See
-[Tracks — parallel independent work](../concepts/tracks.md).
+[Tracks — parallel independent work](../concepts.md).
 
 ## Honest edges
 
@@ -164,13 +164,13 @@ repo runs many tracks in parallel, each with its own PRD advancing at its own pa
   criteria written here, labeled for reference, are the same criteria design → plan carries
   forward as story-level checkable criteria (see [design → plan](design-to-plan.md), **AC-1**,
   **AC-2**) and that Jig's gates evaluate at merge-on-evidence
-  (see [Jig](jig.md), **① MERGE-1**) and surfaces in its records (**⑤ SEE-1**, **SEE-3**).
+  (see [Jig](../jig.md), **① MERGE-1**) and surfaces in its records (**⑤ SEE-1**, **SEE-3**).
   The evidence thread starts here.
 - **The learning loop can trace a defect back to the PRD.** Between runs, the learning loop's
   root-cause trace reaches back to the earliest layer that should have caught an issue — which
   may be a vague PRD requirement or an under-specified acceptance criterion
   (see [Learning loop](learning-loop.md), **LOOP-3**).
-- **Per track** — see [Tracks](../concepts/tracks.md).
+- **Per track** — see [Tracks](../concepts.md).
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 
