@@ -112,6 +112,6 @@ and the per-product stubs under [`products/`](products/).
 
 ---
 
-**↑ Up:** [Product definition](./README.md) · **← Prev:** [Learning loop (supporting product)](./products/learning-loop.md) · **Next →:** [design corpus overview](../design/README.md)
+**↑ Up:** [Product definition](./README.md) · **← Prev:** [Learning loop (supporting product)](./products/learning-loop.md) · **Next →:** [Product layer — status](./STATUS.md)
 
 <!-- /DOCS-NAV -->
