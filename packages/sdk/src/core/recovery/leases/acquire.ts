@@ -1,6 +1,7 @@
 import type { StoryLaunchLeaseAcquiredPayload } from '../contracts/index.js';
 
 import { appendRecoveryLeaseEvent } from './append-event.js';
+import { mapLeaseStoreAcquireFailure } from './error-mapping.js';
 import { buildStoryLaunchKey } from './key.js';
 import { assertSourceEventIds } from './shared.js';
 import type { AcquireStoryLaunchLeaseInput, AcquireStoryLaunchLeaseResult } from './types.js';
@@ -18,11 +19,7 @@ export const acquireStoryLaunchLease = (input: AcquireStoryLaunchLeaseInput): Ac
   if ('code' in acquired) {
     return {
       ok: false,
-      error: {
-        reason: 'lease-store-unavailable',
-        failureState: acquired.code === 'stale-writer-fenced' ? 'launch-duplicate-active' : 'lease-unavailable',
-        storageError: acquired,
-      },
+      error: mapLeaseStoreAcquireFailure(acquired),
     };
   }
 

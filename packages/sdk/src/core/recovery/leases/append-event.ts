@@ -1,10 +1,5 @@
-import type {
-  AppendIntent,
-  Result,
-  RunAppendFailure,
-  RunAppendReceipt,
-  RunWriter,
-} from '../../run-lifecycle/contracts/index.js';
+import type { Result, RunAppendFailure, RunAppendReceipt, RunWriter } from '../../run-lifecycle/contracts/index.js';
+import { buildRecoveryBarrierIntent } from '../shared/barrier-intent.js';
 
 type RecoveryLeaseEventType = 'StoryLaunchLeaseAcquired' | 'DuplicateLaunchBlocked' | 'StaleLaunchClearanceRequested';
 
@@ -19,14 +14,5 @@ export const appendRecoveryLeaseEvent = <TPayload>(
   writer: RunWriter,
   input: AppendRecoveryLeaseEventInput<TPayload>,
 ): Result<RunAppendReceipt, RunAppendFailure> => {
-  const intent: AppendIntent<TPayload> = {
-    domain: 'core-06',
-    type: input.type,
-    durability: 'barrier',
-    payload: input.payload,
-    occurredAt: input.occurredAt,
-    ...(input.causationId === undefined ? {} : { causationId: input.causationId }),
-  };
-
-  return writer.append([intent]);
+  return writer.append([buildRecoveryBarrierIntent(input.type, input.payload, input.occurredAt, input.causationId)]);
 };

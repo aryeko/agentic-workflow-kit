@@ -10,6 +10,7 @@ type CanonicalValue =
   | { readonly [key: string]: CanonicalValue };
 
 export interface RecoveryPlanIdInput {
+  readonly mode: RecoveryPlanInput['mode'];
   readonly runId: string;
   readonly policyRef: string;
   readonly requestedAction: RecoveryPlanInput['requestedAction'];
@@ -43,6 +44,7 @@ export const deriveRecoveryPlanIdInput = (
   classification: Pick<RecoveryClassification, 'state'>,
 ): RecoveryPlanIdInput => {
   const digestShape = {
+    mode: input.mode,
     runId: input.runId,
     policyRef: input.policyRef,
     requestedAction: input.requestedAction,

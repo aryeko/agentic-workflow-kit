@@ -1,6 +1,6 @@
-import type { AppendIntent } from '../../run-lifecycle/contracts/index.js';
 import type { ReconciliationBlockedPayload } from '../contracts/index.js';
 
+import { buildRecoveryBarrierIntent } from '../shared/barrier-intent.js';
 import type { RecordReconciliationBlockedInput, RecordReconciliationBlockedResult } from './types.js';
 
 export const recordReconciliationBlocked = (
@@ -17,16 +17,9 @@ export const recordReconciliationBlocked = (
     blockedAt: input.blockedAt,
   };
 
-  const intent: AppendIntent<ReconciliationBlockedPayload> = {
-    domain: 'core-06',
-    type: 'ReconciliationBlocked',
-    durability: 'barrier',
-    payload,
-    occurredAt: input.blockedAt,
-    ...(input.causationId === undefined ? {} : { causationId: input.causationId }),
-  };
-
-  const appended = input.writer.append([intent]);
+  const appended = input.writer.append([
+    buildRecoveryBarrierIntent('ReconciliationBlocked', payload, input.blockedAt, input.causationId),
+  ]);
   if (!appended.ok) {
     return {
       ok: false,

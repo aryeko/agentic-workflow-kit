@@ -19,7 +19,7 @@ import {
 } from './shared.js';
 
 describe('core-06-s4 stale-launch-clear-gated-apply-matrix', () => {
-  it('records StoryLaunchLeaseCleared only for matching stale-launch classification, request, lease, and gate', () => {
+  it('records StoryLaunchLeaseCleared only for matching stale-launch classification, request, stale lease, and gate', () => {
     const writerHarness = createWriterHarness();
     const classified = recordRecoveryClassified({
       payload: recoveryClassifiedPayloadFixture({
@@ -83,7 +83,7 @@ describe('core-06-s4 stale-launch-clear-gated-apply-matrix', () => {
       }),
       staleLaunchRequest: staleLaunchRequestFixture(),
       staleLaunchRequestEventId: clearanceRequestEventIdFixture,
-      activeStoryLaunchLease: storyLaunchLeaseFixture(),
+      activeStoryLaunchLease: storyLaunchLeaseFixture(4),
       writer: writerHarness.writer,
     });
 
@@ -95,7 +95,7 @@ describe('core-06-s4 stale-launch-clear-gated-apply-matrix', () => {
     if (applied.value.status !== 'applied') {
       throw new Error('expected applied status');
     }
-    expect(applied.value.clearedPayload?.clearedLeaseEpoch).toBe(5);
+    expect(applied.value.clearedPayload?.clearedLeaseEpoch).toBe(staleLaunchRequestFixture().nextLeaseEpoch);
     expect(applied.value.clearedPayload?.sourceEventIds).toEqual([
       classified.value.eventId,
       planned.value.committedPlan.planEventId,

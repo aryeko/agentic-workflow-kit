@@ -1,6 +1,7 @@
 import type { StaleLaunchClearanceRequestedPayload } from '../contracts/index.js';
 
 import { appendRecoveryLeaseEvent } from './append-event.js';
+import { mapLeaseStoreAcquireFailure } from './error-mapping.js';
 import { proveStaleLaunchClearance } from './stale-clearance-proof.js';
 import type { RequestStaleLaunchClearanceInput, RequestStaleLaunchClearanceResult } from './types.js';
 
@@ -18,11 +19,7 @@ export const requestStaleLaunchClearance = (
   if ('code' in acquired) {
     return {
       ok: false,
-      error: {
-        reason: 'lease-store-unavailable',
-        failureState: acquired.code === 'stale-writer-fenced' ? 'launch-duplicate-active' : 'lease-unavailable',
-        storageError: acquired,
-      },
+      error: mapLeaseStoreAcquireFailure(acquired),
     };
   }
 

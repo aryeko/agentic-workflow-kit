@@ -18,6 +18,7 @@ describe('core-06-s2 recovery-fail-closed-state-matrix', () => {
       }),
     ],
     ['lease-unavailable', createSnapshot({ leases: { leaseHealth: 'network-fs-degraded' } })],
+    ['lease-unavailable', createSnapshot({ observedAt: 'not-a-timestamp' })],
     ['owner-ambiguous', createSnapshot({ launch: { linkage: 'ambiguous', linkHistory: [] } })],
     [
       'termination-ambiguous',

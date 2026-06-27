@@ -38,4 +38,12 @@ describe('core-06-s4 recovery-plan-deterministic-inputs', () => {
     expect(plan.providerControl).toBeUndefined();
     expect(plan.lifecycleTarget).toBeUndefined();
   });
+
+  it('mints distinct plan ids for assisted and manual mode with otherwise identical inputs', () => {
+    const classification = classificationFixture();
+    const assisted = planRecoveryAction(planInputFixture({ mode: 'assisted' }), classification);
+    const manual = planRecoveryAction(planInputFixture({ mode: 'manual' }), classification);
+
+    expect(assisted.planId).not.toBe(manual.planId);
+  });
 });
