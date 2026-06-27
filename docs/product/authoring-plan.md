@@ -25,17 +25,20 @@ and the per-product stubs under [`products/`](products/).
 
 ## Decisions (and the reasoning)
 
-1. **Product-first, then design — but recontextualize, don't re-decide.** v-next was built
-   design-first and skipped the product layer; this corpus answers _for whom_ and _why_. The
-   frozen `docs/design/` corpus (invariants, seams, event types, package map) stands; the
-   product layer sits above it.
+1. **Product leads; design follows.** v-next was built design-first and skipped the product
+   layer; this corpus answers _for whom_ and _why_ and is the source of truth for the product.
+   The `docs/design/` corpus is a **supporting engineering reference**, not a co-authority:
+   where the product diverges from it, the design is reconciled to follow — a deliberate
+   downstream step, not gratuitous churn. Engineering decisions the product doesn't touch
+   (invariants, seams, event types, package map) stay put.
 2. **Jig = the product; `agentic-workflow-kit` = the suite umbrella.** A scoped package
    (`@agentic-workflow-kit/jig`) with a bare CLI (`jig`) mirrors the owner's `ghx` convention
    (`@ghx-dev/core` → CLI `ghx`).
 3. **A suite, not a monolith.** Main product = the package (Jig). Supporting products
-   (optional, encode the author's best practice, each produces a schema-conformant artifact,
-   all overridable): define-product → product→design → design→plan. Plus a learning loop over
-   the upstream. Reason for "optional": the author shares a strong default, not a claim to be
+   (optional, encode the author's best practice, each produces a durable structured artifact,
+   all overridable): define-product → product→design → design→plan. Plus a learning loop
+   (separate, suite-level; stays out of the package's per-run hot path; can harden any layer
+   between runs). Reason for "optional": the author shares a strong default, not a claim to be
    the best PM/architect/planner.
 4. **Principle: humans own the direction; agents execute.** The human defines product and
    design _up front_, so the agent never executes a direction the human didn't choose —
@@ -109,6 +112,6 @@ and the per-product stubs under [`products/`](products/).
 
 ---
 
-**↑ Up:** [Product definition](./README.md) · **← Prev:** [Learning loop (supporting product)](./products/learning-loop.md) · **Next →:** [Delivery-model reform + barrel simplification — self-contained remediation plan](../reviews/2026-06-25-barrel-coownership-and-closure-wiring-plan.md)
+**↑ Up:** [Product definition](./README.md) · **← Prev:** [Learning loop (supporting product)](./products/learning-loop.md) · **Next →:** [design corpus overview](../design/README.md)
 
 <!-- /DOCS-NAV -->

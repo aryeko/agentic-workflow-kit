@@ -17,8 +17,9 @@ dependency order · acceptance criteria + evidence clauses · guidelines & best-
 
 ## Known from this session — address when expanding
 
-- **Co-owns the execution-plan schema with the package** — it produces what `jig` consumes.
-  Coordinate with [jig.md](jig.md); the schema is the shared seam.
+- **Produces output conformant to the execution-plan schema** — Jig owns that schema;
+  design→plan produces what `jig` consumes, conformant to it. Coordinate with
+  [jig.md](jig.md); the schema is the seam between these two products.
 - **Prior art:** v-next `plan-epic` + `plan-delivery` (story DAG, story contracts,
   falsifiable ACs, evidence clauses, predicate-input sourcing); v0.7.0 `plan-delivery-track`.
 - **Fold in the lessons:** prose-only safeguards reproduce defects — gates must be checkable

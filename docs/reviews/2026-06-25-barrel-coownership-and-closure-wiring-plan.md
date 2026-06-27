@@ -291,6 +291,6 @@ hand-patch. PR [#153](https://github.com/aryeko/agentic-workflow-kit/pull/153), 
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Product layer — authoring plan (cross-session playbook)](../product/authoring-plan.md) · **Next →:** [Closure-Defect Remediation — Durable Execution Plan](./2026-06-25-closure-remediation-plan.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [Turbo Check-Gate Caching (design)](../engineering/turbo-check-caching-design.md) · **Next →:** [Closure-Defect Remediation — Durable Execution Plan](./2026-06-25-closure-remediation-plan.md)
 
 <!-- /DOCS-NAV -->

@@ -6,11 +6,15 @@ last-reviewed: "2026-06-27"
 
 # Learning loop (supporting product)
 
-A supporting layer over the **upstream products** (define-product, design, plan) — **not**
-the package. When an issue surfaces it is not patched forward: a human-led root-cause retro
-traces it back to the earliest stage that should have caught it (product, design, or plan)
-and hardens that stage — a recurring defect becomes a permanent, mechanical check. That is
-how prevention compounds.
+A separate, suite-level product that stays out of the package's per-run hot path. **Jig owns
+runtime observability and execution records** — structured, machine-readable records/events;
+**the learning loop is a suite-level tool that consumes those records** and, via human-led
+root-cause retro, can harden **any layer — policy, gate, provider, prompt/eval, dashboard, or
+execution harness** — not only the upstream stages. When an issue surfaces it is not patched
+forward: the retro traces it back to the earliest layer that should have prevented it
+(product, design, plan, policy, gate, provider, prompt/eval, dashboard, or harness) and
+hardens that layer — a recurring defect becomes a permanent, mechanical check. That is how
+prevention compounds.
 
 ## Sub-modules (high level)
 
@@ -19,8 +23,10 @@ lessons ledger · per-stage hardening hooks.
 
 ## Known from this session — address when expanding
 
-- **Sits over the upstream, not the package.** The package carries its own observability; a
-  minimal-product user inspects those records directly to diagnose a bad plan or policy.
+- **Separate from the package's per-run hot path.** The package carries its own
+  observability; a minimal-product user inspects those records directly to diagnose a bad
+  plan or policy. The learning loop is a between-runs product — its root-cause retro can
+  harden any layer, including this package's own policy and gate config.
 - **Methodology-dependent — no plug-and-play claim (yet).** Tuned to the author's
   prevention-leaning default, where it works well. A throughput-leaning (OpenAI-style) user
   would aim the same root-cause analysis at specs, plans, and possibly policy — plausibly

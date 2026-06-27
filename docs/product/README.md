@@ -11,8 +11,9 @@ last-reviewed: "2026-06-27"
 > This document states that, and defines the **product suite** at a high level — an
 > overview, sub-modules, and a content placeholder for each product. We deepen each
 > product by priority (**the package first**); phasing is planned later, once the product
-> requirements are in front of us. This **recontextualizes** the architecture — it does
-> not re-decide it.
+> requirements are in front of us. This document is the **source of truth for the product**;
+> where it diverges from the existing design, the design is reconciled to follow it —
+> deliberately, as a downstream step, not by churn.
 
 Name: **Jig** — the tool you run (`jig`). It ships as the scoped package
 `@agentic-workflow-kit/jig`; **`agentic-workflow-kit`** is the suite/org umbrella that also
@@ -36,23 +37,28 @@ only a human should own and delegates the rest under guarantees.
 
 ## Who it's for
 
-- **Experienced engineers, leads, and architects** who can own product and design
-  direction. The kit **amplifies your judgment and encodes your best practices — it does
-  not substitute for them.** Your experience is a required input.
+- **Anyone who can and wants to own the direction** — the product definition, the design,
+  and the execution policy. Solo developers, small teams, leads, and architects alike. The
+  kit **amplifies your judgment and encodes your best practices — it does not substitute
+  for them.** Your judgment and direction are the required input.
 - **Solo engineers and small teams shipping real software** — where a wrongly-directed or
   half-finished change is expensive and there is no large team to absorb cleanup.
 
+**Best fit today:** people with enough judgment to own product, design, and execution-policy
+direction — solo builders, small teams, leads, architects. The kit helps you implement
+decisions you've actually made — not have the AI make the product and design decisions for you.
+
 **Not for:** anyone expecting the AI to decide _what_ to build or supply the engineering
-judgment for them. The kit assumes you own those calls. (Note: this is about *experience*,
-not throughput — how aggressively to gate vs. ship is a policy dial, see below, not an
-audience boundary.)
+judgment for them. The kit assumes you own those calls. (This is about whether you want to
+own the direction — not your seniority, and not your throughput; how aggressively to gate
+vs. ship is a policy dial, see below, not an audience boundary.)
 
 ## The promise
 
 **Own the product and the design; delegate the build with confidence.** Give the kit a
-schema-conformant plan (or let it help you produce one) and it executes the work as a
-reviewed, merged change under the gates _you_ configure, and **interrupts you only when a
-real decision is on the line**. Every run it can learn from what slipped through, so the
+schema-conformant plan (or let it help you produce one) and it executes the work as far
+as your configured policy allows — up to a reviewed, merged change under the gates _you_
+configure — and **interrupts you only when a real decision is on the line**. Every run it can learn from what slipped through, so the
 next one is better.
 
 The kit helps you produce strong inputs, executes them faithfully, and compounds. (Honest
@@ -74,11 +80,15 @@ define product → design → plan → execute
                    └──────── learning loop ────────┘
 ```
 
-Each stage produces a **schema-conformant artifact** that is the next stage's input. The
-kit **enables and supports — it does not limit**: you can enter at any stage with your own
-artifact (your own product spec, design, or execution plan), as long as it meets the input
-schema for the stage you enter. The package's minimum input is a valid execution plan;
-everything upstream of that is there to help you produce a better one.
+Each stage produces a **durable, structured artifact** that is the next stage's input.
+The one hard schema boundary in the suite is **Jig's execution-plan input** — Jig owns that
+schema. The upstream stages produce structured, durable artifacts but are not claimed to be
+strictly schema-validated; the product layer **does not** define universal PRD/design schemas
+(an explicit non-goal). The kit **enables and supports — it does not
+limit**: you can enter at any stage with your own artifact (your own product spec, design,
+or execution plan), as long as it meets what that stage expects as input. The package's
+minimum input is a valid execution plan; everything upstream is there to help you produce
+a better one.
 
 ## Policy, not posture — the gating spectrum
 
@@ -90,8 +100,9 @@ The spectrum has two well-known poles, and the kit supports the whole range betw
 
 - **Throughput-leaning** — gate lightly, let work merge fast, and catch issues afterward
   with scheduled scans and fast-follow corrections. This is the published OpenAI _Harness
-  engineering_ posture; it is coherent and effective in high-volume, low-consequence,
-  cheap-to-correct settings.
+  engineering_ posture; it is coherent and effective in high-throughput settings where
+  follow-up corrections are cheap relative to blocking progress, and the surrounding harness
+  absorbs fast iteration.
 - **Prevention-leaning** — gate and prove before merge; stop in a diagnosable state rather
   than lay a questionable foundation. This author's default.
 
@@ -103,10 +114,11 @@ user chooses, per policy.** Neither extreme is the product; the configurable ran
 
 ## The product suite
 
-The kit is a set of **individual products** that compose through shared schemas. Each can
-be used on its own; together they are the workflow. Below is the high-level map — overview,
-sub-modules, and a content placeholder per product. The package is the priority; the
-supporting products follow.
+The kit is a set of **individual products** that compose through shared artifacts and contracts. Each can
+be used on its own; together they are the workflow. The umbrella is **Jig plus the current
+supporting products plus an open space the suite can grow into** — all sharing common contracts
+and runtime evidence. Below is the high-level map — overview, sub-modules, and a content
+placeholder per product. The package is the priority; the supporting products follow.
 
 Each product has an **expansion doc** under [`products/`](products/) — a simple overview
 plus the considerations we already know to address when deepening it. We deep-dive there,
@@ -118,15 +130,16 @@ reasoning for building this product layer live in [authoring-plan.md](authoring-
 ### 1. Jig — the package (main product)
 
 The base product and the code itself — the deterministic execution engine you run as `jig`.
-Accepts a schema-conformant execution plan and lands
-it as a reviewed, merged change — safely, recoverably, under the configured policy.
+Accepts a schema-conformant execution plan and delivers the work as far as your configured
+policy allows — safely, recoverably, up to a reviewed, merged change.
 
 - **Sub-modules (high level):** orchestration core · the four provider seams (Agent,
   Execution Host, Forge, Work Source) + drivers · event log + projections (state &
   metrics) · evidence gates + merge authority · capability attestation (earned autonomy) ·
   worker/runner isolation · recovery / fail-closed · **policy & config** (the gating dial) ·
-  observability & analysis · human control & approvals · **execution-plan input schema** ·
-  delivery surfaces (skill / CLI / MCP).
+  observability & analysis (emits **structured, machine-readable records/events** that
+  suite-level tools — learning loops, evals, dashboards, analyzers — consume) · human control
+  & approvals · **execution-plan input schema** · delivery surfaces (skill / CLI / MCP).
 - _Placeholder — product-level overview of each sub-module: what it does for the user,
   and which parts may defer (e.g., a specific agent adapter such as a Claude adapter).
   Engineering detail already lives in `docs/design/`._
@@ -136,17 +149,17 @@ it as a reviewed, merged change — safely, recoverably, under the configured po
 Converts a design into a package-ready execution plan in the expected schema, applying the
 author's planning experience.
 
-- **Sub-modules (high level):** the execution-plan schema (the package's input contract) ·
-  decomposition into stories / dependency order · acceptance criteria + evidence clauses ·
-  guidelines & best-practices doc.
+- **Sub-modules (high level):** the execution-plan schema (the one strict schema — Jig owns
+  it; design→plan produces output conformant to it) · decomposition into stories / dependency
+  order · acceptance criteria + evidence clauses · guidelines & best-practices doc.
 - _Placeholder._
 
 ### 3. Product → design (supporting product)
 
 Converts a product definition into a system / technical design.
 
-- **Sub-modules (high level):** the design schema/contract · audit of existing surfaces ·
-  design template · guidelines & best-practices doc.
+- **Sub-modules (high level):** the design document (structured output, not a strict schema) ·
+  audit of existing surfaces · design template · guidelines & best-practices doc.
 - _Placeholder._
 
 ### 4. Define product (supporting product)
@@ -154,20 +167,20 @@ Converts a product definition into a system / technical design.
 Helps produce a product definition (PRD) with ID'd acceptance criteria the downstream
 products reference.
 
-- **Sub-modules (high level):** elicitation / interview · the PRD schema/contract ·
+- **Sub-modules (high level):** elicitation / interview · the PRD structure / ID'd acceptance criteria ·
   templates · guidelines & best-practices doc.
 - _Placeholder._
 
 ### 5. Learning loop (supporting product)
 
-A supporting layer over the **upstream products** (define-product, design, plan) — **not**
-the package. The package already carries strong **observability** of its own; a user who
-runs the minimal product (the package alone) can inspect those records directly to diagnose
-a bad policy or plan. The learning loop is the structured retro above that: when an issue
-surfaces it is **not** patched forward — a **human-led root-cause retro traces it back to
-the earliest stage that should have caught it** (product, design, or plan) and **hardens
-that stage** (a recurring defect becomes a permanent, mechanical check). That is how
-prevention compounds.
+A separate, suite-level product that stays out of the package's per-run hot path. **Jig owns
+runtime observability and execution records; the learning loop is a suite-level tool that
+consumes those records** and, via **human-led root-cause retro, can harden any layer —
+policy, gate, provider, prompt/eval, dashboard, or execution harness** — not only the
+upstream stages. When an issue surfaces it is **not** patched forward — the retro **traces it
+back to the earliest layer that should have prevented it** (product, design, plan, policy,
+gate, provider, prompt/eval, dashboard, or harness) and **hardens that layer** (a recurring
+defect becomes a permanent, mechanical check). That is how prevention compounds.
 
 - **Sub-modules (high level):** issue intake · cross-stage root-cause trace · defect-class
   → mechanical check promotion · lessons ledger · per-stage hardening hooks.
@@ -184,8 +197,13 @@ prevention compounds.
 
 > **Why the supporting products are optional.** They encode _one person's_ best practice,
 > shared as a strong default — not a claim to be the best product manager, architect, or
-> planner. Override, modify, or replace any of them; bring your own artifact instead. The
-> package is what makes the promise; the rest raises your odds of a good input.
+> planner. The author's product→design→plan workflow is the **first strong default — not the
+> only valid path.** Override, modify, or replace any of them; bring your own artifact instead.
+> The package is what makes the promise; the rest raises your odds of a good input.
+
+The suite is extensible and welcomes contributed products — toward things like analyzers,
+evals, dashboards, and more provider integrations. These are directions the suite can grow;
+none are committed here.
 
 ## Guidelines and best practices (cross-cutting)
 
@@ -215,11 +233,14 @@ first-class deliverable of each product, not an afterthought.
 
 ## Relationship to the existing design corpus
 
-The current `docs/design/` corpus is the design of **the package** — the deterministic
-control plane, the four provider seams, the event log, evidence gates, capability
-attestation, and worker/runner isolation. That work stands; this document sits above it. It
-names the product the engine serves and the supporting products the corpus does not yet
-cover. Nothing here reopens a frozen decision.
+This product definition is the **source of truth**. The current `docs/design/` corpus is the
+design of **the package** — the deterministic control plane, the four provider seams, the
+event log, evidence gates, capability attestation, and worker/runner isolation — a
+**supporting reference**: valuable prior engineering work built before this product layer
+existed, not a co-authority. Where the product diverges from it, the
+design is **reconciled to follow** — a deliberate downstream step, not gratuitous churn.
+Engineering decisions the product doesn't touch stay put. This document also names the
+product the engine serves and the supporting products the corpus does not yet cover.
 
 ## Sequencing (we are not scoping yet)
 
@@ -237,8 +258,9 @@ the product requirements exist in front of us.
 _Decided:_ the product is named **Jig** — CLI `jig`, package `@agentic-workflow-kit/jig`,
 under the `agentic-workflow-kit` suite umbrella. Each product gets its own deep-dive doc
 under `docs/product/products/`, with this file as the index at `docs/product/README.md`; the
-learning loop is a separate supporting product over the upstream stages (the package owns
-its own observability).
+learning loop is a separate, suite-level product kept out of the package's per-run hot
+path; it consumes the package's observability and can harden any layer (including the
+package) between runs.
 
 ## Next step
 
@@ -249,7 +271,7 @@ product-level overview — then proceed to the supporting products by priority.
 
 ---
 
-**↑ Up:** [documentation home](../README.md) · **← Prev:** [Turbo Check-Gate Caching (design)](../engineering/turbo-check-caching-design.md) · **Next →:** [Jig — the package (main product)](./products/jig.md)
+**↑ Up:** [documentation home](../README.md) · **← Prev:** [documentation home](../README.md) · **Next →:** [Jig — the package (main product)](./products/jig.md)
 
 **Children:** [Jig — the package (main product)](./products/jig.md) · [Design → plan (supporting product)](./products/design-to-plan.md) · [Product → design (supporting product)](./products/product-to-design.md) · [Define product (supporting product)](./products/define-product.md) · [Learning loop (supporting product)](./products/learning-loop.md) · [Product layer — authoring plan (cross-session playbook)](./authoring-plan.md)
 

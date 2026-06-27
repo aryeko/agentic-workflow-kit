@@ -11,7 +11,7 @@ products reference. An optional accelerator; bring-your-own product spec is supp
 
 ## Sub-modules (high level)
 
-Elicitation / interview · the PRD schema / contract · templates · guidelines &
+Elicitation / interview · the PRD structure / ID'd acceptance criteria · templates · guidelines &
 best-practices doc.
 
 ## Known from this session — address when expanding

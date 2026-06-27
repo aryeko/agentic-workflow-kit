@@ -11,8 +11,8 @@ encodes the author's architecture experience; bring-your-own design is supported
 
 ## Sub-modules (high level)
 
-The design schema / contract · audit of existing surfaces · design template · guidelines &
-best-practices doc.
+The design document (structured output, not a strict schema) · audit of existing surfaces ·
+design template · guidelines & best-practices doc.
 
 ## Known from this session — address when expanding
 
