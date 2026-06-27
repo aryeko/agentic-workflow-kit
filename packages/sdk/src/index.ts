@@ -210,6 +210,156 @@ export type {
   ApprovalOutcomeWriter,
   RecordApprovalOutcomeInput,
 } from './core/approval/outcomes/index.js';
+export {
+  BLOCKER_EVIDENCE_ELIGIBLE_COMPLETION_STATES,
+  BLOCKER_EVIDENCE_ELIGIBLE_MERGE_STATES,
+  BLOCKER_EVIDENCE_ELIGIBLE_STATES,
+  CHANGED_FILE_CLASSES,
+  COMPLETION_DECISION_STATES,
+  MERGE_DECISION_STATES,
+  POST_MERGE_OUTCOME_STATES,
+} from './core/completion/contracts/index.js';
+export type {
+  BlockerEvidenceEligibleCompletionState,
+  BlockerEvidenceEligibleMergeState,
+  BlockerEvidenceEligibleState,
+  ChangedFileClass,
+  CompletionDecisionPayload,
+  CompletionDecisionState,
+  CompletionEvidenceSet,
+  CompletionMergeEvaluator,
+  CompletionReplayAnchor,
+  ForgeOperationIntentPayload,
+  MergeDecisionPayload,
+  MergeDecisionState,
+  MergeIntentPayload,
+  PostMergeOutcomePayload,
+  PostMergeOutcomeState,
+  ProtectedPolicySnapshotRecordedPayload,
+} from './core/completion/contracts/index.js';
+export {
+  classifyChangedPaths,
+  evaluateCompletion,
+  isVerificationFresh,
+  selectCompletionCandidateHead,
+} from './core/completion/evidence/index.js';
+export { evaluateMergeReadiness, mergeAllowed } from './core/completion/merge-readiness/index.js';
+export {
+  recordBlockerEvidenceIntent,
+  recordForgeOperationIntent,
+  recordMergeIntent,
+} from './core/completion/intents/index.js';
+export type {
+  BlockerDecisionRef,
+  BlockerEvidenceIntentCommit,
+  BlockerEvidenceIntentFailure,
+  BlockerEvidenceOperation,
+  ExactHeadEvidence,
+  ForgeOperationIntentCommit,
+  ForgeOperationIntentFailure,
+  ForgeOperationKind,
+  IntentsDependencies,
+  MergeDecisionRef,
+  MergeIntentCommit,
+  MergeIntentFailure,
+  MergeIntentOperation,
+  RecordBlockerEvidenceIntentInput,
+  RecordForgeOperationIntentInput,
+  RecordMergeIntentInput,
+} from './core/completion/intents/index.js';
+export { classifyPostMergeOutcome, recordPostMergeOutcome } from './core/completion/post-merge/index.js';
+export type {
+  MergeIntentRef,
+  PostMergeActionEventType,
+  PostMergeDependencies,
+  PostMergeOutcomeCommit,
+  PostMergeOutcomeFailure,
+  PostMergeOutcomeResult,
+  RecordPostMergeOutcomeInput,
+} from './core/completion/post-merge/index.js';
+export {
+  ACTION_SAFETY_CLASSES,
+  PROVIDER_CONTROL_KINDS,
+  RECOVERY_ACTIONS,
+  RECOVERY_STATES,
+} from './core/recovery/contracts/index.js';
+export type {
+  ActionSafetyClass,
+  DuplicateLaunchBlockedPayload,
+  ProviderControlKind,
+  ReconciliationBlockedPayload,
+  RecoveryAction,
+  RecoveryActionAppliedPayload,
+  RecoveryActionPlannedPayload,
+  RecoveryClassification,
+  RecoveryClassifiedPayload,
+  RecoveryCoordinator,
+  RecoveryEvidenceSnapshot,
+  RecoveryPlan,
+  RecoveryPlanInput,
+  RecoveryProjection,
+  RecoveryRecordInput,
+  RecoveryState,
+  StaleLaunchClearanceRequestedPayload,
+  StoryLaunchLeaseAcquiredPayload,
+  StoryLaunchLeaseClearedPayload,
+} from './core/recovery/contracts/index.js';
+export {
+  acquireStoryLaunchLease,
+  buildStoryLaunchKey,
+  recordDuplicateLaunchBlocked,
+  requestStaleLaunchClearance,
+} from './core/recovery/leases/index.js';
+export type {
+  AcquireStoryLaunchLeaseFailure,
+  AcquireStoryLaunchLeaseInput,
+  AcquireStoryLaunchLeaseResult,
+  RecordDuplicateLaunchBlockedFailure,
+  RecordDuplicateLaunchBlockedInput,
+  RecordDuplicateLaunchBlockedResult,
+  RequestStaleLaunchClearanceFailure,
+  RequestStaleLaunchClearanceInput,
+  RequestStaleLaunchClearanceResult,
+  StoryLaunchFailureState,
+  StoryLaunchKeyParts,
+} from './core/recovery/leases/index.js';
+export {
+  RECOVERY_CLASSIFIER_RULE_VERSION,
+  classifyActionSafety,
+  classifyRecovery,
+  createRecoveryClassifiedPayload,
+  deriveRecoveryPlanIdInput,
+} from './core/recovery/classifier/index.js';
+export type { RecoveryActionSafety, RecoveryPlanIdInput } from './core/recovery/classifier/index.js';
+export {
+  buildRecoveryLifecycleEdgeRequest,
+  planRecoveryAction,
+  recordRecoveryActionApplied,
+  recordRecoveryClassified,
+  recordRecoveryPlan,
+} from './core/recovery/plans/index.js';
+export type {
+  BuildRecoveryLifecycleEdgeRequestInput,
+  PlanRecoveryActionInput,
+  RecordRecoveryActionAppliedInput,
+  RecordRecoveryClassifiedInput,
+  RecordRecoveryPlanInput,
+  RecoveryApplyBlockedResult,
+  RecoveryApplySuccess,
+  RecoveryClassifiedRecord,
+  RecoveryCommittedPlan,
+  RecoveryLifecycleEdgeRequest,
+  RecoveryPlanRecord,
+  RecoveryPlansFailure,
+} from './core/recovery/plans/index.js';
+export { recordReconciliationBlocked } from './core/recovery/reconciliation/index.js';
+export type {
+  RecordReconciliationBlockedFailure,
+  RecordReconciliationBlockedInput,
+  RecordReconciliationBlockedResult,
+  ReconciliationBlockedRecord,
+} from './core/recovery/reconciliation/index.js';
+export { foldRecoveryProjection } from './core/recovery/projections/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
