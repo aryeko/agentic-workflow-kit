@@ -341,7 +341,7 @@ the product requirements exist in front of us.
 
 _Decided:_ the product is named **Jig** — CLI `jig`, package `@agentic-workflow-kit/jig`,
 under the `agentic-workflow-kit` suite umbrella. Each product gets its own deep-dive doc
-under `docs/product/products/`, with this file as the index at `docs/product/README.md`; the
+at `docs/product/jig.md` (package) and `docs/product/supporting-products/` (pipeline + loop), with this file as the index at `docs/product/README.md`; the
 learning loop is a separate, suite-level product kept out of the package's per-run hot
 path; it consumes the package's observability and can harden any layer (including the
 package) between runs.

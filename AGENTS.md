@@ -44,7 +44,7 @@ Read the file that owns your task's subject:
 | Need | Read |
 |------|------|
 | Product intent, audience, suite boundaries, Jig identity | `docs/product/README.md` |
-| Jig package product behavior | `docs/product/products/jig.md` + relevant `docs/design/` files |
+| Jig package product behavior | `docs/product/jig.md` + relevant `docs/design/` files |
 | System shape, seams, layering | `docs/design/10-architecture/architecture.md` |
 | What must be true (FR/NFR ids) | `docs/design/00-orientation/requirements.md` |
 | A decision and its rationale (AD-* ids) | `docs/design/40-decisions/accepted-decisions.md` |
@@ -63,8 +63,8 @@ Read the file that owns your task's subject:
 Pull only what the task touches — do not load the whole corpus.
 
 - **Product/framing/naming/audience/suite-boundary tasks** → start from `docs/product/README.md`;
-  then the relevant per-product overview under `docs/product/products/`.
-- **Jig product or package behavior** → `docs/product/products/jig.md` plus the relevant
+  then the relevant per-product overview under `docs/product/` (Jig) or `docs/product/supporting-products/`.
+- **Jig product or package behavior** → `docs/product/jig.md` plus the relevant
   `docs/design/` files.
 - **Implement or change a domain** → its `README.md` (Mandate first, then design)
   and any flat sibling aspect files; confirm its layer and dependencies in
