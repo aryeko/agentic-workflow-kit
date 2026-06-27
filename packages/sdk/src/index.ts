@@ -267,6 +267,16 @@ export type {
   RecordForgeOperationIntentInput,
   RecordMergeIntentInput,
 } from './core/completion/intents/index.js';
+export { classifyPostMergeOutcome, recordPostMergeOutcome } from './core/completion/post-merge/index.js';
+export type {
+  MergeIntentRef,
+  PostMergeActionEventType,
+  PostMergeDependencies,
+  PostMergeOutcomeCommit,
+  PostMergeOutcomeFailure,
+  PostMergeOutcomeResult,
+  RecordPostMergeOutcomeInput,
+} from './core/completion/post-merge/index.js';
 export {
   ACTION_SAFETY_CLASSES,
   PROVIDER_CONTROL_KINDS,
