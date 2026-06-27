@@ -112,6 +112,25 @@ re-coding the same logic N times instead of reusing it — it "works," but it is
 wanted). The throughput end accepts that risk for speed and pays it down with scans. **The
 user chooses, per policy.** Neither extreme is the product; the configurable range is.
 
+## Enforce vs. guide — the three tiers
+
+The kit draws a deliberate line between what it **enforces** and what it merely **guides**:
+
+1. **System-enforced floors** — non-negotiable, on by default, not yours to turn off. The
+   one hard input schema (Jig's execution plan) plus the control-cluster floors: nothing
+   runs unauthorized, the agent can't weaken its own guardrails, and only the runner —
+   never the worker — performs irreversible actions. These floors are what make every
+   promise _true_ rather than aspirational.
+2. **User-enforced controls** — gates, checks, required reviews, policy, and hardened
+   defect-checks _you_ choose to impose. Strong, but your call.
+3. **Product guidance** — best practices, presets, prompt strategy, per-layer authoring
+   guidelines: reasoned defaults you can follow or override freely.
+
+Most of the suite sits in tiers 2 and 3 — it _guides_, it doesn't dictate. The control
+cluster is the principled exception: the one place the kit enforces rather than guides,
+because those are the floors trust stands on. See [Jig — the package](products/jig.md)
+for the full per-guarantee breakdown.
+
 ## The product suite
 
 The kit is a set of **individual products** that compose through shared artifacts and contracts. Each can
@@ -119,6 +138,10 @@ be used on its own; together they are the workflow. The umbrella is **Jig plus t
 supporting products plus an open space the suite can grow into** — all sharing common contracts
 and runtime evidence. Below is the high-level map — overview, sub-modules, and a content
 placeholder per product. The package is the priority; the supporting products follow.
+
+The suite runs **parallel independent tracks** — each track its own
+PRD → design → plan → policy → work profile, progressing independently of the others in
+the same repo. See [Tracks — parallel independent work](concepts/tracks.md).
 
 Each product has an **expansion doc** under [`products/`](products/) — a simple overview
 plus the considerations we already know to address when deepening it. We deep-dive there,
@@ -212,6 +235,10 @@ them, drawn from experience — in the spirit of OpenAI's _Harness engineering_ 
 this repo's own `docs/implementation-authoring/` and `docs/design/`. The guidance is a
 first-class deliverable of each product, not an afterthought.
 
+Every product and layer also ships a **versioned generation guideline** — the precondition
+for prompts that trace back to design and stay legible and learnable over time — recommended,
+not enforced.
+
 ## Why this is credible
 
 - **Lived and iterated for years.** This is the author's own working method, refined across
@@ -273,6 +300,6 @@ product-level overview — then proceed to the supporting products by priority.
 
 **↑ Up:** [documentation home](../README.md) · **← Prev:** [documentation home](../README.md) · **Next →:** [Jig — the package (main product)](./products/jig.md)
 
-**Children:** [Jig — the package (main product)](./products/jig.md) · [Design → plan (supporting product)](./products/design-to-plan.md) · [Product → design (supporting product)](./products/product-to-design.md) · [Define product (supporting product)](./products/define-product.md) · [Learning loop (supporting product)](./products/learning-loop.md) · [Product layer — authoring plan (cross-session playbook)](./authoring-plan.md)
+**Children:** [Jig — the package (main product)](./products/jig.md) · [Tracks — parallel independent work](./concepts/tracks.md) · [Design → plan (supporting product)](./products/design-to-plan.md) · [Product → design (supporting product)](./products/product-to-design.md) · [Define product (supporting product)](./products/define-product.md) · [Learning loop (supporting product)](./products/learning-loop.md) · [Product layer — authoring plan (cross-session playbook)](./authoring-plan.md)
 
 <!-- /DOCS-NAV -->

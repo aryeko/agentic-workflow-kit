@@ -33,6 +33,6 @@ dependency order · acceptance criteria + evidence clauses · guidelines & best-
 
 ---
 
-**↑ Up:** [Product definition](../README.md) · **← Prev:** [Jig — the package (main product)](./jig.md) · **Next →:** [Product → design (supporting product)](./product-to-design.md)
+**↑ Up:** [Product definition](../README.md) · **← Prev:** [Tracks — parallel independent work](../concepts/tracks.md) · **Next →:** [Product → design (supporting product)](./product-to-design.md)
 
 <!-- /DOCS-NAV -->
