@@ -243,6 +243,7 @@ export {
   isVerificationFresh,
   selectCompletionCandidateHead,
 } from './core/completion/evidence/index.js';
+export { evaluateMergeReadiness, mergeAllowed } from './core/completion/merge-readiness/index.js';
 export {
   ACTION_SAFETY_CLASSES,
   PROVIDER_CONTROL_KINDS,
