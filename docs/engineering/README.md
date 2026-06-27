@@ -19,6 +19,9 @@ When this directory and `docs/design/` conflict, `docs/design/` wins.
 | File | Contents |
 |---|---|
 | [check-gate.md](check-gate.md) | `pnpm check` gate — all steps, ordering rationale, CI split, smoke gating |
+| [codex-github-code-review.md](codex-github-code-review.md) | Codex GitHub PR review workflow — source routing, finder/verifier/sweep flow, synthesis boundaries |
+| [codex-review-execution-summary.md](codex-review-execution-summary.md) | Review execution summary contract — workflow trace, agent/model/token reporting, local observability probe |
+| [agent-session-metrics-design.md](agent-session-metrics-design.md) | Repo-local `agent-session-metrics` skill/package design — provider-neutral session tree parsing, Codex adapter, contracts, task split |
 | [dependency-policy.md](dependency-policy.md) | Package dependency rules, SDK bans, injection and determinism policy |
 | [dependency-rule-enforcement.md](dependency-rule-enforcement.md) | How dependency-cruiser and TypeScript project references enforce the rules |
 | [test-lanes.md](test-lanes.md) | Four Vitest lanes, hermetic guards, file-glob conventions |
@@ -38,6 +41,6 @@ not be looser than the design specification.
 
 **↑ Up:** [documentation home](../README.md) · **← Prev:** [implementation lessons ledger](../implementation-authoring/lessons-ledger.md) · **Next →:** [Check Gate](./check-gate.md)
 
-**Children:** [Check Gate](./check-gate.md) · [Dependency Policy](./dependency-policy.md) · [Dependency Rule Enforcement](./dependency-rule-enforcement.md) · [Test Lanes](./test-lanes.md) · [Testing Policy](./testing-policy.md) · [Tooling and CI](./tooling-and-ci.md) · [Turbo Check-Gate Caching (design)](./turbo-check-caching-design.md)
+**Children:** [Check Gate](./check-gate.md) · [Codex GitHub Code Review](./codex-github-code-review.md) · [Codex Review Execution Summary](./codex-review-execution-summary.md) · [Agent Session Metrics Design](./agent-session-metrics-design.md) · [Dependency Policy](./dependency-policy.md) · [Dependency Rule Enforcement](./dependency-rule-enforcement.md) · [Test Lanes](./test-lanes.md) · [Testing Policy](./testing-policy.md) · [Tooling and CI](./tooling-and-ci.md) · [Turbo Check-Gate Caching (design)](./turbo-check-caching-design.md)
 
 <!-- /DOCS-NAV -->

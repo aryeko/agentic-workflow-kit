@@ -136,6 +136,6 @@ If the checklist cannot be completed, do not add the dependency.
 
 ---
 
-**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Check Gate](./check-gate.md) · **Next →:** [Dependency Rule Enforcement](./dependency-rule-enforcement.md)
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Agent Session Metrics Design](./agent-session-metrics-design.md) · **Next →:** [Dependency Rule Enforcement](./dependency-rule-enforcement.md)
 
 <!-- /DOCS-NAV -->

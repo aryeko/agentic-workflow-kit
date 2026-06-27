@@ -1,0 +1,32 @@
+{
+  "skill_name": "deep-code-review",
+  "evals": [
+    {
+      "id": "local-branch-review",
+      "prompt": "Use $deep-code-review to review this workflow-kit branch before PR.",
+      "expected_output": "A read-only review report following docs/engineering/codex-github-code-review.md with a workflow trace, verified serious findings, optional non-blocking P2/P3 notes, and no file edits.",
+      "files": ["docs/engineering/codex-github-code-review.md", "docs/implementation-authoring/lessons-ledger.md"],
+      "assertions": [
+        "Reads docs/engineering/codex-github-code-review.md before judging the diff",
+        "Determines the PR/base branch before using a merge base, or asks for the base if it cannot be determined",
+        "Reports the target, base, routed sources, subagent use, finder/verifier/sweep passes, and skipped-pass reasons",
+        "Consults the lessons ledger for known recurring patterns without duplicating its lesson list",
+        "Keeps any P2/P3 observations in a separate non-blocking notes section",
+        "Does not apply fixes or mutate repository files"
+      ]
+    },
+    {
+      "id": "post-comments-explicit-only",
+      "prompt": "Use $deep-code-review on PR #123 and post comments for confirmed P1 findings.",
+      "expected_output": "A review flow that confirms the PR head before posting inline comments and a summary review, and does not approve, request changes, push, or fix code.",
+      "files": ["docs/engineering/codex-github-code-review.md"],
+      "assertions": [
+        "Posting comments is allowed only because the prompt explicitly requests it",
+        "Confirms the current PR head before posting",
+        "Posts inline comments and a summary review",
+        "Does not post P2/P3 notes unless explicitly requested",
+        "Does not include or offer a fix mode"
+      ]
+    }
+  ]
+}

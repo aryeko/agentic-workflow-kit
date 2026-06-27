@@ -9,7 +9,7 @@ last-reviewed: "2026-06-23"
 `pnpm check` is the required local and CI gate that every implementation story must
 pass. Nothing merges to `v-next` without a green gate.
 
-The gate runs via Turborepo (`turbo run //#check:gate`). Each of the seven leaf steps is
+The gate runs via Turborepo (`turbo run //#check:gate`). Each of the eight leaf steps is
 a cacheable root task with declared `inputs`/`outputs`. Turbo runs them concurrently,
 caches each by its input hash, and skips any leaf whose inputs are unchanged since the
 last run. A cache hit replays the original exit code and logs — it cannot turn a red
@@ -18,7 +18,7 @@ step green.
 The one ordering constraint is `coverage:baseline` depends on `typecheck`: the test
 lanes import the built (`dist/`) entry points of workspace packages (e.g. `sdk`,
 `testkit`), so `tsc -b` must produce — or restore from cache — those outputs before the
-suites run. The other four leaves have no inter-dependencies and run in parallel.
+suites run. The other six leaves have no inter-dependencies and run in parallel.
 
 ## Step Composition
 
@@ -31,6 +31,7 @@ suites run. The other four leaves have no inter-dependencies and run in parallel
 | 5 | `typecheck` | `tsc -b` | TypeScript project references — full compilation of all composite projects |
 | 6 | `coverage:baseline` | `vitest run --project unit --project integration --project conformance-mock --coverage` | Unit, integration, and conformance-mock suites under V8 coverage; enforces 90% thresholds |
 | 7 | `type:fixtures` | `node tooling/type-fixtures/run-type-fixtures.ts` | Compiles every `tsconfig.negative.json` / `tsconfig.public.json` under `packages/**/tests/**` with `tsc --noEmit`; a negative must fail compilation, a public must pass. Finding zero fixtures is a clean no-op (logged) — it enforces compile-time AC proofs at the standing gate instead of leaving them outside the build graph |
+| 8 | `agent-session-metrics:test` | `npm test --prefix .agents/skills/agent-session-metrics` | Runs the repo-local session metrics skill/package test suite so Codex JSONL extraction, response, and fixture regressions are proved by the standing gate |
 
 **Ordering rationale.** The numeric order is cheapest-first for documentation purposes.
 Turbo runs the leaves concurrently, so the numeric order does not determine execution
@@ -55,7 +56,7 @@ contract.
 
 ## Local Inner Loop
 
-Run `pnpm check` locally before pushing. Turbo runs all seven leaf tasks, restoring
+Run `pnpm check` locally before pushing. Turbo runs all eight leaf tasks, restoring
 cache hits from `.turbo/` when inputs are unchanged. Warm no-op or docs-only re-runs
 complete in under a second. A cold run (all cache misses) completes in roughly 16–20s.
 Smoke tests and pack dry-run are intentionally excluded from `pnpm check`.
@@ -93,7 +94,8 @@ flowchart TD
     B_cache --> B4["5 typecheck (Turbo leaf)"]
     B_cache --> B5["6 coverage:baseline (Turbo leaf)"]
     B_cache --> B5b["7 type:fixtures (Turbo leaf)"]
-    B0 & B1 & B2 & B3 & B4 & B5 & B5b --> B6["//#check:gate aggregate"]
+    B_cache --> B5c["8 agent-session-metrics:test (Turbo leaf)"]
+    B0 & B1 & B2 & B3 & B4 & B5 & B5b & B5c --> B6["//#check:gate aggregate"]
     B6 --> B7["pack:dry-run (CI only)"]
 
     A --> C{smoke trigger?}
@@ -101,7 +103,7 @@ flowchart TD
     D --> D1["vitest run --project smoke-real"]
 ```
 
-The `check` job (all seven leaf tasks via Turbo, plus `pack:dry-run`) is a required
+The `check` job (all eight leaf tasks via Turbo, plus `pack:dry-run`) is a required
 branch-protection check. `pack:dry-run` runs only in CI because it exercises packaging
 metadata that is meaningless before `pnpm install` with a lockfile.
 
@@ -138,6 +140,6 @@ list to make the gate green. Investigate and fix the underlying issue instead.
 
 ---
 
-**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Engineering Policy Index](./README.md) · **Next →:** [Dependency Policy](./dependency-policy.md)
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Engineering Policy Index](./README.md) · **Next →:** [Codex GitHub Code Review](./codex-github-code-review.md)
 
 <!-- /DOCS-NAV -->

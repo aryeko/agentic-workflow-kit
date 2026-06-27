@@ -1,4 +1,4 @@
 interface:
   display_name: "Delivery Retro"
   short_description: "Analyze completed workflow-kit delivery runs after execution."
-  default_prompt: "Use $delivery-retro to analyze this completed delivery run. Resolve the execution package, session JSONL, PR, worker ids, and git range before producing the retro."
+  default_prompt: "Use $delivery-retro to analyze this completed delivery run. Resolve the execution package, session metrics source, PR, worker ids when needed, and git range before producing the retro."

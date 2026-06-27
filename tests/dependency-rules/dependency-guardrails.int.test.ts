@@ -38,6 +38,21 @@ describe('epic0-s2-dependency-guardrails', () => {
     });
   });
 
+  it('accepts TypeScript-only fixtures without empty tsconfig input failures', async () => {
+    const check = await runDependencyRuleCheck({
+      name: 'typescript-only-fixture',
+      files: {
+        'packages/sdk/src/index.ts': "export const sdkValue = 'sdk';\n",
+      },
+    });
+
+    expect(check).toMatchObject({
+      fixtureName: 'typescript-only-fixture',
+      valid: true,
+      violations: [],
+    });
+  });
+
   it('rejects SDK imports from runtime packages with the named SDK package rule', async () => {
     const check = await runDependencyRuleCheck(dependencyRuleFixtures.sdkImportsRuntimePackage);
 

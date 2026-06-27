@@ -8,22 +8,27 @@ completed run; it is not an execution or planning skill.
 A final retro requires all five handles:
 
 - execution package path;
-- Codex/agent session JSONL path;
+- session metrics source: an `agent-session-metrics` report, Codex session id, or explicit
+  session file;
 - PR URL or number;
-- worker thread ids or aliases;
+- worker thread ids or aliases when not derivable from the metrics tree;
 - git commit range.
 
-The script resolves handles from explicit CLI flags first, then from package text, tracker rows,
-session JSONL records, and current repo conventions. If any handle remains unresolved, stop and ask
-for exactly that missing handle. A partial retro is allowed only when the user explicitly asks for a
-partial diagnostic.
+The skill resolves handles from explicit user inputs first, then from package text, tracker rows,
+metrics reports, session references, and current repo conventions. If any handle remains unresolved,
+stop and ask for exactly that missing handle. The deterministic analyzer script resolves only the
+handles it owns; the skill combines analyzer output with the `agent-session-metrics` report in the
+final retro. A partial retro is allowed only when the user explicitly asks for a partial diagnostic.
 
 ## Normalized Observability
 
-Prefer `execution/observability/events.jsonl` over raw session JSONL. Future delivery runs should
-record this file incrementally with `scripts/observe-delivery-run.mjs`; older runs may be backfilled
-once with `scripts/import-session-observability.mjs`. After backfill, analyze the normalized events
-instead of repeatedly parsing raw session transcripts.
+Prefer `execution/observability/events.jsonl` over raw provider records. Future delivery runs should
+record this file incrementally with `scripts/observe-delivery-run.mjs`. For Codex session duration,
+token usage, and worker/subagent trees, invoke the repo-local `agent-session-metrics` skill and
+consume its `report.main` output rather than implementing another JSONL parser or reading another
+skill's files from this skill. Older runs may be backfilled once with
+`scripts/import-session-observability.mjs` only when the analyzer specifically needs normalized event
+records that the metrics report does not provide.
 
 Supported normalized event types:
 
@@ -53,16 +58,19 @@ parallel workers writing to the same path.
 
 ## Source Rules
 
-- Treat `execution/tracker.md`, `execution/plan.md`, session JSONL, PR data supplied by the user, and
-  git commits as source evidence.
+- Treat `execution/tracker.md`, `execution/plan.md`, `agent-session-metrics` reports, PR data
+  supplied by the user, and git commits as source evidence.
 - Treat normalized observability events as the preferred source for worker aliases, review rounds,
   findings, token usage, elapsed time, and turn counts.
+- Treat `agent-session-metrics` as the preferred source for Codex session ids, child session ids,
+  session names, duration, token totals, turn counts, and tool-call counts when normalized
+  observability events do not already provide those fields.
 - Attribute normalized events to a story only when the event contains a structured story id, such as
   `storyId`, `story_id`, `story`, `worker.storyId`, or `scope: { "type": "story", "id": "..." }`.
   Do not substring-match unstructured record text against story ids.
-- Resolve worker aliases from session JSONL with `scripts/find-worker-aliases.mjs` before asking the
-  user for worker ids. The scanner is deterministic and should be preferred over manually searching
-  large JSONL transcripts.
+- Resolve worker aliases from `agent-session-metrics` `report.main.children` before asking the user
+  for worker ids. Use `scripts/find-worker-aliases.mjs` only as a compatibility fallback for old
+  packages when no metrics report can be produced.
 - Mark each metric as `observed`, `reconstructed`, `partial`, or `unavailable`.
 - Token usage may be reported only when a source exposes usage fields. If no inspected source exposes
   tokens, report `unavailable`; never estimate from transcript size, elapsed time, or message count.

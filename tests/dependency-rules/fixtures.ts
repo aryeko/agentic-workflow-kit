@@ -23,40 +23,40 @@ export const dependencyRuleFixtures = {
       ...externalPackage('execa', 'execa'),
       ...externalPackage('@modelcontextprotocol/sdk', 'McpServer'),
       ...externalPackage('commander', 'Command'),
-      'packages/provider-github/src/index.ts': moduleFile(
+      'packages/provider-github/src/index.js': moduleFile(
         "import { Octokit } from '@octokit/rest';\nexport { Octokit };",
       ),
-      'packages/provider-local/src/index.ts': moduleFile("import { execa } from 'execa';\nexport { execa };"),
-      'packages/mcp/src/index.ts': moduleFile(
+      'packages/provider-local/src/index.js': moduleFile("import { execa } from 'execa';\nexport { execa };"),
+      'packages/mcp/src/index.js': moduleFile(
         "import { McpServer } from '@modelcontextprotocol/sdk';\nexport { McpServer };",
       ),
-      'packages/cli/src/index.ts': moduleFile("import { Command } from 'commander';\nexport { Command };"),
+      'packages/cli/src/index.js': moduleFile("import { Command } from 'commander';\nexport { Command };"),
     },
   },
   allowedProductionAndTestImports: {
     name: 'allowed-production-and-test-imports',
     files: {
-      'packages/sdk/src/index.ts': moduleFile("export const sdkValue = 'sdk';"),
-      'packages/testkit/src/index.ts': moduleFile(
-        "import { sdkValue } from '../../sdk/src/index';\nexport { sdkValue };",
+      'packages/sdk/src/index.js': moduleFile("export const sdkValue = 'sdk';"),
+      'packages/testkit/src/index.js': moduleFile(
+        "import { sdkValue } from '../../sdk/src/index.js';\nexport { sdkValue };",
       ),
-      'packages/provider-github/src/index.ts': moduleFile(
-        "import { sdkValue } from '../../sdk/src/index';\nexport { sdkValue };",
+      'packages/provider-github/src/index.js': moduleFile(
+        "import { sdkValue } from '../../sdk/src/index.js';\nexport { sdkValue };",
       ),
-      'packages/provider-github/src/index.test.ts': moduleFile(
-        "import { sdkValue } from '../../sdk/src/index';\nimport { sdkValue as testValue } from '../../testkit/src/index';\nexport const both = [sdkValue, testValue];",
+      'packages/provider-github/src/index.test.js': moduleFile(
+        "import { sdkValue } from '../../sdk/src/index.js';\nimport { sdkValue as testValue } from '../../testkit/src/index.js';\nexport const both = [sdkValue, testValue];",
       ),
-      'tests/dependency-rules/sample.unit.test.ts': moduleFile(
-        "import { sdkValue } from '../../packages/testkit/src/index';\nexport const testValue = sdkValue;",
+      'tests/dependency-rules/sample.unit.test.js': moduleFile(
+        "import { sdkValue } from '../../packages/testkit/src/index.js';\nexport const testValue = sdkValue;",
       ),
     },
   },
   sdkImportsRuntimePackage: {
     name: 'sdk-imports-runtime-package',
     files: {
-      'packages/provider-github/src/index.ts': moduleFile("export const providerValue = 'github';"),
-      'packages/sdk/src/index.ts': moduleFile(
-        "import { providerValue } from '../../provider-github/src/index';\nexport const sdkValue = providerValue;",
+      'packages/provider-github/src/index.js': moduleFile("export const providerValue = 'github';"),
+      'packages/sdk/src/index.js': moduleFile(
+        "import { providerValue } from '../../provider-github/src/index.js';\nexport const sdkValue = providerValue;",
       ),
     },
   },
@@ -64,7 +64,7 @@ export const dependencyRuleFixtures = {
     name: 'sdk-imports-banned-external',
     files: {
       ...externalPackage('@octokit/rest', 'Octokit'),
-      'packages/sdk/src/index.ts': moduleFile("import { Octokit } from '@octokit/rest';\nexport { Octokit };"),
+      'packages/sdk/src/index.js': moduleFile("import { Octokit } from '@octokit/rest';\nexport { Octokit };"),
     },
   },
   sdkImportsBannedProcessHelper: {
@@ -72,7 +72,7 @@ export const dependencyRuleFixtures = {
     files: {
       ...externalPackage('execa', 'execa'),
       ...externalPackage('@kit-vnext/native-containment-helper', 'contain'),
-      'packages/sdk/src/index.ts': moduleFile(
+      'packages/sdk/src/index.js': moduleFile(
         "import { execa } from 'execa';\nimport { contain } from '@kit-vnext/native-containment-helper';\nexport const helpers = [execa, contain];",
       ),
     },
@@ -82,7 +82,7 @@ export const dependencyRuleFixtures = {
     files: {
       ...externalPackage('@modelcontextprotocol/sdk', 'McpServer'),
       ...externalPackage('commander', 'Command'),
-      'packages/sdk/src/index.ts': moduleFile(
+      'packages/sdk/src/index.js': moduleFile(
         "import { McpServer } from '@modelcontextprotocol/sdk';\nimport { Command } from 'commander';\nexport const executableDeps = [McpServer, Command];",
       ),
     },
@@ -90,52 +90,52 @@ export const dependencyRuleFixtures = {
   sdkImportsChildProcess: {
     name: 'sdk-imports-child-process',
     files: {
-      'packages/sdk/src/index.ts': moduleFile("import { spawn } from 'node:child_process';\nexport const run = spawn;"),
+      'packages/sdk/src/index.js': moduleFile("import { spawn } from 'node:child_process';\nexport const run = spawn;"),
     },
   },
   providerImportsPeerProvider: {
     name: 'provider-imports-peer-provider',
     files: {
-      'packages/provider-local/src/index.ts': moduleFile("export const localValue = 'local';"),
-      'packages/provider-github/src/index.ts': moduleFile(
-        "import { localValue } from '../../provider-local/src/index';\nexport const githubValue = localValue;",
+      'packages/provider-local/src/index.js': moduleFile("export const localValue = 'local';"),
+      'packages/provider-github/src/index.js': moduleFile(
+        "import { localValue } from '../../provider-local/src/index.js';\nexport const githubValue = localValue;",
       ),
     },
   },
   providerProductionImportsExecutableAndTestkit: {
     name: 'provider-production-imports-executable-and-testkit',
     files: {
-      'packages/cli/src/index.ts': moduleFile("export const cliValue = 'cli';"),
-      'packages/testkit/src/index.ts': moduleFile("export const testkitValue = 'testkit';"),
-      'packages/provider-local/src/index.ts': moduleFile(
-        "import { cliValue } from '../../cli/src/index';\nimport { testkitValue } from '../../testkit/src/index';\nexport const localValue = [cliValue, testkitValue];",
+      'packages/cli/src/index.js': moduleFile("export const cliValue = 'cli';"),
+      'packages/testkit/src/index.js': moduleFile("export const testkitValue = 'testkit';"),
+      'packages/provider-local/src/index.js': moduleFile(
+        "import { cliValue } from '../../cli/src/index.js';\nimport { testkitValue } from '../../testkit/src/index.js';\nexport const localValue = [cliValue, testkitValue];",
       ),
     },
   },
   testkitImportsProvider: {
     name: 'testkit-imports-provider',
     files: {
-      'packages/provider-markdown/src/index.ts': moduleFile("export const markdownValue = 'markdown';"),
-      'packages/testkit/src/index.ts': moduleFile(
-        "import { markdownValue } from '../../provider-markdown/src/index';\nexport const testValue = markdownValue;",
+      'packages/provider-markdown/src/index.js': moduleFile("export const markdownValue = 'markdown';"),
+      'packages/testkit/src/index.js': moduleFile(
+        "import { markdownValue } from '../../provider-markdown/src/index.js';\nexport const testValue = markdownValue;",
       ),
     },
   },
   productionImportsTestFixture: {
     name: 'production-imports-test-fixture',
     files: {
-      'packages/provider-markdown/src/__fixtures__/markdown.ts': moduleFile("export const fixtureValue = 'fixture';"),
-      'packages/provider-markdown/src/index.ts': moduleFile(
-        "import { fixtureValue } from './__fixtures__/markdown';\nexport const markdownValue = fixtureValue;",
+      'packages/provider-markdown/src/__fixtures__/markdown.js': moduleFile("export const fixtureValue = 'fixture';"),
+      'packages/provider-markdown/src/index.js': moduleFile(
+        "import { fixtureValue } from './__fixtures__/markdown.js';\nexport const markdownValue = fixtureValue;",
       ),
     },
   },
   productionImportsConformanceHelper: {
     name: 'production-imports-conformance-helper',
     files: {
-      'tooling/conformance-helpers/mock-driver.ts': moduleFile("export const conformanceValue = 'conformance';"),
-      'packages/provider-markdown/src/index.ts': moduleFile(
-        "import { conformanceValue } from '../../../tooling/conformance-helpers/mock-driver';\nexport const markdownValue = conformanceValue;",
+      'tooling/conformance-helpers/mock-driver.js': moduleFile("export const conformanceValue = 'conformance';"),
+      'packages/provider-markdown/src/index.js': moduleFile(
+        "import { conformanceValue } from '../../../tooling/conformance-helpers/mock-driver.js';\nexport const markdownValue = conformanceValue;",
       ),
     },
   },
@@ -147,30 +147,30 @@ export const dependencyRuleFixtures = {
       ...externalPackage('execa', 'execa'),
       ...externalPackage('@kit-vnext/native-containment-helper', 'contain'),
       ...externalPackage('@modelcontextprotocol/sdk', 'McpServer'),
-      'packages/provider-local/src/index.ts': moduleFile(
+      'packages/provider-local/src/index.js': moduleFile(
         "import { Octokit } from '@octokit/rest';\nexport { Octokit };",
       ),
-      'packages/provider-github/src/index.ts': moduleFile("import { execa } from 'execa';\nexport { execa };"),
-      'packages/provider-markdown/src/index.ts': moduleFile(
+      'packages/provider-github/src/index.js': moduleFile("import { execa } from 'execa';\nexport { execa };"),
+      'packages/provider-markdown/src/index.js': moduleFile(
         "import { contain } from '@kit-vnext/native-containment-helper';\nexport { contain };",
       ),
-      'packages/cli/src/index.ts': moduleFile(
+      'packages/cli/src/index.js': moduleFile(
         "import { Command } from 'commander';\nimport { McpServer } from '@modelcontextprotocol/sdk';\nexport const deps = [Command, McpServer];",
       ),
-      'packages/mcp/src/index.ts': moduleFile("import { Command } from 'commander';\nexport { Command };"),
+      'packages/mcp/src/index.js': moduleFile("import { Command } from 'commander';\nexport { Command };"),
     },
   },
   circularDependency: {
     name: 'circular-dependency',
     files: {
-      'packages/sdk/src/a.ts': moduleFile("import { b } from './b';\nexport const a = b;"),
-      'packages/sdk/src/b.ts': moduleFile("import { a } from './a';\nexport const b = a;"),
+      'packages/sdk/src/a.js': moduleFile("import { b } from './b.js';\nexport const a = b;"),
+      'packages/sdk/src/b.js': moduleFile("import { a } from './a.js';\nexport const b = a;"),
     },
   },
   orphanModule: {
     name: 'orphan-module',
     files: {
-      'packages/sdk/src/orphan.ts': moduleFile("export const orphan = 'orphan';"),
+      'packages/sdk/src/orphan.js': moduleFile("export const orphan = 'orphan';"),
     },
   },
 } satisfies Readonly<Record<string, DependencyRuleFixture>>;

@@ -1,0 +1,5 @@
+{"type":"session_meta","payload":{"id":"child-a","cwd":"/repo/tree","threadSource":"subagent","source":{"subagent":{"thread_spawn":{"parent_thread_id":"root-tree","depth":1,"role":"reviewer","nickname":"alpha"}}},"modelProvider":"openai","timestamp":"2026-06-27T01:01:00.000Z"}}
+{"type":"turn_context","payload":{"model":"gpt-5-mini","reasoningEffort":"medium","timestamp":"2026-06-27T01:01:01.000Z"}}
+{"type":"response_item","payload":{"type":"tool_call","name":"read","arguments":"redacted","timestamp":"2026-06-27T01:01:03.000Z"}}
+{"type":"collab_tool_call","payload":{"receiverThreadId":"grandchild-a1","timestamp":"2026-06-27T01:01:04.000Z"}}
+{"type":"event_msg","payload":{"type":"token_count","timestamp":"2026-06-27T01:01:10.000Z","usage":{"total":{"input_tokens":400,"cached_input_tokens":100,"output_tokens":90,"reasoning_output_tokens":20,"total_tokens":490},"last":{"input_tokens":15,"cached_input_tokens":0,"output_tokens":6,"reasoning_output_tokens":2,"total_tokens":21},"model_context_window":128000}}}

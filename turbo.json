@@ -21,6 +21,7 @@
         "//#deps",
         "//#typecheck",
         "//#type:fixtures",
+        "//#agent-session-metrics:test",
         "//#coverage:baseline"
       ],
       "outputs": []
@@ -88,6 +89,10 @@
         "!**/coverage/**"
       ],
       "outputs": ["coverage/**"]
+    },
+    "//#agent-session-metrics:test": {
+      "inputs": [".agents/skills/agent-session-metrics/**"],
+      "outputs": []
     }
   }
 }

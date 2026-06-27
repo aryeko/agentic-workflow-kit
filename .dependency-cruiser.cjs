@@ -57,6 +57,7 @@ module.exports = {
         pathNot: [
           '\\.(test|spec)\\.[tj]s$',
           '\\.d\\.ts$',
+          '(^|/)dist/',
           '(^|/)tooling/',
           '(^|/)tests/',
           '\\.config\\.[tj]s$',
