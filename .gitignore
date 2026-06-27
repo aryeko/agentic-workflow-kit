@@ -4,6 +4,9 @@ packages/*/dist/
 .claude/
 *.log
 .DS_Store
-.codex/
 coverage/
 packages/*/coverage/
+.codex/*
+!.codex/cloud-env-common.sh
+!.codex/cloud-env-setup.sh
+!.codex/cloud-env-maintenance.sh
