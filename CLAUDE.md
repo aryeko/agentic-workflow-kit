@@ -1,4 +1,4 @@
-# CLAUDE.md — Claude Code operating layer for kit-vnext
+# CLAUDE.md — Claude Code operating layer for agentic-workflow-kit
 
 This file adds Claude Code-specific operating guidance on top of `AGENTS.md`. **Read
 `AGENTS.md` first** — it holds the invariants, the layered ground-truth map

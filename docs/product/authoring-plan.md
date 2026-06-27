@@ -84,7 +84,7 @@ and the per-product stubs under [`products/`](products/).
 - **Verify gate.** `docs:nav:check` covers `docs/product/` (nav footers are generated — run
   `pnpm docs:nav`, never hand-edit them). Run `pnpm check` before a PR.
 - **Tooling for the work.** Use `product-management:product-brainstorming` for shaping;
-  `agentic-workflow-kit:define-product` for the PRD dogfood (step 5).
+  `agentic-workflow-kit:define-product` for the Jig PRD dogfood.
 
 ## Reference map
 
