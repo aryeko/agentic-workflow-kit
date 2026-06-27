@@ -321,6 +321,27 @@ export {
   deriveRecoveryPlanIdInput,
 } from './core/recovery/classifier/index.js';
 export type { RecoveryActionSafety, RecoveryPlanIdInput } from './core/recovery/classifier/index.js';
+export {
+  buildRecoveryLifecycleEdgeRequest,
+  planRecoveryAction,
+  recordRecoveryActionApplied,
+  recordRecoveryClassified,
+  recordRecoveryPlan,
+} from './core/recovery/plans/index.js';
+export type {
+  BuildRecoveryLifecycleEdgeRequestInput,
+  PlanRecoveryActionInput,
+  RecordRecoveryActionAppliedInput,
+  RecordRecoveryClassifiedInput,
+  RecordRecoveryPlanInput,
+  RecoveryApplyBlockedResult,
+  RecoveryApplySuccess,
+  RecoveryClassifiedRecord,
+  RecoveryCommittedPlan,
+  RecoveryLifecycleEdgeRequest,
+  RecoveryPlanRecord,
+  RecoveryPlansFailure,
+} from './core/recovery/plans/index.js';
 export * from './core/run-lifecycle/lifecycle/index.js';
 export type { RunEventIdInput, RunEventLogDependencies } from './core/run-lifecycle/log/index.js';
 export { createRunEventLog } from './core/run-lifecycle/log/index.js';
