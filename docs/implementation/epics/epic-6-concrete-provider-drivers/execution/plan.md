@@ -6,7 +6,8 @@
 - Package worktree path: `/Users/aryekogan/repos/workflow-kit/.worktrees/plan-delivery-epic-6`.
 - Base branch: `v-next`.
 - Package branch: `codex/plan-delivery-epic-6`.
-- HEAD inspected: `fcb2a621724faa3a36f83f41f19f26442f260c0a`.
+- Source baseline HEAD inspected: `fcb2a621724faa3a36f83f41f19f26442f260c0a`.
+- Initial package commit reviewed: `0b6156e` (`docs: add epic 6 execution package`).
 - Epic slug: `epic-6-concrete-provider-drivers`.
 - Package author/date: Codex, 2026-06-27.
 - Source inventory: `docs/implementation/epics/epic-6-concrete-provider-drivers/story-dag.md` plus the 4 ready source story contracts listed below. Every story row and prompt cites source story id and source AC ids.

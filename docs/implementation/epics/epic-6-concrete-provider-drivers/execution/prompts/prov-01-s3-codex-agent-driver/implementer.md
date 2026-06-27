@@ -39,6 +39,8 @@ This wave 2 story consumes merged Local driver evidence from `prov-04-s3-local-e
 - `docs/implementation/epics/epic-1-foundation-substrate/stories/fnd-04-s4-audit-failures.md`
 - `docs/engineering/check-gate.md`
 - `docs/engineering/test-lanes.md`
+- `docs/engineering/testing-policy.md`
+- `docs/engineering/dependency-rule-enforcement.md`
 - Runtime dependency commits slot: `{{DEPENDENCY_COMMITS}}` for merged `prov-04-s3-local-execution-host-driver` plus prior frozen Epic 1 and Epic 2 producers.
 
 ## Acceptance Criteria

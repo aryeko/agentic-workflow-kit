@@ -33,6 +33,8 @@ This wave 1 story produces the Local Execution Host provider consumed by Epic 7 
 - `docs/implementation/epics/epic-1-foundation-substrate/stories/fnd-04-s2-injection-egress.md`
 - `docs/engineering/check-gate.md`
 - `docs/engineering/test-lanes.md`
+- `docs/engineering/testing-policy.md`
+- `docs/engineering/dependency-rule-enforcement.md`
 - Runtime dependency commits slot: `{{DEPENDENCY_COMMITS}}` for prior frozen Epic 1 and Epic 2 producers.
 
 ## Acceptance Criteria

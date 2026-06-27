@@ -34,6 +34,8 @@ This wave 1 story produces the GitHub Forge provider consumed by Epic 7 and core
 - `docs/implementation/epics/epic-1-foundation-substrate/stories/fnd-04-s4-audit-failures.md`
 - `docs/engineering/check-gate.md`
 - `docs/engineering/test-lanes.md`
+- `docs/engineering/testing-policy.md`
+- `docs/engineering/dependency-rule-enforcement.md`
 - Runtime dependency commits slot: `{{DEPENDENCY_COMMITS}}` for prior frozen Epic 1 and Epic 2 producers.
 
 ## Acceptance Criteria
