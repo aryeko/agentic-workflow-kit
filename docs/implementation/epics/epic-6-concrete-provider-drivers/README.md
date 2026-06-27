@@ -79,7 +79,7 @@ shared DTOs, attestations, mocks, and conformance helpers are owned by Epic 2.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Codex concrete provider story group after the SDK port and testkit baseline are stable. | TBD | covered |
+| Codex concrete provider story group after the SDK port and testkit baseline are stable. | `prov-01-s3-codex-agent-driver` | covered |
 
 - Evidence expectation: Epic 6 stories prove the Codex Agent provider implements the SDK Agent port
   and produces the required seam evidence without giving Forge credentials to the worker.
@@ -88,7 +88,7 @@ shared DTOs, attestations, mocks, and conformance helpers are owned by Epic 2.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| GitHub concrete provider story group after the SDK port and testkit baseline are stable. | TBD | covered |
+| GitHub concrete provider story group after the SDK port and testkit baseline are stable. | `prov-02-s3-github-forge-driver` | covered |
 
 - Evidence expectation: Epic 6 stories prove the GitHub Forge provider implements exact-head reads
   and writes through the SDK Forge port with credential-scoped, redacted evidence.
@@ -97,7 +97,7 @@ shared DTOs, attestations, mocks, and conformance helpers are owned by Epic 2.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Markdown concrete provider story group after the SDK port and testkit baseline are stable. | TBD | covered |
+| Markdown concrete provider story group after the SDK port and testkit baseline are stable. | `prov-03-s3-markdown-work-source-driver` | covered |
 
 - Evidence expectation: Epic 6 stories prove the Markdown Work Source provider preserves task status
   authority and race-safe mutation through the SDK Work Source port.
@@ -106,7 +106,7 @@ shared DTOs, attestations, mocks, and conformance helpers are owned by Epic 2.
 
 | Story Group Signal (from charter) | Owning story | Disposition |
 |---|---|---|
-| Local concrete provider story group after the SDK port and testkit baseline are stable. | TBD | covered |
+| Local concrete provider story group after the SDK port and testkit baseline are stable. | `prov-04-s3-local-execution-host-driver` | covered |
 
 - Evidence expectation: Epic 6 stories prove the Local Execution Host provider captures host,
   command, injection, and termination evidence through the SDK Execution Host port.
