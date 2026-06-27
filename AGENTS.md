@@ -8,6 +8,16 @@ corpus here. (README.md is for humans; this file is for the work.)
 
 ---
 
+## Review guidelines
+
+Codex automatic PR review must follow
+`docs/engineering/codex-github-code-review.md`. Prioritize serious P0/P1
+correctness, safety, contract, and evidence issues; consult the implementation
+lessons ledger for known recurring workflow-kit patterns; avoid style-only
+findings unless `AGENTS.md` explicitly makes them review-blocking.
+
+---
+
 ## What kit-vnext is
 
 A deterministic control plane that delegates well-scoped work to agent workers and lands

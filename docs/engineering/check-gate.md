@@ -138,6 +138,6 @@ list to make the gate green. Investigate and fix the underlying issue instead.
 
 ---
 
-**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Engineering Policy Index](./README.md) · **Next →:** [Dependency Policy](./dependency-policy.md)
+**↑ Up:** [Engineering Policy Index](./README.md) · **← Prev:** [Engineering Policy Index](./README.md) · **Next →:** [Codex GitHub Code Review](./codex-github-code-review.md)
 
 <!-- /DOCS-NAV -->

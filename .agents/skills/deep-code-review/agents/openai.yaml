@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deep Code Review"
+  short_description: "Run workflow-kit's local deep code review workflow."
+  default_prompt: "Use $deep-code-review to review the current branch."

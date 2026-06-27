@@ -1,0 +1,32 @@
+[
+  {
+    "id": "positive-deep-review-branch",
+    "query": "Deep review this workflow-kit branch before I open the PR.",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "id": "positive-explicit-skill",
+    "query": "Use $deep-code-review on this PR diff.",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "id": "negative-address-review-comments",
+    "query": "Address the Codex review comments on this PR.",
+    "should_trigger": false,
+    "split": "train"
+  },
+  {
+    "id": "negative-run-check",
+    "query": "Run pnpm check and tell me what failed.",
+    "should_trigger": false,
+    "split": "validation"
+  },
+  {
+    "id": "negative-delivery-retro",
+    "query": "Analyze the review rounds and lessons from the completed delivery run.",
+    "should_trigger": false,
+    "split": "validation"
+  }
+]
