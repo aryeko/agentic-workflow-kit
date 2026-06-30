@@ -214,8 +214,7 @@ self-report. Jig is responsible for keeping the authority boundary real.
 - **SEC-1.** Secrets stay out of the run. Credentials and sensitive values are kept out of
   records, logs, artifacts, and exports, so the trail you keep is safe to keep.
 - **SEC-2.** The worker cannot phone home. Outbound network access is confined, and the
-  confinement is proven with negative checks — Jig does not take the agent's word that it stayed
-  put.
+  confinement is proven — Jig does not take the agent's word that it stayed put.
 - **SEC-3.** The worker never holds your forge credentials. The runner performs the privileged
   action; the thing writing code is never the thing holding the keys.
 
@@ -257,10 +256,6 @@ how the work gets done. Jig derives live behavior from those choices and the pla
   auto-grant follows a fixed risk rule you can predict — and no model adjudicates for you
   (LLM-decided autonomy is deferred; see [what Jig isn't (yet)](#what-jig-isnt-yet)).
 
-**Honest edge.** Presets are starting points, not a guarantee of fit. Ignoring guidance may be
-valid, but it trades away legibility and traceability. Jig will not pretend those tradeoffs do
-not exist.
-
 How much Jig asks you is a dial you set (CFG-10), not a fixed personality:
 
 ```mermaid
@@ -271,6 +266,10 @@ flowchart LR
 
 Today the dial runs from manual to assisted; no model decides for you. The auto end is a
 deliberate deferral, not a hidden default.
+
+**Honest edge.** Presets are starting points, not a guarantee of fit. Ignoring guidance may be
+valid, but it trades away legibility and traceability. Jig will not pretend those tradeoffs do
+not exist.
 
 ## 3. Resilience — never lose work, resume safely
 
@@ -300,15 +299,15 @@ progress, repeating irreversible actions, or blocking unrelated work.
   checks. Jig follows the owner's posture.
 - **ISO-3. Blocks are first-class outcomes.** A block records what happened and why, so the
   owner, supporting tools, and the learning loop can act on it.
-- **ISO-4. Parallel work cannot collide.** Each run works in its own isolated workspace, task
-  claims are race-safe, and the same task cannot be launched twice — independent stories run at
-  once without corrupting each other's tree or racing the same work.
+- **ISO-4. Parallel work cannot collide.** Each run works in its own isolated workspace, and the
+  same task cannot be launched twice — independent stories run at once without corrupting each
+  other's tree or duplicating work.
 
 ### 3.3 Liveness — noticing a stuck run
 
 - **LIVE-1. Jig knows the difference between thinking, stuck, and dead.** It watches progress,
-  idleness, missing heartbeats, and overdue approvals, so a worker that hangs is detected rather
-  than waited on forever.
+  idleness, silence, and overdue approvals, so a worker that hangs is detected rather than waited
+  on forever.
 - **LIVE-2. A stuck run escalates instead of burning the night.** When the signals say a run is
   going nowhere, Jig parks it for your decision rather than silently spending time and budget.
 
@@ -367,8 +366,8 @@ memory or narrative.
   records directly to diagnose a bad plan or policy. The learning loop accelerates diagnosis;
   it is not required for visibility.
 - **SEE-5. Attention is a triaged queue, not a log.** Every parked, blocked, stale, or overdue
-  condition becomes a typed notice — what it is, how urgent it is, and what you can do about it
-  right now — so you work a list of decisions instead of reading a transcript.
+  condition becomes a notice — what it is, how urgent it is, and what you can do about it right
+  now — so you work a list of decisions instead of reading a transcript.
 - **SEE-6. Take the record with you.** A finished run exports as a write-once,
   redacted-by-default audit record you can archive or hand to compliance outside Jig.
 
