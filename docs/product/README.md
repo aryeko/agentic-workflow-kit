@@ -1,7 +1,7 @@
 ---
 title: Product definition
 status: draft — product layer
-last-reviewed: "2026-06-27"
+last-reviewed: "2026-06-30"
 ---
 
 # Product definition

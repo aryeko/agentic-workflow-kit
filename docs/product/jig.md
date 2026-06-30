@@ -26,8 +26,6 @@ design and delivery planning own how those promises are implemented and verified
 | Before | The owner cannot tell whether the agent stayed inside policy, what evidence justified a merge, or how to resume safely after interruption. |
 | After | The owner delegates execution under policy and receives evidence, escalation points, recovery, and a reconstructible outcome. |
 | Non-fit | Jig is not a product-definition tool, a design authoring tool, an LLM project manager, or a way to bypass review judgment. |
-| Success signal | Runs land with fewer unsafe surprises, lower review burden, clear evidence, and recoverable progress. |
-| Counter-signal | Owners need to inspect protocol mechanics to understand the product promise, or current design defaults harden into product truth. |
 
 ## Workflow
 
