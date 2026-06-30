@@ -122,6 +122,6 @@ notes from this read are:
 
 ---
 
-**↑ Up:** [Jig product layer rebuild review](./README.md) · **← Prev:** [PR #167 authoring hardening note](../2026-06-26-pr-167-authoring-hardening-note.md) · **Next →:** [Report 2 — Design-Reference Behaviors for JIG Rebuild](./02-design-reference-behaviors.md)
+**↑ Up:** [Jig product layer rebuild review](./README.md) · **← Prev:** [Jig product feature-gap analysis (design → product)](../2026-06-30-jig-product-feature-gap-analysis.md) · **Next →:** [Report 2 — Design-Reference Behaviors for JIG Rebuild](./02-design-reference-behaviors.md)
 
 <!-- /DOCS-NAV -->
