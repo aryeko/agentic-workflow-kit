@@ -88,8 +88,8 @@ story that caused it and everything downstream, and run everything independent i
   _visibly_ downstream.
 - **DAG-3. The graph is what makes Jig's isolation and concurrency real.** Explicit dependencies
   are the input to Jig's fault-isolation — a blocked story halts only itself and what depends on
-  it (see [Jig](../jig.md), ③ **ISO-1**) — and to its concurrency, where the plan's independent
-  stories are what Jig is allowed to run at once (②, **CFG-4**). A plan with hidden or missing
+  it (see [Jig](../jig.md), guarantee 3 **ISO-1**) — and to its concurrency, where the plan's independent
+  stories are what Jig is allowed to run at once (guarantee 2, **CFG-4**). A plan with hidden or missing
   dependencies degrades both; getting the graph right is the planner's responsibility, not
   something Jig can recover after the fact.
 
@@ -111,8 +111,8 @@ checkable form, and Jig checks it against real evidence rather than the agent's 
   concrete to verify.
 - **AC-3. These ACs are exactly what Jig's gates check.** design → plan is the _producer_ of the
   bar; Jig is the _consumer_. Jig merges on independent evidence, never on assertion (see
-  [Jig](../jig.md), ① **MERGE-1**), and the records of what was checked are the same records you
-  inspect (⑤ **SEE-1**, **SEE-3**). The criteria written here are what those gates evaluate —
+  [Jig](../jig.md), guarantee 1 **MERGE-1**), and the records of what was checked are the same records you
+  inspect (guarantee 5 **SEE-1**, **SEE-3**). The criteria written here are what those gates evaluate —
   the evidence seam that parallels the schema seam.
 - **AC-4. Prose-only safeguards reproduce defects — write checkable boxes.** This is the hard
   lesson the product encodes, not an aside. A safeguard expressed only as prose guidance gets
@@ -138,11 +138,11 @@ plan proposes; it does not decide.
   a model class, an effort level, and a prompt approach suited to that story's difficulty and
   role — the planner's read of where the hard parts are.
 - **PROF-2. The proposal composes with the user's work-profile config; the user owns the final
-  say.** Jig's work profile (see [Jig](../jig.md), ② **CFG-2**) is the user's track-scoped control
+  say.** Jig's work profile (see [Jig](../jig.md), guarantee 2 **CFG-2**) is the user's track-scoped control
   over model, effort, and prompt strategy, and it is freely tunable. design → plan's per-story
   proposal **feeds into** that — a reasoned default the user can accept, tune, or override. The
   plan contributes a recommendation; the user's configuration and policy decide what actually
-  runs (Jig _computes_ the realized run from config plus plan — ② **CFG-4**). design → plan does
+  runs (Jig _computes_ the realized run from config plus plan — guarantee 2 **CFG-4**). design → plan does
   not seize ownership of the work profile; it informs it.
 
 ### A versioned generation guideline
@@ -164,7 +164,7 @@ produced it.
   feeds the suite's learning-loop traceability.
 - **GEN-3. Recommended, not enforced.** The generation guideline sits in the suite's _guide_
   tier, not the _enforce_ tier (see the [product README](../README.md)'s versioned-generation
-  note and [Jig](../jig.md), ② **CFG-8**). Ignore it and you trade away legibility in how the plan
+  note and [Jig](../jig.md), guarantee 2 **CFG-8**). Ignore it and you trade away legibility in how the plan
   traces back to the design; the kit won't stop you.
 
 ## Per track
@@ -200,14 +200,14 @@ and work profile are. See [Tracks — parallel independent work](../concepts.md)
 - **Per track.** A plan is a plan _for a track_; a repo runs many in parallel — see
   [Tracks](../concepts.md).
 - **ACs and evidence are what Jig's gates check.** The criteria and evidence clauses written
-  here are exactly what Jig evaluates at merge-on-evidence ([Jig](../jig.md), ① **MERGE-1**) and
-  surfaces in its records (⑤ **SEE-1**, **SEE-3**) — the evidence seam alongside the schema seam.
+  here are exactly what Jig evaluates at merge-on-evidence ([Jig](../jig.md), guarantee 1 **MERGE-1**) and
+  surfaces in its records (guarantee 5 **SEE-1**, **SEE-3**) — the evidence seam alongside the schema seam.
 - **The dependency graph feeds Jig's isolation and concurrency.** Explicit story dependencies
-  are the input to fault-isolation (③ **ISO-1**) and parallel execution (② **CFG-4**).
+  are the input to fault-isolation (guarantee 3 **ISO-1**) and parallel execution (guarantee 2 **CFG-4**).
 - **The per-story work profile composes with config.** design → plan's proposal feeds Jig's
-  track-scoped work profile ([Jig](../jig.md), ② **CFG-2**), which the user owns.
+  track-scoped work profile ([Jig](../jig.md), guarantee 2 **CFG-2**), which the user owns.
 - **The generation guideline feeds the learning loop's traceability.** A versioned guideline
-  ([product README](../README.md); [Jig](../jig.md), ② **CFG-8**) is what lets the learning loop
+  ([product README](../README.md); [Jig](../jig.md), guarantee 2 **CFG-8**) is what lets the learning loop
   trace a defect back to the rule that produced the plan.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->

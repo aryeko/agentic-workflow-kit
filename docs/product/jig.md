@@ -53,7 +53,7 @@ flowchart TD
 The supporting products can help produce the product definition, design, and plan. They are
 strong defaults, not prerequisites. Jig's minimum input is a valid execution plan.
 
-## The Five Guarantees
+## The five guarantees
 
 1. **Control & trust** — the worker can only do what you authorized, earns autonomy by proof,
    cannot weaken its own guardrails, pulls you in for real decisions, and never ships on its
@@ -96,13 +96,13 @@ not on babysitting twelve runs.**
 _More scenarios — a risky change at the doorbell, a safe resume after interruption, swapping
 your agent — follow the same shape and are added in the same pass._
 
-## ① Control & Trust
+## 1. Control & trust
 
 **Intended behavior.** The agent is a contained worker. It can request work, produce code, run
 checks, and report progress, but it cannot expand its own authority or land changes by
 self-report. Jig is responsible for keeping the authority boundary real.
 
-### ①.1 The fence — runtime authorization
+### 1.1 The fence — runtime authorization
 
 - **FENCE-1.** Every worker request is authorized before it executes. If the request is not
   declared and approved, it fails closed.
@@ -111,14 +111,14 @@ self-report. Jig is responsible for keeping the authority boundary real.
 - **FENCE-3.** The worker never holds privileged credentials. The runner performs privileged
   actions on the worker's behalf, under policy and evidence gates.
 
-### ①.2 Earned trust — capability attestation
+### 1.2 Earned trust — capability attestation
 
 - **EARN-1.** Autonomy requires fresh, positive proof that the relevant driver can perform the
   capability safely enough for the policy in force.
 - **EARN-2.** Capability proof is specific to the driver and run context. Missing, stale, or
   failed proof means less autonomy and more human checkpoints, not a weakened guarantee.
 
-### ①.3 Anti-gaming
+### 1.3 Anti-gaming
 
 - **GUARD-1.** The policy in force is fixed when the run launches. The worker cannot loosen
   the rules it is being judged by.
@@ -126,7 +126,7 @@ self-report. Jig is responsible for keeping the authority boundary real.
   integration safety, completion pauses for explicit owner re-approval and fresh evidence. Jig
   will not let a run quietly change its own rules and then declare itself done.
 
-### ①.4 The doorbell — approval and escalation
+### 1.4 The doorbell — approval and escalation
 
 - **DOOR-1.** Ambiguous, risky, or unproven action routes to the owner. The default when Jig
   cannot justify autonomy is a closed door, not a guess.
@@ -135,7 +135,7 @@ self-report. Jig is responsible for keeping the authority boundary real.
 - **DOOR-3.** Human grants are narrow. Approval is scoped to the need in front of the run, not
   a blanket yes to future authority.
 
-### ①.5 Merge-on-evidence
+### 1.5 Merge-on-evidence
 
 - **MERGE-1.** Completing and landing work requires independent evidence aligned to the policy,
   never the worker's self-report alone.
@@ -148,7 +148,7 @@ self-report. Jig is responsible for keeping the authority boundary real.
 owner's responsibility. A weak review, empty verification command, or vague plan remains weak.
 Jig makes that weakness visible instead of pretending it is proof.
 
-## ② You Own The Configuration
+## 2. Configuration ownership
 
 **Intended behavior.** You set the risk posture and execution style for each track without
 being handed an undifferentiated wall of knobs. Policy is the safety contract. Work profile is
@@ -179,12 +179,12 @@ how the work gets done. Jig derives live behavior from those choices and the pla
 valid, but it trades away legibility and traceability. Jig will not pretend those tradeoffs do
 not exist.
 
-## ③ Never Lose Work; Resume Safely
+## 3. Resilience — never lose work, resume safely
 
 **Intended behavior.** A run survives interruption and local failure without losing recorded
 progress, repeating irreversible actions, or blocking unrelated work.
 
-### ③.1 Interruption resume
+### 3.1 Interruption resume
 
 - **RESUME-1. Durable progress.** Completed work and run decisions are recorded when they
   happen. A crash does not erase progress that was already committed to the run record.
@@ -197,7 +197,7 @@ progress, repeating irreversible actions, or blocking unrelated work.
 - **RESUME-5. Resume integrity.** If safety-relevant assumptions changed while the run was
   stopped, Jig asks for owner re-approval and fresh evidence before continuing.
 
-### ③.2 Work-level failure isolation
+### 3.2 Work-level failure isolation
 
 - **ISO-1. Fault isolation is dependency-aware.** A blocked story halts itself and downstream
   dependents, while independent work keeps moving.
@@ -211,7 +211,7 @@ progress, repeating irreversible actions, or blocking unrelated work.
 as good as the dependencies declared in the plan. A corrupt or contradictory substrate becomes
 a diagnosable stop, not a promise of magic recovery.
 
-## ④ Runs Against Your Stack
+## 4. Stack portability
 
 **Intended behavior.** Jig works with the stack you bring while keeping its guarantees stable.
 The promise is not a specific vendor list; the promise is that changing a driver does not move
@@ -232,7 +232,7 @@ the control, evidence, and recovery boundaries.
 driver proves a capability, the owner should expect reduced autonomy rather than a weaker
 guarantee.
 
-## ⑤ See Everything
+## 5. Full observability
 
 **Intended behavior.** Jig makes a run reconstructible. The owner can see what was requested,
 authorized, gated, approved, blocked, landed, or stopped without relying on the worker's
