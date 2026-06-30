@@ -38,6 +38,18 @@ Jig starts where planning ends:
 4. Jig lands work only on evidence, or stops in a named state with enough information to
    recover, re-plan, or reject.
 
+```mermaid
+flowchart TD
+    A["You provide:<br/>approved plan + policy"] --> B["Jig runs the ready work<br/>in parallel, up to your limit"]
+    B --> C{"Each story:<br/>safe to land on evidence?"}
+    C -->|Yes| D["Landed<br/>with replayable evidence"]
+    C -->|Needs your call| E["Parked<br/>waiting on your decision"]
+    C -->|Can't proceed| F["Blocked<br/>with a logged reason"]
+    E -->|You decide| B
+    D --> G["A run you can replay,<br/>end to end"]
+    F --> G
+```
+
 The supporting products can help produce the product definition, design, and plan. They are
 strong defaults, not prerequisites. Jig's minimum input is a valid execution plan.
 
@@ -62,6 +74,27 @@ discipline the owner can adapt. Jig enforces only the floors that make delegatio
 authorization before action, policy that cannot be quietly weakened, runner-owned irreversible
 actions, and evidence before landing work. The owner still chooses the policy posture and the
 strength of the gates.
+
+## How You Use Jig
+
+These scenarios show what Jig does _for you_. Each one makes one of the five guarantees
+concrete.
+
+### Overnight delivery of a planned epic
+
+You have an approved plan — twelve stories — and you want them delivered tonight without
+supervising each one. You set a cautious policy posture and point Jig at the plan. It works the
+stories that are ready, in parallel up to the limit you set, and lands each one **only on real
+evidence** — never on the agent's say-so. One story tries to change a file that governs your
+safety rules; Jig **pauses it and asks you**, rather than quietly merging. Another fails its
+checks; Jig **stops it and records why**, without holding up the independent stories.
+
+By morning: nine landed with evidence you can replay, two waiting on a decision only you should
+make, one blocked with a reason. **You spent your judgment on the two decisions that mattered —
+not on babysitting twelve runs.**
+
+_More scenarios — a risky change at the doorbell, a safe resume after interruption, swapping
+your agent — follow the same shape and are added in the same pass._
 
 ## ① Control & Trust
 
