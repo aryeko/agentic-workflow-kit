@@ -15,8 +15,8 @@ because a clear PRD with falsifiable, ID'd ACs was its starting point.
 This document is a **product-level overview**: what define-product does _for you_ and _why it
 matters_, not how it is built. The kit's existing `define-product` skill
 (`agentic-workflow-kit:define-product`) is prior art — this product is, in a real sense, the
-productization of that skill — and the existing multi-file PRD format under
-`docs/prds/<slug>/` is a concrete model the guidelines build on. This doc describes the
+productization of that skill — and the existing multi-file PRD template/examples are a
+concrete model the guidelines build on. This doc describes the
 product at altitude, in terms of what it produces.
 
 Note: throughout this doc, "ID'd ACs" refers to a **content feature of the PRD artifact** —
