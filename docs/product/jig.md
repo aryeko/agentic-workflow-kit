@@ -204,10 +204,11 @@ self-report. Jig is responsible for keeping the authority boundary real.
 - **MERGE-4.** Done and merged are separate milestones. Jig proves a story is *done* — its
   evidence is met — independently of whether its PR is *mergeable right now*. Branch protection,
   a merge queue, or a conflict can hold a done story without erasing that the work is done.
-- **MERGE-5.** Blocked work shows up where you already work. A run that cannot land surfaces as
-  a real pull request with the failure reasons in a comment, and its status is posted to the PR
-  — your normal review flow, not a separate dashboard. Jig respects merge queues and
-  branch-protection rules.
+- **MERGE-5.** Blocked work shows up where you already work. When a run has a safe branch and
+  permission to push, a block surfaces as a real pull request with the failure reasons in a
+  comment, and its status is posted to the PR — your normal review flow, not a separate
+  dashboard. When it cannot safely do that, the block is still recorded for you. Jig respects
+  merge queues and branch-protection rules.
 
 ### 1.6 Security — no leaks, no phone-home
 
@@ -391,8 +392,9 @@ outcome-level commitments and the IDs above.
 
 Jig is honest about its edges. These are deliberate non-goals or deferrals, not gaps:
 
-- **No model decides for you.** Every escalation is resolved by a human today; LLM-adjudicated
-  approvals are deferred.
+- **No model decides for you.** No LLM adjudicates approvals; risky or unallowlisted requests
+  always go to a human. Low-risk auto-grants in assisted mode follow a fixed, predictable rule
+  (CFG-10), never a model.
 - **Local-first.** Jig runs against a local execution host now. Remote hosts are a ready seam
   with no shipped driver yet — don't expect remote execution today.
 - **Operator-initiated.** A run starts because you start it; webhook and scheduler triggers come
