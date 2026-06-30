@@ -58,6 +58,6 @@ turning implementation protocol into product prose.
 
 ---
 
-**↑ Up:** [Product definition](./README.md) · **← Prev:** [Learning loop (supporting product)](./supporting-products/learning-loop.md) · **Next →:** [design corpus overview](../design/README.md)
+**↑ Up:** [Product definition](./README.md) · **← Prev:** [Learning loop (supporting product)](./supporting-products/learning-loop.md) · **Next →:** [PRDs — product requirements](./prds/README.md)
 
 <!-- /DOCS-NAV -->

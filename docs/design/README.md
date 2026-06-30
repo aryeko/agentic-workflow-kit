@@ -41,7 +41,7 @@ starting point.
 
 ---
 
-**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [Product layer — status + authoring plan](../product/status.md) · **Next →:** [<Domain name>](./_templates/domain-design-template.md)
+**↑ Up:** [agentic-workflow-kit — documentation home](../README.md) · **← Prev:** [Glossary](../product/prds/jig/10-glossary.md) · **Next →:** [<Domain name>](./_templates/domain-design-template.md)
 
 **Children:** [<Domain name>](./_templates/domain-design-template.md) · [orientation](./00-orientation/README.md) · [architecture overview](./10-architecture/README.md) · [SDK & packaging overview](./20-sdk-and-packaging/README.md) · [domain reference](./30-domain-reference/README.md) · [decisions layer](./40-decisions/README.md) · [implementation status note](./IMPLEMENTATION_STATUS_NOTE.md)
 
