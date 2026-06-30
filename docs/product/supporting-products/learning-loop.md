@@ -58,7 +58,7 @@ This is the moment the machine-readable record becomes a human-readable signal.
 **Product requirements.**
 
 - **LOOP-1.** Issue intake consumes **Jig's machine-readable records** (see [Jig](../jig.md),
-  **⑤ SEE-2**) as a primary signal — not manual notes alone. The records are an input
+  **guarantee 5 SEE-2**) as a primary signal — not manual notes alone. The records are an input
   contract that the loop relies on.
 - **LOOP-2.** Each intake entry records **what happened, where it was observed** (which run,
   which story, which gate), **and what evidence** in the records supports it. An intake entry
@@ -104,7 +104,7 @@ safeguards that govern the planning layer itself.)
 - **LOOP-7.** Promotion can target **any layer** — PRD structure, design conventions, plan
   ACs, policy gates, provider checks, prompt/eval criteria, or the harness itself. The loop
   is not limited to the upstream stages; it can harden Jig's own policy and gate config
-  between runs (see [Jig](../jig.md), **②**). The earliest catchable layer, wherever it is, is
+  between runs (see [Jig](../jig.md), **guarantee 2**). The earliest catchable layer, wherever it is, is
   where the check lands.
 
 ### Lessons ledger
@@ -157,14 +157,14 @@ running many tracks in parallel produces independent retro material per track. S
 
 - **Out of Jig's per-run hot path.** The loop is a **between-runs product**. It does not
   operate during execution. A minimal-product user running Jig alone can still inspect the
-  records directly to diagnose a bad plan or policy (see [Jig](../jig.md), **⑤ SEE-4**) — the
+  records directly to diagnose a bad plan or policy (see [Jig](../jig.md), **guarantee 5 SEE-4**) — the
   loop is an accelerant for systematic prevention, not a prerequisite for visibility.
 - **Human-led, not automatic.** The records lower the cost of root-cause analysis; they do
   not automate it. A human makes the trace and the promotion decision. This is a discipline,
   not a pipeline.
 - **Distinct from the throughput fix-forward scan.** The throughput-leaning path allows an
   instance-level, execution-time scan to catch issues after merge and spawn follow-up stories
-  (see [Jig](../jig.md), **③ ISO-2**; **② CFG-7**). That scan is class-*instance*, at
+  (see [Jig](../jig.md), **guarantee 3 ISO-2**; **guarantee 2 CFG-7**). That scan is class-*instance*, at
   execution time — a different thing from the learning loop, which is class-level and
   between-runs. The loop is not a substitute for the scan, and the scan is not a substitute
   for the loop.
@@ -181,19 +181,19 @@ running many tracks in parallel produces independent retro material per track. S
 ## Cross-links
 
 - **Consumes Jig's machine-readable records.** The structured records emitted by Jig's
-  observability layer (see [Jig](../jig.md), **⑤ SEE-2**) are the loop's primary input. Those
+  observability layer (see [Jig](../jig.md), **guarantee 5 SEE-2**) are the loop's primary input. Those
   records are an input contract, not human-only logs — the loop is one of the suite tools
   they are designed for.
 - **Can harden any layer, including Jig's own configuration.** The loop's root-cause trace
   can reach as far back as the PRD and as far forward as Jig's policy and gate config
-  (see [Jig](../jig.md), **②**). No layer is off-limits to hardening.
+  (see [Jig](../jig.md), **guarantee 2**). No layer is off-limits to hardening.
 - **Ties to design → plan's AC-4.** The promotion principle — prose safeguards reproduce
   defects, checkable boxes prevent them — is the same discipline design → plan requires of
   story-level acceptance criteria (see [design → plan](design-to-plan.md), **AC-4**). The
   loop applies that discipline at the meta-level: to the authoring rules and policy checks
   that govern the planning layer itself.
 - **Distinct from the instance-level fix-forward scan.** The throughput-path scan
-  (see [Jig](../jig.md), **③ ISO-2** / **② CFG-7**) operates at execution time on individual
+  (see [Jig](../jig.md), **guarantee 3 ISO-2** / **guarantee 2 CFG-7**) operates at execution time on individual
   story instances. The loop operates between runs on defect classes. Both serve prevention;
   neither replaces the other.
 - **Per track** — see [Tracks](../concepts.md).

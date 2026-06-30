@@ -1,17 +1,16 @@
 ---
 title: Product definition
 status: draft — product layer
-last-reviewed: "2026-06-27"
+last-reviewed: "2026-06-30"
 ---
 
 # Product definition
 
 > The product layer that was skipped. The design corpus under `docs/design/` answers
 > _what must be true_ and _how it is built_; it never states _for whom_ and _why this_.
-> This document states that, and defines the **product suite** at a high level — an
-> overview, sub-modules, and a content placeholder for each product. We deepen each
-> product by priority (**the package first**); phasing is planned later, once the product
-> requirements are in front of us. This document is the **source of truth for the product**;
+> This document states that, and defines the **product suite** at a high level: the product
+> promise, suite map, boundaries, and product/design authority. The canonical package product
+> page is [Jig](./jig.md). This document is the **source of truth for the product**;
 > where it diverges from the existing design, the design is reconciled to follow it —
 > deliberately, as a downstream step, not by churn.
 
@@ -26,6 +25,7 @@ a branch/version, not an identity).
 
 - Suite umbrella: `agentic-workflow-kit`.
 - Main product: Jig (`jig`, `@agentic-workflow-kit/jig`).
+- Canonical Jig product page: [docs/product/jig.md](./jig.md).
 - Minimum input to Jig: a schema-conformant execution plan.
 - Upstream products are optional strong defaults: define-product → product→design → design→plan.
 - Hard schema boundary: Jig's execution-plan input only.
@@ -132,9 +132,13 @@ recoverability, and evidence are guarantees of the system, not best-effort behav
 
 ## The workflow
 
-```
-define product → design → plan → execute
-                   └──────── learning loop ────────┘
+```mermaid
+flowchart LR
+    DP["Define<br/>product"] --> PD["Product →<br/>design"]
+    PD --> DPL["Design →<br/>plan"]
+    DPL --> J["Jig<br/>execute under policy"]
+    J --> R["Reviewed, landed work<br/>+ replayable evidence"]
+    R -. "learning loop" .-> DP
 ```
 
 Each stage produces a **durable, structured artifact** that is the next stage's input.
@@ -146,6 +150,19 @@ limit**: you can enter at any stage with your own artifact (your own product spe
 or execution plan), as long as it meets what that stage expects as input. The package's
 minimum input is a valid execution plan; everything upstream is there to help you produce
 a better one.
+
+## How you run it
+
+Jig is one engine you reach three ways — all driving the same run with the same guarantees:
+
+- **From your terminal (CLI).** Run `jig` from a shell to start a run, watch it, inspect any
+  story, and answer the decisions it raises.
+- **As a tool for your agent (MCP server).** Expose Jig to another agent as callable tools, so
+  an orchestrating agent can launch and supervise runs the same way you would.
+- **Embedded in your own software (SDK).** An embeddable library (`createWorkflowKit`) lets you
+  run Jig inside your own runner, service, or UI instead of going through the CLI.
+
+You pick the surface; the control, evidence, and recovery guarantees do not change between them.
 
 ## Policy, not posture — the gating spectrum
 
@@ -190,11 +207,12 @@ for the full per-guarantee breakdown.
 
 ## The product suite
 
-The kit is a set of **individual products** that compose through shared artifacts and contracts. Each can
-be used on its own; together they are the workflow. The umbrella is **Jig plus the current
-supporting products plus an open space the suite can grow into** — all sharing common contracts
-and runtime evidence. Below is the high-level map — overview, sub-modules, and a content
-placeholder per product. The package is the priority; the supporting products follow.
+The kit is a set of **individual products** that compose through shared artifacts and
+contracts. Each can be used on its own; together they are the workflow. The umbrella is
+**Jig plus the current supporting products plus an open space the suite can grow into** — all
+sharing common contracts and runtime evidence. Below is the high-level map. The package's
+canonical product page is [Jig](./jig.md); the supporting products stay as concise
+orientation pages until they are deepened.
 
 The suite runs **parallel independent tracks** — each track its own
 PRD → design → plan → policy → work profile, progressing independently of the others in
@@ -348,8 +366,9 @@ package) between runs.
 
 ## Next step
 
-Deepen **the package** product first — expand its sub-module placeholders into a
-product-level overview — then proceed to the supporting products by priority.
+Use [Jig](./jig.md) as the canonical package product page. Delivery-level acceptance criteria,
+phase sequencing, and mechanism-specific verification are issued later in design or planning
+artifacts that cite Jig's product-owned commitment IDs.
 
 <!-- DOCS-NAV (generated — do not edit by hand) -->
 

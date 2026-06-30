@@ -15,8 +15,8 @@ because a clear PRD with falsifiable, ID'd ACs was its starting point.
 This document is a **product-level overview**: what define-product does _for you_ and _why it
 matters_, not how it is built. The kit's existing `define-product` skill
 (`agentic-workflow-kit:define-product`) is prior art — this product is, in a real sense, the
-productization of that skill — and the existing multi-file PRD format under
-`docs/prds/<slug>/` is a concrete model the guidelines build on. This doc describes the
+productization of that skill — and the existing multi-file PRD template/examples are a
+concrete model the guidelines build on. This doc describes the
 product at altitude, in terms of what it produces.
 
 Note: throughout this doc, "ID'd ACs" refers to a **content feature of the PRD artifact** —
@@ -164,7 +164,7 @@ repo runs many tracks in parallel, each with its own PRD advancing at its own pa
   criteria written here, labeled for reference, are the same criteria design → plan carries
   forward as story-level checkable criteria (see [design → plan](design-to-plan.md), **AC-1**,
   **AC-2**) and that Jig's gates evaluate at merge-on-evidence
-  (see [Jig](../jig.md), **① MERGE-1**) and surfaces in its records (**⑤ SEE-1**, **SEE-3**).
+  (see [Jig](../jig.md), **guarantee 1 MERGE-1**) and surfaces in its records (**guarantee 5 SEE-1**, **SEE-3**).
   The evidence thread starts here.
 - **The learning loop can trace a defect back to the PRD.** Between runs, the learning loop's
   root-cause trace reaches back to the earliest layer that should have caught an issue — which
