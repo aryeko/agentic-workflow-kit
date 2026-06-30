@@ -132,9 +132,13 @@ recoverability, and evidence are guarantees of the system, not best-effort behav
 
 ## The workflow
 
-```
-define product → design → plan → execute
-                   └──────── learning loop ────────┘
+```mermaid
+flowchart LR
+    DP["Define<br/>product"] --> PD["Product →<br/>design"]
+    PD --> DPL["Design →<br/>plan"]
+    DPL --> J["Jig<br/>execute under policy"]
+    J --> R["Reviewed, landed work<br/>+ replayable evidence"]
+    R -. "learning loop" .-> DP
 ```
 
 Each stage produces a **durable, structured artifact** that is the next stage's input.
@@ -146,6 +150,19 @@ limit**: you can enter at any stage with your own artifact (your own product spe
 or execution plan), as long as it meets what that stage expects as input. The package's
 minimum input is a valid execution plan; everything upstream is there to help you produce
 a better one.
+
+## How you run it
+
+Jig is one engine you reach three ways — all driving the same run with the same guarantees:
+
+- **From your terminal (CLI).** Run `jig` from a shell to start a run, watch it, inspect any
+  story, and answer the decisions it raises.
+- **As a tool for your agent (MCP server).** Expose Jig to another agent as callable tools, so
+  an orchestrating agent can launch and supervise runs the same way you would.
+- **Embedded in your own software (SDK).** An embeddable library (`createWorkflowKit`) lets you
+  run Jig inside your own runner, service, or UI instead of going through the CLI.
+
+You pick the surface; the control, evidence, and recovery guarantees do not change between them.
 
 ## Policy, not posture — the gating spectrum
 

@@ -53,6 +53,24 @@ flowchart TD
 The supporting products can help produce the product definition, design, and plan. They are
 strong defaults, not prerequisites. Jig's minimum input is a valid execution plan.
 
+### Driving a run
+
+You stay in control through a small set of deliberate actions. Each one is a single, recorded
+move — not a free-form conversation with an agent.
+
+- **Start** a run from your plan and policy, or **preview** what would run before committing.
+- **Watch** it live — what's progressing, what's parked, what's blocked — and **inspect** any
+  story for what happened and what evidence backs it.
+- **Ask why.** Why did this story block? Why did that one merge? Why is this one waiting? Jig
+  answers from the run's own record — an attributable answer, not a log you decode.
+- **Decide** when a run pulls you in: approve, reject, **override** a call you'd make
+  differently, or **hand off** the decision to someone else.
+- **Stop** a run cleanly so it can be resumed later, and **acknowledge or snooze** a notice so
+  your queue reflects what you've already seen.
+
+You run Jig from a terminal, drive it as a tool from your own agent, or embed it in your own
+software — see [how you run it](./README.md#how-you-run-it).
+
 ## The five guarantees
 
 1. **Control & trust** — the worker can only do what you authorized, earns autonomy by proof,
@@ -143,6 +161,23 @@ self-report. Jig is responsible for keeping the authority boundary real.
   not the thing that ships it.
 - **MERGE-3.** Done conditions are explicit and policy-bound. The owner decides what evidence
   is required before work may land.
+- **MERGE-4.** Done and merged are separate milestones. Jig proves a story is *done* — its
+  evidence is met — independently of whether its PR is *mergeable right now*. Branch protection,
+  a merge queue, or a conflict can hold a done story without erasing that the work is done.
+- **MERGE-5.** Blocked work shows up where you already work. A run that cannot land surfaces as
+  a real pull request with the failure reasons in a comment, and its status is posted to the PR
+  — your normal review flow, not a separate dashboard. Jig respects merge queues and
+  branch-protection rules.
+
+### 1.6 Security — no leaks, no phone-home
+
+- **SEC-1.** Secrets stay out of the run. Credentials and sensitive values are kept out of
+  records, logs, artifacts, and exports, so the trail you keep is safe to keep.
+- **SEC-2.** The worker cannot phone home. Outbound network access is confined, and the
+  confinement is proven with negative checks — Jig does not take the agent's word that it stayed
+  put.
+- **SEC-3.** The worker never holds your forge credentials. The runner performs the privileged
+  action; the thing writing code is never the thing holding the keys.
 
 **Honest edge.** Jig protects the shape of trust; the substance of each gate is still the
 owner's responsibility. A weak review, empty verification command, or vague plan remains weak.
@@ -174,6 +209,13 @@ how the work gets done. Jig derives live behavior from those choices and the pla
 - **CFG-8. Prompt strategy is guided, not magical.** Prompting can move from dynamic per task
   to templated and then to stable role prompts as the work matures; traceability comes from
   versioned guidance, not hidden agent intuition.
+- **CFG-9. Setup runs only when needed.** You declare a setup command — installing dependencies,
+  say — and Jig runs it only when the workspace is stale, skipping it when the tree is already
+  fresh.
+- **CFG-10. You set how much it asks.** A manual posture sends every escalation to you; an
+  assisted posture auto-grants low-risk actions and reserves the risky ones. Which actions
+  auto-grant follows a fixed risk rule you can predict — and no model adjudicates for you
+  (LLM-decided autonomy is deferred; see [what Jig isn't (yet)](#what-jig-isnt-yet)).
 
 **Honest edge.** Presets are starting points, not a guarantee of fit. Ignoring guidance may be
 valid, but it trades away legibility and traceability. Jig will not pretend those tradeoffs do
@@ -199,17 +241,31 @@ progress, repeating irreversible actions, or blocking unrelated work.
 
 ### 3.2 Work-level failure isolation
 
-- **ISO-1. Fault isolation is dependency-aware.** A blocked story halts itself and downstream
-  dependents, while independent work keeps moving.
+- **ISO-1. Eligibility and isolation are both dependency-aware.** A task stays ineligible until
+  its prerequisites finish, so work never starts out of order; and a blocked story halts itself
+  and its downstream dependents while independent work keeps moving.
 - **ISO-2. Resolution is policy-determined.** Prevention-leaning policy can quarantine and
   re-plan; throughput-leaning policy can land independent work and rely on enabled follow-up
   checks. Jig follows the owner's posture.
 - **ISO-3. Blocks are first-class outcomes.** A block records what happened and why, so the
   owner, supporting tools, and the learning loop can act on it.
+- **ISO-4. Parallel work cannot collide.** Each run works in its own isolated workspace, task
+  claims are race-safe, and the same task cannot be launched twice — independent stories run at
+  once without corrupting each other's tree or racing the same work.
+
+### 3.3 Liveness — noticing a stuck run
+
+- **LIVE-1. Jig knows the difference between thinking, stuck, and dead.** It watches progress,
+  idleness, missing heartbeats, and overdue approvals, so a worker that hangs is detected rather
+  than waited on forever.
+- **LIVE-2. A stuck run escalates instead of burning the night.** When the signals say a run is
+  going nowhere, Jig parks it for your decision rather than silently spending time and budget.
 
 **Honest edge.** Resume works from checkpoints, not individual keystrokes. Isolation is only
 as good as the dependencies declared in the plan. A corrupt or contradictory substrate becomes
-a diagnosable stop, not a promise of magic recovery.
+a diagnosable stop, not a promise of magic recovery. Jig also checks that its own storage can
+do what it needs before it starts, and stops with a clear reason rather than risk a run on an
+unreliable filesystem.
 
 ## 4. Stack portability
 
@@ -227,6 +283,18 @@ the control, evidence, and recovery boundaries.
   Jig grants autonomy; unproven capability means more supervision.
 - **STACK-5. Seams are authority boundaries.** Credentials and irreversible authority stay
   where policy and evidence gates can govern them.
+
+### 4.1 Trusting a driver
+
+- **DRIVE-1. Prove a driver before you trust it.** A new agent, execution host, forge, or work
+  source earns its place by passing a conformance suite — including adversarial probes — not by
+  assertion.
+- **DRIVE-2. Nothing escalates silently.** A provider package declares what it may do — which
+  runtimes, what network, which credentials — and you approve that manifest. A change to it
+  requires fresh approval.
+- **DRIVE-3. Containment is reported honestly.** An execution host reports how strong its
+  isolation actually is, and stronger-isolation powers unlock only when it is genuinely strong
+  enough.
 
 **Honest edge.** A seam is not a shipped driver. Drivers can arrive incrementally. Until a
 driver proves a capability, the owner should expect reduced autonomy rather than a weaker
@@ -247,6 +315,11 @@ memory or narrative.
 - **SEE-4. Self-diagnosis, no extra tooling required.** A minimal Jig user can inspect the run
   records directly to diagnose a bad plan or policy. The learning loop accelerates diagnosis;
   it is not required for visibility.
+- **SEE-5. Attention is a triaged queue, not a log.** Every parked, blocked, stale, or overdue
+  condition becomes a typed notice — what it is, how urgent it is, and what you can do about it
+  right now — so you work a list of decisions instead of reading a transcript.
+- **SEE-6. Take the record with you.** A finished run exports as a write-once,
+  redacted-by-default audit record you can archive or hand to compliance outside Jig.
 
 **Honest edge.** Jig shows everything it governs. It does not read the agent's mind and it does
 not turn evidence into judgment automatically. The owner or learning loop still interprets the
@@ -263,6 +336,20 @@ Design owns the implementation details behind these promises: event schema shape
 mechanics, provider contracts, exact policy classifiers, storage strategy, and delivery gates.
 Planning owns delivery-level acceptance criteria and phase sequencing. Product keeps the
 outcome-level commitments and the IDs above.
+
+### What Jig isn't (yet)
+
+Jig is honest about its edges. These are deliberate non-goals or deferrals, not gaps:
+
+- **No model decides for you.** Every escalation is resolved by a human today; LLM-adjudicated
+  approvals are deferred.
+- **Local-first.** Jig runs against a local execution host now. Remote hosts are a ready seam
+  with no shipped driver yet — don't expect remote execution today.
+- **Operator-initiated.** A run starts because you start it; webhook and scheduler triggers come
+  later.
+- **A tool you run, not a service you buy.** Jig is not a hosted, multi-tenant service in v1.
+- **No silent legacy coping.** Jig refuses configuration it doesn't understand, with guidance,
+  rather than guessing at an outdated format.
 
 ## Success And Counter-Signals
 
