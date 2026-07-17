@@ -193,16 +193,15 @@ describe('loadConfig', () => {
     await expect(loadConfig({ cwd })).rejects.toThrow(/pr\.merge\.method/);
   });
 
-  it.each([
-    'push-and-merge',
-    'gated-automerge',
-    'push-only',
-  ])('loads the %s preset through the runtime config path', async (name) => {
-    const yaml = readFileSync(path.join(repoRoot, `presets/${name}.yaml`), 'utf8');
-    expect(() => ConfigSchema.parse(parseYaml(yaml))).not.toThrow();
+  it.each(['push-and-merge', 'gated-automerge', 'push-only'])(
+    'loads the %s preset through the runtime config path',
+    async (name) => {
+      const yaml = readFileSync(path.join(repoRoot, `presets/${name}.yaml`), 'utf8');
+      expect(() => ConfigSchema.parse(parseYaml(yaml))).not.toThrow();
 
-    const cwd = tmpRepo(yaml);
-    const loaded = await loadConfig({ cwd });
-    expect(loaded.config).toEqual(ConfigSchema.parse(parseYaml(yaml)));
-  });
+      const cwd = tmpRepo(yaml);
+      const loaded = await loadConfig({ cwd });
+      expect(loaded.config).toEqual(ConfigSchema.parse(parseYaml(yaml)));
+    },
+  );
 });

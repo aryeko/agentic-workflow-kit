@@ -394,24 +394,24 @@ childSession:
     });
   });
 
-  it.each([
-    'fast',
-    'standard',
-  ] as const)('rejects ambiguous %s speed when raw service_tier is also configured', async (speed) => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-speed-conflict-'));
-    await writeWorkflowConfig(
-      root,
-      `
+  it.each(['fast', 'standard'] as const)(
+    'rejects ambiguous %s speed when raw service_tier is also configured',
+    async (speed) => {
+      const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-speed-conflict-'));
+      await writeWorkflowConfig(
+        root,
+        `
 version: 1
 childSession:
   speed: ${speed}
   config:
     service_tier: fast
 `,
-    );
+      );
 
-    await expect(loadResolvedConfig({}, root)).rejects.toThrow(/childSession\.speed/);
-  });
+      await expect(loadResolvedConfig({}, root)).rejects.toThrow(/childSession\.speed/);
+    },
+  );
 
   it('resolves legacy childTimeoutMs as the no-progress timeout', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'agentic-workflow-kit-config-legacy-timeout-'));
