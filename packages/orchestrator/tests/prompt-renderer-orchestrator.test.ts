@@ -107,14 +107,13 @@ describe('renderStoryImplementerPrompt orchestrator pre-PR block', () => {
     expect(prompt).toContain('up to 2');
   });
 
-  it.each<PrePrMode>([
-    'auto',
-    'inline',
-    'subagent',
-  ])('does not include the orchestrator checkpoint block when mode is %s', (mode) => {
-    const prompt = renderStoryImplementerPrompt(story, makeConfig(mode));
-    expect(prompt).not.toContain(ORCHESTRATOR_MARKER);
-  });
+  it.each<PrePrMode>(['auto', 'inline', 'subagent'])(
+    'does not include the orchestrator checkpoint block when mode is %s',
+    (mode) => {
+      const prompt = renderStoryImplementerPrompt(story, makeConfig(mode));
+      expect(prompt).not.toContain(ORCHESTRATOR_MARKER);
+    },
+  );
 
   it('does not include the orchestrator block when prePr is disabled even if mode is orchestrator', () => {
     const prompt = renderStoryImplementerPrompt(story, makeConfig('orchestrator', false));
